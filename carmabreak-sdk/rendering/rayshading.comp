@@ -1,5 +1,7 @@
 #version 460 core
 
+#define USE_SIMPLIFIED_MODE
+
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 8
 #endif
@@ -157,8 +159,8 @@ void envShading(inout bool skipping) {
 
     // resolve and valiate ray
     //IF (RayActived(currentRay)) {
+        currentRay.origin.xyz = fma(currentRay.direct.xyz, compositedHit[currentLayer].uvt.zzz, currentRay.origin.xyz);
         currentRay.direct.xyz = normalize(currentRay.direct.xyz);
-        currentRay.origin.xyz = currentRay.origin.xyz + currentRay.direct.xyz * compositedHit[currentLayer].uvt.z;
     //}
 
     // not shadeable skipping
@@ -266,8 +268,14 @@ void main() {
 
                     // diffuse and specular colors (based on priorities)
                     vec3 _diffuse  = clamp01(diffcolor.xyz) / max(dfim, 0.00001f);
+                    
+#ifdef USE_SIMPLIFIED_MODE
+                    _diffuse *= mix(vec3(0.1f), vec3(1.f), abs(dot(normalize(lightCenter(0).xyz - currentRay.origin.xyz), normal.xyz)));
+                    _diffuse *= dfpt;
+#endif
+
                     vec3 _specular = clamp01(speccolor.xyz);
-                    vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic));
+                    vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom);
 
 
                     // shading ray of geometry
@@ -278,15 +286,20 @@ void main() {
                         if (random() < prom) {
                             rayTemplate = rayTemplate; // as is transparency
                         } else
+#ifndef USE_SIMPLIFIED_MODE
                         if (random() < dfpt) { // diffuse level
                             rayTemplate = diffuse(currentRay, _diffuse, normal); wasShadow = true;
                         } else 
+#endif
                         if (true) { // reflection level
-                            rayTemplate = reflection(currentRay, _specular, normal, refly);
+#ifdef USE_SIMPLIFIED_MODE
+                            refly = 0.f;
+#endif
+                            rayTemplate = reflection(currentRay, _specular * (1.f - dfpt), normal, refly);
                         }
                     }
 
-
+                    /*
                     // shading of procedural oceans
                     if (RayActived(rayTemplate) == 1 && RayType(rayTemplate) != 2 && proceduralID == 0) {
                         _specular = vec3(0.f), _diffuse = vec3(0.f), _emission = vec3(0.f);
@@ -300,6 +313,7 @@ void main() {
                             rayTemplate = reflection(currentRay, vec3(1.f), normal, 0.0f);
                         }
                     }
+                    */
 
                     // if shadows, just filter color
                     if (RayType(rayTemplate) == 2) rayTemplate.color.xyz *= prom;
@@ -318,7 +332,11 @@ void main() {
                     confirmNode(shadowBlock, RayActived(rayTemplate) == 1 && !overflow);
 
                     // store emission ray
+#ifdef USE_SIMPLIFIED_MODE
+                    rayTemplate = emissive(currentRay, _diffuse * (1.f - prom) + _emission, normal);
+#else
                     rayTemplate = emissive(currentRay, _emission, normal);
+#endif
                     if (overflow) rayTemplate.final = vec4(0.f);
                     invalidateRay(rayTemplate, true);
                     createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.0001f);

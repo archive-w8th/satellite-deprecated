@@ -116,7 +116,8 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
     if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
-    RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
+    //RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
+    RayBounce(ray, min(1, max(RayBounce(ray)-1, 0)));
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     return ray;
 }

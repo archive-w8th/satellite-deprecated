@@ -1,0 +1,71 @@
+#version 460 core
+
+#include "./includes.glsl"
+
+//layout (local_size_x = WARP_SIZE, local_size_y = WORK_SIZE) in;
+layout (local_size_x = BLOCK_SIZE) in;
+
+shared uint localHistogram[RADICES];
+
+// shared for 16 threads (with lanes)
+shared UVEC64_WARP _data[WARP_SIZE];
+#define data _data[LANE_IDX]
+
+initNonAtomicIncFunctionDynamic(localHistogram, countHistogram, uint)
+
+void main() {
+    LT_IDX = gl_LocalInvocationID.x;
+    LC_IDX = (gl_LocalInvocationID.x / WARP_SIZE_RT);
+    LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
+    uint WSZ = WARP_SIZE_RT;
+
+    // calculate blocks
+    blocks_info blocks = get_blocks_info(NumKeys);
+    uint bcount = min(blocks.count, 4096);
+    uint addr = blocks.offset + LT_IDX;
+
+    // copy to temporal
+    for ( uint wk = 0; wk < bcount; wk += WORK_SIZE_RT ) {
+        BVEC_WARP validAddress = addr < NumKeys;
+        if (!validAddress) break; // no need more 
+
+        KeyTmp[addr] = validAddress ? UVEC64_WARP(KeyIn[addr]) : 0xFFFFFFFFFFFFFFFFul;
+        ValueTmp[addr] = validAddress ? ValueIn[addr] : 0u;
+        addr += BLOCK_SIZE_RT;
+    }
+
+    memoryBarrier(); barrier();
+
+
+    // barrier-less, WARP-optimized histogram calculation
+    for (uint rk=0;rk<RADICES;rk+=WORK_SIZE_RT) {
+        uint radice = rk + LC_IDX;
+        addr = blocks.offset + LANE_IDX;
+        if (radice >= RADICES) break; 
+
+        // clear histogram of block
+        localHistogram[radice] = 0;
+
+        // use SIMD lanes for calculate histograms
+        for ( uint wk = 0; wk < bcount; wk++ ) {
+            BVEC_WARP validAddress = addr < NumKeys;
+            //if (!validAddress) break; // no need more 
+            IFALL(!validAddress) break;
+
+            memoryBarrier(); barrier();
+            if (LC_IDX == 0) data = validAddress ? UVEC64_WARP(KeyIn[addr]) : 0xFFFFFFFFFFFFFFFFul;
+            memoryBarrier(); barrier();
+
+            UVEC_WARP k = UVEC_WARP(BFE(data, int(Shift*BITS_PER_PASS), BITS_PER_PASS));
+
+            BVEC_WARP vld = k == radice && validAddress;
+            countHistogram(radice, vld);
+            addr += WARP_SIZE_RT;
+        }
+
+        // planned WARP-based copy
+        PrefixSum[radice + RADICES * gl_WorkGroupID.x] = localHistogram[radice];
+        Histogram[radice + RADICES * gl_WorkGroupID.x] = localHistogram[radice];
+    }
+    
+}

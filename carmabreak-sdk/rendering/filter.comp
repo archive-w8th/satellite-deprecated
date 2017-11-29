@@ -1,0 +1,28 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+
+#define MB_PAGES 3
+
+layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
+layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
+layout ( binding = 2, set = 1, rgba32f ) uniform image2D prevsample;
+layout ( binding = 3, set = 1, r32ui ) uniform uimage2D sampleflags;
+
+vec4 checkerFetch(in ivec2 tx, in int lod) { 
+    vec4 lastColor = imageLoad(presampled, tx);
+    return lastColor;
+}
+
+LOCAL_SIZE_LINEAR_LAYOUT;
+
+void main() {
+    int it = int(gl_GlobalInvocationID.x);
+    ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
+    ivec2 whs = ivec2(imageSize(presampled).xy);
+    ivec3 xyl = ivec3(it % whs.x, it / whs.x, 0);
+
+    imageStore(prefiltered, xyl.xy, checkerFetch(xyl.xy, 0));
+}

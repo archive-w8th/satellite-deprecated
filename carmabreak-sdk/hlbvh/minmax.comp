@@ -1,0 +1,67 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/ballotlib.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/vertex.glsl"
+#include "../include/mathlib.glsl"
+#include "./includes.glsl"
+
+const int work_size = 1024;
+layout ( local_size_x = work_size ) in;
+shared bbox sdata[ work_size ];
+
+layout ( std430, binding = 9, set = 0 )  buffer MinmaxOutputSSBO {vec4 minmax[]; };
+
+bbox getMinMaxPrimitive(in uint idx) {
+    uint tri = clamp(idx, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
+
+    ivec2 msc = gatherMosaic(getUniformCoord(tri));
+    mat3x4 triverts = mat3x4(
+        fetchMosaic(vertex_texture, msc, 0), 
+        fetchMosaic(vertex_texture, msc, 1), 
+        fetchMosaic(vertex_texture, msc, 2)
+    );
+
+    triverts[0] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[0]);
+    triverts[1] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[1]);
+    triverts[2] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[2]);
+    return calcTriBox(triverts);
+}
+
+bbox bboxunion(in bbox b1, in bbox b2) {
+    return bbox(min(b1.mn, b2.mn), max(b1.mx, b2.mx));
+}
+
+void main() {
+    uint tid = gl_LocalInvocationID.x;
+    uint gridSize = (gl_WorkGroupSize.x*2) * gl_NumWorkGroups.x;
+    uint tcount = min(max(GEOMETRY_BLOCK geometryUniform.triangleCount, 2), 16777216);
+    uint i = gl_WorkGroupID.x * (gl_WorkGroupSize.x*2) + tid;
+
+    sdata[tid] = bbox(vec4( 100000.f), vec4(-100000.f));
+    //sdata[tid] = bbox(vec4( 0.f), vec4( 0.f));
+    while (i < tcount) {
+        bbox bound = sdata[tid];
+        sdata[tid] = bboxunion(bound, bboxunion(getMinMaxPrimitive(i), getMinMaxPrimitive(i + gl_WorkGroupSize.x)));
+        i += gridSize;
+    };
+    memoryBarrier(); barrier(); 
+
+    for (uint ki=(gl_WorkGroupSize.x>>1);ki>=1;ki>>=1) {
+        if (tid < ki) {
+            bbox bound = sdata[tid];
+            bbox opbound = sdata[tid + ki];
+            sdata[tid] = bboxunion(bound, opbound); 
+        }
+        if (ki > WARP_SIZE_RT) {
+            memoryBarrier(); barrier(); 
+        }
+    }
+
+    if (tid == 0) {
+        minmax[gl_WorkGroupID.x*2 + 0] = sdata[0].mn - 0.00001f;
+        minmax[gl_WorkGroupID.x*2 + 1] = sdata[0].mx + 0.00001f;
+    }
+}

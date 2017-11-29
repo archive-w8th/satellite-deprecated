@@ -1,0 +1,375 @@
+#version 460 core
+
+#ifndef MAX_DEPTH
+#define MAX_DEPTH 8
+#endif
+
+#include "../include/constants.glsl"
+
+#ifdef USE_BINDLESS
+#extension GL_ARB_bindless_texture : enable
+#endif
+
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/rayslib.glsl"
+#include "../include/random.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/shadinglib.glsl"
+#include "../rendering/environment.glsl"
+
+struct SurfaceUnpacked {
+     vec4 uvt; // UV, distance, triangle
+     vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
+     vec4 metallicRoughness;
+
+    // color parameters
+     vec4 emission;
+     vec4 albedo;
+};
+
+HitRework firstHit;
+SurfaceUnpacked compositedHit[1];
+int layers = 1; // support only one layer
+int currentLayer = 0;
+int wasHit = -1;
+int proceduralID = -1;
+#define hasProcedural (proceduralID != -1)
+
+
+#define hit firstHit
+
+void invokeSurface(inout bool overflow) {
+    // initial hit
+    HitActived(firstHit, FALSE_); firstHit.next = -1;
+    currentLayer = 0, layers = 1, wasHit = -1, proceduralID = -1;
+
+    // initial composition
+    compositedHit[0].uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
+    compositedHit[0].emission = vec4(0.f);
+    compositedHit[0].albedo = vec4(0.f);
+    compositedHit[0].normalHeight = vec4(0.f);
+    compositedHit[0].metallicRoughness = vec4(0.f);
+
+    // if hit was had
+    float hitIDbinary = currentRay.origin.w;
+    wasHit = overflow ? -1 : floatBitsToInt(hitIDbinary);
+    if (wasHit != -1 && wasHit > 0) {
+        firstHit = hits[wasHit-1];
+    } else {
+        wasHit = -1;
+    }
+
+    // search first actived
+    int i = 0;
+    while (HitActived(firstHit) == FALSE_ && i < 8 && firstHit.next != -1) { // search possible layer
+        firstHit = hits[firstHit.next-1]; i++;
+    }
+
+    // if not found
+    IF (not(HitActived(firstHit))) { // if none, make as transparent
+        firstHit.next = -1; wasHit = -1;
+    }
+    
+    // if any found
+    IF (HitActived(firstHit)) {
+        compositedHit[0].uvt = firstHit.uvt;
+        compositedHit[0].albedo = unpackHalf(firstHit.albedo);
+        compositedHit[0].emission = unpackHalf(firstHit.emission);
+        compositedHit[0].metallicRoughness = unpackHalf(firstHit.metallicRoughness);
+        compositedHit[0].normalHeight = firstHit.normalHeight;
+    }
+
+    // layers composition
+    int searchLayer = 0;
+    int hitID = firstHit.next-1;
+    for (int i=0;i<8;i++) {
+        if (hitID < 0) break;
+        IF (not(equalF(compositedHit[searchLayer].uvt.z, hit.uvt.z))) { searchLayer = layers++; break; } // unsupported
+        if (HitActived(hit) == 0) { hitID = hit.next; continue; } // if not actived 
+
+        // composite decals
+        vec4 albedo = unpackHalf(hit.albedo);
+        compositedHit[searchLayer].uvt = hit.uvt;
+        compositedHit[searchLayer].albedo = composite(compositedHit[searchLayer].albedo, albedo);
+        compositedHit[searchLayer].normalHeight = mix(compositedHit[searchLayer].normalHeight, hit.normalHeight, albedo.w);
+        compositedHit[searchLayer].metallicRoughness = mix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), albedo.w);
+        compositedHit[searchLayer].emission = mix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), albedo.w);
+
+        // already filled layer
+        if (compositedHit[searchLayer].albedo.a > 0.99999f) break;
+        hitID = hit.next-1;
+    }
+}
+
+
+void invalidateRay(inout RayRework rayTemplate, in bool overflow){
+    if (RayBounce(rayTemplate) <= 0 || mlength(rayTemplate.color.xyz) < 0.0001f || overflow) RayActived(rayTemplate, FALSE_);
+}
+
+void cleanRay(inout RayRework rayTemplate){
+    rayTemplate.final.xyz = max(vec3(0.0f), rayTemplate.final.xyz);
+    rayTemplate.color.xyz = max(vec3(0.0f), rayTemplate.color.xyz);
+    rayTemplate.origin.w = FINT_NULL; // reset chains
+    invalidateRay(rayTemplate, false);
+}
+
+
+void envShading(inout bool skipping) {
+    // bad ray
+    if (skipping) RayActived(currentRay, FALSE_);
+
+    // apply physical lights
+    int lc = -1;
+    const int lcount = min(RAY_BLOCK materialUniform.lightcount, 16);
+
+    if (wasHit == -1) { 
+        //RayActived(currentRay, FALSE_); 
+        currentRay.final.xyz *= vec3(0.f);
+    }
+    
+    IF (RayDL(currentRay) & RayActived(currentRay)) {
+        for (int i=0;i<lcount;i++) {
+            float md = 1.0f;
+            float dt = intersectSphere(currentRay.origin.xyz, currentRay.direct.xyz, lightCenter(i).xyz, lightUniform.lightNode[i].lightColor.w + GAP);
+            float t = md * dt;
+            IF (lessF(dt, INFINITY) & lessEqualF(t, compositedHit[currentLayer].uvt.z)) lc = i;
+        }
+    }
+
+    // shade light
+    if (lc >= 0 && (RayTargetLight(currentRay) == lc || RayType(currentRay) != 2) && SSC(RayActived(currentRay))) {
+        currentRay.final.xyz = currentRay.color.xyz * getLightColor(lc);
+        //currentRay.final.xyz = currentRay.color.xyz * toLinear(getLightColor(lc));
+        currentRay.color.xyz *= 0.0f;
+        RayActived(currentRay, FALSE_);
+        skipping = true;
+    }
+
+    // apply background
+    vec4 color = vec4(0.0f); EnvironmentShader(color, currentRay); color.xyz = toLinear(max(color.xyz, vec3(0.f)));
+    if ((SSC(greaterEqualF(compositedHit[currentLayer].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay)) && RayType(currentRay) != 2) {
+        currentRay.final.xyz = currentRay.color.xyz * color.xyz;
+        currentRay.color.xyz *= 0.0f;
+        RayActived(currentRay, FALSE_);
+        skipping = true;
+    }
+
+    // resolve and valiate ray
+    //IF (RayActived(currentRay)) {
+        currentRay.direct.xyz = normalize(currentRay.direct.xyz);
+        currentRay.origin.xyz = currentRay.origin.xyz + currentRay.direct.xyz * compositedHit[currentLayer].uvt.z;
+    //}
+
+    // not shadeable skipping
+    if (wasHit == -1) {
+        RayActived(currentRay, FALSE_);
+        currentRay.color.xyz *= 0.0f;
+        skipping = true; 
+    }
+
+    // stagging ray
+    cleanRay(currentRay);
+}
+
+
+LOCAL_SIZE_LAYOUT;
+
+
+
+int createBlockOnce(inout int block, in bool minimalCondition){
+    if (block < 0 && anyInvoc(minimalCondition)) {
+        if (LANE_IDX == 0) block = createBlock(); block = readLane(block, 0);
+        for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+            int nid = tb + int(LANE_IDX);
+            rayBlockNodes[block][nid].data.final = vec4(0.f);
+            rayBlockNodes[block][nid].data.color = vec4(0.f);
+            RayActived(rayBlockNodes[block][nid].data, FALSE_);
+            rayBlocks[block].indices[nid] = IDCTYPE(-1);
+        }
+    }
+    return block;
+}
+
+#include "./ocean-dlc.glsl"
+
+void main() {
+    #define wsize RAY_BLOCK samplerUniform.blockCount
+    //int wsize = RAY_BLOCK samplerUniform.blockCount;
+    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcount = min(tiled(wsize, wcsize), 50000);
+
+    // invoke available blocks
+    bool overflow = false;
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+        globalInvocationSMP = globalID;
+
+        // check if not reached blocks limit
+        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
+        IFALL(overflow) break;
+        if (!overflow) {
+            
+            // accquire shading block
+            currentBlock = -1;
+            if (!overflow) accquireBlock(globalID);
+            bool invld = anyInvoc(overflow || currentBlock < 0 || currentBlockSize <= 0);
+            if (invld) { currentBlock = -1; continue; }
+            
+            resetBlockIndiceCounter(currentBlock);
+            int shadowBlock = -1, emissionBlock = -1;
+
+            // invoke block data
+            if (!invld) {
+                int bts = min(R_BLOCK_SIZE, currentBlockSize);
+                for (int tb = 0; tb < bts; tb += WARP_SIZE_RT) {
+                    int nid = tb + int(LANE_IDX);
+                    randomClocks = 0, subHash = nid; // reset random clocks
+                    bool overflow = invld || overflow || nid >= bts || nid < 0;
+                    IFALL(overflow) break;
+                    accquireNode(nid); overflow = overflow || currentBlockNode < 0;
+                    IFALL(overflow) break;
+                    invokeSurface(overflow); 
+                    
+                    // add procedural objects (our shadertoy intersections)
+                    //addOcean(overflow);
+                    
+                    // rest rays shading
+                    envShading(overflow);
+                    
+                    // constants
+                    const float IOR = 1.400f;
+                    const float diffuse_min_importance = 0.5f;
+                    const vec3 max_fresnel_color = toLinear(vec3(1.f));
+                    const vec3 min_fresnel_color = toLinear(vec3(1.f));
+
+                    // get normals
+                    vec3 surfacenormal = compositedHit[currentLayer].normalHeight.xyz;
+                    vec3 normal = faceforward(surfacenormal, currentRay.direct.xyz, surfacenormal);
+
+                    // get texture composition data
+                    vec4 diffcolor = compositedHit[currentLayer].albedo;
+                    vec4 emiscolor = compositedHit[currentLayer].emission;
+                    float refly = compositedHit[currentLayer].metallicRoughness.x; // roughness
+                    float metallic = sqrt(compositedHit[currentLayer].metallicRoughness.y); // metallic
+
+                    vec3 freflcolor = mix(max_fresnel_color * 1.f, min_fresnel_color * 0.05f, clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f));
+                    vec3 speccolor = mix(freflcolor, diffcolor.xyz, metallic);
+                    
+                    // coefficents
+                    float spca = mix(mlength(freflcolor), 1.f, metallic);
+                    float dfim = max(clamp01(mlength(diffcolor.xyz)), diffuse_min_importance); // diffuse importance
+                    float emis = clamp01(mlength(emiscolor.xyz)); // emission power
+                    float prom = clamp01(1.f - diffcolor.a); // transmission power
+                    float dfpt = clamp01(dfim * (1.f - spca));
+
+                    // diffuse and specular colors (based on priorities)
+                    vec3 _diffuse  = clamp01(diffcolor.xyz) / max(dfim, 0.00001f);
+                    vec3 _specular = clamp01(speccolor.xyz);
+                    vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic));
+
+
+                    // shading ray of geometry
+                    RayRework rayTemplate = promised(currentRay, normal); bool wasShadow = false;
+                    bool physical = RayActived(rayTemplate) == 1 && RayType(rayTemplate) != 2 && !hasProcedural;
+
+                    if (physical) { // inactive or shadows disallowed to shading
+                        if (random() < prom) {
+                            rayTemplate = rayTemplate; // as is transparency
+                        } else
+                        if (random() < dfpt) { // diffuse level
+                            rayTemplate = diffuse(currentRay, _diffuse, normal); wasShadow = true;
+                        } else 
+                        if (true) { // reflection level
+                            rayTemplate = reflection(currentRay, _specular, normal, refly);
+                        }
+                    }
+
+
+                    // shading of procedural oceans
+                    if (RayActived(rayTemplate) == 1 && RayType(rayTemplate) != 2 && proceduralID == 0) {
+                        _specular = vec3(0.f), _diffuse = vec3(0.f), _emission = vec3(0.f);
+
+                        float IOR = 1.334f;
+                        float fresnel = clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f);
+                        rayTemplate = refraction(currentRay, vec3(1.f), normal, 1.f, IOR, 0.f);
+
+                        // reflection on water
+                        if (random() >= fresnel) {
+                            rayTemplate = reflection(currentRay, vec3(1.f), normal, 0.0f);
+                        }
+                    }
+
+                    // if shadows, just filter color
+                    if (RayType(rayTemplate) == 2) rayTemplate.color.xyz *= prom;
+
+                    // store main ray
+                    invalidateRay(rayTemplate, overflow);
+                    storeRay(currentBlock, rayTemplate); 
+                    confirmNode(currentBlock, RayActived(rayTemplate) == 1 && !overflow);
+
+                    // create shadow ray
+                    rayTemplate = directLight(0, currentRay, _diffuse, normal);
+                    invalidateRay(rayTemplate, overflow || !wasShadow);
+                    //createBlockOnce(shadowBlock, !overflow && (mlength(rayTemplate.final.xyz) >= 0.0001f || RayActived(rayTemplate) == 1));
+                    createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1);
+                    storeRay(shadowBlock, rayTemplate); 
+                    confirmNode(shadowBlock, RayActived(rayTemplate) == 1 && !overflow);
+
+                    // store emission ray
+                    rayTemplate = emissive(currentRay, _emission, normal);
+                    if (overflow) rayTemplate.final = vec4(0.f);
+                    invalidateRay(rayTemplate, true);
+                    createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.0001f);
+                    storeRay(emissionBlock, rayTemplate);
+                    //confirmNode(emissionBlock, RayActived(rayTemplate) == 1 && !overflow);
+                }
+            }
+
+
+            bool emissionHasIllumination = false, materialHasIllumination = false, shadowsHasIllumination = false;
+            
+            for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+                int nid = int(tb + LANE_IDX);
+                if (emissionBlock >= 0) copyBlockIndices(emissionBlock, nid);
+                if (currentBlock >= 0) copyBlockIndices(currentBlock, nid);
+                if (shadowBlock >= 0) copyBlockIndices(shadowBlock, nid);
+
+                materialHasIllumination = anyInvoc(materialHasIllumination || anyInvoc(checkIllumination(currentBlock, nid)));
+                emissionHasIllumination = anyInvoc(emissionHasIllumination || anyInvoc(checkIllumination(emissionBlock, nid)));
+                //shadowsHasIllumination = anyInvoc(shadowsHasIllumination || anyInvoc(checkIllumination(shadowBlock, nid)));
+            }
+
+            emissionHasIllumination = anyInvoc(emissionHasIllumination);
+            materialHasIllumination = anyInvoc(materialHasIllumination);
+            //shadowsHasIllumination = anyInvoc(shadowsHasIllumination);
+            
+            if (LANE_IDX == 0) {
+                // flush emission block
+                if (emissionBlock >= 0) {
+                    flushBlock(emissionBlock, emissionHasIllumination);
+                }
+
+                // confirm shadow block
+                if (shadowBlock >= 0) {
+                    if (getBlockIndiceCounter(shadowBlock) > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
+                        confirmBlock(shadowBlock); 
+                    } else { 
+                        flushBlock(shadowBlock, shadowsHasIllumination); 
+                    }
+                }
+
+                // confirm ray block
+                if (currentBlock >= 0) {
+                    if (getBlockIndiceCounter(currentBlock) > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
+                        confirmBlock(currentBlock); 
+                    } else { 
+                        flushBlock(currentBlock, materialHasIllumination); 
+                    }
+                }
+            }
+            
+        }
+    }
+}

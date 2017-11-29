@@ -1,0 +1,74 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/vertex.glsl"
+#include "../include/morton.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
+#include "./includes.glsl"
+
+initAtomicIncFunction(aabbcount[0], atomicIncAABB, int)
+
+//LOCAL_SIZE_LAYOUT;
+LOCAL_SIZE_LINEAR_LAYOUT;
+
+void main() {
+    int t = int(gl_GlobalInvocationID.x);
+    if (t < GEOMETRY_BLOCK geometryUniform.triangleCount) {
+        vec4 mn = vec4(INFINITY);
+        vec4 mx = vec4(-INFINITY);
+
+        uint tri = clamp(t, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
+        ivec2 msc = gatherMosaic(getUniformCoord(tri));
+        mat3x4 triverts = mat3x4(
+            fetchMosaic(vertex_texture, msc, 0), 
+            fetchMosaic(vertex_texture, msc, 1), 
+            fetchMosaic(vertex_texture, msc, 2)
+        );
+
+        triverts[0] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[0]);
+        triverts[1] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[1]);
+        triverts[2] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[2]);
+
+        vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
+        if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
+
+            bbox bounding = calcTriBox(triverts);
+            vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.333333333f;
+            vec4 branges = (bounding.mx - bounding.mn);
+
+            {
+                int to = atomicIncAABB(TRUE_);
+                MortoncodesIndices[to] = int(to);
+#ifdef INT64_MORTON
+                Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
+                    uvec3(floor(clamp(bcenter.xyz, vec3(0.0f), vec3(0.99999f)) * 2097152.0f)), 
+                    uvec3(0), uvec3(0x1FFFFF))));
+#else
+                Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
+                    uvec3(floor(clamp(bcenter.xyz, vec3(0.0f), vec3(0.99999f)) * 1024.0f)), 
+                    uvec3(0), uvec3(0x3FF))));
+#endif
+
+                // correct precision error
+#ifdef USE_F32_BVH
+                bounding.mn -= 0.00006f;
+                bounding.mx += 0.00006f;
+#else
+                bounding.mn -= 0.0006f;
+                bounding.mx += 0.0006f;
+#endif
+
+
+                HlbvhNode outLeaf = Leafs[to];
+                outLeaf.lbox.mn = outLeaf.rbox.mn = PACKF_(bounding.mn);
+                outLeaf.lbox.mx = outLeaf.rbox.mx = PACKF_(bounding.mx);
+                outLeaf.pdata.xy = ivec2(to);
+                outLeaf.pdata.zw = ivec2(-1, t);
+                Leafs[to] = outLeaf;
+            }
+        }
+    }
+}

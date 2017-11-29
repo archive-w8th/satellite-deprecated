@@ -1,0 +1,437 @@
+#version 460 core
+
+#define SIMPLIFIED_RAY_MANAGMENT
+//#define DISCARD_SHARED_CACHING // store rays in registers if possible
+//#define STACKLESS_BVH
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/rayslib.glsl"
+#include "../include/morton.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/vertex.glsl"
+
+
+// consts
+const int STACK_SIZE = 32; // can be much smaller cache
+const int CACHED_STACK_SIZE = 0;
+const int BAKED_STACK_SIZE = 8;
+const int ESTIMATE_BATCH = WARP_SIZE;
+
+
+struct BlockCacheInfo {
+    int indiceCount; // count of indices in traverse
+    int triCount; // count of triangle pairs
+    ivec2 padding0;
+};
+
+// as minimum 16kb + 16 byte per block
+struct BlockCache {
+    BlockCacheInfo info;
+    ivec2 triangles[WARP_SIZE*2]; // ~16kb
+};
+
+
+struct NodeCacheInfo {
+    int bakedStackCount;
+    int chainID;
+    int prevHt;
+    int nextHt;
+};
+
+// as minimum 384 byte per node
+struct NodeCache {
+    NodeCacheInfo info;
+    //int indeferredStack[STACK_SIZE];
+    vec4 bakedStack[BAKED_STACK_SIZE];
+};
+
+
+#ifndef STACKLESS_BVH
+shared int indeferredStack[WORK_SIZE][16];
+//#define deferredStack nodeCache[rayID].indeferredStack
+#define deferredStack indeferredStack[LT_IDX]
+//int deferredStack[16];
+
+int loadStack(in int STI) {
+    int VALUE = int(-1);
+    if (STI < STACK_SIZE && STI >= 0) { VALUE = exchange(deferredStack[STI], -1); }
+    return VALUE;
+}
+
+void storeStack(in int STI, in int VALUE) {
+    if (STI < STACK_SIZE && STI >= 0) deferredStack[STI] = VALUE;
+}
+#endif
+
+
+layout ( std430, binding = 18, set = 0 ) readonly buffer NodesBlock { HlbvhNode Nodes[]; };
+layout ( std430, binding = 19, set = 0 )  buffer TraverseNodes { NodeCache nodeCache[]; };
+layout ( std430, binding = 20, set = 0 )  buffer TraverseBlock { BlockCache blockCache[]; };
+
+// pointer in global cache
+int rayID = 0;
+
+// watertight intersection
+int axis = 2; mat3 M; 
+
+// offload
+FVEC3_ origined = FVEC3_(0.f), divident = FVEC3_(0.f);
+BOOL_ validBox = FALSE_;
+float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
+ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
+int idx = 0, bstackCount = 0, deferredPtr = 0;
+//#define bstackCount nodeCache[rayID].info.bakedStackCount
+#define validBoxIn validBox
+
+
+void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
+
+    // test constants
+    vec3 torig = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz, 
+    dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz;
+    float dirlen = length(dirproj) / max(length(direct), 0.0000001f);
+
+    dirlenInv = 1.f / max(dirlen, 0.0000001f), toffset = 0.f;
+    dirproj = normalize(dirproj);
+
+    // limitation of distance
+    predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
+
+    // test with root (unit) node
+    BOOL_ vldbx = valid;
+    IF (vldbx) {
+        float near = INFINITY, far = INFINITY, 
+        bdist = intersectCubeSingle(torig, dirproj, vec4(vec3(-0.0001f), 1.0f), vec4(vec3(1.0001f), 1.0f), near, far);
+        toffset = max(near, 0.f);
+        predist = min(predist, far * dirlenInv);
+        vldbx &= lessF(bdist, INFINITY) & lessF(bdist * dirlenInv, INFINITY) & greaterEqualF(bdist, 0.0f);
+    }
+
+    // calculate box projected rays
+    origined = FVEC3_(fma(dirproj, toffset.xxx, torig)), divident = FVEC3_(1.f / dirproj);
+
+    // calculate longest axis
+    axis = 2;
+    {
+        vec3 drs = abs(direct);
+        if (drs.y >= drs.x && drs.y > drs.z) axis = 1;
+        if (drs.x >= drs.z && drs.x > drs.y) axis = 0;
+    }
+
+    // calculate affine matrices
+    vec4 vm = vec4(-direct, 1.f) / (axis == 0 ? direct.x : (axis == 1 ? direct.y : direct.z));
+    M = transpose(mat3(
+        axis == 0 ? vm.wyz : vec3(1.f,0.f,0.f),
+        axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
+        axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
+    ));
+
+    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0;
+    nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
+    nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
+    //defPtr = 0, deferredStack[defPtr] = int(-1);
+}
+
+//#define _ADD atomicAdd
+//#define _ADD add
+#define _ADD(m,k) m++
+
+// intersectors for WARP's
+void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout BOOL_ isValid, inout float nearhit) {
+    BOOL_ near = BOOL_(tri >= 0) & isValid;
+
+    // planned packed math
+    vec2 uv2 = vec2(0.0f); float _d2 = intersectTriangle(orig, M, axis, tri, uv2, near);
+
+    // include intersection
+    near = near & lessF(_d2, INFINITY) & lessEqualF(_d2, nearhit); //& greaterEqualF(_d2, 0.0f);
+
+    // if single thread, do cut (comment this line if WARP-wise)
+    IF (lessF(_d2, nearhit) & near) { nearhit = min(_d2, nearhit); bstackCount = 0; }
+
+    // include to cache
+    IF (near) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2, _d2, intBitsToFloat(tri));
+}
+
+
+void includeLeaf(in ivec4 pdata, inout BOOL_ excl){
+    BOOL_ leaf = BOOL_(pdata.x == pdata.y); excl &= not(leaf);
+    testIntersectionPacked(rayID, currentRay.origin.xyz, M, axis, pdata.w, leaf, predist);
+}
+
+
+const int _sgn[2] = {-1, 1};
+
+// planned block optimized system
+void checkChildNodes() {
+    IF (validBox) {
+        int found = -1; BOOL_ skipUpstream = not(validBox); BVEC2_ leftNear = FALSE2_;
+        BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
+
+        const vec2 inf2 = vec2(INFINITY);
+        vec2 nears = inf2, fars = inf2, hitd = inf2;
+
+        // calculate boxes intersections
+        //IF (any(overlapsGeneral)) {
+        IF (validBox) {
+            BOXF_ 
+                lnodebox_packed = Nodes[idx].lbox, 
+                rnodebox_packed = Nodes[idx].rbox;
+                
+            FVEC4_ 
+                lnodeboxmn = UNPACKF_(lnodebox_packed.mn), lnodeboxmx = UNPACKF_(lnodebox_packed.mx), 
+                rnodeboxmn = UNPACKF_(rnodebox_packed.mn), rnodeboxmx = UNPACKF_(rnodebox_packed.mx);
+
+            hitd = intersectCubeDual(origined, divident, FMAT2X4_(lnodeboxmn, rnodeboxmn), FMAT2X4_(lnodeboxmx, rnodeboxmx), nears, fars);
+            nears = (nears + toffset) * dirlenInv;
+
+            // validate intersection
+            leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
+            
+            overlapsGeneral &= 
+                BVEC2_(lessThanEqual(nears - PZERO, vec2(predist))) & 
+                BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO))) & 
+                BVEC2_(greaterThan(hitd, -vec2(PZERO)));
+        }
+
+        // if test is valid, extract BVH meta data
+        ivec4 nodepdata = SSC(any(overlapsGeneral)) ? Nodes[idx].pdata : ivec4(-1);
+        overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear).yy, ivec2(esc.x)));
+
+        { // reorder nodes 
+            BVEC2_ leftOrder = mix(overlapsGeneral.xx, leftNear, all(overlapsGeneral).xx);
+            overlapsGeneral.xy = mix(overlapsGeneral.yx, overlapsGeneral.xy, leftOrder);
+            nodepdata.xy = mix(nodepdata.yx, nodepdata.xy, leftOrder);
+            nears.xy = mix(nears.yx, nears.xy, leftOrder);
+        }
+
+        { // culled intersection of leaf nodes
+            IF (overlapsGeneral.x & lessEqualF(nears.x, predist)) includeLeaf(Nodes[nodepdata.x].pdata, overlapsGeneral.x);
+            IF (overlapsGeneral.y & lessEqualF(nears.y, predist)) includeLeaf(Nodes[nodepdata.y].pdata, overlapsGeneral.y);
+            overlapsGeneral &= BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
+        }
+
+#ifdef STACKLESS_BVH
+        // choice child nodes by nears
+        IF (any(overlapsGeneral)) {
+            skipUpstream = TRUE_;
+            nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx;
+            found = nodepdata.x;
+            IF (all(overlapsGeneral)) lastesc = ivec2(found, esc.y+1);
+        }
+
+        { // unified child/parent/another switcher
+            const bool _ssc = SSC(skipUpstream);
+            esc = (lastesc.x != -1 && !_ssc) ? lastesc : ivec2(idx, esc.y), esc.y += _sgn[uint(skipUpstream&TRUE_)], lastesc = _ssc ? lastesc : ivec2(-1, -1), 
+            idx = _ssc ? found : ((esc.x >= 0 && esc.y >= 0 && idx >= 0) ? Nodes[esc.x].pdata.z : -1), 
+            validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
+            idx = mix(-1, idx, validBox);
+        }
+#else
+        // choice child nodes by nears
+        IF (any(overlapsGeneral)) {
+            skipUpstream = TRUE_;
+            nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx;
+            found = nodepdata.x;
+            IF (all(overlapsGeneral)) storeStack(min(deferredPtr++, STACK_SIZE-1), nodepdata.y);
+            deferredPtr = min(deferredPtr, STACK_SIZE);
+        }
+
+        { // unified child/parent/another switcher
+            const bool _ssc = SSC(skipUpstream);
+            int ptr = (deferredPtr -= not(skipUpstream)); 
+            deferredPtr = max(deferredPtr, 0);
+            esc.x = idx, idx = _ssc ? found : loadStack(ptr), 
+            validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
+            idx = mix(-1, idx, validBox);
+        }
+#endif
+    }
+}
+
+
+void reorderTriangles() {
+    int cnt = max(min(bstackCount, BAKED_STACK_SIZE), 0);
+    for (int iround = 1; iround < cnt; iround++) {
+        for (int index = 0; index < cnt - iround; index++) {
+            
+            // choice from both
+            mat2x4 bakedPair = mat2x4(
+                nodeCache[rayID].bakedStack[index], 
+                nodeCache[rayID].bakedStack[index+1]
+            ); // cache
+
+            // swap or not
+            ivec2 pairIdx = mix(ivec2(0, 1), ivec2(1, 0), (BOOL_(floatBitsToInt(bakedPair[0].w) <= floatBitsToInt(bakedPair[1].w)) & lessF(bakedPair[0].z, bakedPair[1].z)).xx );
+            if (pairIdx.x != 0) nodeCache[rayID].bakedStack[index  ] = bakedPair[pairIdx.x];
+            if (pairIdx.y != 1) nodeCache[rayID].bakedStack[index+1] = bakedPair[pairIdx.y];
+        }
+    }
+
+    // select only unique triangle ID's
+    cnt -= 1; int cleanBakedStackCount = 0; // initial clean list
+    for (int iround = 0; iround < cnt; iround++) { if (iround >= cnt) break;
+        if (floatBitsToInt(nodeCache[rayID].bakedStack[iround+1].w) != floatBitsToInt(nodeCache[rayID].bakedStack[iround].w)) {
+            nodeCache[rayID].bakedStack[cleanBakedStackCount++] = nodeCache[rayID].bakedStack[iround];
+        }
+    }
+
+    // copy last primitive
+    if (cnt >= 0) nodeCache[rayID].bakedStack[cleanBakedStackCount++] = nodeCache[rayID].bakedStack[cnt];
+
+    // resolve for stage
+    bstackCount = cleanBakedStackCount;
+}
+
+
+HitRework interpolateMeshData(inout HitRework res) {
+    int tri = floatBitsToInt(res.uvt.w);
+    
+    BOOL_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & BOOL_(tri != LONGEST);
+    //if (anyInvoc(validInterpolant)) {
+    IF (validInterpolant) {
+        ivec2 triv = gatherMosaic(getUniformCoord(tri));
+
+        // transposed
+        mat3x3 triverts = mat3x3(
+            fetchMosaic(vertex_texture, triv, 0).xyz, 
+            fetchMosaic(vertex_texture, triv, 1).xyz, 
+            fetchMosaic(vertex_texture, triv, 2).xyz
+        );
+
+        // gather texcoord
+        vec2 sz = 1.f / textureSize(vertex_texture, 0);
+        vec2 trig = fma(vec2(triv), sz, sz * 0.9999f);
+
+
+        vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
+        vec3 deltaPos1 = triverts[1] - triverts[0];
+        vec3 deltaPos2 = triverts[2] - triverts[0];
+
+
+        // gather 
+        mat3x3 trinorms = mat3x3(
+            SGATHER(normal_texture, trig, 0).wzx,
+            SGATHER(normal_texture, trig, 1).wzx,
+            SGATHER(normal_texture, trig, 2).wzx
+        );
+        vec3 nor = normalize(cross(deltaPos1, deltaPos2));
+        vec3 normal = faceforward(vs * trinorms, -nor, nor); // mult matrix
+
+
+        mat4x3 texcoords = mat4x3(
+            SGATHER(texcoords_texture, trig, 0).wzx,
+            SGATHER(texcoords_texture, trig, 1).wzx,
+            SGATHER(texcoords_texture, trig, 2).wzx,
+            SGATHER(texcoords_texture, trig, 3).wzx
+        );
+        
+        mat3x2 txds = transpose(mat2x3(texcoords[0].xyz, texcoords[1].xyz));
+        mat2x2 dlts = mat2x2(txds[1] - txds[0], txds[2] - txds[0]);
+
+        // tangent determinant
+        float f = 1.f / determinant(dlts);
+        { f = isnan(f) ? 0.f : f, f = isinf(f) ? 10000.f : f; }
+
+        // bitangent and tangent
+        vec3 tang = fma(dlts[1].yyy, deltaPos1, -dlts[0].y * deltaPos2) * f;
+        IF (validInterpolant) {
+            res.normalHeight = vec4(normal, 0.0f);
+            res.tangent = vec4(normalize(tang - normal * sign(dot(tang, nor))), 0.0f);
+            res.texcoord = vs * texcoords; // mult matrix
+            res.materialID = materials[tri];
+            HitActived(res, TRUE_); // temporary enable
+        }
+    }
+
+    return res;
+}
+
+
+void includeChain(inout vec4 intersection) {
+    // reuse old chains (i.e. override)
+    HitRework hitp; 
+    hitp.next = -1; 
+    hitp.uvt = vec4(vec2(0.0f), INFINITY, intBitsToFloat(-1));
+
+    int hid = nodeCache[rayID].info.nextHt; if (hid > 0) hitp = hits[hid-1];
+    nodeCache[rayID].info.nextHt = hitp.next > 0 ? hitp.next : -1; // next linked ID
+
+    // allocate new hit if chain is none
+    if (hid == -1 || hid <= 0) hid = atomicIncHT(TRUE_)+1;
+
+    // create new hit element with default properties
+    if (hid > 0) {
+        hitp = hits[hid-1];
+        hitp.bitfield = 0;
+        hitp.materialID = 0;
+        hitp.uvt = intersection;
+        hitp.next = nodeCache[rayID].info.nextHt; // for future overriding
+        hitp.ray = int(getGeneralNodeId());
+        hitp.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
+        hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
+        hitp.emission = packHalf2(vec4(0.f));
+        hitp.normalHeight = vec4(0.0f);
+        hitp.tangent = vec4(0.0f);
+        HitActived(hitp, TRUE_);
+        
+        // interpolate by mesh
+        interpolateMeshData(hitp); hits[hid-1] = hitp;
+
+        // link previous element (or header) with current
+        int prvh = exchange(nodeCache[rayID].info.prevHt, hid);
+        if (prvh == -1) {
+            nodeCache[rayID].info.chainID = hid;
+        } else {
+            exchange(hits[prvh-1].next, hid);
+        }
+    }
+}
+
+
+void choiceBaked() {
+    if (bstackCount > 0) {
+        reorderTriangles();
+        for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }
+    }
+}
+
+
+LOCAL_SIZE_LAYOUT;
+
+void main() {
+    //int wsize = arcounter.tT;
+    #define wsize arcounter.tT
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 100000);
+    rayID = (int(gl_WorkGroupID.x) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x));
+
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); //rayID = it;
+        BOOL_ overflow = BOOL_(it >= wsize);
+        IFALL(overflow) break;
+        accquireUnordered(it);
+
+        // begin traverse (save to caches)
+        overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
+        nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
+        beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
+
+        // global traversing
+        for (int iteration=0;iteration<2048;iteration++) {
+            IFALL(not(validBox) | overflow | BOOL_(idx < 0)) break;
+            checkChildNodes(); // traverse BVH
+            //simdIntersectionTriangles();
+        }
+        choiceBaked(); // sort of intersections
+
+        // resolve intersection
+        int chainID = nodeCache[rayID].info.chainID;
+        if (chainID > 0 && SSC(not(overflow))) {
+            currentRay.origin.w = intBitsToFloat(chainID);
+            storeRay();
+        }
+    }
+}

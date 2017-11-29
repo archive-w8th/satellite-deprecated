@@ -1,0 +1,84 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
+#include "./includes.glsl"
+
+const int work_size = 1024;
+layout ( local_size_x = work_size ) in;
+
+initAtomicIncFunction(aCounter, aCounterInc, int)
+
+void unifyNodeBox(inout BOXF_ bound, in BOXF_ lbox, in BOXF_ rbox){
+    bound.mn = PACKF_(min(UNPACKF_(lbox.mn), UNPACKF_(rbox.mn)));
+    bound.mx = PACKF_(max(UNPACKF_(lbox.mx), UNPACKF_(rbox.mx)));
+}
+
+void main() {
+    int localID = int(gl_LocalInvocationID.x);
+
+    // init counter
+    if (localID == 0) {
+        aCounter = 0;
+        aRange[0] = 0;
+        aRange[1] = 0;
+    }
+
+    { // form first active list
+        memoryBarrier(); barrier();
+        //int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
+        #define wsize (GEOMETRY_BLOCK geometryUniform.triangleCount)
+        int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
+        for (int w=0;w<wcount;w++) {
+            int globalID = w * int(gl_WorkGroupSize.x) + localID;
+            if (globalID >= wsize) break;
+            if (globalID < wsize && globalID >= 0) {
+                int idx = exchange(LeafIndices[globalID], -1);
+                if (idx >= 0) Actives[aCounterInc( TRUE_ )] = idx;
+            }
+        }
+    }
+
+    // from lower to upper
+    for (int l=0;l<256;l++) {
+        // sync count
+        memoryBarrier(); barrier(); 
+        if (localID == 0) {
+            aRange[0] = aRange[1];
+            aRange[1] = aCounter;
+        }
+
+        // sync count
+        memoryBarrier(); barrier();
+        int n = aRange[1] - aRange[0]; if (n <= 0) break;
+        int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
+        for (int w=0;w<wcount;w++) {
+            int globalID = w * int(gl_WorkGroupSize.x) + localID; if (globalID >= n) break;
+            if (globalID < n && globalID >= 0) {
+                int idx = exchange(Actives[aRange[0]+globalID], -1); // get current level node
+                if (idx >= 0) {
+                    // unify boxes in non-leafs
+                    HlbvhNode nd = Nodes[idx];
+                    if (nd.pdata.x != nd.pdata.y) {
+                        unifyNodeBox(nd.lbox, Nodes[nd.pdata.x].lbox, Nodes[nd.pdata.x].rbox);
+                        unifyNodeBox(nd.rbox, Nodes[nd.pdata.y].lbox, Nodes[nd.pdata.y].rbox);
+                        if (idx >= 0) Nodes[idx] = nd;
+                    }
+
+                    // solve race condition
+                    int prid = nd.pdata.z;
+                    bool validParent = prid >= 0 && idx >= 0;
+                    if (validParent) {
+                        int _swp = atomicCompSwap(Flags[prid], 0, 1);
+                        validParent = validParent && _swp == 1; // resolve race condition
+                        if (validParent) Actives[aCounterInc( TRUE_ )] = prid;
+                    }
+                }
+            }
+        }
+    }
+    
+}

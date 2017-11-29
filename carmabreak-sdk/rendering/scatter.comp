@@ -1,0 +1,72 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/rayslib.glsl"
+
+layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
+layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
+layout ( binding = 2, set = 1, rgba32f ) uniform image2D prevsample;
+layout ( binding = 3, set = 1, r32ui ) uniform uimage2D sampleflags;
+
+LOCAL_SIZE_LINEAR_LAYOUT;
+
+void main() {
+    vec2 wh = vec2(RAY_BLOCK samplerUniform.sceneRes.xy);
+    vec2 whs = vec2(imageSize(presampled).xy);
+    vec2 aspect = wh / whs;
+    vec2 scl = ceil(aspect);
+
+    int wsize = int(ceil(whs.x * whs.y));
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 100000);
+
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
+        vec2 screen = vec2(mod(float(it), whs.x), floor(float(it) / whs.x));
+        vec2 basis = floor(screen * aspect);
+
+        vec4 newc = vec4(0.0f); float samplecount = 0;
+        for (float x=-1.f;x<=scl.x;x+=1.f) {
+            for (float y=-1.f;y<=scl.y;y+=1.f) {
+                vec2 cmp = basis + vec2(x, y);
+                if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
+                    int ts = int(floor(cmp.y * wh.x + cmp.x));
+                    vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs);
+                    IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
+                        samplecount += 1.f; newc += texelBuf.nodes[ts].color;
+                        texelBuf.nodes[ts].color = vec4(0);
+                    }
+                }
+                
+            }
+        }
+        newc /= samplecount;
+
+        if (samplecount > 0) {
+            ivec2 cid = ivec2(floor(screen.xy));
+    #ifndef MOTION_BLUR
+            if (imageLoad(sampleflags, cid).x > 0) {
+                imageStore(sampleflags, cid, uvec4(0));
+                imageStore(presampled, cid, vec4(0.0f));
+            }
+    #endif
+
+            vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
+            {
+                float next = xsample.w + float(samplecount);
+                float prev = xsample.w;
+                float divisor = prev / next;
+
+                xsample.xyz = fma(xsample.xyz, vec3(divisor), newc.xyz * (1.0f - divisor));
+    #ifdef MOTION_BLUR
+                xsample.w = min(next, SAMPLES_LOCK-1);
+    #else
+                xsample.w = next;
+    #endif
+            }
+            imageStore(presampled, cid, vec4(xsample)); // store in current projection
+        }
+    }
+}

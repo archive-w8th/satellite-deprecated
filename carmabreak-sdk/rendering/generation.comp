@@ -1,0 +1,152 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/rayslib.glsl"
+#include "../include/random.glsl"
+#include "../include/mathlib.glsl"
+
+LOCAL_SIZE_LAYOUT;
+
+void main()
+{
+    ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
+    ivec2 blk = ivec2(tiled(wh.x, R_BLOCK_WIDTH), tiled(wh.y, R_BLOCK_HEIGHT));
+
+    vec2 sceneResInv = 1.0f / vec2(wh);
+    int wsize = blk.x * blk.y;
+    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcount = min(tiled(wsize, wcsize), 50000);
+
+    // invoke available blocks
+    bool overflow = false;
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX); globalInvocationSMP = globalID;
+        
+        int binID = globalID;
+        blockBins[binID].info.count = 0;
+        blockBins[binID].info.header = -1;
+        blockBins[binID].info.previous = -1;
+        
+        // check if not reached blocks limit
+        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
+        IFALL(overflow) break;
+        if (!overflow) { 
+            // create unique tile per WARP
+            int blockID = 0;
+            if (LANE_IDX == 0) blockID = createBlock(binID);
+            blockID = readLane(blockID, 0);
+
+            // accquire
+            accquirePlainBlock(blockID); 
+            IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
+
+            // make division
+            ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
+
+            // invoke block data
+            for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+                int nid = tb + int(LANE_IDX);
+
+                randomClocks = 0, subHash = nid; // reset random clocks
+                accquirePlainNode(blockID, nid); // accquire by lane
+                
+                // by default is inactive
+                currentRay.direct = vec4(vec3(0), FINT_ZERO);
+                currentRay.origin = vec4(vec3(0), FINT_NULL);
+                RayActived(currentRay, FALSE_);
+
+                // default colors of rays
+                currentRay.color = vec4(vec3(0.f), 0);
+                currentRay.final = vec4(vec3(0.f), 0);
+
+                // get 2D index
+                ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
+                ivec2 xy = divxy + bc;
+                overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
+
+                int idx = xy.x + xy.y * wh.x;
+                bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
+                blockBins[binID].texels[nid] = vbn ? idx+1 : -1;
+                if (vbn) texelBuf.nodes[idx].color = vec4(0.f); // debug white
+
+                IFALL(overflow) break;
+                if (vbn) {
+                    vec2 coord = (vec2(xy) + clamp(vec2(random(), random()), vec2(0.00001f), vec2(0.99999f))) * sceneResInv;
+                    
+                    Texel txfi = texelBuf.nodes[idx];
+                    txfi.coord.x = coord.x;
+                    txfi.coord.y = coord.y;
+                    txfi.color = vec4(0.f); // debug white
+                    texelBuf.nodes[idx] = txfi;
+
+                    //coord.y = 1.f - coord.y; // correct coordinates
+
+                    vec4 orig = vec4(0.f, 0.0f, 0.f, 1.0f);
+                    vec4 dir = vec4(0.f);
+                    vec4 eye = vec4(vec3(0.0f), 1.0f);
+                    eye = mult4(RAY_BLOCK cameraUniform.camInv, eye);
+                    
+                    if (RAY_BLOCK cameraUniform.enable360 == 1) {
+                        vec2 pic = ((coord.xy * 2.0f - 1.0f) * vec2(-1.f, 0.5f)) * PI;
+                        vec3 vctr = vec3(
+                            cos(pic.y) * cos(pic.x),
+                            cos(pic.y) * sin(pic.x),
+                            sin(pic.y)
+                        );
+                        vctr = rotate_vector(rotation_quat(vec3(0.f, 0.f, -1.f), PI / 4.f), vctr);
+                        vctr = rotate_vector(rotation_quat(vec3(1.f, 0.f,  0.f), PI / 4.f), vctr);
+
+                        orig = mult4(RAY_BLOCK cameraUniform.camInv, vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                        dir = mult4(RAY_BLOCK cameraUniform.camInv, vec4(vctr, 0.f));
+                    } else
+                    {
+                        vec4 co = divW(mult4(RAY_BLOCK cameraUniform.camInv, mult4(RAY_BLOCK cameraUniform.projInv, vec4(coord * 2.0f - 1.0f, 0.999f, 1.0f))));
+                        orig = divW(mult4(RAY_BLOCK cameraUniform.camInv, mult4(RAY_BLOCK cameraUniform.projInv, vec4(coord * 2.0f - 1.0f, 0.0f, 1.0f))));
+                        dir = vec4(normalize(co.xyz - orig.xyz), 0.0f);
+                    }
+
+                    // apply DOF
+#ifdef EXPERIMENTAL_DOF
+                    float dofFocusRadius = 10.f;
+                    float dofFocalRadius = 1.f / 16.f;
+                    vec4 defEye = RAY_BLOCK cameraUniform.camInv * vec4(0.0f, 0.0f, 0.0f, 1.0f);
+                    vec4 focus = defEye + dir * dofFocusRadius;
+                    vec4 offsetEye = RAY_BLOCK cameraUniform.camInv * vec4(randomCosine(dir.xyz) * dofFocalRadius, 1.0f);
+                    orig = offsetEye;
+                    dir = vec4(normalize(focus.xyz - offsetEye.xyz), 0.0f);
+#endif
+
+                    currentRay.direct = vec4(dir.xyz, FINT_ZERO);
+                    currentRay.origin = vec4(orig.xyz, FINT_NULL);
+                    currentRay.color = vec4(vec3(1.f), 0);
+                    currentRay.final = vec4(vec3(0.f), 0);
+
+                    RayActived(currentRay, TRUE_);
+                    RayDL(currentRay, FALSE_);
+
+                    RayType(currentRay, 3); // primary rays
+                    RayBasis(currentRay, 1); // is basis ray
+                    RayBounce(currentRay, 4);
+
+                    if (RAY_BLOCK cameraUniform.interlace == 1) {
+                        if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) RayActived(currentRay, FALSE_);
+                    }
+                }
+
+                confirmNode(blockID, RayActived(currentRay) == TRUE_);
+                storeRay(blockID, currentRay);
+            }
+
+            for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+                copyBlockIndices(currentBlock, tb + int(LANE_IDX));
+            }
+
+            if (LANE_IDX == 0) confirmBlock(blockID);
+            //if (LANE_IDX == 0) flushBlock(blockID);
+        }
+    }
+    
+}

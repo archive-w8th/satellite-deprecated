@@ -1,0 +1,108 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
+#include "./includes.glsl"
+
+LOCAL_SIZE_LAYOUT;
+
+
+int findSplit( in int first, in int last) {
+    MORTONTYPE firstCode = Mortoncodes[first], lastCode = Mortoncodes[last];
+    int commonPrefix = nlz(firstCode ^ lastCode), split = commonPrefix == 0 ? ((first + last) >> 1) : first, step = last - first;
+    for (int i=0;(i<8192 && step>1 && commonPrefix != 0);i++) {
+        step = (step + 1) >> 1;
+        int newSplit = split + step;
+        split = newSplit < last && nlz(firstCode ^ Mortoncodes[newSplit]) > commonPrefix ? newSplit : split;
+    }
+    return clamp(split, first, last-1);
+}
+
+void resetBox(inout HlbvhNode node){
+    node.lbox.mn = node.rbox.mn = PACKF_(( 1000.f).xxxx);
+    node.lbox.mx = node.rbox.mx = PACKF_((-1000.f).xxxx);
+}
+
+initAtomicIncByFunction(lCounter, lCounterInc, int)
+initAtomicIncFunction(aCounter, aCounterInc, int)
+initAtomicIncFunction(cCounter, cCounterInc, int)
+
+void splitNode(in int trID) {
+    int prID = exchange(Actives[trID], -1);
+
+    HlbvhNode parentNode = Nodes[prID];
+    if (parentNode.pdata.x != parentNode.pdata.y && prID != -1) {
+        // find split
+        int split = findSplit(parentNode.pdata.x, parentNode.pdata.y);
+        int hid = lCounterInc(TRUE_, 2);
+
+        // init child node
+        HlbvhNode childNode = Nodes[hid]; resetBox(childNode);
+        childNode.pdata.zw = ivec2(prID, -1);
+
+        // encode with SIMD-like
+        ivec4 transplit = ivec4(parentNode.pdata.x, split+0, split+1, parentNode.pdata.y);
+        bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1));
+        ivec2 hd = hid + ivec2(0, 1);
+
+        // left child
+        if (isLeaf.x) {
+            exchange(LeafIndices[cCounterInc(TRUE_)], hd.x);
+        } else { // add to next works
+            exchange(Actives[aCounterInc(TRUE_)], hd.x);
+        }
+
+        // right child
+        if (isLeaf.y) {
+            exchange(LeafIndices[cCounterInc(TRUE_)], hd.y);
+        } else { // add to next works
+            exchange(Actives[aCounterInc(TRUE_)], hd.y);
+        }
+
+        childNode.pdata.xy = transplit.xy; // use temporary range
+        Flags[hd.x] = 0;
+        Nodes[hd.x] = childNode;
+
+        childNode.pdata.xy = transplit.zw; // use temporary range
+        Flags[hd.y] = 0;
+        Nodes[hd.y] = childNode;
+
+        // link parent with childs
+        Nodes[prID].pdata.xy = hd;
+    }
+}
+
+void main() {
+    uint threadID = uint(gl_LocalInvocationID.x);
+    int workID = int(gl_WorkGroupID.x);
+    int WS = int(gl_WorkGroupSize.x);
+    int hWS = int(gl_WorkGroupSize.x) / 2;
+
+    // create initial (root) node
+    bool isBeginning = aRange[1] == 0;
+    if (gl_GlobalInvocationID.x == 0 && isBeginning) {
+        int hid = lCounterInc(TRUE_, 1);
+        exchange(Actives[aCounterInc(TRUE_)], hid);
+
+        HlbvhNode node = Nodes[hid]; resetBox(node);
+        node.pdata = ivec4(0, aabbcount[0]-1, (-1).xx);
+        
+        Nodes[hid] = node;
+        Flags[hid] = 0;
+    }
+
+    memoryBarrier(); barrier(); 
+
+    // begin work on splitting
+    int ranged[2] = (isBeginning && workID == 0) ? int[2](0, 1) : int[2](aRange[0], aRange[1]);
+    uint workSize = min((ranged[1] <= ranged[0]) ? 0 : (((ranged[1] - ranged[0]) - 1) / WS + 1), 8192);
+    int wgs = int(gl_NumWorkGroups);
+    for (int i=0;i<workSize;i+=wgs) {
+        int trID = ranged[0] + WS * (i+workID) + int(threadID);
+        if (trID >= ranged[1]) break;
+        if (trID < ranged[1]) splitNode(trID);
+    }
+}

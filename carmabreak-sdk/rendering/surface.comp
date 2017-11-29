@@ -1,0 +1,236 @@
+#version 460 core
+
+#define SIMPLIFIED_RAY_MANAGMENT
+#define DISCARD_SHARED_CACHING
+
+#include "../include/constants.glsl"
+
+#ifdef USE_BINDLESS
+#extension GL_ARB_bindless_texture : enable
+#endif
+
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/rayslib.glsl"
+#include "../include/random.glsl"
+#include "../include/mathlib.glsl"
+
+struct Material {
+     vec4 diffuse;
+     vec4 specular;
+     vec4 transmission;
+     vec4 emissive;
+
+     float ior;
+     float roughness;
+     float alpharef;
+     float unk0f;
+
+      int diffusePart;
+      int specularPart;
+      int bumpPart;
+      int emissivePart;
+
+     int flags;
+     int alphafunc;
+     int binding;
+     int bitfield;
+
+     ivec4 iModifiers0;
+};
+
+const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 32;
+layout ( std430, binding = 15, set = 0 ) readonly buffer MaterialsSSBO {Material submats[]; };
+
+
+layout ( binding = 6, set = 1 ) uniform texture2D textures[MAX_TEXTURES]; // vulkan API type (future)
+layout ( binding = 7, set = 1 ) uniform sampler samplers[MAX_SAMPLERS]; // vulkan API type (future)
+
+
+
+bool haveProp(in Material material, in int prop) {
+    return (material.flags & prop) > 0;
+}
+
+bool haveProp(in int flags, in int prop) {
+    return (flags & prop) > 0;
+}
+
+bool validateTexture(in int binding) {
+    int _binding = binding-1;
+    return binding > 0 && binding != LONGEST && binding <= MAX_TEXTURES && textureSize(sampler2D(textures[_binding], samplers[0]), 0).x > 0;
+}
+
+vec4 fetchTexture(in int binding, in vec2 texcoord) {
+    int _binding = binding-1;
+    vec4 result = texture(sampler2D(textures[_binding], samplers[0]), texcoord);
+    result = mix(result, vec4(0.f), or(isnan(result), isinf(result)));
+    return result;
+}
+
+vec4 fetchTexture(in int binding, in vec2 texcoord, in ivec2 offset) {
+    int _binding = binding-1;
+    vec4 result = texture(sampler2D(textures[_binding], samplers[0]), texcoord + vec2(offset) / textureSize(sampler2D(textures[_binding], samplers[0]), 0));
+    result = mix(result, vec4(0.f), or(isnan(result), isinf(result)));
+    return result;
+}
+
+vec4 fetchSpecular(in Material mat, in vec2 texcoord) {
+    vec4 specular = mat.specular;
+    if (validateTexture(mat.specularPart)) {
+        specular = fetchTexture(mat.specularPart, texcoord);
+    }
+    return specular;
+}
+
+vec4 fetchEmissive(in Material mat, in vec2 texcoord) {
+    vec4 emission = vec4(0.0f);
+    if (validateTexture(mat.emissivePart)) {
+        emission = fetchTexture(mat.emissivePart, texcoord);
+    }
+    return emission;
+}
+
+vec4 fetchTransmission(in Material mat, in vec2 texcoord) {
+    return mat.transmission;
+}
+
+vec4 fetchNormal(in Material mat, in vec2 texcoord) {
+    vec4 nmap = vec4(0.5f, 0.5f, 1.0f, 1.0f);
+    if (validateTexture(mat.bumpPart)) {
+        nmap = fetchTexture(mat.bumpPart, vec2(texcoord.x, texcoord.y));
+    }
+    return nmap;
+}
+
+vec4 fetchNormal(in Material mat, in vec2 texcoord, in ivec2 offset) {
+    vec4 nmap = vec4(0.5f, 0.5f, 1.0f, 1.0f);
+    if (validateTexture(mat.bumpPart)) {
+        nmap = fetchTexture(mat.bumpPart, vec2(texcoord.x, texcoord.y), offset);
+    }
+    return nmap;
+}
+
+vec3 getNormalMapping(in int binding, vec2 texcoordi) {
+    vec3 tc = fetchTexture(binding, texcoordi).xyz;
+    vec3 normal = vec3(0.0f, 0.0f, 1.0f);
+    IF (equalF(tc.x, tc.y) & equalF(tc.x, tc.z)) {
+        const ivec3 off = ivec3(0,0,1);
+        const float size = 1.0f;
+        const float pike = 2.0f;
+        vec3 p00 = vec3(0.0f, 0.0f, fetchTexture(binding, texcoordi, off.yy).x * pike);
+        vec3 p01 = vec3(size, 0.0f, fetchTexture(binding, texcoordi, off.zy).x * pike);
+        vec3 p10 = vec3(0.0f, size, fetchTexture(binding, texcoordi, off.yz).x * pike);
+        normal = normalize(cross(p01 - p00, p10 - p00));
+    } else {
+        normal = normalize(mix(vec3(0.0f, 0.0f, 1.0f), fma(tc, vec3(2.0f), vec3(-1.0f)), vec3(1.0f)));
+    }
+    return normal;
+}
+
+vec4 fetchDiffuse(in Material mat, in vec2 texcoord) {
+    vec4 result = max(vec4(mat.diffuse.xyz, 1.f), vec4(0.f));
+    if (validateTexture(mat.diffusePart)) {
+        result = fetchTexture(mat.diffusePart, texcoord);
+    }
+    return result;
+}
+
+
+
+struct Textured {
+    vec2 texcoord;
+
+    int diffusePart;
+    int specularPart;
+    int bumpPart;
+    int emissivePart;
+
+    vec4 diffuse;
+    vec4 specular;
+    vec4 bump;
+    vec4 emissive;
+};
+
+Textured textured;
+
+#define material submats[matID]
+//#define hit hits[globalID]
+#define ray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE]
+
+LOCAL_SIZE_LAYOUT;
+
+void main() {
+    #define wsize RAY_BLOCK samplerUniform.hitCount
+    //int wsize = RAY_BLOCK samplerUniform.hitCount;
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
+    bool overflow = false;
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
+        overflow = overflow || globalID >= RAY_BLOCK samplerUniform.hitCount || globalID < 0;
+        
+        IFALL(overflow) break;
+        {
+            HitRework hit = hits[globalID];
+            globalInvocationSMP = globalID;
+
+            int matID = hit.materialID - RAY_BLOCK materialUniform.materialOffset;
+            overflow = overflow || (matID >= RAY_BLOCK materialUniform.materialCount || matID < 0);
+
+            vec2 texcoord = hit.texcoord.xy;
+            textured.texcoord = texcoord;
+
+            // texture indexes
+            textured.diffusePart = material.diffusePart;
+            textured.bumpPart = material.bumpPart;
+            textured.specularPart = material.specularPart;
+            textured.emissivePart = material.emissivePart;
+
+            // static colors
+            textured.diffuse = material.diffuse;
+            textured.bump = vec4(0.f, 0.f, 1.f, 1.f);
+            textured.specular = material.specular;
+            textured.emissive = material.emissive;
+
+            // AMD not supported per-lane texture data loading, if texture index is not constant
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+            bool wasTextured = false;
+            for (int wl=0;wl<WARP_SIZE_RT;wl++) {
+                IFALL(wasTextured) break;
+                if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
+                    if (validateTexture(textured.bumpPart)) textured.bump.xyz = getNormalMapping(textured.bumpPart, textured.texcoord);
+                    if (validateTexture(textured.diffusePart)) textured.diffuse = fetchTexture(textured.diffusePart, textured.texcoord);
+                    if (validateTexture(textured.specularPart)) textured.specular = fetchTexture(textured.specularPart, textured.texcoord);
+                    if (validateTexture(textured.emissivePart)) textured.emissive = fetchTexture(textured.emissivePart, textured.texcoord);
+                    wasTextured = true;
+                }
+            }
+#else
+            if (validateTexture(textured.diffusePart)) textured.diffuse = fetchTexture(textured.diffusePart, textured.texcoord);
+            if (validateTexture(textured.specularPart)) textured.specular = fetchTexture(textured.specularPart, textured.texcoord);
+            if (validateTexture(textured.emissivePart)) textured.emissive = fetchTexture(textured.emissivePart, textured.texcoord);
+            if (validateTexture(textured.bumpPart)) textured.bump.xyz = getNormalMapping(textured.bumpPart, textured.texcoord);
+#endif
+
+            vec3 normal = normalize(hit.normalHeight.xyz);
+            vec3 tangent = normalize(hit.tangent.xyz);
+            mat3 tbn = mat3(tangent, normalize(cross(normal, tangent)), normal);
+            
+            vec4 diffuse = textured.diffuse;
+            vec4 emission = textured.emissive;
+            vec4 spc = clamp01(textured.specular);
+
+            emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
+            diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
+
+            hit.normalHeight.xyzw = vec4(normalize(tbn * normalize(textured.bump.xyz)), 1.f).xyzw;
+            hit.emission.xy = packHalf2(emission.xyzw).xy;
+            hit.albedo.xy = packHalf2(diffuse.xyzw).xy;
+            hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
+            HitActived(hit, TRUE_);
+
+            if (!overflow) hits[globalID] = hit;
+        }
+    }
+}

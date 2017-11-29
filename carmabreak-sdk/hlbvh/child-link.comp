@@ -1,0 +1,42 @@
+#version 460 core
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/uniforms.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
+#include "./includes.glsl"
+
+LOCAL_SIZE_LAYOUT;
+
+void main() {
+    //int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
+    #define wsize (GEOMETRY_BLOCK geometryUniform.triangleCount)
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(LT_IDX);
+        IFALL(globalID >= wsize) break;
+        if (globalID < wsize && globalID >= 0) {
+            int idx = LeafIndices[globalID];
+            if (idx >= 0) {
+                
+                // make leafs links
+                HlbvhNode childNode = Nodes[idx];
+                uint leafID = MortoncodesIndices[childNode.pdata.x];
+                exchange(Leafs[leafID].pdata.z, int(idx));
+
+                // link BVH
+                HlbvhNode leaf = Leafs[leafID];
+                ivec2 range = childNode.pdata.xy;
+                childNode.lbox.mn = leaf.lbox.mn;
+                childNode.lbox.mx = leaf.lbox.mx;
+                childNode.rbox.mn = leaf.rbox.mn;
+                childNode.rbox.mx = leaf.rbox.mx;
+                childNode.pdata.xy = range.yy;
+                childNode.pdata.w = leaf.pdata.w;
+                Nodes[idx] = childNode;
+            }
+        }
+    }
+}

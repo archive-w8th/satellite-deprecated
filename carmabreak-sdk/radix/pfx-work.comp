@@ -1,0 +1,66 @@
+#version 460 core
+
+#include "./includes.glsl"
+
+// current work group size
+#define WG_COUNT 32
+
+// shared memory of...
+shared uint localHistogram[RADICES];
+layout (local_size_x = RADICES) in;
+
+// reductive prefix scan of work groups
+void prefixScan() {
+    UVEC_WARP localIdx = LT_IDX;
+    {
+        uint prv = localIdx >= 1 ? localIdx-1 : 0;
+        uint tmp = localIdx >= 1 && localIdx < RADICES ? localHistogram[prv] : 0;
+        memoryBarrier(); barrier();
+        if (localIdx < RADICES) localHistogram[localIdx] = tmp;
+        memoryBarrier(); barrier();
+    }
+
+    // reduction prefix-scan
+    for (int i=1;i<RADICES;i<<=1) {
+        uint prv = localIdx >= i ? localIdx-i : 0;
+        uint off = localIdx >= i && localIdx < RADICES ? localHistogram[prv] : 0;
+        memoryBarrier(); barrier();
+        uint hst = localIdx < RADICES ? localHistogram[localIdx] : 0;
+        if (localIdx < RADICES) localHistogram[localIdx] = off + hst;
+        memoryBarrier(); barrier();
+    }
+}
+
+void main() {
+    LT_IDX = gl_LocalInvocationID.x;
+    LC_IDX = (gl_LocalInvocationID.x / WARP_SIZE_RT);
+    LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
+
+    // prefix scans of workers for every radice
+    uint prv = LT_IDX;
+    for (uint wk=0;wk<WG_COUNT;wk++) {
+        uint idx = LT_IDX + wk * RADICES;
+        uint pfx = LT_IDX < RADICES && wk > 0 ? Histogram[prv] : 0;
+        uint val = LT_IDX < RADICES && wk > 0 ? PrefixSum[prv] : 0;
+        if (LT_IDX < RADICES) PrefixSum[idx] = val + pfx;
+        prv = idx;
+    }
+    memoryBarrier(); barrier();
+
+    // calculate general histograms of radices
+    if (LT_IDX < RADICES) {
+        uint head = LT_IDX + (WG_COUNT-1) * RADICES;
+        localHistogram[LT_IDX] = Histogram[head] + PrefixSum[head];
+    }
+    memoryBarrier(); barrier();
+
+    // prefix scan of seeds
+    prefixScan();
+
+    // apply prefix scans
+    if (LT_IDX < RADICES) {
+        for (uint wk=0;wk<WG_COUNT;wk++) {
+            PrefixSum[LT_IDX + wk * RADICES] += localHistogram[LT_IDX];
+        }
+    }
+}

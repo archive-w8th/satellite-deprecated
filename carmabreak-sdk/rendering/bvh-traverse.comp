@@ -14,7 +14,7 @@
 
 
 // consts
-const int STACK_SIZE = 32; // can be much smaller cache
+const int STACK_SIZE = 16; // can be much smaller cache
 const int CACHED_STACK_SIZE = 0;
 const int BAKED_STACK_SIZE = 8;
 const int ESTIMATE_BATCH = WARP_SIZE;
@@ -49,7 +49,7 @@ struct NodeCache {
 
 
 #ifndef STACKLESS_BVH
-shared int indeferredStack[WORK_SIZE][16];
+shared int indeferredStack[WORK_SIZE][STACK_SIZE];
 //#define deferredStack nodeCache[rayID].indeferredStack
 #define deferredStack indeferredStack[LT_IDX]
 //int deferredStack[16];

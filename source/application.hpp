@@ -576,6 +576,8 @@ namespace SatelliteExample {
                 context->framebuffers = createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass, applicationWindow.surfaceFormat);
                 for (int i = 0; i < context->framebuffers.size(); i++) {
                     context->framebuffers[i].waitFence = createFence(deviceQueue);
+                    auto commandBuffer = getCommandBuffer(context->device, true); commandBuffer.end();
+                    context->framebuffers[i].commandBuffer = commandBuffer;
                 }
 
                 auto app = this;
@@ -595,11 +597,11 @@ namespace SatelliteExample {
                     {
                         // wait when this image will previously rendered (i.e. when will signaled and rendered)
                         currentContext->device->logical.waitForFences(1, &currentContext->framebuffers[currentBuffer].waitFence, true, std::numeric_limits<uint64_t>::max()); // wait when will ready rendering
-
+                        
+                        
+                        std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
                         auto renderArea = vk::Rect2D(vk::Offset2D(), window.surfaceSize);
                         auto viewport = vk::Viewport(0.0f, 0.0f, window.surfaceSize.width, window.surfaceSize.height, 0, 1.0f);
-
-                        std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
                         auto commandBuffer = getCommandBuffer(currentContext->device, true);
                         commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(context->renderpass, currentContext->framebuffers[currentBuffer].frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
                         commandBuffer.setViewport(0, std::vector<vk::Viewport> { viewport });
@@ -616,19 +618,23 @@ namespace SatelliteExample {
                             .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
                             .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1);
 
-                        currentContext->device->queue.submit(1, &kernel, nullptr);
+                        vk::Fence fence = currentContext->device->logical.createFence(vk::FenceCreateInfo());
+                        currentContext->device->queue.submit(1, &kernel, fence);
+                        std::async([&]() { // async await for destruction command buffers
+                            currentContext->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+                            currentContext->device->logical.destroyFence(fence);
+                            currentContext->device->logical.freeCommandBuffers(currentContext->device->commandPool, 1, &commandBuffer);
+                        });
                     }
 
                     // draw by ImGui IO (renderer provided by GUI render engine)
                     ImGui::Render();
 
                     { // barrier for signaling
-                        std::vector<vk::Semaphore> signalSemaphores = { currentContext->device->renderCompleteSemaphore }; // signal to both semaphores  
-                        auto commandBuffer = getCommandBuffer(currentContext->device, true); commandBuffer.end();
+                        std::vector<vk::Semaphore> signalSemaphores = { currentContext->device->renderCompleteSemaphore }; // signal to both semaphores 
                         auto kernel = vk::SubmitInfo()
-                            .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
+                            .setPCommandBuffers(&context->framebuffers[currentBuffer].commandBuffer).setCommandBufferCount(1)
                             .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size());
-
                         currentContext->device->logical.resetFences(1, &currentContext->framebuffers[currentBuffer].waitFence); // unsignal before next work
                         currentContext->device->queue.submit(1, &kernel, currentContext->framebuffers[currentBuffer].waitFence);
                     }
@@ -721,7 +727,7 @@ namespace SatelliteExample {
                 timeAccumulate = 0.0;
             }
 
-            currentContext->device->logical.waitIdle();
+            //currentContext->device->logical.waitIdle();
         }
 
         // wait device if anything work in 

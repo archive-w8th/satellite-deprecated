@@ -39,7 +39,7 @@ namespace NSM {
     // framebuffer with command buffer and fence
     struct Framebuffer {
         vk::Framebuffer frameBuffer;
-        //vk::CommandBuffer commandBuffer;
+        vk::CommandBuffer commandBuffer; // terminal command (barrier)
         vk::Fence waitFence;
     };
 

@@ -405,9 +405,8 @@ namespace NSM {
             // get supported present mode, but prefer mailBox
             auto presentMode = vk::PresentModeKHR::eImmediate;
             for (auto& pm : surfacePresentModes) {
-                if ((pm == vk::PresentModeKHR::eMailbox || pm == vk::PresentModeKHR::eFifo || pm == vk::PresentModeKHR::eFifoRelaxed) && device->physical.getSurfaceSupportKHR(device->familyIndex, surface)) {
-                    presentMode = pm;
-                    break;
+                if ((pm == vk::PresentModeKHR::eMailbox || pm == vk::PresentModeKHR::eFifo || pm == vk::PresentModeKHR::eFifoRelaxed || pm == vk::PresentModeKHR::eImmediate) && device->physical.getSurfaceSupportKHR(device->familyIndex, surface)) {
+                    presentMode = pm; break;
                 }
             }
 

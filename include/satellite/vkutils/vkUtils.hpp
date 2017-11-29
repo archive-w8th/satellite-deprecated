@@ -31,12 +31,10 @@ namespace NSM {
     }
 
     // get or create command buffer
-    auto getCommandBuffer(DeviceQueueType& deviceQueue, bool begin) {
+    auto getCommandBuffer(DeviceQueueType& deviceQueue, bool begin = true) {
         vk::CommandBuffer cmdBuffer = deviceQueue->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
-        if (begin) {
-            cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
-        }
-        cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe | vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTopOfPipe | vk::PipelineStageFlagBits::eTransfer, {}, nullptr, nullptr, nullptr);
+        if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+        cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, {}, nullptr, nullptr, nullptr);
         return cmdBuffer;
     };
 

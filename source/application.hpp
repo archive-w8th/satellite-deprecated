@@ -292,15 +292,12 @@ namespace SatelliteExample {
                     currentContext->device->logical.waitIdle();
                     currentContext->device->logical.destroySwapchainKHR(currentContext->swapchain);
                     currentContext->swapchain = createSwapchain(currentContext->device, applicationWindow.surface, applicationWindow.surfaceFormat);
-                    //currentContext->framebuffers = createSwapchainFramebuffer(currentContext->device, currentContext->swapchain, currentContext->renderpass, applicationWindow.surfaceFormat);
                     auto framebuffers = createSwapchainFramebuffer(currentContext->device, currentContext->swapchain, currentContext->renderpass, applicationWindow.surfaceFormat);
                     currentContext->framebuffers.resize(framebuffers.size());
                     for (int i = 0; i < framebuffers.size(); i++) {
-                        //currentContext->framebuffers[i].waitFence = createFence(currentContext->device);
                         currentContext->framebuffers[i].frameBuffer = framebuffers[i].frameBuffer;
                     }
-                    //currentContext->device->presentCompleteSemaphore = currentContext->device->logical.createSemaphore(vk::SemaphoreCreateInfo());
-                    //currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->device->presentCompleteSemaphore, nullptr, &currentBuffer);
+                    currentBuffer = 0;
                 }
 
                 // resize renderer canvas
@@ -594,19 +591,15 @@ namespace SatelliteExample {
                     // acquire next image where will rendered (and get semaphore when will presented finally)
                     currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->device->presentCompleteSemaphore, nullptr, &currentBuffer);
 
-                    // pipeline stage flags
-                    std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eAllCommands };
-
                     // submit rendering (and wait presentation in device)
                     {
-                        // clear values
-                        std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
-
                         // wait when this image will previously rendered (i.e. when will signaled and rendered)
                         currentContext->device->logical.waitForFences(1, &currentContext->framebuffers[currentBuffer].waitFence, true, std::numeric_limits<uint64_t>::max()); // wait when will ready rendering
-                                                                                                                                                // frame viewports
+
                         auto renderArea = vk::Rect2D(vk::Offset2D(), window.surfaceSize);
                         auto viewport = vk::Viewport(0.0f, 0.0f, window.surfaceSize.width, window.surfaceSize.height, 0, 1.0f);
+
+                        std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
                         auto commandBuffer = getCommandBuffer(currentContext->device, true);
                         commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(context->renderpass, currentContext->framebuffers[currentBuffer].frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
                         commandBuffer.setViewport(0, std::vector<vk::Viewport> { viewport });
@@ -618,13 +611,10 @@ namespace SatelliteExample {
                         commandBuffer.end();
 
                         std::vector<vk::Semaphore> waitSemaphores = { currentContext->device->presentCompleteSemaphore }; // await present and compute semaphore
-
+                        std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eAllCommands };
                         auto kernel = vk::SubmitInfo()
-                            .setPWaitDstStageMask(waitStages.data())
-                            .setPWaitSemaphores(waitSemaphores.data())
-                            .setPCommandBuffers(&commandBuffer)
-                            .setCommandBufferCount(1)
-                            .setWaitSemaphoreCount(waitSemaphores.size());
+                            .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
+                            .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1);
 
                         currentContext->device->queue.submit(1, &kernel, nullptr);
                     }
@@ -638,6 +628,7 @@ namespace SatelliteExample {
                         auto kernel = vk::SubmitInfo()
                             .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
                             .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size());
+
                         currentContext->device->logical.resetFences(1, &currentContext->framebuffers[currentBuffer].waitFence); // unsignal before next work
                         currentContext->device->queue.submit(1, &kernel, currentContext->framebuffers[currentBuffer].waitFence);
                     }
@@ -729,6 +720,8 @@ namespace SatelliteExample {
                 glfwSetWindowTitle(applicationWindow.window, windowTitle.c_str());
                 timeAccumulate = 0.0;
             }
+
+            currentContext->device->logical.waitIdle();
         }
 
         // wait device if anything work in 

@@ -111,13 +111,15 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 
     // calculate box projected rays
     origined = FVEC3_(fma(dirproj, toffset.xxx, torig)), divident = FVEC3_(1.f / dirproj);
+    direct = normalize(direct);
 
     // calculate longest axis
     axis = 2;
     {
         vec3 drs = abs(direct);
-        if (drs.y >= drs.x && drs.y > drs.z) axis = 1;
-        if (drs.x >= drs.z && drs.x > drs.y) axis = 0;
+        IF (lessEqualF(drs.z, 0.f) | BOOL_(drs.y >= drs.x && drs.y > drs.z)) axis = 1; // degenerative axis Z
+        IF (lessEqualF(drs.y, 0.f) | BOOL_(drs.x >= drs.z && drs.x > drs.y)) axis = 0; // degenerative axis Y
+        IF (lessEqualF(drs.x, 0.f) | BOOL_(drs.z >= drs.y && drs.z > drs.x)) axis = 2; // degenerative axis X
     }
 
     // calculate affine matrices

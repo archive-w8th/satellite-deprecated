@@ -59,7 +59,7 @@
 */
 
 // System Constants
-#define PZERO 0.0006f
+#define PZERO 0.0005f
 
 // Platform-oriented compute
 #ifdef ENABLE_AMD_INSTRUCTION_SET

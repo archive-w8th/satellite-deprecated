@@ -171,7 +171,7 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
         vec3 UVW_ = D[axis] * inverse(ABC);
         valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f)))) | BOOL_(all(lessThanEqual(UVW_, vec3(0.f))));
         IF (valid) {
-            float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/max(abs(det),0.0000001f)*(det>=0.f?1:-1);
+            float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.0000001f)*(det>=0.f?1:-1));
             UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
             T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
             T = mix(INFINITY, T, greaterEqualF(T, 0.0f) & valid);
@@ -208,7 +208,7 @@ float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout
         mat2x3 e12t = mat2x3(ABC[0] - ABC[1], ABC[0] - ABC[2]);
         
         vec3 pvec = cross(direct, e12t[1]);
-        float det = dot(e12t[0], pvec), idet = 1.f/max(abs(det),0.0000001f)*(det >= 0.f?1:-1);
+        float det = dot(e12t[0], pvec), idet = 1.f/(max(abs(det),0.0000001f)*(det >= 0.f?1:-1));
         //vec3 tvec = vec3(ABC[0].x, ABC[1].x, ABC[2].x);
         vec3 tvec = ABC[0];
         float u = dot(tvec, pvec) * idet;

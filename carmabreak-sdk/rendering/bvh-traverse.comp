@@ -117,9 +117,9 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     axis = 2;
     {
         vec3 drs = abs(direct);
-        IF (lessEqualF(drs.z, 0.f) | BOOL_(drs.y >= drs.x && drs.y > drs.z)) axis = 1; // degenerative axis Z
-        IF (lessEqualF(drs.y, 0.f) | BOOL_(drs.x >= drs.z && drs.x > drs.y)) axis = 0; // degenerative axis Y
-        IF (lessEqualF(drs.x, 0.f) | BOOL_(drs.z >= drs.y && drs.z > drs.x)) axis = 2; // degenerative axis X
+        if (drs.y >= drs.x && drs.y > drs.z) axis = 1; // degenerative axis Z
+        if (drs.x >= drs.z && drs.x > drs.y) axis = 0; // degenerative axis Y
+        if (drs.z >= drs.y && drs.z > drs.x) axis = 2; // degenerative axis X
     }
 
     // calculate affine matrices

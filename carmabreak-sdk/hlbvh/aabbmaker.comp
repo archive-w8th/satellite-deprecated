@@ -54,11 +54,11 @@ void main() {
 
                 // correct precision error
 #ifdef USE_F32_BVH
-                bounding.mn -= 0.00005f;
-                bounding.mx += 0.00005f;
+                bounding.mn -= 0.00006f;
+                bounding.mx += 0.00006f;
 #else
-                bounding.mn -= 0.0005f;
-                bounding.mx += 0.0005f;
+                bounding.mn -= 0.0006f;
+                bounding.mx += 0.0006f;
 #endif
 
                 HlbvhNode outLeaf = Leafs[to];

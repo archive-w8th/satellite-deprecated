@@ -256,7 +256,7 @@ void main() {
                     float refly = compositedHit[currentLayer].metallicRoughness.x; // roughness
                     float metallic = sqrt(compositedHit[currentLayer].metallicRoughness.y); // metallic
 
-                    vec3 freflcolor = mix(max_fresnel_color * 1.f, min_fresnel_color * 0.05f, clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f));
+                    vec3 freflcolor = mix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f));
                     vec3 speccolor = mix(freflcolor, diffcolor.xyz, metallic);
                     
                     // coefficents

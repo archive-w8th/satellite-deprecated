@@ -381,14 +381,14 @@ namespace SatelliteExample {
 
 
 
-int32_t baseWidth = 640;
-int32_t baseHeight = 360;
+//int32_t baseWidth = 640;
+//int32_t baseHeight = 360;
 
-//int32_t baseWidth = 256;
-//int32_t baseHeight = 256;
+//int32_t baseWidth = 400;
+//int32_t baseHeight = 300;
 
-//int32_t baseWidth = 960;
-//int32_t baseHeight = 540;
+int32_t baseWidth = 960;
+int32_t baseHeight = 540;
 
 
 

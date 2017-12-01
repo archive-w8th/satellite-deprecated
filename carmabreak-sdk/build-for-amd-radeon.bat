@@ -1,7 +1,8 @@
 :: It is helper for compilation shaders to SPIR-V
 
 cd %~dp0
-set CFLAGS= -x glsl -Werror --target-env=vulkan -DENABLE_AMD_INSTRUCTION_SET -DAMD_F16_BVH
+set CFLAGS= -x glsl -Werror --target-env=vulkan -DENABLE_AMD_INSTRUCTION_SET -DAMD_F16_BVH 
+::set CFLAGS= -x glsl -Werror --target-env=vulkan -DENABLE_AMD_INSTRUCTION_SET -DUSE_F32_BVH
 set INDIR=.\
 ::set OUTDIR=..\Build\shaders-spv\
 set OUTDIR=..\Build\amd\

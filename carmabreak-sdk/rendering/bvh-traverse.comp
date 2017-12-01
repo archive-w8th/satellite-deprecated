@@ -448,4 +448,64 @@ void main() {
             storeRay();
         }
     }
+
+/*
+    #define wsize RAY_BLOCK samplerUniform.blockCount
+    rayID = (int(gl_WorkGroupID.x) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x));
+    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcount = min(tiled(wsize, wcsize), 50000);
+
+    // invoke available blocks
+    bool overflow = false;
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+
+        // check if not reached blocks limit
+        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
+        IFALL(overflow) break;
+        if (!overflow) {
+            
+            // accquire shading block
+            currentBlock = -1;
+            if (!overflow) accquireBlock(globalID);
+            bool invld = anyInvoc(overflow || currentBlock < 0 || currentBlockSize <= 0);
+            if (invld) { currentBlock = -1; continue; }
+            
+            // invoke block data
+            if (!invld) {
+                int bts = min(R_BLOCK_SIZE, currentBlockSize);
+                for (int tb = 0; tb < bts; tb += WARP_SIZE_RT) {
+                    int nid = tb + int(LANE_IDX);
+                    
+                    // overflow control
+                    BOOL_ overflow = BOOL_(invld || overflow || nid >= bts || nid < 0);
+                    IFALL(overflow) break;
+                    accquireNode(nid); overflow |= BOOL_(currentBlockNode < 0);
+                    IFALL(overflow) break;
+
+                    // begin traverse (save to caches)
+                    overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
+                    nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
+                    beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
+
+                    // global traversing
+                    for (int iteration=0;iteration<2048;iteration++) {
+                        IFALL(not(validBox) | overflow | BOOL_(idx < 0)) break;
+                        checkChildNodes(); // traverse BVH
+                        //simdIntersectionTriangles();
+                    }
+                    choiceBaked(); // sort of intersections
+
+                    // resolve intersection
+                    int chainID = nodeCache[rayID].info.chainID;
+                    if (chainID > 0 && SSC(not(overflow))) {
+                        currentRay.origin.w = intBitsToFloat(chainID);
+                        storeRay();
+                    }
+                }
+            }
+        }
+    }
+    */
 }

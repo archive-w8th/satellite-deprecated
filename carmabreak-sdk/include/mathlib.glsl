@@ -403,7 +403,7 @@ f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 
 
 float intersectCubeSingle(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 cubeMax, inout float near, inout float far) {
-    vec3 dr = 1.0f / ray;
+    vec3 dr = 1.f / (max(abs(ray), vec3(0.0001f)) * mix(vec3(-1), vec3(1), greaterThanEqual(ray, vec3(0.f))));
     vec3 norig = -origin*dr;
     vec3 tMin = fma(cubeMin.xyz, dr, norig);
     vec3 tMax = fma(cubeMax.xyz, dr, norig);

@@ -273,7 +273,7 @@ void main() {
                     vec3 _diffuse = clamp01(diffcolor.xyz) / max(dfim, 0.000001f);
                     
 #ifdef USE_SIMPLIFIED_MODE
-                    _diffuse *= mix(vec3(0.1f), vec3(1.f), abs(dot(normalize(lightCenter(0).xyz - currentRay.origin.xyz), normal.xyz))) * dfpt;
+                    _diffuse *= mix(vec3(0.1f), vec3(1.f), max(dot(normalize(lightCenter(0).xyz - currentRay.origin.xyz), normal.xyz), 0.f)) * dfpt;
                     refly = 0.f;
 #endif
 

@@ -103,10 +103,10 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // test constants
     vec3 torig = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz, 
     dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz;
-    float dirlen = length(dirproj) / max(length(direct), 0.0000001f);
+    float dirlen = length(dirproj) / max(length(direct), 0.0001f);
 
-    dirlenInv = 1.f / max(dirlen, 0.0000001f), toffset = 0.f;
-    dirproj = normalize(dirproj);
+    dirlenInv = 1.f / max(dirlen, 0.0001f), toffset = 0.f;
+    dirproj *= dirlenInv;
 
     // limitation of distance
     predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
@@ -122,7 +122,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     }
 
     // calculate box projected rays
-    origined = FVEC3_(fma(dirproj, toffset.xxx, torig)), divident = FVEC3_(1.f / dirproj);
+    origined = FVEC3_(fma(dirproj, toffset.xxx, torig)), divident = FVEC3_(1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1), vec3(1), greaterThanEqual(dirproj,vec3(0.f)))));
     direct = normalize(direct);
 
     // calculate longest axis
@@ -154,10 +154,12 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 
 // intersectors for WARP's
 void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout BOOL_ isValid, inout float nearhit) {
+//void testIntersectionPacked(inout int rayID, inout vec3 orig, inout vec3 direct, inout int tri, inout BOOL_ isValid, inout float nearhit) {
     BOOL_ near = BOOL_(tri >= 0) & isValid;
 
     // planned packed math
     vec2 uv2 = vec2(0.0f); float _d2 = intersectTriangle(orig, M, axis, tri, uv2, near);
+    //vec2 uv2 = vec2(0.0f); float _d2 = intersectTriangle(orig, direct, tri, uv2, near);
 
     // include intersection
     near = near & lessF(_d2, INFINITY) & lessEqualF(_d2, nearhit); //& greaterEqualF(_d2, 0.0f);
@@ -173,6 +175,7 @@ void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inou
 void includeLeaf(in ivec4 pdata, inout BOOL_ excl){
     BOOL_ leaf = BOOL_(pdata.x == pdata.y); excl &= not(leaf);
     testIntersectionPacked(rayID, currentRay.origin.xyz, M, axis, pdata.w, leaf, predist);
+    //testIntersectionPacked(rayID, currentRay.origin.xyz, currentRay.direct.xyz, pdata.w, leaf, predist);
 }
 
 
@@ -346,7 +349,8 @@ HitRework interpolateMeshData(inout HitRework res) {
         mat2x2 dlts = mat2x2(txds[1] - txds[0], txds[2] - txds[0]);
 
         // tangent determinant
-        float f = 1.f / determinant(dlts);
+        float det = determinant(dlts);
+        float f = 1.f / (max(abs(det), 0.0001f) * (det >= 0.f ? 1 : -1));
         { f = isnan(f) ? 0.f : f, f = isinf(f) ? 10000.f : f; }
 
         // bitangent and tangent

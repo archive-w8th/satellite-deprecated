@@ -36,7 +36,7 @@ void main() {
                     vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs);
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         samplecount += 1.f; newc += texelBuf.nodes[ts].color;
-                        texelBuf.nodes[ts].color = vec4(0);
+                        //texelBuf.nodes[ts].color = vec4(0);
                     }
                 }
                 

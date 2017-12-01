@@ -270,7 +270,7 @@ void main() {
                     // diffuse and specular colors (based on priorities)
                     vec3 _specular = clamp01(speccolor.xyz);
                     vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom);
-                    vec3 _diffuse = clamp01(diffcolor.xyz) / max(dfim, 0.000001f);
+                    vec3 _diffuse = clamp01(diffcolor.xyz) / max(dfim, 0.0001f);
                     
 #ifdef USE_SIMPLIFIED_MODE
                     _diffuse *= mix(vec3(0.1f), vec3(1.f), max(dot(normalize(lightCenter(0).xyz - currentRay.origin.xyz), normal.xyz), 0.f)) * dfpt;

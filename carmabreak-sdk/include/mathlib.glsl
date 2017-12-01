@@ -423,8 +423,7 @@ float intersectCubeSingle(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 
     return mix(near, far, (near + PZERO) <= 0.0f);
 }
 
-vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT2X4_ cubeMin, in FMAT2X4_ cubeMax, inout vec2 near, inout vec2 far)
-{
+vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT2X4_ cubeMin, in FMAT2X4_ cubeMax, inout vec2 near, inout vec2 far) {
     FMAT3X4_ dr2 = FMAT3X4_(dr.xxxx, dr.yyyy, dr.zzzz);
     FMAT3X4_ origin2 = FMAT3X4_(origin.xxxx, origin.yyyy, origin.zzzz);
     FMAT4X4_ cubeMinMax2 = transpose(FMAT4X4_(cubeMin[0], cubeMin[1], cubeMax[0], cubeMax[1]));

@@ -291,7 +291,7 @@ void main() {
                         } else 
                         if (true) {
                             refly = 0.f;
-                            rayTemplate = reflection(currentRay, _specular * (1.f - dfpt), normal, refly);
+                            rayTemplate = reflection(currentRay, _specular * (1.f - dfpt) * (1.f - prom * rfim * (1.f - prom)), normal, refly);
                         }
 #else
                         if (random() < prom) {

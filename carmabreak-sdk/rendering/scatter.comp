@@ -24,7 +24,8 @@ void main() {
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        vec2 screen = vec2(mod(float(it), whs.x), floor(float(it) / whs.x));
+        float ft = float(it);
+        vec2 screen = vec2(ft - whs.x * floor(ft / whs.x + 0.0001f), floor(float(it) / whs.x));
         vec2 basis = floor(screen * aspect);
 
         vec4 newc = vec4(0.0f); float samplecount = 0;
@@ -33,7 +34,7 @@ void main() {
                 vec2 cmp = basis + vec2(x, y);
                 if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
-                    vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.00001f);
+                    vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         samplecount += 1.f; newc += texelBuf.nodes[ts].color;
                         //texelBuf.nodes[ts].color = vec4(0);
@@ -44,8 +45,8 @@ void main() {
         }
         newc /= samplecount;
 
+        ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
         if (samplecount > 0) {
-            ivec2 cid = ivec2(floor(screen.xy));
     #ifndef MOTION_BLUR
             if (imageLoad(sampleflags, cid).x > 0) {
                 imageStore(sampleflags, cid, uvec4(0));

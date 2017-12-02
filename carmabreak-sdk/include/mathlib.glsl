@@ -176,7 +176,7 @@ bool allB(in int a, in int cnt) {return a == ((1 << cnt)-1);}
 
 vec4 composite(in vec4 src, in vec4 dst) {
     float oa = src.a + dst.a * (1.0f - src.a);
-    return clamp(vec4((src.rgb * src.a + dst.rgb * dst.a * (1.0f - src.a)) / max(oa, 0.00001f), oa), vec4(0.0f), vec4(1.0f));
+    return clamp(vec4((src.rgb * src.a + dst.rgb * dst.a * (1.0f - src.a)) / max(oa, 0.0001f), oa), vec4(0.0f), vec4(1.0f));
 }
 
 vec4 cubic(in float v) {

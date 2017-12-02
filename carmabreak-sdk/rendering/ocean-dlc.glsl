@@ -105,7 +105,7 @@ float heightMapTracing(in vec3 orig, in vec3 dir) {
     for (int i = 0; i < NUM_STEPS; i++) {
         od = d, d = map(orig + dir * max(abs(ts), EPSILON)); ts += d; // get distance by height
         ofound = ofound | BOOL_(abs(d) < EPSILON);
-        BOOL_ parallelIssue = BOOL_(abs(d - od) < 0.000001f);
+        BOOL_ parallelIssue = BOOL_(abs(d - od) < 0.0001f);
         IF ( greaterEqualF(abs(ts), TX) | ofound | parallelIssue ) break;
     }
     return SSC(lessF(abs(ts), TX) & ofound) ? max(abs(ts), EPSILON) : INFINITY;

@@ -70,11 +70,10 @@ void main()
                 int idx = xy.x + xy.y * wh.x;
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
                 blockBins[binID].texels[nid] = vbn ? idx+1 : -1;
-                if (vbn) texelBuf.nodes[idx].color = vec4(0.f); // debug white
 
                 IFALL(overflow) break;
                 if (vbn) {
-                    vec2 coord = (vec2(xy) + clamp(vec2(random(), random()), vec2(0.00001f), vec2(0.99999f))) * sceneResInv;
+                    vec2 coord = (vec2(xy) + clamp(vec2(random(), random()), vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
                     
                     Texel txfi = texelBuf.nodes[idx];
                     txfi.coord.x = coord.x;

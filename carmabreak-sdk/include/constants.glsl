@@ -19,7 +19,7 @@
 #define DIRECT_LIGHT_ENABLED
 
 // sampling options
-#define MOTION_BLUR
+//#define MOTION_BLUR
 #ifndef SAMPLES_LOCK
 #define SAMPLES_LOCK 1 // required when using motion blur
 //#define SAMPLES_LOCK 128 // monte-carlo

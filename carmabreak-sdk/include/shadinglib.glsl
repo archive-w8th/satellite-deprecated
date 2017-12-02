@@ -76,11 +76,13 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 n
 
 RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     ray.color.xyz *= color;
-    ray.direct.xyz = normalize(randomCosine(normal));
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
     ray.final.xyz *= 0.f;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
+
+    ray.direct.xyz = normalize(randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x));
+    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
+
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED
     RayDL(ray, FALSE_);
@@ -108,16 +110,27 @@ RayRework emissive(in RayRework ray, in vec3 color, in vec3 normal) {
 }
 
 RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float refly) {
-    ray.direct.xyz = normalize(mix(reflect(ray.direct.xyz, normal), randomCosine(normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
     ray.color.xyz *= color;
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
     ray.final.xyz *= 0.f;
 
     //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
     if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
-    //RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
+
+#ifdef USE_SIMPLIFIED_MODE
     RayBounce(ray, min(1, max(RayBounce(ray)-1, 0)));
+#else
+    RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
+#endif
+
+    ray.direct.xyz = normalize(mix(
+        reflect(ray.direct.xyz, normal), 
+        randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x), 
+        clamp(refly * sqrt(random()), 0.0f, 1.0f)
+    ));
+    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
+
+
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     return ray;
 }

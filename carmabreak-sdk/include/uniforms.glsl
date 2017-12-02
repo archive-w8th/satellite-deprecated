@@ -52,6 +52,12 @@ struct CameraUniformStruct {
     int interlaceStage;
 };
 
+
+struct RayStream {
+    ivec4 superseed;
+};
+
+
 layout ( std430, binding = 12, set = 0 ) readonly buffer LightUniform {
     LightUniformStruct lightNode[];
 } lightUniform;
@@ -65,5 +71,9 @@ layout ( std430, binding = 13, set = 0 ) readonly buffer RayBlockUniform {
 layout ( std430, binding = 14, set = 0 ) readonly buffer GeometryBlockUniform {
     GeometryUniformStruct geometryUniform;
 } geometryBlock;
+
+layout ( std430, binding = 15, set = 0 ) readonly buffer StreamsBlockUniform {
+    RayStream rayStreams[];
+};
 
 #endif

@@ -31,14 +31,19 @@ float random( in uvec2  v ) { return floatConstruct(hash(v)); }
 float random( in uvec3  v ) { return floatConstruct(hash(v)); }
 float random( in uvec4  v ) { return floatConstruct(hash(v)); }
 
-float random() {
+float randomSeeded( in int superseed) {
 #ifdef USE_ARB_CLOCK
     return random(uvec4( globalInvocationSMP << 6, clock2x32ARB(), subHash ));
 #else
-    uint hs = hash(uvec2(++randomClocks, RAY_BLOCK materialUniform.phase)); randomClocks = hs;
+    uint hs = hash(uvec2(++randomClocks, superseed)); randomClocks = hs;
     return random(uvec3( globalInvocationSMP << 6, hs, subHash ));
 #endif
 }
+
+float random() {
+    return randomSeeded(rayStreams[0].superseed.x);
+}
+
 
 vec3 randomCosine(in vec3 normal) {
      float up = sqrt(random());
@@ -62,6 +67,31 @@ vec3 randomCosine(in vec3 normal) {
         )
     );
 }
+
+vec3 randomCosine(in vec3 normal, in int superseed) {
+     float up = sqrt(randomSeeded(superseed));
+     float over = sqrt(1.f - up * up);
+     float around = randomSeeded(superseed) * TWO_PI;
+
+    vec3 perpendicular0 = vec3(0, 0, 1);
+    if (abs(normal.x) < SQRT_OF_ONE_THIRD) {
+        perpendicular0 = vec3(1, 0, 0);
+    } else if (abs(normal.y) < SQRT_OF_ONE_THIRD) {
+        perpendicular0 = vec3(0, 1, 0);
+    }
+
+     vec3 perpendicular1 = normalize( cross(normal, perpendicular0) );
+     vec3 perpendicular2 =            cross(normal, perpendicular1);
+    return normalize(
+        fma(normal, vec3(up),
+            fma( perpendicular1 , vec3(cos(around)) * over,
+                 perpendicular2 * vec3(sin(around)) * over
+            )
+        )
+    );
+}
+
+
 
 vec3 randomDirectionInSphere() {
      float up = fma(random(), 2.0f, -1.0f);

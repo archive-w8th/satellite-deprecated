@@ -26,8 +26,9 @@ void main()
     bool overflow = false;
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX); globalInvocationSMP = globalID;
-        
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+        globalInvocationSMP = globalID;
+
         int binID = globalID;
         blockBins[binID].info.count = 0;
         blockBins[binID].info.header = -1;
@@ -52,7 +53,6 @@ void main()
             // invoke block data
             for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
                 int nid = tb + int(LANE_IDX);
-
                 randomClocks = 0, subHash = nid; // reset random clocks
                 accquirePlainNode(blockID, nid); // accquire by lane
                 

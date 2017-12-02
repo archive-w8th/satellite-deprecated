@@ -71,10 +71,7 @@ namespace NSM {
         vk::DescriptorImageInfo descriptorInfo;
     };
 
-    struct RayStream {
-        //glm::vec4 diffuse_direction;
-        glm::ivec4 superseed;
-    };
+    
 
 
     // use alias

@@ -106,6 +106,13 @@ namespace NSM {
             int interlaceStage = 0;
         };
 
+        struct RayStream {
+            glm::vec4 diffuseStream;
+            glm::ivec4 superseed;
+        };
+
+
+
         struct GeometryBlockUniform {
             GeometryUniformStruct geometryUniform = GeometryUniformStruct();
         };

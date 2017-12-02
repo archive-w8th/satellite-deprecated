@@ -193,7 +193,7 @@ int createBlockOnce(inout int block, in bool minimalCondition){
     return block;
 }
 
-#include "./ocean-dlc.glsl"
+//#include "./ocean-dlc.glsl"
 
 void main() {
     #define wsize RAY_BLOCK samplerUniform.blockCount
@@ -314,8 +314,8 @@ void main() {
                         if (random() >= fresnel) {
                             rayTemplate = reflection(currentRay, vec3(1.f), normal, 0.0f);
                         }
-                    }
-                    */
+                    }*/
+                    
 
                     // if shadows, just filter color
                     if (RayType(rayTemplate) == 2) rayTemplate.color.xyz *= prom;

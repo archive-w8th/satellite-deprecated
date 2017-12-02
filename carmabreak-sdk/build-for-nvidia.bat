@@ -1,7 +1,7 @@
 :: It is helper for compilation shaders to SPIR-V
 
 cd %~dp0
-set CFLAGS= -x glsl -Werror --target-env=vulkan -DUSE_F32_BVH 
+set CFLAGS= -x glsl -Werror --target-env=vulkan 
 set INDIR=.\
 ::set OUTDIR=..\Build\shaders-spv\
 set OUTDIR=..\Build\nvidia\

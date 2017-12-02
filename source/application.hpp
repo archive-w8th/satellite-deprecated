@@ -600,7 +600,7 @@ namespace SatelliteExample {
                         
                         
                         std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
-                        auto renderArea = vk::Rect2D(vk::Offset2D(), window.surfaceSize);
+                        auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), window.surfaceSize);
                         auto viewport = vk::Viewport(0.0f, 0.0f, window.surfaceSize.width, window.surfaceSize.height, 0, 1.0f);
                         auto commandBuffer = getCommandBuffer(currentContext->device, true);
                         commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(context->renderpass, currentContext->framebuffers[currentBuffer].frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);

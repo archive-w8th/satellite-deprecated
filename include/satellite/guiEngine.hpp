@@ -86,7 +86,7 @@ namespace NSM {
 
             // surface sizing
             //vk::Extent2D surfaceSize = {1280, 720};
-            //auto renderArea = vk::Rect2D(vk::Offset2D(), surfaceSize);
+            //auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), surfaceSize);
             //auto viewport = vk::Viewport(0.0f, 0.0f, surfaceSize.width, surfaceSize.height, 0, 1.0f);
             //std::vector<vk::Viewport> viewports = { viewport };
             //std::vector<vk::Rect2D> scissors = { renderArea };
@@ -329,7 +329,7 @@ namespace NSM {
             glm::vec3 offset = glm::vec3(-1.f, -1.f, 0.f);
 
             // render area and clear values 
-            auto renderArea = vk::Rect2D(vk::Offset2D(), vk::Extent2D(io.DisplaySize.x * io.DisplayFramebufferScale.x, io.DisplaySize.y * io.DisplayFramebufferScale.y));
+            auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(io.DisplaySize.x * io.DisplayFramebufferScale.x, io.DisplaySize.y * io.DisplayFramebufferScale.y));
             std::vector<vk::Viewport> viewports = { vk::Viewport(0.0f, 0.0f, float(io.DisplaySize.x) * io.DisplayFramebufferScale.x, float(io.DisplaySize.y) * io.DisplayFramebufferScale.y, 0.f, 1.0f) };
             std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
 

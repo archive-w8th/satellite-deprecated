@@ -22,9 +22,7 @@ layout ( binding = 0 ) uniform sampler2D samples;
 const ivec2 axes[AXES] = {O(-1, -1), O( 0, -1), O( 1, -1), O(-1,  0)};
 
 vec4 filtered(in vec2 tx) {
-    ivec2 center_pix = ivec2(tx * textureSize(samples, 0));
-    vec4 center_pix_cache = texelFetch(samples, center_pix, 0);
-    return center_pix_cache;
+    return textureLod(samples, tx, 0);
 }
 
 void main() {

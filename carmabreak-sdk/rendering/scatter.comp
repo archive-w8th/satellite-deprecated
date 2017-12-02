@@ -33,7 +33,7 @@ void main() {
                 vec2 cmp = basis + vec2(x, y);
                 if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
-                    vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs);
+                    vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.00001f);
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         samplecount += 1.f; newc += texelBuf.nodes[ts].color;
                         //texelBuf.nodes[ts].color = vec4(0);

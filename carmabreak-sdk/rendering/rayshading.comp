@@ -1,6 +1,6 @@
 #version 460 core
 
-#define USE_SIMPLIFIED_MODE
+//#define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 8

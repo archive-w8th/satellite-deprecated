@@ -21,7 +21,7 @@ void main() {
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
-    uint bcount = min(blocks.count, 4096);
+    uint bcount = min(blocks.count, 16384);
     uint addr = blocks.offset + LT_IDX;
 
     // copy to temporal

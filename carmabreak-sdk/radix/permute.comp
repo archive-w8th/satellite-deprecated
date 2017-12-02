@@ -23,7 +23,7 @@ void main() {
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
-    uint bcount = min(blocks.count, 4096);
+    uint bcount = min(blocks.count, 16384);
 
     // barrier-less, WARP-optimized histogram calculation
     for (uint rk=0;rk<RADICES;rk+=WORK_SIZE_RT) {

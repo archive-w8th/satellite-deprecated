@@ -651,7 +651,7 @@ namespace NSM {
                 rayStreamsData.resize(16);
                 for (int i = 0; i < rayStreamsData.size();i++) {
                     rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
-                    rayStreamsData[i].superseed.x = randm();
+                    rayStreamsData[i].superseed = glm::ivec4(randm(), randm(), randm(), randm());
                 }
                 
                 //rayBlockData[0].materialUniform.time = randm();

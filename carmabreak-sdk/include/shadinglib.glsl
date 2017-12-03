@@ -125,11 +125,10 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
 #endif
 
-    ray.direct.xyz = normalize(mix(
-        reflect(ray.direct.xyz, normal), 
-        randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x), 
-        clamp(refly * sqrt(random()), 0.0f, 1.0f)
-    ));
+    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+
+    ray.direct.xyz = normalize(mix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
 
 

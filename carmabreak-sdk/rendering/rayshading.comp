@@ -106,7 +106,7 @@ void invokeSurface(inout bool overflow) {
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (RayBounce(rayTemplate) <= 0 || mlength(rayTemplate.color.xyz) < 0.0001f || overflow) RayActived(rayTemplate, FALSE_);
+    if (RayBounce(rayTemplate) <= 0 || mlength(rayTemplate.color.xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
 }
 
 void cleanRay(inout RayRework rayTemplate){
@@ -263,14 +263,12 @@ void main() {
                     // coefficents
                     float prom = clamp01(1.f - diffcolor.a); // transmission power
                     float spca = mix(mlength(freflcolor), 1.f, metallic);
-                    float dfim = max(clamp01(mlength(diffcolor.xyz)), diffuse_min_importance); // diffuse importance
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
-                    float dfpt = clamp01(dfim * (1.f - spca));
 
                     // diffuse and specular colors (based on priorities)
                     vec3 _specular = clamp01(speccolor.xyz);
                     vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom);
-                    vec3 _diffuse = diffcolor.xyz / max(dfim, 0.0001f);
+                    vec3 _diffuse = diffcolor.xyz;
                     
 #ifdef USE_SIMPLIFIED_MODE
                     _diffuse *= mix(vec3(0.1f), vec3(1.f), max(dot(normalize(lightCenter(0).xyz - currentRay.origin.xyz), normal.xyz), 0.f)) * dfpt;
@@ -285,18 +283,18 @@ void main() {
                             rayTemplate = rayTemplate;
                         } else 
                         if (true) {
-                            rayTemplate = reflection(currentRay, _specular * (1.f - dfpt), normal, refly);
+                            rayTemplate = reflection(currentRay, _specular, normal, refly);
                         }
 #else
                         wasShadow = true;
                         if (random() < prom) { // as is transparency
                             rayTemplate = rayTemplate;
                         } else
-                        if (random() < dfpt) { // diffuse level
-                            rayTemplate = diffuse(currentRay, _diffuse, normal); //wasShadow = true;
+                        if (random() < spca) { // reflection level
+                            rayTemplate = reflection(currentRay, _specular, normal, refly);
                         } else 
-                        if (true) { // reflection level
-                            rayTemplate = reflection(currentRay, _specular * (1.f - dfpt), normal, refly);
+                        if (true) { // diffuse level
+                            rayTemplate = diffuse(currentRay, _diffuse, normal); //wasShadow = true;
                         }
 #endif
                     }

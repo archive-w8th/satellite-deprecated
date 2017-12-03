@@ -84,6 +84,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
+    ray.color.xyz *= mix(0.f, 2.f, dot(normal, ray.direct.xyz));
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED

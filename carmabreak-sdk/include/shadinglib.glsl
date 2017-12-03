@@ -80,8 +80,8 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
 
-    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
 
@@ -122,8 +122,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
 #ifdef USE_SIMPLIFIED_MODE
     RayBounce(ray, min(1, max(RayBounce(ray)-1, 0)));
 #else
-    //RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
-    RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
+    RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
 #endif
 
     ray.direct.xyz = normalize(mix(

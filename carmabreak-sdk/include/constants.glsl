@@ -21,7 +21,7 @@
 // sampling options
 //#define MOTION_BLUR
 #ifndef SAMPLES_LOCK
-#define SAMPLES_LOCK 1 // required when using motion blur
+#define SAMPLES_LOCK 2 // required when using motion blur
 //#define SAMPLES_LOCK 128 // monte-carlo
 #endif
 

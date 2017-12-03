@@ -250,7 +250,7 @@ namespace NSM {
             void initLights() {
                 lightUniformData.resize(6);
                 for (int i = 0; i < 6; i++) {
-                    lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 400.f, 40.0f);
+                    lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 1600.f, 20.0f);
                     //lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 3600.f, 10.0f);
                     lightUniformData[i].lightVector = glm::vec4(0.3f, 1.0f, 0.1f, 400.0f);
                     lightUniformData[i].lightOffset = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -764,7 +764,7 @@ namespace NSM {
             TextureType& getFilteredImage() { return filteredImage; }
 
             // panorama mode
-            void enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; }
+            void enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; clearSampling(); }
             size_t getRayCount() { return rayBlockData[0].samplerUniform.blockCount; }
 
         public:

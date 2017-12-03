@@ -14,11 +14,7 @@
 ### Videos
 
 Sponza with reflections (full, not screen space).
-* https://www.youtube.com/watch?v=rehdvVN8fVU (plain, 1080p)
-* https://www.youtube.com/watch?v=R8sciw9mhjc (360 degree, 1080s, poor quality but can overview)
-* https://www.youtube.com/watch?v=EG5XxcW7xYk 
-* https://www.youtube.com/watch?v=XbEEK2wFtrs 
-
+* Will remedy 
 
 ### Contacts 
 

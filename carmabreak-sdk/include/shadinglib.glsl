@@ -122,7 +122,8 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
 #ifdef USE_SIMPLIFIED_MODE
     RayBounce(ray, min(1, max(RayBounce(ray)-1, 0)));
 #else
-    RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
+    //RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
+    RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
 #endif
 
     ray.direct.xyz = normalize(mix(

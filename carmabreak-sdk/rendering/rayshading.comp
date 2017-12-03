@@ -292,7 +292,7 @@ void main() {
                             rayTemplate = rayTemplate;
                         } else
                         if (random() < dfpt) { // diffuse level
-                            rayTemplate = diffuse(currentRay, _diffuse * 0.f, normal); wasShadow = true;
+                            rayTemplate = diffuse(currentRay, _diffuse, normal); wasShadow = true;
                         } else 
                         if (true) { // reflection level
                             rayTemplate = reflection(currentRay, _specular * (1.f - dfpt), normal, refly);

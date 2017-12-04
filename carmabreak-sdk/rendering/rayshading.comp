@@ -177,16 +177,16 @@ void envShading(inout bool skipping) {
 
 LOCAL_SIZE_LAYOUT;
 
-
-
 int createBlockOnce(inout int block, in bool minimalCondition){
     if (block < 0 && anyInvoc(minimalCondition)) {
-        if (LANE_IDX == 0) block = createBlock(); block = readLane(block, 0);
+        int activeLane = firstActive();
+        if (LANE_IDX == activeLane) block = createBlock(); block = readLane(block, activeLane);
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.final = vec4(0.f);
             rayBlockNodes[block][nid].data.color = vec4(0.f);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
+            RayBounce(rayBlockNodes[block][nid].data, 0);
             rayBlocks[block].indices[nid] = IDCTYPE(-1);
         }
     }
@@ -220,7 +220,7 @@ void main() {
             if (invld) { currentBlock = -1; continue; }
             
             resetBlockIndiceCounter(currentBlock);
-            int shadowBlock = -1, emissionBlock = -1;
+            int shadowBlock = -1, emissionBlock = -1, diffuseBlock = -1, reflectionBlock = -1;
 
             // invoke block data
             if (!invld) {
@@ -232,10 +232,7 @@ void main() {
                     IFALL(overflow) break;
                     accquireNode(nid); overflow = overflow || currentBlockNode < 0;
                     IFALL(overflow) break;
-                    invokeSurface(overflow); 
-                    
-                    // add procedural objects (our shadertoy intersections)
-                    //addOcean(overflow);
+                    invokeSurface(overflow);
                     
                     // rest rays shading
                     envShading(overflow);
@@ -269,105 +266,102 @@ void main() {
                     vec3 _specular = clamp01(speccolor.xyz);
                     vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom);
                     vec3 _diffuse = diffcolor.xyz;
-                    
-#ifdef USE_SIMPLIFIED_MODE
-                    _diffuse *= mix(vec3(0.1f), vec3(1.f), max(dot(normalize(lightCenter(0).xyz - currentRay.origin.xyz), normal.xyz), 0.f)) * dfpt;
-                    refly = 0.f;
-#endif
 
-                    // shading ray of geometry
-                    RayRework rayTemplate = promised(currentRay, normal); bool wasShadow = false;
-                    if (RayActived(rayTemplate) == 1 && RayType(rayTemplate) != 2 && !hasProcedural) { // inactive or shadows disallowed to shading
-#ifdef USE_SIMPLIFIED_MODE
-                        if (random() < prom) { // as is transparency
-                            rayTemplate = rayTemplate;
-                        } else 
-                        if (true) {
-                            rayTemplate = reflection(currentRay, _specular, normal, refly);
-                        }
-#else
-                        wasShadow = true;
-                        if (random() < prom) { // as is transparency
-                            rayTemplate = rayTemplate;
-                        } else
-                        if (random() < spca) { // reflection level
-                            rayTemplate = reflection(currentRay, _specular, normal, refly);
-                        } else 
-                        if (true) { // diffuse level
-                            rayTemplate = diffuse(currentRay, _diffuse, normal); //wasShadow = true;
-                        }
-#endif
-                    }
+                    // inactive or shadows disallowed to shading
+                    int overwriteBlock = currentBlock; bool confirmed = false;
+                    if (hasProcedural) { prom = 1.f; confirmed = true; }
 
+                    // binarize/quantize 
+                    prom = random() < prom ? 1.f : 0.f;
+                    spca = random() < spca ? 1.f : 0.f;
 
-                    /*
-                    // shading of procedural oceans
-                    if (RayActived(rayTemplate) == 1 && RayType(rayTemplate) != 2 && proceduralID == 0) {
-                        _specular = vec3(0.f), _diffuse = vec3(0.f), _emission = vec3(0.f);
-
-                        float IOR = 1.334f;
-                        float fresnel = clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f);
-                        rayTemplate = refraction(currentRay, vec3(1.f), normal, 1.f, IOR, 0.f);
-
-                        // reflection on water
-                        if (random() >= fresnel) {
-                            rayTemplate = reflection(currentRay, vec3(1.f), normal, 0.0f);
-                        }
-                    }*/
-                    
-
-                    // if shadows, just filter color
-                    if (RayType(rayTemplate) == 2) rayTemplate.color.xyz *= prom;
-
-                    // store main ray
+                    // transparent rays
+                    RayRework rayTemplate = promised(currentRay, normal); rayTemplate.color.xyz *= prom;
                     invalidateRay(rayTemplate, overflow);
-                    storeRay(currentBlock, rayTemplate); 
-                    confirmNode(currentBlock, RayActived(rayTemplate) == 1 && !overflow);
+                    storeRay(overwriteBlock, rayTemplate);
+                    confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
+                    IF (not(RayActived(currentRay))) confirmed = true;
+                    
+                    IFANY (RayActived(currentRay)) { // if any ray allowed
+                        // reflection rays
+                        rayTemplate = reflection(currentRay, _specular * spca * (1.f - prom), normal, refly);
+                        invalidateRay(rayTemplate, overflow);
+                        createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
+                        storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
+                        confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
+                        
+                        // diffuse rays
+                        rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
+                        invalidateRay(rayTemplate, overflow);
+                        createBlockOnce(diffuseBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
+                        storeRay(overwriteBlock = confirmed || diffuseBlock >= 0 ? diffuseBlock : overwriteBlock, rayTemplate);
+                        confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
-                    // create shadow ray
-                    rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
-                    invalidateRay(rayTemplate, overflow || !wasShadow);
-                    //createBlockOnce(shadowBlock, !overflow && (mlength(rayTemplate.final.xyz) >= 0.0001f || RayActived(rayTemplate) == 1));
-                    createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1);
-                    storeRay(shadowBlock, rayTemplate); 
-                    confirmNode(shadowBlock, RayActived(rayTemplate) == 1 && !overflow);
+                        // shadow rays
+                        rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
+                        invalidateRay(rayTemplate, overflow);
+                        createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
+                        storeRay(overwriteBlock = confirmed || shadowBlock >= 0 ? shadowBlock : overwriteBlock, rayTemplate);
+                        confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
-                    // store emission ray
-#ifdef USE_SIMPLIFIED_MODE
-                    rayTemplate = emissive(currentRay, _diffuse * (1.f - prom) + _emission, normal);
-#else
-                    rayTemplate = emissive(currentRay, _emission, normal);
-#endif
-                    if (overflow) rayTemplate.final = vec4(0.f);
-                    invalidateRay(rayTemplate, true);
-                    createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.0001f);
-                    storeRay(emissionBlock, rayTemplate);
-                    //confirmNode(emissionBlock, RayActived(rayTemplate) == 1 && !overflow);
+                        // emissions
+                        rayTemplate = emissive(currentRay, _emission, normal);
+                        if (overflow) rayTemplate.final = vec4(0.f);
+                        invalidateRay(rayTemplate, true);
+                        createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
+                        storeRay(emissionBlock, rayTemplate);
+                    }
                 }
             }
 
 
-            bool emissionHasIllumination = false, materialHasIllumination = false, shadowsHasIllumination = false;
+            bool emissionHasIllumination = false, 
+                 materialHasIllumination = false, 
+                 shadowsHasIllumination = false,
+                 reflectHasIllumination = false, 
+                 diffuseHasIllumination = false;
             
             for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
                 int nid = int(tb + LANE_IDX);
                 if (emissionBlock >= 0) copyBlockIndices(emissionBlock, nid);
                 if (currentBlock >= 0) copyBlockIndices(currentBlock, nid);
                 if (shadowBlock >= 0) copyBlockIndices(shadowBlock, nid);
+                if (diffuseBlock >= 0) copyBlockIndices(diffuseBlock, nid);
+                if (reflectionBlock >= 0) copyBlockIndices(reflectionBlock, nid);
 
                 materialHasIllumination = anyInvoc(materialHasIllumination || anyInvoc(checkIllumination(currentBlock, nid)));
                 emissionHasIllumination = anyInvoc(emissionHasIllumination || anyInvoc(checkIllumination(emissionBlock, nid)));
-                //shadowsHasIllumination = anyInvoc(shadowsHasIllumination || anyInvoc(checkIllumination(shadowBlock, nid)));
+                //reflectHasIllumination = anyInvoc(reflectHasIllumination || anyInvoc(checkIllumination(reflectionBlock, nid)));
+                //diffuseHasIllumination = anyInvoc(diffuseHasIllumination || anyInvoc(checkIllumination(diffuseBlock, nid)));
             }
 
             emissionHasIllumination = anyInvoc(emissionHasIllumination);
             materialHasIllumination = anyInvoc(materialHasIllumination);
-            //shadowsHasIllumination = anyInvoc(shadowsHasIllumination);
+            //reflectHasIllumination = anyInvoc(reflectHasIllumination);
+            //diffuseHasIllumination = anyInvoc(diffuseHasIllumination);
             
             if (LANE_IDX == 0) {
                 // flush emission block
                 if (emissionBlock >= 0) {
                     flushBlock(emissionBlock, emissionHasIllumination);
+                }
+
+                // confirm reflection block
+                if (reflectionBlock >= 0) {
+                    if (getBlockIndiceCounter(reflectionBlock) > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
+                        confirmBlock(reflectionBlock); 
+                    } else { 
+                        flushBlock(reflectionBlock, reflectHasIllumination); 
+                    }
+                }
+
+                // confirm diffuse block
+                if (diffuseBlock >= 0) {
+                    if (getBlockIndiceCounter(diffuseBlock) > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
+                        confirmBlock(diffuseBlock); 
+                    } else { 
+                        flushBlock(diffuseBlock, diffuseHasIllumination); 
+                    }
                 }
 
                 // confirm shadow block
@@ -379,7 +373,7 @@ void main() {
                     }
                 }
 
-                // confirm ray block
+                // confirm transparency block
                 if (currentBlock >= 0) {
                     if (getBlockIndiceCounter(currentBlock) > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
                         confirmBlock(currentBlock); 

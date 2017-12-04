@@ -272,11 +272,12 @@ void main() {
                     if (hasProcedural) { prom = 1.f; confirmed = true; }
 
                     // binarize/quantize 
-                    prom = random() < prom ? 1.f : 0.f;
-                    spca = random() < spca ? 1.f : 0.f;
+                    float qprom = random() < prom ? 1.f : 0.f;
+                    float qspca = random() < spca ? 1.f : 0.f;
 
                     // transparent rays
-                    RayRework rayTemplate = promised(currentRay, normal); rayTemplate.color.xyz *= prom;
+                    RayRework rayTemplate = promised(currentRay, normal); 
+                    rayTemplate.color.xyz *= RayType(rayTemplate) == 2 ? prom : qprom; // shadows dims 
                     invalidateRay(rayTemplate, overflow);
                     storeRay(overwriteBlock, rayTemplate);
                     confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
@@ -284,14 +285,14 @@ void main() {
                     
                     IFANY (RayActived(currentRay)) { // if any ray allowed
                         // reflection rays
-                        rayTemplate = reflection(currentRay, _specular * spca * (1.f - prom), normal, refly);
+                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
                         
                         // diffuse rays
-                        rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
+                        rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(diffuseBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || diffuseBlock >= 0 ? diffuseBlock : overwriteBlock, rayTemplate);

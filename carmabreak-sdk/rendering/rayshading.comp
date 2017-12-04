@@ -284,18 +284,18 @@ void main() {
                     IF (not(RayActived(currentRay))) confirmed = true;
                     
                     IFANY (RayActived(currentRay)) { // if any ray allowed
-                        // reflection rays
-                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
-                        invalidateRay(rayTemplate, overflow);
-                        createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
-                        storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
-                        confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
-                        
                         // diffuse rays
                         rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(diffuseBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || diffuseBlock >= 0 ? diffuseBlock : overwriteBlock, rayTemplate);
+                        confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
+
+                        // reflection rays
+                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
+                        invalidateRay(rayTemplate, overflow);
+                        createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
+                        storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
                         // shadow rays

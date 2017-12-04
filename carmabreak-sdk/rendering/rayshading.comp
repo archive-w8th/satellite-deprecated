@@ -283,7 +283,7 @@ void main() {
                     confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
                     IF (not(RayActived(currentRay))) confirmed = true;
                     
-                    IFANY (RayActived(currentRay)) { // if any ray allowed
+                    IFANY (!confirmed) { // if any ray allowed
                         // diffuse rays
                         rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
                         invalidateRay(rayTemplate, overflow);
@@ -301,7 +301,7 @@ void main() {
                         // shadow rays
                         rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
                         invalidateRay(rayTemplate, overflow);
-                        createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
+                        createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1 /*&& confirmed*/);
                         storeRay(overwriteBlock = confirmed || shadowBlock >= 0 ? shadowBlock : overwriteBlock, rayTemplate);
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 

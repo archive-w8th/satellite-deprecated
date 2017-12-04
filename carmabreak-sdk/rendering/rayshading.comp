@@ -263,7 +263,7 @@ void main() {
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
 
                     // diffuse and specular colors (based on priorities)
-                    vec3 _specular = clamp01(speccolor.xyz);
+                    vec3 _specular = clamp01(speccolor.xyz / spca);
                     vec3 _emission = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom);
                     vec3 _diffuse = diffcolor.xyz;
 

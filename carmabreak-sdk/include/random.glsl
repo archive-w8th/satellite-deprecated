@@ -69,47 +69,15 @@ vec3 randomCosine(in vec3 normal) {
 }
 
 vec3 randomCosine(in vec3 normal, in int superseed) {
-  vec3 rnd3 = vec3(randomSeeded(superseed), randomSeeded(superseed), randomSeeded(superseed));
-  float r = fma(rnd3.x, 0.5f, 0.5f);
-  float angle = fma(rnd3.y, PI, PI);
-  float sr = sqrt(r);
-  vec2 p = sr*vec2(cos(angle),sin(angle));
-  vec3 ph = vec3(p.xy, sqrt(1.0f - p*p));
-  vec3 tangent = normalize(rnd3);
-  vec3 bitangent = cross(tangent, normal);
-  tangent = cross(bitangent, normal);
-  return normalize(fma(tangent, ph.xxx, fma(bitangent, ph.yyy, normal * ph.z)));
-
-
-    /*
-     float up = sqrt(randomSeeded(superseed));
-     float over = sqrt(1.f - up * up);
-     float around = randomSeeded(superseed) * TWO_PI;
-
-    vec3 perpendicular0 = vec3(0, 0, 1);
-    if (abs(normal.x) < SQRT_OF_ONE_THIRD) {
-        perpendicular0 = vec3(1, 0, 0);
-    } else if (abs(normal.y) < SQRT_OF_ONE_THIRD) {
-        perpendicular0 = vec3(0, 1, 0);
-    }
-
-     vec3 perpendicular1 = normalize( cross(normal, perpendicular0) );
-     vec3 perpendicular2 =            cross(normal, perpendicular1);
-    return normalize(
-        fma(normal, vec3(up),
-            fma( perpendicular1 , vec3(cos(around)) * over,
-                 perpendicular2 * vec3(sin(around)) * over
-            )
-        )
-    );*/
+    float up = sqrt(randomSeeded(superseed)), over = sqrt(1.f - up * up), around = randomSeeded(superseed) * TWO_PI;
+    vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
+    vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
+    vec3 perpendicular2 = normalize(cross(normal, perpendicular1));
+    return normalize(fma(normal, up.xxx, fma(perpendicular1, cos(around).xxx * over, perpendicular2* sin(around).xxx * over)));
 }
 
-
-
 vec3 randomDirectionInSphere() {
-     float up = fma(random(), 2.0f, -1.0f);
-     float over = sqrt(1.f - up * up);
-     float around = random() * TWO_PI;
+    float up = fma(random(), 2.0f, -1.0f), over = sqrt(1.f - up * up), around = random() * TWO_PI;
     return normalize(vec3( up, cos(around) * over, sin(around) * over ));
 }
 

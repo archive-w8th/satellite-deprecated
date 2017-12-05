@@ -49,8 +49,7 @@ float modularize(in float f) {
 }
 
 float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist) {
-    //return (1.0f - sqrt(1.0f - clamp(dot(ldir, ndir) * 2.f * pow(radius / dist, 2.f), 0.f, 1.f)));
-    return modularize(max(dot(ldir, ndir), 0.f) * pow(radius / dist, 2.f));
+    return modularize(max(dot(ldir, ndir), 0.f) * pow(radius / dist, 2.f)) * 2.f;
 }
 
 RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 normal) {
@@ -86,11 +85,11 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
 
-    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    ray.color.xyz *= mix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f));
+    //ray.color.xyz *= mix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED

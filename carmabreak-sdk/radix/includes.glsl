@@ -66,18 +66,18 @@ uint LT_IDX = 0;
 
 #define KEYTYPE UVEC64_WARP
 //#define KEYTYPE UVEC_WARP
-layout (std430, binding = 20, set = 0 )  buffer KeyInBlock {KEYTYPE KeyIn[]; };
-layout (std430, binding = 21, set = 0 )  buffer ValueInBlock {uint ValueIn[]; };
-layout (std430, binding = 24, set = 0 )  buffer VarsBlock {
+layout (std430, binding = 20, set = 0 ) coherent buffer KeyInBlock {KEYTYPE KeyIn[]; };
+layout (std430, binding = 21, set = 0 ) coherent buffer ValueInBlock {uint ValueIn[]; };
+layout (std430, binding = 24, set = 0 ) readonly buffer VarsBlock {
     uint NumKeys;
     uint Shift;
     uint Descending;
     uint IsSigned;
 };
-layout (std430, binding = 25, set = 0 )  buffer KeyTmpBlock {KEYTYPE KeyTmp[]; };
-layout (std430, binding = 26, set = 0 )  buffer ValueTmpBlock {uint ValueTmp[]; };
-layout (std430, binding = 27, set = 0 )  buffer HistogramBlock {uint Histogram[]; };
-layout (std430, binding = 28, set = 0 )  buffer PrefixBlock {uint PrefixSum[]; };
+layout (std430, binding = 25, set = 0 ) coherent buffer KeyTmpBlock {KEYTYPE KeyTmp[]; };
+layout (std430, binding = 26, set = 0 ) coherent buffer ValueTmpBlock {uint ValueTmp[]; };
+layout (std430, binding = 27, set = 0 ) restrict buffer HistogramBlock {uint Histogram[]; };
+layout (std430, binding = 28, set = 0 ) restrict buffer PrefixBlock {uint PrefixSum[]; };
 
 
 

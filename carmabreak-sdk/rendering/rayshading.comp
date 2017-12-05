@@ -178,7 +178,7 @@ void envShading(inout bool skipping) {
 LOCAL_SIZE_LAYOUT;
 
 int createBlockOnce(inout int block, in bool minimalCondition){
-    if (block < 0 && anyInvoc(minimalCondition)) {
+    if (block < 0 && anyInvoc(block < 0 && minimalCondition)) {
         int activeLane = firstActive();
         if (LANE_IDX == activeLane) block = createBlock(); block = readLane(block, activeLane);
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {

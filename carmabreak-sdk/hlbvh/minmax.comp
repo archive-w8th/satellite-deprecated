@@ -12,7 +12,7 @@ const int work_size = 1024;
 layout ( local_size_x = work_size ) in;
 shared bbox sdata[ work_size ];
 
-layout ( std430, binding = 9, set = 0 )  buffer MinmaxOutputSSBO {vec4 minmax[]; };
+layout ( std430, binding = 9, set = 0 ) coherent buffer MinmaxOutputSSBO {vec4 minmax[]; };
 
 bbox getMinMaxPrimitive(in uint idx) {
     uint tri = clamp(idx, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));

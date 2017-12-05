@@ -1,35 +1,35 @@
 
 // Morton codes and geometry counters
-layout ( std430, binding = 0, set = 0 )  buffer MortoncodesBlock {
+layout ( std430, binding = 0, set = 0 ) coherent buffer MortoncodesBlock {
     MORTONTYPE Mortoncodes[];
 };
 
-layout ( std430, binding = 1, set = 0 )  buffer IndicesBlock {
+layout ( std430, binding = 1, set = 0 ) coherent buffer IndicesBlock {
     int MortoncodesIndices[];
 };
 
-layout ( std430, binding = 3, set = 0 )  buffer LeafBlock {
+layout ( std430, binding = 3, set = 0 ) coherent buffer LeafBlock {
     HlbvhNode Leafs[];
 };
 
 // BVH nodes
-layout ( std430, binding = 4, set = 0 )  buffer NodesBlock {
+layout ( std430, binding = 4, set = 0 ) restrict buffer NodesBlock {
     HlbvhNode Nodes[];
 };
 
-layout ( std430, binding = 5, set = 0 )  buffer FlagsBlock {
+layout ( std430, binding = 5, set = 0 ) restrict buffer FlagsBlock {
     int Flags[];
 };
 
-layout ( std430, binding = 6, set = 0 )  buffer ActivesBlock {
+layout ( std430, binding = 6, set = 0 ) coherent buffer ActivesBlock {
     int Actives[];
 };
 
-layout ( std430, binding = 7, set = 0 )  buffer ChildBuffer {
+layout ( std430, binding = 7, set = 0 ) coherent buffer ChildBuffer {
     int LeafIndices[];
 };
 
-layout ( std430, binding = 8, set = 0 )  buffer BuildCounters {
+layout ( std430, binding = 8, set = 0 ) restrict buffer BuildCounters {
     int cCounter;
     int lCounter;
     int aCounter;

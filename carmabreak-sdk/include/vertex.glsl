@@ -3,22 +3,19 @@
 
 #include "../include/mathlib.glsl"
 
-layout ( std430, binding = 10, set = 0 )  buffer GeomMaterialsSSBO { int materials[]; };
-
-
 #ifdef VERTEX_FILLING
+layout ( std430, binding = 10, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
 layout ( binding = 0, rgba32f, set = 1 ) uniform image2D vertex_texture_out;
 layout ( binding = 1, rgba32f, set = 1 ) uniform image2D normal_texture_out;
 layout ( binding = 2, rgba32f, set = 1 ) uniform image2D texcoords_texture_out;
 layout ( binding = 3, rgba32f, set = 1 ) uniform image2D modifiers_texture_out;
 #else
+layout ( std430, binding = 10, set = 0 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
 layout ( binding = 0, set = 1 ) uniform sampler2D vertex_texture;
 layout ( binding = 1, set = 1 ) uniform sampler2D normal_texture;
 layout ( binding = 2, set = 1 ) uniform sampler2D texcoords_texture;
 layout ( binding = 3, set = 1 ) uniform sampler2D modifiers_texture;
 #endif
-
-
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)

@@ -282,6 +282,12 @@ namespace NSM {
         memcpy(hostdata.data(), data, bufferSize);
     }
 
+    // get buffer data function
+    void getBufferSubData(BufferType& buffer, uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
+        uint8_t * data = (uint8_t *)buffer->allocationInfo.pMappedData + offset;
+        memcpy(hostdata, data, bufferSize);
+    }
+
 
 
 

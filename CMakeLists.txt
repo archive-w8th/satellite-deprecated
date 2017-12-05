@@ -35,7 +35,7 @@ set (DEFINES
     -DGLM_FORCE_SWIZZLE 
     -DGLM_ENABLE_EXPERIMENTAL 
     -DGLFW_INCLUDE_NONE 
-    -DUSE_FREEIMAGE 
+    -DUSE_CIMG 
     -DEXPERIMENTAL_GLTF
     -DTINYGLTF_IMPLEMENTATION
     -DSTB_IMAGE_IMPLEMENTATION
@@ -55,7 +55,9 @@ find_package(Vulkan REQUIRED)
 set (LIBS 
     ${Vulkan_LIBRARIES}
     glfw3 
-    FreeImage
+    libpng16_static
+    jpeg
+    zlibstatic
 )
 
 set (CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -21,6 +21,13 @@
 #include "FreeImage.h"
 #endif
 
+#ifdef USE_CIMG
+#define cimg_use_tinyexr
+#define cimg_use_png
+#define cimg_use_jpeg
+#include "CImg.h"
+#endif
+
 #include "./vkutils/vkStructures.hpp"
 #include "./vkutils/vkUtils.hpp"
 

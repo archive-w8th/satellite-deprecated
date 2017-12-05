@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../utils.hpp"
-#include "FreeImage.h"
 
 namespace NSM {
 
@@ -84,6 +83,48 @@ namespace NSM {
             std::vector<TextureType>& getTextures() {
                 return textures;
             }
+
+#ifdef USE_CIMG
+            uint32_t loadTexture(std::string tex, bool force_write = false) {
+                //struct uint8_rgba { uint8_t r, g, b, a; };
+
+                cil::CImg<uint8_t> image(tex.c_str());
+                image.channels(0, 3);
+                uint32_t width = image.width(), height = image.height();
+                image.mirror("y");
+                image.permute_axes("cxyz");
+                
+
+                // create texture
+                auto texture = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR8G8B8A8Unorm, 1);
+                auto tstage = createBuffer(device, image.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+                auto command = getCommandBuffer(device, true);
+                imageBarrier(command, texture);
+                flushCommandBuffer(device, command, true);
+
+                // purple-black square
+                bufferSubData(tstage, (const uint8_t *)image.data(), image.size() * sizeof(uint8_t), 0);
+
+                {
+                    auto bufferImageCopy = vk::BufferImageCopy()
+                        .setImageExtent({ width, height, 1 })
+                        .setImageOffset({ 0, 0, 0 })
+                        .setBufferOffset(0)
+                        .setBufferRowLength(width)
+                        .setBufferImageHeight(height)
+                        .setImageSubresource(texture->subresourceLayers);
+
+                    copyMemoryProxy<BufferType&, TextureType&, vk::BufferImageCopy>(device, tstage, texture, bufferImageCopy, [&]() {
+                        destroyBuffer(tstage);
+                    });
+                }
+
+                return this->loadTexture(texture);
+
+
+            }
+#endif
 
 #ifdef USE_FREEIMAGE
             uint32_t loadTexture(std::string tex, bool force_write = false) {

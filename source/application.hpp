@@ -30,6 +30,8 @@ namespace SatelliteExample {
 
 
     TextureType loadCubemap(std::string bgTexName, DeviceQueueType& device) {
+
+        /*
         FREE_IMAGE_FORMAT formato = FreeImage_GetFileType(bgTexName.c_str(), 0);
         if (formato == FIF_UNKNOWN) {
             return 0;
@@ -46,21 +48,29 @@ namespace SatelliteExample {
         uint32_t width = FreeImage_GetWidth(imagen);
         uint32_t height = FreeImage_GetHeight(imagen);
         uint8_t * pixelsPtr = FreeImage_GetBits(imagen);
-
+        
         // create compatible imageData
         std::vector<uint32_t> imageData(width*height * 4);
         memcpy(imageData.data(), pixelsPtr, imageData.size() * sizeof(uint32_t));
+        */
+
+
+        cil::CImg<float> image(bgTexName.c_str());
+        image.channels(0, 3);
+        uint32_t width = image.width(), height = image.height();
+        image.mirror("y");
+        image.permute_axes("cxyz");
 
         // create texture
         auto texture = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
-        auto tstage = createBuffer(device, imageData.size() * sizeof(uint32_t), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        auto tstage = createBuffer(device, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
         auto command = getCommandBuffer(device, true);
         imageBarrier(command, texture);
         flushCommandBuffer(device, command, true);
 
         // purple-black square
-        bufferSubData(tstage, imageData);
+        bufferSubData(tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
 
         {
             auto bufferImageCopy = vk::BufferImageCopy()
@@ -759,6 +769,12 @@ namespace SatelliteExample {
         }
 
         {
+            cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);
+            image.permute_axes("yzcx").mirror("y");
+            image.get_shared_channel(3).fill(1.f);
+            image.save_exr(name.c_str());
+            
+            /*
             // copy HDR data
             FIBITMAP * btm = FreeImage_AllocateT(FIT_RGBAF, width, height);
             for (int r = 0; r < height; r++) {
@@ -768,7 +784,7 @@ namespace SatelliteExample {
 
             // save HDR
             FreeImage_Save(FIF_EXR, btm, name.c_str(), EXR_FLOAT | EXR_PIZ);
-            FreeImage_Unload(btm);
+            FreeImage_Unload(btm);*/
         }
     }
 

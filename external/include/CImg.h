@@ -48712,6 +48712,11 @@ namespace cimg_library_suffixed {
       if (bits_per_pixel) *bits_per_pixel = (unsigned int)bit_depth;
 
       // Transforms to unify image data
+
+      if (std::is_same<T, uint8_t>() && bit_depth == 16) {
+          png_set_strip_16(png_ptr);
+          bit_depth = 8;
+      }
       if (color_type==PNG_COLOR_TYPE_PALETTE) {
         png_set_palette_to_rgb(png_ptr);
         color_type = PNG_COLOR_TYPE_RGB;
@@ -48728,11 +48733,13 @@ namespace cimg_library_suffixed {
       }
       if (color_type==PNG_COLOR_TYPE_GRAY || color_type==PNG_COLOR_TYPE_GRAY_ALPHA) {
         png_set_gray_to_rgb(png_ptr);
-        color_type |= PNG_COLOR_MASK_COLOR;
+        color_type = PNG_COLOR_TYPE_GRAY_ALPHA ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB;
         is_gray = true;
       }
-      if (color_type==PNG_COLOR_TYPE_RGB)
-        png_set_filler(png_ptr,0xffffU,PNG_FILLER_AFTER);
+      if (color_type == PNG_COLOR_TYPE_RGB) {
+          png_set_filler(png_ptr, bit_depth == 8 ? 0xffU : 0xffffU, PNG_FILLER_AFTER);
+          color_type |= PNG_COLOR_MASK_ALPHA;
+      }
 
       png_read_update_info(png_ptr,info_ptr);
       if (bit_depth!=8 && bit_depth!=16) {

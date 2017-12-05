@@ -89,8 +89,8 @@ namespace NSM {
                 //struct uint8_rgba { uint8_t r, g, b, a; };
 
                 cil::CImg<uint8_t> image(tex.c_str());
-                image.channels(0, 3);
                 uint32_t width = image.width(), height = image.height();
+                image.channels(0, 3);
                 image.mirror("y");
                 image.permute_axes("cxyz");
                 

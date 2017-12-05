@@ -48789,18 +48789,30 @@ namespace cimg_library_suffixed {
           return _mm256_or_si256(_mm256_shuffle_epi8(value, _mm256_add_epi8(shuffle, K0)), _mm256_shuffle_epi8(_mm256_permute4x64_epi64(value, 0x4E), _mm256_add_epi8(shuffle, K1)));
       };
 
+      const auto u8_planify = _mm256_setr_epi8(
+          0, 4, 8, 12, 16, 20, 24, 28,
+          1, 5, 9, 13, 17, 21, 25, 29,
+          2, 6, 10, 14, 18, 22, 26, 30,
+          3, 7, 11, 15, 19, 23, 27, 31
+      );
+
+      const auto u16_planify = _mm256_setr_epi8(
+          0, 1, 8, 9, 16, 17, 24, 25,
+          2, 3, 10, 11, 18, 19, 26, 27,
+          4, 5, 12, 13, 20, 21, 28, 29,
+          6, 7, 14, 15, 22, 23, 30, 31
+      );
+
+      const auto n32_seq = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+      const auto n64_seq = _mm256_setr_epi64x(0, 1, 2, 3);
+
       switch (bit_depth) {
           case 8: {
               cimg_forY(*this, y) {
                   const unsigned char *ptrs = (unsigned char*)imgData[y];
                   for (int x = 0; x < this->_width; x += 8) {
-                      __m256i rgba8x8 = _mm256_maskload_epi32((const int *)(ptrs) + (x), _mm256_cmpgt_epi32(_mm256_set1_epi32(this->_width), _mm256_add_epi32(_mm256_set1_epi32(x), _mm256_setr_epi32(0,1,2,3,4,5,6,7))));
-                      rgba8x8 = _shuf8(rgba8x8, _mm256_setr_epi8(
-                          0, 4, 8, 12, 16, 20, 24, 28,
-                          1, 5, 9, 13, 17, 21, 25, 29,
-                          2, 6, 10, 14, 18, 22, 26, 30,
-                          3, 7, 11, 15, 19, 23, 27, 31
-                      ));
+                      __m256i rgba8x8 = _mm256_maskload_epi32((const int *)(ptrs) + (x), _mm256_cmpgt_epi32(_mm256_set1_epi32(this->_width), _mm256_add_epi32(_mm256_set1_epi32(x), n32_seq)));
+                      rgba8x8 = _shuf8(rgba8x8, u8_planify);
                       *(uint64_t *)ptr_r = _mm256_extract_epi64(rgba8x8, 0); ptr_r += 8;
                       if (ptr_g) { *(uint64_t *)ptr_g = _mm256_extract_epi64(rgba8x8, 1); ptr_g += 8; }
                       if (ptr_b) { *(uint64_t *)ptr_b = _mm256_extract_epi64(rgba8x8, 2); ptr_b += 8; }
@@ -48813,13 +48825,8 @@ namespace cimg_library_suffixed {
                   const unsigned short *ptrs = (unsigned short*)(imgData[y]);
                   if (!cimg::endianness()) cimg::invert_endianness(ptrs, 4 * _width);
                   for (int x = 0; x < this->_width; x += 4) {
-                      __m256i rgba16x4 = _mm256_maskload_epi64((const int64_t *)(ptrs) + (x), _mm256_cmpgt_epi64(_mm256_set1_epi64x(this->_width), _mm256_add_epi64(_mm256_set1_epi64x(x), _mm256_setr_epi64x(0, 1, 2, 3))));
-                      rgba16x4 = _shuf8(rgba16x4, _mm256_setr_epi8(
-                           0,1, 8,9,   16,17, 24,25,
-                           2,3, 10,11, 18,19, 26,27,
-                           4,5, 12,13, 20,21, 28,29,
-                           6,7, 14,15, 22,23, 30,31
-                      ));
+                      __m256i rgba16x4 = _mm256_maskload_epi64((const int64_t *)(ptrs) + (x), _mm256_cmpgt_epi64(_mm256_set1_epi64x(this->_width), _mm256_add_epi64(_mm256_set1_epi64x(x), n64_seq)));
+                      rgba16x4 = _shuf8(rgba16x4, u16_planify);
                       *(uint64_t *)ptr_r = _mm256_extract_epi64(rgba16x4, 0); ptr_r += 4;
                       if (ptr_g) { *(uint64_t *)ptr_g = _mm256_extract_epi64(rgba16x4, 1); ptr_g += 4; }
                       if (ptr_b) { *(uint64_t *)ptr_b = _mm256_extract_epi64(rgba16x4, 2); ptr_b += 4; }

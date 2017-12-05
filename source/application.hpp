@@ -59,7 +59,9 @@ namespace SatelliteExample {
         uint32_t width = image.width(), height = image.height();
         image.channels(0, 3);
         image.mirror("y");
+        image.cut(0.f, 1.f);
         image.permute_axes("cxyz");
+        
 
         // create texture
         auto texture = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);

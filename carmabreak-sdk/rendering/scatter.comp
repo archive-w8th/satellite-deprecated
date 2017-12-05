@@ -47,12 +47,12 @@ void main() {
 
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
         if (samplecount > 0) {
-    #ifndef MOTION_BLUR
+#ifndef MOTION_BLUR
             if (imageLoad(sampleflags, cid).x > 0) {
                 imageStore(sampleflags, cid, uvec4(0));
                 imageStore(presampled, cid, vec4(0.0f));
             }
-    #endif
+#endif
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             {
@@ -61,11 +61,11 @@ void main() {
                 float divisor = prev / next;
 
                 xsample.xyz = fma(xsample.xyz, vec3(divisor), newc.xyz * (1.0f - divisor));
-    #ifdef MOTION_BLUR
+#ifdef MOTION_BLUR
                 xsample.w = min(next, SAMPLES_LOCK-1);
-    #else
+#else
                 xsample.w = next;
-    #endif
+#endif
             }
             imageStore(presampled, cid, vec4(xsample)); // store in current projection
         }

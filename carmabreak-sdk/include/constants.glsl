@@ -19,10 +19,10 @@
 #define DIRECT_LIGHT_ENABLED
 
 // sampling options
-//#define MOTION_BLUR
+#define MOTION_BLUR
 #ifndef SAMPLES_LOCK
-#define SAMPLES_LOCK 2 // required when using motion blur
-//#define SAMPLES_LOCK 128 // monte-carlo
+//#define SAMPLES_LOCK 32 // required when using motion blur
+#define SAMPLES_LOCK 1024 // monte-carlo
 #endif
 
 // enable required GAPI extensions

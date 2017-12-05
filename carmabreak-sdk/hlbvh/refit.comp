@@ -13,15 +13,10 @@ layout ( local_size_x = work_size ) in;
 initAtomicIncFunction(aCounter, aCounterInc, int)
 
 // already transposed boundary refit (per-component)
-void unifyNodeBox(inout UBHALFLANEF_ mn, inout UBHALFLANEF_ mx, in UBLANEF_ bllane, in UBLANEF_ brlane){
-    mn = min(
-        UBHALFLANEF_(bllane.x, brlane.x), 
-        UBHALFLANEF_(bllane.y, brlane.y)
-    ), 
-    mx = max(
-        UBHALFLANEF_(bllane.z, brlane.z), 
-        UBHALFLANEF_(bllane.w, brlane.w)
-    );
+void unifyNodeBox(inout UBLANEF_ mnmx, in UBLANEF_ bllane, in UBLANEF_ brlane){
+    UBLANEF_ _mn = UBLANEF_(bllane.xy, brlane.xy), 
+             _mx = UBLANEF_(bllane.zw, brlane.zw);
+    mnmx = UBLANEF_(min(_mn.xz, _mn.yw), max(_mx.xz, _mx.yw));
 }
 
 
@@ -71,10 +66,10 @@ void main() {
                     // unify boxes in non-leafs
                     HlbvhNode nd = Nodes[idx];
                     if (nd.pdata.x != nd.pdata.y) {
-                        unifyNodeBox(nd.lrbox[0].xy,nd.lrbox[0].zw,Nodes[nd.pdata.x].lrbox[0],Nodes[nd.pdata.y].lrbox[0]); // x
-                        unifyNodeBox(nd.lrbox[1].xy,nd.lrbox[1].zw,Nodes[nd.pdata.x].lrbox[1],Nodes[nd.pdata.y].lrbox[1]); // y
-                        unifyNodeBox(nd.lrbox[2].xy,nd.lrbox[2].zw,Nodes[nd.pdata.x].lrbox[2],Nodes[nd.pdata.y].lrbox[2]); // z
-                        unifyNodeBox(nd.lrbox[3].xy,nd.lrbox[3].zw,Nodes[nd.pdata.x].lrbox[3],Nodes[nd.pdata.y].lrbox[3]); // w
+                        unifyNodeBox(nd.lrbox[0],Nodes[nd.pdata.x].lrbox[0],Nodes[nd.pdata.y].lrbox[0]); // x
+                        unifyNodeBox(nd.lrbox[1],Nodes[nd.pdata.x].lrbox[1],Nodes[nd.pdata.y].lrbox[1]); // y
+                        unifyNodeBox(nd.lrbox[2],Nodes[nd.pdata.x].lrbox[2],Nodes[nd.pdata.y].lrbox[2]); // z
+                        unifyNodeBox(nd.lrbox[3],Nodes[nd.pdata.x].lrbox[3],Nodes[nd.pdata.y].lrbox[3]); // w
                         if (idx >= 0) Nodes[idx] = nd;
                     }
 

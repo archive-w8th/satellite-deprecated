@@ -193,15 +193,19 @@ void checkChildNodes() {
         // calculate boxes intersections
         //IF (any(overlapsGeneral)) {
         IF (validBox) {
-            BOXF_ 
-                lnodebox_packed = Nodes[idx].lbox, 
-                rnodebox_packed = Nodes[idx].rbox;
+            //BOXF_ 
+            //    lnodebox_packed = Nodes[idx].lbox, 
+            //    rnodebox_packed = Nodes[idx].rbox;
                 
-            FVEC4_ 
-                lnodeboxmn = UNPACKF_(lnodebox_packed.mn), lnodeboxmx = UNPACKF_(lnodebox_packed.mx), 
-                rnodeboxmn = UNPACKF_(rnodebox_packed.mn), rnodeboxmx = UNPACKF_(rnodebox_packed.mx);
+            // TODO unpacking uint packed half float boxes
+            UBOXF_ unibox = Nodes[idx].lrbox;
 
-            hitd = intersectCubeDual(origined, divident, FMAT2X4_(lnodeboxmn, rnodeboxmn), FMAT2X4_(lnodeboxmx, rnodeboxmx), nears, fars);
+            //FVEC4_ 
+            //    lnodeboxmn = UNPACKF_(lnodebox_packed.mn), lnodeboxmx = UNPACKF_(lnodebox_packed.mx), 
+            //    rnodeboxmn = UNPACKF_(rnodebox_packed.mn), rnodeboxmx = UNPACKF_(rnodebox_packed.mx);
+
+            //hitd = intersectCubeDual(origined, divident, FMAT2X4_(lnodeboxmn, rnodeboxmn), FMAT2X4_(lnodeboxmx, rnodeboxmx), nears, fars);
+            hitd = intersectCubeDual(origined, divident, unibox, nears, fars);
             nears = (nears + toffset) * dirlenInv;
 
             // validate intersection

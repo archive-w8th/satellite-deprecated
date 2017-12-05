@@ -13,6 +13,58 @@ struct bbox {
      vec4 mx;
 };
 
+
+
+#ifdef USE_F32_BVH
+#define UBLANEF_ vec4
+#else
+#ifdef AMD_F16_BVH
+#define UBLANEF_ f16vec4
+#else
+#define UBLANEF_ uvec2
+#endif
+#endif
+
+
+#ifdef USE_F32_BVH
+#define UBHALFLANEF_ vec2
+#else
+#ifdef AMD_F16_BVH
+#define UBHALFLANEF_ f16vec2
+#else
+#define UBHALFLANEF_ uint
+#endif
+#endif
+
+
+#ifdef USE_F32_BVH
+#define UBOXF_ mat4
+#else 
+#ifdef AMD_F16_BVH
+//#define UBOXF_ f16mat4 // AMD does not support matrices storage?
+#define UBOXF_ UBLANEF_[4]
+#else
+#define UBOXF_ uvec2[4]
+#endif
+#endif
+
+
+#ifdef USE_F32_BVH
+#define TRANSPOSEF_ transpose
+#else 
+#ifdef AMD_F16_BVH
+//#define TRANSPOSEF_ transpose
+#define TRANSPOSEF_(m) UBOXF_(UBLANEF_(m[0].x,m[1].x,m[2].x,m[3].x),UBLANEF_(m[0].y,m[1].y,m[2].y,m[3].y),UBLANEF_(m[0].z,m[1].z,m[2].z,m[3].z),UBLANEF_(m[0].w,m[1].w,m[2].w,m[3].w))
+#else
+#define TRANSPOSEF_(m) (m) // TODO support for uint packed half floats
+#endif
+#endif
+
+
+
+
+
+/*
 // 128-bit bandwidth
 struct bboxf16 {
 #ifdef AMD_F16_BVH
@@ -29,7 +81,7 @@ struct bboxf32 {
     uvec4 mn;
     uvec4 mx;
 };
-
+*/
 
 
 // ray bitfield spec
@@ -209,8 +261,7 @@ void RayBasis(inout RayRework ray, in int basis) {
 
 
 struct HlbvhNode {
-     BOXF_ lbox;
-     BOXF_ rbox;
+     UBOXF_ lrbox;
      ivec4 pdata;
 };
 

@@ -22,8 +22,7 @@ int findSplit( in int first, in int last) {
 }
 
 void resetBox(inout HlbvhNode node){
-    node.lbox.mn = node.rbox.mn = PACKF_(( 1000.f).xxxx);
-    node.lbox.mx = node.rbox.mx = PACKF_((-1000.f).xxxx);
+    node.lrbox = UBOXF_(UBLANEF_(( 1000.f).xxxx), UBLANEF_(( 1000.f).xxxx), UBLANEF_((-1000.f).xxxx), UBLANEF_((-1000.f).xxxx));
 }
 
 initAtomicIncByFunction(lCounter, lCounterInc, int)

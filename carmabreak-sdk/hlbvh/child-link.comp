@@ -29,10 +29,8 @@ void main() {
                 // link BVH
                 HlbvhNode leaf = Leafs[leafID];
                 ivec2 range = childNode.pdata.xy;
-                childNode.lbox.mn = leaf.lbox.mn;
-                childNode.lbox.mx = leaf.lbox.mx;
-                childNode.rbox.mn = leaf.rbox.mn;
-                childNode.rbox.mx = leaf.rbox.mx;
+                //childNode.lrbox = leaf.lrbox;
+                childNode.lrbox = TRANSPOSEF_(leaf.lrbox);
                 childNode.pdata.xy = range.yy;
                 childNode.pdata.w = leaf.pdata.w;
                 Nodes[idx] = childNode;

@@ -79,6 +79,7 @@ call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%aabbmaker.comp.spv      -o %OUTDIR%%HLBV
 call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%build-new.comp.spv      -o %OUTDIR%%HLBV%build-new.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%minmax.comp.spv         -o %OUTDIR%%HLBV%minmax.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%refit.comp.spv          -o %OUTDIR%%HLBV%refit.comp.spv
+call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%child-link.comp.spv     -o %OUTDIR%%HLBV%child-link.comp.spv
 
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv      -o %OUTDIR%%RDXI%histogram.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv        -o %OUTDIR%%RDXI%permute.comp.spv

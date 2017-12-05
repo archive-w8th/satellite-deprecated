@@ -69,6 +69,19 @@ vec3 randomCosine(in vec3 normal) {
 }
 
 vec3 randomCosine(in vec3 normal, in int superseed) {
+  vec3 rnd3 = vec3(randomSeeded(superseed), randomSeeded(superseed), randomSeeded(superseed));
+  float r = fma(rnd3.x, 0.5f, 0.5f);
+  float angle = fma(rnd3.y, PI, PI);
+  float sr = sqrt(r);
+  vec2 p = sr*vec2(cos(angle),sin(angle));
+  vec3 ph = vec3(p.xy, sqrt(1.0f - p*p));
+  vec3 tangent = normalize(rnd3);
+  vec3 bitangent = cross(tangent, normal);
+  tangent = cross(bitangent, normal);
+  return normalize(fma(tangent, ph.xxx, fma(bitangent, ph.yyy, normal * ph.z)));
+
+
+    /*
      float up = sqrt(randomSeeded(superseed));
      float over = sqrt(1.f - up * up);
      float around = randomSeeded(superseed) * TWO_PI;
@@ -88,7 +101,7 @@ vec3 randomCosine(in vec3 normal, in int superseed) {
                  perpendicular2 * vec3(sin(around)) * over
             )
         )
-    );
+    );*/
 }
 
 

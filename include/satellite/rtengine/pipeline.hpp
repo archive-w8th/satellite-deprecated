@@ -653,6 +653,15 @@ namespace NSM {
                     rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
                     rayStreamsData[i].superseed = glm::ivec4(randm(), randm(), randm(), randm());
                 }
+
+                // precalculate light center
+                for (int i = 0; i < lightUniformData.size(); i++) {
+                    glm::vec3 playerCenter = glm::vec3(0.0f);
+                    glm::vec3 lvec = glm::normalize(lightUniformData[i].lightVector.xyz()) * (lightUniformData[i].lightVector.y < 0.0f ? -1.0f : 1.0f);
+                    glm::vec3 lightCenter = glm::fma(lvec, glm::vec3(lightUniformData[i].lightVector.w), (lightUniformData[i].lightOffset.xyz() + playerCenter));
+                    lightUniformData[i].lightRandomizedOrigin = glm::vec4(glm::sphericalRand(lightUniformData[i].lightColor.w - 0.0001f) + lightCenter, 1.f);
+                }
+
                 
                 //rayBlockData[0].materialUniform.time = randm();
                 rayBlockData[0].cameraUniform.ftime = float((milliseconds() - starttime) / (1000.0));

@@ -83,6 +83,7 @@ namespace NSM {
             glm::vec4 lightColor;
             glm::vec4 lightOffset;
             glm::vec4 lightAmbient;
+            glm::vec4 lightRandomizedOrigin;
         };
 
         struct GeometryUniformStruct {

@@ -261,6 +261,7 @@ void main() {
                     float prom = clamp01(1.f - diffcolor.a); // transmission power
                     float spca = mix(mlength(freflcolor), 1.f, metallic);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
+                    //spca *= 0.f; // performance debug
 
                     // diffuse and specular colors (based on priorities)
                     vec3 _specular = clamp01(speccolor.xyz / spca);

@@ -29,6 +29,7 @@ struct LightUniformStruct {
     vec4 lightColor;
     vec4 lightOffset;
     vec4 lightAmbient;
+    vec4 lightRandomizedOrigin;
 };
 
 struct GeometryUniformStruct {

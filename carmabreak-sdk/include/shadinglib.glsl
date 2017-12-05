@@ -22,7 +22,8 @@ vec3 lightCenter(in int i) {
 }
 
 vec3 sLight(in int i) {
-    return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
+    //return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
+    return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
 }
 
 float intersectSphere(in vec3 origin, in vec3 ray, in vec3 sphereCenter, in float sphereRadius) {

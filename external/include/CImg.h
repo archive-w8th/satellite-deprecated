@@ -50017,15 +50017,45 @@ namespace cimg_library_suffixed {
         *(ptr_a++) = (T)pixels[y][x].a;
       }
 #elif defined(cimg_use_tinyexr)
-      float *res;
-      const char *err = 0;
-      int width = 0, height = 0;
-      const int ret = LoadEXR(&res,&width,&height,filename,&err);
-      if (ret) throw CImgIOException(_cimg_instance
-                                     "load_exr(): Unable to load EXR file '%s'.",
-                                     cimg_instance,filename);
-      CImg<floatT>(res,4,width,height,1,true).get_permute_axes("yzcx").move_to(*this);
-      std::free(res);
+      EXRVersion exr_version;
+      int ret = ParseEXRVersionFromFile(&exr_version, filename);
+      if (ret != 0) { fprintf(stderr, "Invalid EXR file: %s\n", filename); return *this; }
+      if (exr_version.multipart) { return *this; }
+
+      EXRHeader exr_header;
+      InitEXRHeader(&exr_header);
+
+      const char* err;
+      ret = ParseEXRHeaderFromFile(&exr_header, &exr_version, filename, &err);
+      if (ret != 0) { fprintf(stderr, "Parse EXR err: %s\n", err); return *this; }
+
+      // read as float 
+      for (int c = 0; c < exr_header.num_channels; c++) { exr_header.requested_pixel_types[c] = TINYEXR_PIXELTYPE_FLOAT; }
+
+      // read image
+      EXRImage exr_image;
+      InitEXRImage(&exr_image);
+      ret = LoadEXRImageFromFile(&exr_image, &exr_header, filename, &err);
+      if (ret != 0) { fprintf(stderr, "Load EXR err: %s\n", err); return *this; }
+
+      // search channels
+      int rc = 0, gc = 1, bc = 2, ac = 3; // defaultly should be ABGR, but used RGBA
+      for (int c = 0; c < exr_header.num_channels; c++) {
+          if (exr_header.channels[c].name[0] == 'R') rc = c;
+          if (exr_header.channels[c].name[0] == 'G') gc = c;
+          if (exr_header.channels[c].name[0] == 'B') bc = c;
+          if (exr_header.channels[c].name[0] == 'A') ac = c;
+      }
+      
+      // copy channels linearly
+      CImg<floatT> _img(exr_image.width, exr_image.height, 1, exr_header.num_channels, true);
+      if (rc >= 0 && rc < exr_header.num_channels) memcpy(_img.get_shared_channel(0).data(), exr_image.images[rc], exr_image.width * exr_image.height * (exr_header.pixel_types[rc] == TINYEXR_PIXELTYPE_FLOAT ? 4 : 2));
+      if (gc >= 0 && gc < exr_header.num_channels) memcpy(_img.get_shared_channel(1).data(), exr_image.images[gc], exr_image.width * exr_image.height * (exr_header.pixel_types[gc] == TINYEXR_PIXELTYPE_FLOAT ? 4 : 2));
+      if (bc >= 0 && bc < exr_header.num_channels) memcpy(_img.get_shared_channel(2).data(), exr_image.images[bc], exr_image.width * exr_image.height * (exr_header.pixel_types[bc] == TINYEXR_PIXELTYPE_FLOAT ? 4 : 2));
+      if (ac >= 0 && ac < exr_header.num_channels) memcpy(_img.get_shared_channel(3).data(), exr_image.images[ac], exr_image.width * exr_image.height * (exr_header.pixel_types[ac] == TINYEXR_PIXELTYPE_FLOAT ? 4 : 2));
+      _img.move_to(*this);
+
+      FreeEXRImage(&exr_image);
 #else
       return load_other(filename);
 #endif

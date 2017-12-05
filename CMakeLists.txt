@@ -39,6 +39,7 @@ set (DEFINES
     -DEXPERIMENTAL_GLTF
     -DTINYGLTF_IMPLEMENTATION
     -DSTB_IMAGE_IMPLEMENTATION
+    -DNSM=ste
 )
 
 set (DEP_DIR "${PROJECT_SOURCE_DIR}")
@@ -65,10 +66,10 @@ set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_EXTENSIONS ON)
 
 if(MSVC)
-set (CMAKE_CXX_FLAGS "/EHsc /MD /std:c++17 /arch:AVX2 -D__AVX2__ -DMSVC -DNSM#ste")
+set (CMAKE_CXX_FLAGS "/EHsc /MD /std:c++17 /arch:AVX2 /DAVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /DMSVC")
 set (CMAKE_C_FLAGS "/EHsc")
 else()
-set (CMAKE_CXX_FLAGS "-std=c++17 -DNSM#ste")
+set (CMAKE_CXX_FLAGS "-std=c++17")
 set (CMAKE_C_FLAGS "")
 endif()
 

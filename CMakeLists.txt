@@ -57,7 +57,6 @@ set (LIBS
     glfw3 
     libpng16_static
     jpeg
-    turbojpeg
     zlibstatic
 )
 

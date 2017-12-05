@@ -48492,7 +48492,7 @@ namespace cimg_library_suffixed {
       T *ptr_r = _data, *ptr_g = _data + 1UL*_width*_height, *ptr_b = _data + 2UL*_width*_height,
         *ptr_a = _data + 3UL*_width*_height;
       while (cinfo.output_scanline<cinfo.output_height) {
-        *row_pointer = buffer._data;
+        *row_pointer = (JSAMPROW)buffer._data;
         if (jpeg_read_scanlines(&cinfo,row_pointer,1)!=1) {
           cimg::warn(_cimg_instance
                      "load_jpeg(): Incomplete data in file '%s'.",
@@ -48738,7 +48738,7 @@ namespace cimg_library_suffixed {
       }
       if (color_type == PNG_COLOR_TYPE_RGB) {
           png_set_filler(png_ptr, bit_depth == 8 ? 0xffU : 0xffffU, PNG_FILLER_AFTER);
-          color_type |= PNG_COLOR_MASK_ALPHA;
+          //color_type |= PNG_COLOR_MASK_ALPHA;
       }
 
       png_read_update_info(png_ptr,info_ptr);
@@ -52648,7 +52648,7 @@ namespace cimg_library_suffixed {
           }
         }
         }
-        *row_pointer = buffer._data;
+        *row_pointer = (JSAMPROW)buffer._data;
         jpeg_write_scanlines(&cinfo,row_pointer,1);
       }
       jpeg_finish_compress(&cinfo);

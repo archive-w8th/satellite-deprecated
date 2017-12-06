@@ -425,14 +425,16 @@ float intersectCubeSingle(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 
 
 //vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT2X4_ cubeMin, in FMAT2X4_ cubeMax, inout vec2 near, inout vec2 far) {
 #ifdef AMD_F16_BVH
-vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FVEC4_ cubeMinMax2[4], inout vec2 near, inout vec2 far) {
+//vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FVEC4_ cubeMinMax2[4], inout vec2 near, inout vec2 far) {
+vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FVEC4_ cubeMinMax2[4], inout vec2 near, inout vec2 far) {
 #else
-vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
+//vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
+vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
 #endif
     FMAT3X4_ tMinMax = FMAT3X4_(
-        fma(cubeMinMax2[0], dr.xxxx, origin.xxxx), 
-        fma(cubeMinMax2[1], dr.yyyy, origin.yyyy), 
-        fma(cubeMinMax2[2], dr.zzzz, origin.zzzz)
+        fma(cubeMinMax2[0], dr[0], origin[0]), 
+        fma(cubeMinMax2[1], dr[1], origin[1]), 
+        fma(cubeMinMax2[2], dr[2], origin[2])
     );
 
     FMAT3X2_ t1 = FMAT3X2_(min(tMinMax[0].xy, tMinMax[0].zw), min(tMinMax[1].xy, tMinMax[1].zw), min(tMinMax[2].xy, tMinMax[2].zw));

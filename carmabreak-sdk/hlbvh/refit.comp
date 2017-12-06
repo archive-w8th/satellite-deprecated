@@ -15,8 +15,7 @@ initAtomicIncFunction(aCounter, aCounterInc, int)
 // already transposed boundary refit (per-component)
 void unifyNodeBox(inout UBLANEF_ mnmx, in UBLANEF_ bllane, in UBLANEF_ brlane){
     UBLANEF_UNPACKED_ _bllane = UNPACK_LANE_(bllane), _brlane = UNPACK_LANE_(brlane);
-    UBLANEF_ _mn = UBLANEF_(bllane.xy, brlane.xy), 
-             _mx = UBLANEF_(bllane.zw, brlane.zw);
+    UBLANEF_UNPACKED_ _mn = UBLANEF_UNPACKED_(_bllane.xy, _brlane.xy), _mx = UBLANEF_UNPACKED_(_bllane.zw, _brlane.zw);
     mnmx = PACK_LANE_(UBLANEF_UNPACKED_(min(_mn.xz, _mn.yw), max(_mx.xz, _mx.yw)));
 }
 

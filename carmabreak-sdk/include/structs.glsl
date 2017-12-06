@@ -32,7 +32,7 @@ struct bbox {
 #ifdef AMD_F16_BVH
 #define UBLANEF_UNPACKED_ f16vec4
 #else
-#define UBLANEF_UNPACKED_ uvec2
+#define UBLANEF_UNPACKED_ vec4
 #endif
 #endif
 
@@ -81,7 +81,7 @@ struct bbox {
 #define PACK_BOX_(m)UBOXF_(m[0],m[1],m[2],m[3])
 #else
 #define UNPACK_BOX_(m)mat4(unpackHalf(m[0]),unpackHalf(m[1]),unpackHalf(m[2]),unpackHalf(m[3]))
-#define PACK_BOX_(m)mat4(packHalf2(m[0]),packHalf2(m[1]),packHalf2(m[2]),packHalf2(m[3]))
+#define PACK_BOX_(m)UBOXF_(packHalf2(m[0]),packHalf2(m[1]),packHalf2(m[2]),packHalf2(m[3]))
 #endif
 #endif
 

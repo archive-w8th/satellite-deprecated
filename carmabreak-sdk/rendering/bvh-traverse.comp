@@ -122,7 +122,8 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     }
 
     // calculate box projected rays
-    origined = FVEC3_(fma(dirproj, toffset.xxx, torig)), divident = FVEC3_(1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1), vec3(1), greaterThanEqual(dirproj,vec3(0.f)))));
+    vec3 _indir = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1), vec3(1), greaterThanEqual(dirproj,vec3(0.f))));
+    origined = -FVEC3_(fma(torig, _indir, toffset.xxx)), divident = FVEC3_(_indir);
     direct = normalize(direct);
 
     // calculate longest axis

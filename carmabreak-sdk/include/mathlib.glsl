@@ -429,15 +429,10 @@ vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FVEC4_ cubeMinMax2[4],
 #else
 vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
 #endif
-    FMAT3X4_ dr2 = FMAT3X4_(dr.xxxx, dr.yyyy, dr.zzzz);
-    FMAT3X4_ origin2 = FMAT3X4_(origin.xxxx, origin.yyyy, origin.zzzz);
-    //FMAT4X4_ cubeMinMax2 = transpose(FMAT4X4_(cubeMin[0], cubeMin[1], cubeMax[0], cubeMax[1]));
-
-    FMAT3X4_ norig = FMAT3X4_(-origin2[0]*dr2[0], -origin2[1]*dr2[1], -origin2[2]*dr2[2]);
     FMAT3X4_ tMinMax = FMAT3X4_(
-        fma(cubeMinMax2[0], dr2[0], norig[0]), 
-        fma(cubeMinMax2[1], dr2[1], norig[1]), 
-        fma(cubeMinMax2[2], dr2[2], norig[2])
+        fma(cubeMinMax2[0], dr.xxxx, origin.xxxx), 
+        fma(cubeMinMax2[1], dr.yyyy, origin.yyyy), 
+        fma(cubeMinMax2[2], dr.zzzz, origin.zzzz)
     );
 
     FMAT3X2_ t1 = FMAT3X2_(min(tMinMax[0].xy, tMinMax[0].zw), min(tMinMax[1].xy, tMinMax[1].zw), min(tMinMax[2].xy, tMinMax[2].zw));

@@ -149,14 +149,14 @@ namespace NSM {
     }
 
     // create texture object
-    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageType imageType, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageType imageType, vk::ImageViewType viewType, vk::ImageLayout layout, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
         std::shared_ptr<Texture> texture(new Texture);
         
         // link device
         texture->device = deviceQueue;
 
         // use this layout
-        texture->layout = vk::ImageLayout::eGeneral;
+        texture->layout = layout;
         texture->initialLayout = vk::ImageLayout::ePreinitialized;//vk::ImageLayout::eUndefined;
 
         // create logical image
@@ -218,6 +218,13 @@ namespace NSM {
         flushCommandBuffer(deviceQueue, commandBuffer, true);
         return std::move(texture);
     }
+
+    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageType imageType, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+        return createTexture(deviceQueue, imageType, viewType, vk::ImageLayout::eGeneral, size, usage, format, mipLevels, usageType);
+    }
+    
+
+
 
 
 

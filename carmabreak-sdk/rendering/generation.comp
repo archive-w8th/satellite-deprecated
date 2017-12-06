@@ -130,7 +130,6 @@ void main()
                     RayDL(currentRay, FALSE_);
 
                     RayType(currentRay, 3); // primary rays
-                    RayBasis(currentRay, 1); // is basis ray
                     RayBounce(currentRay, 4);
 
                     if (RAY_BLOCK cameraUniform.interlace == 1) {

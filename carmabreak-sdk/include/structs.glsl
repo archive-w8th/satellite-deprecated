@@ -90,7 +90,7 @@ struct bboxf32 {
 // {3     }[1] - applyable direct light (can intersect with light data or not)
 // {4 ..7 }[4] - target light index (for shadow type)
 // {8 ..11}[4] - bounce index
-
+// {11..15}[5] - stream directional order (up to 31 streams)
 
 // should be compacted to 64 byte, for storing on 64kb blocks, fast HBM fetching and 1024 lanes dispatch
 struct RayRework {
@@ -122,14 +122,12 @@ struct HitRework {
 };
 
 
-
 const ivec2 ACTIVED = ivec2(0, 1);
 const ivec2 TYPE = ivec2(1, 2);
 const ivec2 DIRECT_LIGHT = ivec2(3, 1);
 const ivec2 TARGET_LIGHT = ivec2(4, 4);
 const ivec2 BOUNCE = ivec2(8, 4);
-const ivec2 BASIS = ivec2(12, 1);
-
+const ivec2 SDO = ivec2(11, 5);
 
 
 int parameteri(const ivec2 parameter, inout uint bitfield) {
@@ -248,14 +246,6 @@ int RayBounce(inout RayRework ray) {
 
 void RayBounce(inout RayRework ray, in int bn) {
     parameteri(BOUNCE, RAY_BITFIELD_, bn);
-}
-
-int RayBasis(inout RayRework ray) {
-    return parameteri(BASIS, RAY_BITFIELD_);
-}
-
-void RayBasis(inout RayRework ray, in int basis) {
-    parameteri(BASIS, RAY_BITFIELD_, basis);
 }
 
 

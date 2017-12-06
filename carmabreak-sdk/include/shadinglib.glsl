@@ -22,8 +22,8 @@ vec3 lightCenter(in int i) {
 }
 
 vec3 sLight(in int i) {
-    //return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
-    return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
+    return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
+    //return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
 }
 
 float intersectSphere(in vec3 origin, in vec3 ray, in vec3 sphereCenter, in float sphereRadius) {
@@ -85,7 +85,8 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
 
-    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
@@ -131,7 +132,8 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     RayBounce(ray, min(3, max(RayBounce(ray)-1, 0)));
 #endif
 
-    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
 
     //ray.direct.xyz = normalize(mix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));

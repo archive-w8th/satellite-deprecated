@@ -104,10 +104,8 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // test constants
     vec3 torig = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz, 
     dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz;
-    float dirlen = length(dirproj) / max(length(direct), 0.0001f);
-
-    dirlenInv = 1.f / max(dirlen, 0.0001f), toffset = 0.f;
-    dirproj *= dirlenInv;
+    dirlenInv = 1.f / max(length(dirproj), 0.0001f), toffset = 0.f;
+    dirproj = 1.f / (max(abs(dirproj * dirlenInv),vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f)))), torig *= -dirproj;
 
     // limitation of distance
     predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
@@ -117,15 +115,17 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     IF (vldbx) {
         float near = INFINITY, far = INFINITY, 
         bdist = intersectCubeSingle(torig, dirproj, vec4(vec3(-0.0001f), 1.0f), vec4(vec3(1.0001f), 1.0f), near, far);
-        toffset = max(near, 0.f);
-        predist = min(predist, far * dirlenInv);
+        toffset = max(near, 0.f), torig -= toffset.xxx, predist = min(predist, far * dirlenInv);
         vldbx &= lessF(bdist, INFINITY) & lessF(bdist * dirlenInv, INFINITY) & greaterEqualF(bdist, 0.0f);
     }
 
     // calculate box projected rays
-    vec3 indir = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1), vec3(1), greaterThanEqual(dirproj,vec3(0.f))));
-    torig = -fma(torig, indir, toffset.xxx);
-    origined = FMAT3X4_(torig.xxxx, torig.yyyy, torig.zzzz), divident = FMAT3X4_(indir.xxxx, indir.yyyy, indir.zzzz);
+    {
+        FVEC3_ _torig = FVEC3_(torig), _dirproj = FVEC3_(dirproj);
+        origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_dirproj.xxxx, _dirproj.yyyy, _dirproj.zzzz);
+        //FVEC4_ _torig = FVEC4_(torig, dirproj.x); FVEC2_ _dirproj = FVEC2_(dirproj.yz);
+        //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_torig.wwww, _dirproj.xxxx, _dirproj.yyyy);
+    }
 
     // calculate longest axis
     axis = 2;

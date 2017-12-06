@@ -1,6 +1,13 @@
 #version 460 core
 
-// here will population to streams 2D planar arrays, and probably conservative rasterization
+// here will population to streams 2D planar arrays, and probably making conservative rasterization
+
+
+#include "../include/constants.glsl"
+#include "../include/structs.glsl"
+#include "../include/vertex.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
 
 
 const vec2 STREAM_SIZE = vec2(1024, 1024);
@@ -9,11 +16,13 @@ const vec2 STREAM_SIZE = vec2(1024, 1024);
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-layout (location = 0) in vec2 v_g_texCoord[];
+
 out vec4 v_aabb;
 out vec2 v_texCoord;
 out flat float v_orientation;
 
+
+float precIssue(in float a) { return max(abs(a), 0.0001f) * mix(-1, 1, a >= 0); }
 
 
 void main(void) {
@@ -23,17 +32,15 @@ void main(void) {
     vec4 vertex[3];
     vec2 texCoord[3];
 
-
-    mat3 streamproj = make_stream_projection(STREAM_DIRECTION);
+    ivec2 td2 = gatherMosaic(getUniformCoord(gl_PrimitiveID));
+    mat3 streamproj = make_stream_projection(STREAM_DIRECTION); // TODO stream direction
     for (i = 0; i < gl_in.length(); i++) {
-        vertex[i] = gl_in[i].gl_Position;
-        vertex[i] = correctionproj * vertex[i]; // TODO correction projection
-        vertex[i] /= vertex[i].w;
+        vertex[i] = vec4(fetchMosaic(vertex_texture, td2, i).xyz, 1.f);
+        vertex[i] = divW(correctionproj * vertex[i]); // TODO correction projection
         vertex[i].xyz = streamproj * vertex[i].xyz;
-        vertex[i] /= vertex[i].w;
-        texCoord[i] = v_g_texCoord[i];
+        vertex[i].z = abs(vertex[i].z); // ignore clipping (also, disable depth depth for prevent depth test errors)
+        texCoord[i] = fetchMosaic(texcoord_texture, td2, i).xy;
     }
-    
     
     vec3 triangleNormal = abs(normalize(cross(vertex[1].xyz - vertex[0].xyz, vertex[2].xyz - vertex[0].xyz)));
     vec3 temp;
@@ -91,14 +98,14 @@ void main(void) {
         //if (intersect[i].z == 0.0) { return; } // don't do it
         intersect[i] /= intersect[i].z; 
     }
- 
+
     for (i = 0; i < gl_in.length(); i++) {
         gl_Position.xyw = intersect[i];
-        gl_Position.z = -(trianglePlane.x * intersect[i].x + trianglePlane.y * intersect[i].y + trianglePlane.w) / trianglePlane.z;    
+        gl_Position.z = -(trianglePlane.x * intersect[i].x + trianglePlane.y * intersect[i].y + trianglePlane.w) / precIssue(trianglePlane.z);    
         v_texCoord = texCoord[i];
         EmitVertex();
     }
-    
+
     EndPrimitive();
 }
 

@@ -47,22 +47,20 @@ set OPTFLAGS= ^
 --flatten-decorations ^
 --fold-spec-const-op-composite ^
 --strip-debug ^
---strength-reduction ^
 --freeze-spec-const ^
 --cfg-cleanup ^
 --merge-blocks ^
+--strength-reduction ^
 --inline-entry-points-exhaustive ^
 --convert-local-access-chains ^
---eliminate-insert-extract ^
 --eliminate-dead-code-aggressive ^
 --eliminate-dead-branches ^
 --eliminate-dead-const ^
 --eliminate-local-single-block ^
 --eliminate-local-single-store ^
 --eliminate-local-multi-store ^
---eliminate-common-uniform 
-
-
+--eliminate-common-uniform ^
+--eliminate-insert-extract
 
 call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader.comp.spv         -o %OUTDIR%%VRTX%loader.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader-int16.comp.spv   -o %OUTDIR%%VRTX%loader-int16.comp.spv

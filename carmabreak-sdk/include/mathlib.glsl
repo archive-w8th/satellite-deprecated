@@ -116,6 +116,7 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
 #define FMAT4X4_ f16mat4x4
 #define FMAT3X4_ f16mat3x4
 #define FMAT3X2_ f16mat3x2
+#define FMAT4X3_ f16mat4x3
     #ifdef USE_F32_BVH
     #define UNPACKF_(a)a
     #define PACKF_(a)a
@@ -133,6 +134,7 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
 #define FMAT4X4_ mat4x4
 #define FMAT3X4_ mat3x4
 #define FMAT3X2_ mat3x2
+#define FMAT4X3_ mat4x3
     #ifdef USE_F32_BVH
     #define UNPACKF_(a)a
     #define PACKF_(a)a
@@ -420,14 +422,7 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
     return mix(near, far, (near + PZERO) <= 0.0f);
 }
 
-//vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT2X4_ cubeMin, in FMAT2X4_ cubeMax, inout vec2 near, inout vec2 far) {
-#ifdef AMD_F16_BVH
-//vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FVEC4_ cubeMinMax2[4], inout vec2 near, inout vec2 far) {
-vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FVEC4_ cubeMinMax2[4], inout vec2 near, inout vec2 far) {
-#else
-//vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
 vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
-#endif
     FMAT3X4_ tMinMax = FMAT3X4_(
         fma(cubeMinMax2[0], dr[0], origin[0]), 
         fma(cubeMinMax2[1], dr[1], origin[1]), 

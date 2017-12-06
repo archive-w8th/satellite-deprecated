@@ -27,6 +27,17 @@ struct bbox {
 
 
 #ifdef USE_F32_BVH
+#define UBLANEF_UNPACKED_ vec4
+#else
+#ifdef AMD_F16_BVH
+#define UBLANEF_UNPACKED_ f16vec4
+#else
+#define UBLANEF_UNPACKED_ uvec2
+#endif
+#endif
+
+
+#ifdef USE_F32_BVH
 #define UBHALFLANEF_ vec2
 #else
 #ifdef AMD_F16_BVH
@@ -42,25 +53,52 @@ struct bbox {
 #else 
 #ifdef AMD_F16_BVH
 //#define UBOXF_ f16mat4 // AMD does not support matrices storage?
-#define UBOXF_ UBLANEF_[4]
+#define UBOXF_ f16vec4[4]
 #else
 #define UBOXF_ uvec2[4]
 #endif
 #endif
 
 
+
 #ifdef USE_F32_BVH
-#define TRANSPOSEF_ transpose
+#define UBOXF_UNPACKED_ mat4
+#else
+#ifdef AMD_F16_BVH
+#define UBOXF_UNPACKED_ f16mat4
+#else
+#define UBOXF_UNPACKED_ mat4
+#endif
+#endif
+
+
+#ifdef USE_F32_BVH
+#define UNPACK_BOX_(m)m
+#define PACK_BOX_(m)m
 #else 
 #ifdef AMD_F16_BVH
-//#define TRANSPOSEF_ transpose
-#define TRANSPOSEF_(m) UBOXF_(UBLANEF_(m[0].x,m[1].x,m[2].x,m[3].x),UBLANEF_(m[0].y,m[1].y,m[2].y,m[3].y),UBLANEF_(m[0].z,m[1].z,m[2].z,m[3].z),UBLANEF_(m[0].w,m[1].w,m[2].w,m[3].w))
+#define UNPACK_BOX_(m)f16mat4(m[0],m[1],m[2],m[3]) // AMD does not support matrices storage?
+#define PACK_BOX_(m)UBOXF_(m[0],m[1],m[2],m[3])
 #else
-#define TRANSPOSEF_(m) (m) // TODO support for uint packed half floats
+#define UNPACK_BOX_(m)mat4(unpackHalf(m[0]),unpackHalf(m[1]),unpackHalf(m[2]),unpackHalf(m[3]))
+#define PACK_BOX_(m)mat4(packHalf2(m[0]),packHalf2(m[1]),packHalf2(m[2]),packHalf2(m[3]))
 #endif
 #endif
 
+#ifdef USE_F32_BVH
+#define UNPACK_LANE_(m)m
+#define PACK_LANE_(m)m
+#else 
+#ifdef AMD_F16_BVH
+#define UNPACK_LANE_(m)m
+#define PACK_LANE_(m)m
+#else
+#define UNPACK_LANE_(m)unpackHalf(m)
+#define PACK_LANE_(m)packHalf2(m)
+#endif
+#endif
 
+#define TRANSPOSEF_(m)PACK_BOX_(transpose(UNPACK_BOX_(m)))
 
 
 

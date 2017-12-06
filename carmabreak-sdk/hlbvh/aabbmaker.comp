@@ -54,19 +54,13 @@ void main() {
 
                 // correct precision error
 #ifdef USE_F32_BVH
-                bounding.mn -= 0.00005f;
-                bounding.mx += 0.00005f;
+                bounding.mn -= 0.00005f, bounding.mx += 0.00005f;
 #else
-                bounding.mn -= 0.0005f;
-                bounding.mx += 0.0005f;
+                bounding.mn -= 0.0005f, bounding.mx += 0.0005f;
 #endif
 
                 HlbvhNode outLeaf = Leafs[to];
-                //outLeaf.lbox.mn = outLeaf.rbox.mn = PACKF_(bounding.mn);
-                //outLeaf.lbox.mx = outLeaf.rbox.mx = PACKF_(bounding.mx);
-                //outLeaf.lrbox[0] = outLeaf.lrbox[1] = PACKF_(bounding.mn);
-                //outLeaf.lrbox[2] = outLeaf.lrbox[3] = PACKF_(bounding.mx);
-                outLeaf.lrbox = UBOXF_(PACKF_(bounding.mn), PACKF_(bounding.mn), PACKF_(bounding.mx), PACKF_(bounding.mx));
+                outLeaf.lrbox = PACK_BOX_(UBOXF_UNPACKED_(bounding.mn, bounding.mn, bounding.mx, bounding.mx));
                 outLeaf.pdata.xy = ivec2(to);
                 outLeaf.pdata.zw = ivec2(-1, t);
                 Leafs[to] = outLeaf;

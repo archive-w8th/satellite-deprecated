@@ -122,7 +122,8 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // calculate box projected rays
     {
         FVEC3_ _torig = FVEC3_(torig), _dirproj = FVEC3_(dirproj);
-        origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_dirproj.xxxx, _dirproj.yyyy, _dirproj.zzzz);
+        //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_dirproj.xxxx, _dirproj.yyyy, _dirproj.zzzz);
+        origined = transpose(FMAT4X3_(_torig, _torig, _torig, _torig)), divident = transpose(FMAT4X3_(_dirproj, _dirproj, _dirproj, _dirproj));
         //FVEC4_ _torig = FVEC4_(torig, dirproj.x); FVEC2_ _dirproj = FVEC2_(dirproj.yz);
         //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_torig.wwww, _dirproj.xxxx, _dirproj.yyyy);
     }
@@ -208,7 +209,7 @@ void checkChildNodes() {
 
             //hitd = intersectCubeDual(origined, divident, FMAT2X4_(lnodeboxmn, rnodeboxmn), FMAT2X4_(lnodeboxmx, rnodeboxmx), nears, fars);
             //hitd = intersectCubeDual(origined, divident, unibox, nears, fars);
-            hitd = intersectCubeDual(origined, divident, Nodes[idx].lrbox, nears, fars);
+            hitd = intersectCubeDual(origined, divident, UNPACK_BOX_(Nodes[idx].lrbox), nears, fars);
             nears = (nears + toffset) * dirlenInv;
 
             // validate intersection

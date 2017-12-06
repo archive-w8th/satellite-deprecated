@@ -246,9 +246,12 @@ namespace NSM {
                 binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayShadingPipelineLayout, pipelineCache);
 
 
-                PFN_vkGetShaderInfoAMD pfnGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)vkGetDeviceProcAddr(device->logical, "vkGetShaderInfoAMD");
+                
 
-                {
+                /* 
+                { // AMD ONLY - save assembly file of traverser
+                    PFN_vkGetShaderInfoAMD pfnGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)vkGetDeviceProcAddr(device->logical, "vkGetShaderInfoAMD");
+
                     // query disassembly size (if available)
                     size_t dataSize = 0;
                     //device->logical.getShaderInfoAMD(bvhTraverse.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eDisassembly, &dataSize, nullptr);
@@ -270,7 +273,7 @@ namespace NSM {
                         delete disassembly;
                     }
                 }
-
+                */
 
 
 

@@ -41,7 +41,7 @@ void main(void) {
         vertex[i].z = abs(vertex[i].z); // ignore clipping (also, disable depth depth for prevent depth test errors)
         texCoord[i] = fetchMosaic(texcoord_texture, td2, i).xy;
     }
-    
+
     vec3 triangleNormal = abs(normalize(cross(vertex[1].xyz - vertex[0].xyz, vertex[2].xyz - vertex[0].xyz)));
     vec3 temp;
     if (triangleNormal.x < triangleNormal.z && triangleNormal.y < triangleNormal.z) {
@@ -92,9 +92,11 @@ void main(void) {
         plane[i].z -= dot(u_halfPixelSize, abs(plane[i].xy));
     }
 
-    vec3 intersect[3];
+    #define intersect plane // reuse registers
+    //vec3 intersect[3];
     for (i = 0; i < gl_in.length(); i++) {
-        intersect[i] = cross(plane[i], plane[(i+1) % 3]);
+        temp = cross(plane[i], plane[(i+1) % 3]);
+        intersect[i] = temp;
         //if (intersect[i].z == 0.0) { return; } // don't do it
         intersect[i] /= intersect[i].z; 
     }

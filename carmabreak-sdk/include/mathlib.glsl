@@ -489,4 +489,21 @@ vec3 toLinear(in vec3 sRGB) {
 }
 
 
+// also, create planar projection 
+mat3 make_stream_projection(in vec3 normal){
+    mat3 r;
+    r[0].x = 1.f - normal.x * normal.x;
+    r[0].y = -normal.x * normal.y;
+    r[0].z = -normal.x * normal.z;
+    r[1].x = -normal.x * normal.y;
+    r[1].y = 1.f - normal.y * normal.y;
+    r[1].z = -normal.y * normal.z;
+    r[2].x = -normal.x * normal.z;
+    r[2].y = -normal.y * normal.z;
+    r[2].z = 1.f - normal.z * normal.z;
+    return r;
+}
+
+
+
 #endif

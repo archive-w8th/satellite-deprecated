@@ -325,26 +325,23 @@ HitRework interpolateMeshData(inout HitRework res) {
             fetchMosaic(vertex_texture, triv, 1).xyz, 
             fetchMosaic(vertex_texture, triv, 2).xyz
         );
+        vec3 deltaPos1 = triverts[1] - triverts[0];
+        vec3 deltaPos2 = triverts[2] - triverts[0];
+        vec3 normal = normalize(cross(deltaPos1, deltaPos2));
 
         // gather texcoord
+        vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
         vec2 sz = 1.f / textureSize(vertex_texture, 0);
         vec2 trig = fma(vec2(triv), sz, sz * 0.9999f);
 
-
-        vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
-        vec3 deltaPos1 = triverts[1] - triverts[0];
-        vec3 deltaPos2 = triverts[2] - triverts[0];
-
-
         // gather 
-        mat3x3 trinorms = mat3x3(
+#define trinorms triverts
+        trinorms = mat3x3(
             SGATHER(normal_texture, trig, 0).wzx,
             SGATHER(normal_texture, trig, 1).wzx,
             SGATHER(normal_texture, trig, 2).wzx
         );
-        vec3 nor = normalize(cross(deltaPos1, deltaPos2));
-        vec3 normal = faceforward(vs * trinorms, -nor, nor); // mult matrix
-
+        normal = faceforward(vs * trinorms, -normal, normal); // mult matrix
 
         mat4x3 texcoords = mat4x3(
             SGATHER(texcoords_texture, trig, 0).wzx,
@@ -352,20 +349,18 @@ HitRework interpolateMeshData(inout HitRework res) {
             SGATHER(texcoords_texture, trig, 2).wzx,
             SGATHER(texcoords_texture, trig, 3).wzx
         );
-        
         mat3x2 txds = transpose(mat2x3(texcoords[0].xyz, texcoords[1].xyz));
-        mat2x2 dlts = mat2x2(txds[1] - txds[0], txds[2] - txds[0]);
+        mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
         // tangent determinant
-        float det = determinant(dlts);
-        float f = 1.f / (max(abs(det), 0.0001f) * (det >= 0.f ? 1 : -1));
+        float det = determinant(dlts), f = 1.f / (max(abs(det), 0.0001f) * (det >= 0.f ? 1 : -1));
         { f = isnan(f) ? 0.f : f, f = isinf(f) ? 10000.f : f; }
 
         // bitangent and tangent
         vec3 tang = fma(dlts[1].yyy, deltaPos1, -dlts[0].y * deltaPos2) * f;
         IF (validInterpolant) {
             res.normalHeight = vec4(normal, 0.0f);
-            res.tangent = vec4(normalize(tang - normal * sign(dot(tang, nor))), 0.0f);
+            res.tangent = vec4(normalize(tang - normal * sign(dot(tang, normal))), 0.0f);
             res.texcoord = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
             HitActived(res, TRUE_); // temporary enable

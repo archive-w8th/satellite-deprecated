@@ -47,19 +47,20 @@ namespace NSM {
             VK_AMD_GCN_SHADER_EXTENSION_NAME,
             VK_AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME,
             VK_AMD_TEXTURE_GATHER_BIAS_LOD_EXTENSION_NAME,
-            VK_AMD_SHADER_BALLOT_EXTENSION_NAME
+            VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
+            VK_AMD_SHADER_INFO_EXTENSION_NAME
         };
 
         // instance layers
         std::vector<const char*> wantedLayers = {
             //"VK_LAYER_LUNARG_standard_validation",
-            "VK_LAYER_RENDERDOC_Capture"
+            //"VK_LAYER_RENDERDOC_Capture"
         };
 
         // default device layers
         std::vector<const char*> wantedDeviceValidationLayers = {
             //"VK_LAYER_LUNARG_standard_validation",
-            "VK_LAYER_RENDERDOC_Capture"
+            //"VK_LAYER_RENDERDOC_Capture"
         };
 
         vk::Instance createInstance() {
@@ -101,7 +102,7 @@ namespace NSM {
             vk::ApplicationInfo appinfo;
             appinfo.pApplicationName = "VKTest";
             appinfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-            appinfo.apiVersion = VK_MAKE_VERSION(1, 0, 51);
+            appinfo.apiVersion = VK_MAKE_VERSION(1, 0, 54);
 
             // create instance info
             vk::InstanceCreateInfo cinstanceinfo;

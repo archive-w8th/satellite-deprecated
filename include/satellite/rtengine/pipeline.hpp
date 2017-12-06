@@ -244,6 +244,37 @@ namespace NSM {
                 sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/scatter.comp.spv", samplingPipelineLayout, pipelineCache);
                 clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/clear.comp.spv", samplingPipelineLayout, pipelineCache);
                 binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayShadingPipelineLayout, pipelineCache);
+
+
+                PFN_vkGetShaderInfoAMD pfnGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)vkGetDeviceProcAddr(device->logical, "vkGetShaderInfoAMD");
+
+                {
+                    // query disassembly size (if available)
+                    size_t dataSize = 0;
+                    //device->logical.getShaderInfoAMD(bvhTraverse.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eDisassembly, &dataSize, nullptr);
+                    VkResult res = pfnGetShaderInfoAMD(VkDevice(device->logical), VkPipeline(bvhTraverse.pipeline), VkShaderStageFlagBits(vk::ShaderStageFlagBits::eCompute), VkShaderInfoTypeAMD(vk::ShaderInfoTypeAMD::eDisassembly), &dataSize, nullptr);
+
+                    // query disassembly and print
+                    if (dataSize > 0) {
+                        std::cout << "BVH traverse dissasembly" << std::endl;
+                        char * disassembly = new char[dataSize];
+                        //device->logical.getShaderInfoAMD(bvhTraverse.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eDisassembly, &dataSize, disassembly);
+                        res = pfnGetShaderInfoAMD(VkDevice(device->logical), VkPipeline(bvhTraverse.pipeline), VkShaderStageFlagBits(vk::ShaderStageFlagBits::eCompute), VkShaderInfoTypeAMD(vk::ShaderInfoTypeAMD::eDisassembly), &dataSize, disassembly);
+                        //std::cout << std::string(disassembly, disassembly + dataSize) << std::endl;
+
+                        std::ofstream assemblyAMD;
+                        assemblyAMD.open("bvhTraverseDisAMD.gasm");
+                        assemblyAMD << std::string(disassembly, disassembly + dataSize);
+                        assemblyAMD.close();
+
+                        delete disassembly;
+                    }
+                }
+
+
+
+
+
             }
 
 

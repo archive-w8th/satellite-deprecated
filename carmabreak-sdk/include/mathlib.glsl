@@ -109,6 +109,7 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
 
 // float 16 or 32 types
 #ifdef AMD_F16_BVH
+#define FTYPE_ float16_t
 #define FVEC3_ f16vec3
 #define FVEC4_ f16vec4
 #define FVEC2_ f16vec2
@@ -127,6 +128,7 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
     #define PACKF_(a)FVEC4_(a)
     #endif
 #else 
+#define FTYPE_ float
 #define FVEC2_ vec2
 #define FVEC3_ vec3
 #define FVEC4_ vec4

@@ -25,7 +25,6 @@ struct bbox {
 #endif
 #endif
 
-
 #ifdef USE_F32_BVH
 #define UBLANEF_UNPACKED_ vec4
 #else

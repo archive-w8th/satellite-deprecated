@@ -102,10 +102,11 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     direct = normalize(direct);
 
     // test constants
-    vec3 torig = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz, 
-    dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz;
+    vec3 
+        dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz, 
+        torig = -mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz;
     dirlenInv = 1.f / max(length(dirproj), 0.0001f), toffset = 0.f;
-    dirproj = 1.f / (max(abs(dirproj * dirlenInv),vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f)))), torig *= -dirproj;
+    dirproj = 1.f / (max(abs(dirproj * dirlenInv),vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
     predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
@@ -114,16 +115,16 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     BOOL_ vldbx = valid;
     IF (vldbx) {
         float near = INFINITY, far = INFINITY, 
-        bdist = intersectCubeSingle(torig, dirproj, vec4(vec3(-0.0001f), 1.0f), vec4(vec3(1.0001f), 1.0f), near, far);
-        toffset = max(near, 0.f), torig -= toffset.xxx, predist = min(predist, far * dirlenInv);
+        bdist = intersectCubeSingle(torig*dirproj, dirproj, vec4(vec3(-0.0001f), 1.0f), vec4(vec3(1.0001f), 1.0f), near, far);
+        toffset = max(near, 0.f), predist = min(predist, far * dirlenInv);
         vldbx &= lessF(bdist, INFINITY) & lessF(bdist * dirlenInv, INFINITY) & greaterEqualF(bdist, 0.0f);
     }
 
     // calculate box projected rays
     {
-        FVEC3_ _torig = FVEC3_(torig), _dirproj = FVEC3_(dirproj);
+        FVEC3_ _dirproj = FVEC3_(dirproj), _torig = fma(FVEC3_(torig),_dirproj,-FVEC3_(toffset).xxx);
         //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_dirproj.xxxx, _dirproj.yyyy, _dirproj.zzzz);
-        origined = transpose(FMAT4X3_(_torig, _torig, _torig, _torig)), divident = transpose(FMAT4X3_(_dirproj, _dirproj, _dirproj, _dirproj));
+        toffset *= dirlenInv, origined = transpose(FMAT4X3_(_torig, _torig, _torig, _torig)), divident = transpose(FMAT4X3_(_dirproj, _dirproj, _dirproj, _dirproj));
         //FVEC4_ _torig = FVEC4_(torig, dirproj.x); FVEC2_ _dirproj = FVEC2_(dirproj.yz);
         //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_torig.wwww, _dirproj.xxxx, _dirproj.yyyy);
     }
@@ -210,7 +211,7 @@ void checkChildNodes() {
             //hitd = intersectCubeDual(origined, divident, FMAT2X4_(lnodeboxmn, rnodeboxmn), FMAT2X4_(lnodeboxmx, rnodeboxmx), nears, fars);
             //hitd = intersectCubeDual(origined, divident, unibox, nears, fars);
             hitd = intersectCubeDual(origined, divident, UNPACK_BOX_(Nodes[idx].lrbox), nears, fars);
-            nears = (nears + toffset) * dirlenInv;
+            nears = fma(nears, dirlenInv.xx, toffset.xx);
 
             // validate intersection
             leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
@@ -337,19 +338,17 @@ HitRework interpolateMeshData(inout HitRework res) {
         // gather 
 #define trinorms triverts
         trinorms = mat3x3(
-            SGATHER(normal_texture, trig, 0).wzx,
-            SGATHER(normal_texture, trig, 1).wzx,
-            SGATHER(normal_texture, trig, 2).wzx
+            SGATHER(normal_texture, trig, 0)._SWIZV,
+            SGATHER(normal_texture, trig, 1)._SWIZV,
+            SGATHER(normal_texture, trig, 2)._SWIZV
         );
         normal = faceforward(vs * trinorms, -normal, normal); // mult matrix
 
-        mat4x3 texcoords = mat4x3(
-            SGATHER(texcoords_texture, trig, 0).wzx,
-            SGATHER(texcoords_texture, trig, 1).wzx,
-            SGATHER(texcoords_texture, trig, 2).wzx,
-            SGATHER(texcoords_texture, trig, 3).wzx
+        mat2x3 texcoords = mat2x3(
+            SGATHER(texcoords_texture, trig, 0)._SWIZV,
+            SGATHER(texcoords_texture, trig, 1)._SWIZV
         );
-        mat3x2 txds = transpose(mat2x3(texcoords[0].xyz, texcoords[1].xyz));
+        mat3x2 txds = transpose(texcoords);
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
         // tangent determinant
@@ -361,7 +360,7 @@ HitRework interpolateMeshData(inout HitRework res) {
         IF (validInterpolant) {
             res.normalHeight = vec4(normal, 0.0f);
             res.tangent = vec4(normalize(tang - normal * sign(dot(tang, normal))), 0.0f);
-            res.texcoord = vs * texcoords; // mult matrix
+            res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
             HitActived(res, TRUE_); // temporary enable
         }

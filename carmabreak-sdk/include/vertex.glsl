@@ -25,10 +25,12 @@ layout ( binding = 3, set = 1 ) uniform sampler2D modifiers_texture;
 #define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
 #endif
 
-
+//#define _SWIZV wzx
+#define _SWIZV xyz
 
 const int WARPED_WIDTH = 2048;
-const ivec2 mit[3] = {ivec2(0,0), ivec2(1,0), ivec2(0,1)};
+//const ivec2 mit[3] = {ivec2(0,0), ivec2(1,0), ivec2(0,1)};
+const ivec2 mit[3] = {ivec2(0,1), ivec2(1,1), ivec2(1,0)};
 
 ivec2 mosaicIdc(in ivec2 mosaicCoord, in int idc) {
     return mosaicCoord + mit[idc];
@@ -79,16 +81,16 @@ vec2 intersectTriangle2(inout vec3 orig, inout vec3 dir, inout ivec2 tri, inout 
             vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
             vec2 ntri0 = fma(vec2(tri0), sz, hs), ntri1 = fma(vec2(tri1), sz, hs);
             v012x = transpose(mat2x3(
-                SGATHER(vertex_texture, ntri0, 0).wzx,
-                SGATHER(vertex_texture, ntri1, 0).wzx
+                SGATHER(vertex_texture, ntri0, 0)._SWIZV,
+                SGATHER(vertex_texture, ntri1, 0)._SWIZV
             )), 
             v012y = transpose(mat2x3(
-                SGATHER(vertex_texture, ntri0, 1).wzx,
-                SGATHER(vertex_texture, ntri1, 1).wzx
+                SGATHER(vertex_texture, ntri0, 1)._SWIZV,
+                SGATHER(vertex_texture, ntri1, 1)._SWIZV
             )), 
             v012z = transpose(mat2x3(
-                SGATHER(vertex_texture, ntri0, 2).wzx,
-                SGATHER(vertex_texture, ntri1, 2).wzx
+                SGATHER(vertex_texture, ntri0, 2)._SWIZV,
+                SGATHER(vertex_texture, ntri1, 2)._SWIZV
             ));
         }
 
@@ -158,9 +160,9 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
         vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
         vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
         mat3 ABC = mat3(
-            SGATHER(vertex_texture, ntri, 0).wzx - orig.x,
-            SGATHER(vertex_texture, ntri, 1).wzx - orig.y,
-            SGATHER(vertex_texture, ntri, 2).wzx - orig.z
+            SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
+            SGATHER(vertex_texture, ntri, 1)._SWIZV - orig.y,
+            SGATHER(vertex_texture, ntri, 2)._SWIZV - orig.z
         ) * M;
 
         // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
@@ -185,9 +187,9 @@ float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout
         vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
         vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
         mat3 ABC = mat3(
-            orig.x - SGATHER(vertex_texture, ntri, 0).wzx,
-            orig.y - SGATHER(vertex_texture, ntri, 1).wzx,
-            orig.z - SGATHER(vertex_texture, ntri, 2).wzx
+            orig.x - SGATHER(vertex_texture, ntri, 0)._SWIZV,
+            orig.y - SGATHER(vertex_texture, ntri, 1)._SWIZV,
+            orig.z - SGATHER(vertex_texture, ntri, 2)._SWIZV
         );
         mat2x3 e12t = transpose(mat3x2(
             ABC[0].xx - ABC[0].yz, 

@@ -176,6 +176,39 @@ void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inou
 }
 
 
+
+void intersectLeafs2(in ivec2 tri, inout BVEC2_ isValid){
+    BVEC2_ near = BVEC2_(greaterThanEqual(tri, 0.f.xx)) & isValid;
+
+    // planned packed math
+    vec4 uv2 = vec4(0.0f); 
+    vec2 _d2 = vec2(
+        intersectTriangle(currentRay.origin.xyz, M, axis, tri.x, uv2.xy, near.x),
+        intersectTriangle(currentRay.origin.xyz, M, axis, tri.y, uv2.zw, near.y)
+    );
+
+    // include intersection
+    //near = near & lessF(_d2, INFINITY) & lessEqualF(_d2, nearhit); //& greaterEqualF(_d2, 0.0f);
+
+    // if single thread, do cut (comment this line if WARP-wise)
+    //IF (lessF(_d2, nearhit) & near) { nearhit = min(_d2, nearhit); bstackCount = 0; }
+    float _nearhit = predist;
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    predist = min3(predist, _d2.x, _d2.y);
+#else
+    predist = min(min(predist, _d2.x), _d2.y);
+#endif
+    IF (lessF(predist, _nearhit)) { bstackCount = 0; }
+
+    // include to cache
+    near &= 
+        BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
+        BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
+    IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(tri.x));
+    IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(tri.y));
+}
+
+
 void includeLeaf(in ivec4 pdata, inout BOOL_ excl){
     BOOL_ leaf = BOOL_(pdata.x == pdata.y); excl &= not(leaf);
     testIntersectionPacked(rayID, currentRay.origin.xyz, M, axis, pdata.w, leaf, predist);
@@ -234,9 +267,13 @@ void checkChildNodes() {
         }
 
         { // culled intersection of leaf nodes
-            IF (overlapsGeneral.x & lessEqualF(nears.x, predist)) includeLeaf(Nodes[nodepdata.x].pdata, overlapsGeneral.x);
-            IF (overlapsGeneral.y & lessEqualF(nears.y, predist)) includeLeaf(Nodes[nodepdata.y].pdata, overlapsGeneral.y);
-            overlapsGeneral &= BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
+            //IF (overlapsGeneral.x & lessEqualF(nears.x, predist)) includeLeaf(Nodes[nodepdata.x].pdata, overlapsGeneral.x);
+            //IF (overlapsGeneral.y & lessEqualF(nears.y, predist)) includeLeaf(Nodes[nodepdata.y].pdata, overlapsGeneral.y);
+            intersectLeafs2(ivec2(Nodes[nodepdata.x].pdata.w, Nodes[nodepdata.y].pdata.w), overlapsGeneral); 
+            overlapsGeneral &= BVEC2_(notEqual(
+                ivec2(Nodes[nodepdata.x].pdata.x, Nodes[nodepdata.y].pdata.x),
+                ivec2(Nodes[nodepdata.x].pdata.y, Nodes[nodepdata.y].pdata.y)
+            )) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
         }
 
 #ifdef STACKLESS_BVH

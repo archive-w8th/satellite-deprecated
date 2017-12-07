@@ -72,6 +72,21 @@ max | z | w || z | w |
 *///============================
 
 
+//==============================
+//BVH data future transcoding (each by 32-bit only)
+//By textureGather you can get siblings
+
+/* 
+        Sib     P    T
+    +==================+
+L   | x || y || z || w |
+    +==================+
+R   | x || y || z || w |
+    +==================+
+    
+*///============================
+
+
 
 // bvh transcoded storage
 #ifdef BVH_CREATION

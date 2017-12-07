@@ -259,7 +259,7 @@ void checkChildNodes() {
         }
 
         // if test is valid, extract BVH meta data
-        ivec4 nodepdata = SSC(any(overlapsGeneral)) ? Nodes[idx].pdata : ivec4(-1);
+        ivec2 nodepdata = SSC(any(overlapsGeneral)) ? ivec2(Nodes[idx].pdata.x, Nodes[idx].pdata.y) : ivec2(-1);
         overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear).yy, ivec2(esc.x)));
 
         { // reorder nodes 

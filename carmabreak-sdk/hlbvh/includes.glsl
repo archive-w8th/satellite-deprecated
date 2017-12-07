@@ -49,3 +49,14 @@ bbox calcTriBox(in mat3x4 triverts) {
 #endif
     return result;
 }
+
+
+
+// bvh transcoded storage
+#ifdef BVH_CREATION
+layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
+layout ( binding = 6, rg16f, set = 1 ) uniform image2D bvhBoxes;
+#else
+layout ( binding = 5, set = 1 ) uniform sampler2D bvhStorage;
+layout ( binding = 6, set = 1 ) uniform sampler2D bvhBoxes;
+#endif

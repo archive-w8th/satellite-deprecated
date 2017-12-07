@@ -230,12 +230,11 @@ void checkChildNodes() {
         //IF (any(overlapsGeneral)) {
         ivec2 siblings = (-1).xx;
         IF (validBox) {
-            {
-                ivec2 _pdx2 = bvhLinear2D(idx);
-                siblings = ivec2(texelFetch(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0), 0).x, texelFetch(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(1,0), 0).x);
+            { // fetch siblings ids
+                siblings = texelFetch(bvhStorage, bvhLinear2D(idx) * ivec2(4,1) + ivec2(0,0), 0).xx + ivec2(0,1);
             }
             
-            {
+            { // test boxes
                 vec2 tm = bvhGatherifyBox(bvhLinear2D(siblings.x));
                 hitd = intersectCubeDual(origined, divident, FMAT4X4_(
                     FVEC4_(SGATHER(bvhBoxes, tm, 0)).wxzy,
@@ -243,12 +242,10 @@ void checkChildNodes() {
                     FVEC4_(SGATHER(bvhBoxes, tm, 2)).wxzy,
                     FVEC4_(SGATHER(bvhBoxes, tm, 3)).wxzy
                 ), nears, fars);
-                nears = fma(nears, dirlenInv.xx, toffset.xx);
+                nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }
             
             // validate intersection
-            leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
-            
             overlapsGeneral &= 
                 BVEC2_(lessThanEqual(nears - PZERO, vec2(predist))) & 
                 BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO))) & 

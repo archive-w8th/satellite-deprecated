@@ -52,6 +52,28 @@ bbox calcTriBox(in mat3x4 triverts) {
 
 
 
+//=============================
+/* BVH boxes future transcoding
+By textureGather you can get LmnRmnLmxRmx by component, also packed by f16 (and texels gives by 32-bit each)
+By fetching texels you fetching each 32-bit element (packed two 16-bit), and restore to full 4x vector by two fetch
+You need allocate 4x4 texels for each element (2x4 as 32-bit representation)
+
+      L   L    R   R
+    +================+
+min | x | y || x | y |
+    +================+
+max | x | y || x | y |
+    +================+
+min | z | w || z | w |
+    +================+
+max | z | w || z | w |
+    +================+
+    
+*/
+//============================
+
+
+
 // bvh transcoded storage
 #ifdef BVH_CREATION
 layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;

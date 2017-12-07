@@ -248,7 +248,7 @@ namespace NSM {
 
                 
 
-                /* 
+                
                 { // AMD ONLY - save assembly file of traverser
                     PFN_vkGetShaderInfoAMD pfnGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)vkGetDeviceProcAddr(device->logical, "vkGetShaderInfoAMD");
 
@@ -273,7 +273,7 @@ namespace NSM {
                         delete disassembly;
                     }
                 }
-                */
+                
 
 
 

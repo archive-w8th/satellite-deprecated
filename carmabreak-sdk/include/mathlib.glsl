@@ -431,15 +431,21 @@ vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FMAT4X4_ cubeMinMa
         fma(cubeMinMax2[2], dr[2], origin[2])
     );
 
-    FMAT3X2_ t1 = FMAT3X2_(min(tMinMax[0].xy, tMinMax[0].zw), min(tMinMax[1].xy, tMinMax[1].zw), min(tMinMax[2].xy, tMinMax[2].zw));
-    FMAT3X2_ t2 = FMAT3X2_(max(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[1].xy, tMinMax[1].zw), max(tMinMax[2].xy, tMinMax[2].zw));
+    FVEC2_ tNear, tFar;
     
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    FVEC2_ tNear = max3(t1[0], t1[1], t1[2]);
-    FVEC2_ tFar  = min3(t2[0], t2[1], t2[2]);
+    FMAT3X2_ tf = FMAT3X2_(min(tMinMax[0].xy, tMinMax[0].zw), min(tMinMax[1].xy, tMinMax[1].zw), min(tMinMax[2].xy, tMinMax[2].zw));
+#if (defined(ENABLE_AMD_INSTRUCTION_SET) && !defined(AMD_F16_BVH))
+    tNear = max3(tf[0], tf[1], tf[2]);
 #else
-    FVEC2_ tNear = max(max(t1[0], t1[1]), t1[2]);
-    FVEC2_ tFar  = min(min(t2[0], t2[1]), t2[2]);
+    tNear = max(max(tf[0], tf[1]), tf[2]);
+#endif
+
+    tf = FMAT3X2_(max(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[1].xy, tMinMax[1].zw), max(tMinMax[2].xy, tMinMax[2].zw));
+    //tf[0] = max(tMinMax[0].xy, tMinMax[0].zw), tf[1] = max(tMinMax[1].xy, tMinMax[1].zw), tf[2] = max(tMinMax[2].xy, tMinMax[2].zw);
+#if (defined(ENABLE_AMD_INSTRUCTION_SET) && !defined(AMD_F16_BVH))
+    tFar  = min3(tf[0], tf[1], tf[2]);
+#else
+    tFar  = min(min(tf[0], tf[1]), tf[2]);
 #endif
 
     const vec2 inf = vec2(INFINITY);

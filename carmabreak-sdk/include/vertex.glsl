@@ -314,13 +314,13 @@ ivec2 bvhLinear2D(in int linear) {
 #ifndef BVH_CREATION
 vec2 bvhGatherifyBox(in ivec2 ipt){
     vec2 tx = vec2(ipt * ivec2(2,1));
-    vec2 sz = 1.f / textureSize(bvhBoxes, 0), hs = sz * 0.9999f;
+    const vec2 sz = 1.f / textureSize(bvhBoxes, 0), hs = sz * 0.9999f;
     return fma(tx, sz, hs);
 }
 
 vec2 bvhGatherifyStorage(in ivec2 ipt, in int prt){
     vec2 tx = vec2(ipt * ivec2(4,1) + ivec2(2,0)*prt);
-    vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
+    const vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
     return fma(tx, sz, hs);
 }
 #endif

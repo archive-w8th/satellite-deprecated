@@ -95,12 +95,12 @@ namespace NSM {
                 // define descriptor pool sizes
                 std::vector<vk::DescriptorPoolSize> descriptorPoolSizes = {
                     vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 16),
-                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 6)
+                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 8)
                 };
 
                 std::vector<vk::DescriptorPoolSize> loaderDescriptorPoolSizes = {
                     vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 16),
-                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 6)
+                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 8)
                 };
 
                 // descriptor set bindings
@@ -124,7 +124,10 @@ namespace NSM {
                     vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
                     vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
                     vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                    vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr)
+                    vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                    vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                    vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr)
                 };
 
 
@@ -358,8 +361,8 @@ namespace NSM {
 
 
                 // bvh storage (32-bits elements)
-                bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH*4), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
-                bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH*4), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR16G16Sfloat);
+                bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH*4), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
+                bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH*2), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR16G16B16A16Sfloat);
 
 
                 // create sampler
@@ -376,6 +379,9 @@ namespace NSM {
                 auto desc1Tmpl = vk::WriteDescriptorSet(desc0Tmpl).setDstSet(descriptorSets[1]).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
                 auto ldesc0Tmpl = vk::WriteDescriptorSet(desc0Tmpl).setDstSet(loaderDescriptorSets[0]).setDescriptorType(vk::DescriptorType::eStorageBuffer);
                 auto ldesc1Tmpl = vk::WriteDescriptorSet(desc0Tmpl).setDstSet(loaderDescriptorSets[1]).setDescriptorType(vk::DescriptorType::eStorageImage);
+
+
+
 
                 // write buffer to main descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
@@ -395,6 +401,8 @@ namespace NSM {
                     vk::WriteDescriptorSet(desc1Tmpl).setDstBinding(1).setPImageInfo(&normalsTexelStorage->descriptorInfo.setSampler(sampler)),
                     vk::WriteDescriptorSet(desc1Tmpl).setDstBinding(2).setPImageInfo(&texcoordTexelStorage->descriptorInfo.setSampler(sampler)),
                     vk::WriteDescriptorSet(desc1Tmpl).setDstBinding(3).setPImageInfo(&modsTexelStorage->descriptorInfo.setSampler(sampler)),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler)),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDstBinding(6).setPImageInfo(&bvhBoxStorage->descriptorInfo.setSampler(sampler))
                 }, nullptr);
 
                 // write buffers to loader descriptors
@@ -419,6 +427,8 @@ namespace NSM {
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&normalsTexelStorage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&texcoordTexelStorage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&modsTexelStorage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPImageInfo(&bvhBoxStorage->descriptorInfo)
                 };
             }
 

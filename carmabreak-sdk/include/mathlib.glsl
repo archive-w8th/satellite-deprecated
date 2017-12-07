@@ -434,7 +434,7 @@ vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FMAT4X4_ cubeMinMa
     FVEC2_ tNear, tFar;
     
     FMAT3X2_ tf = FMAT3X2_(min(tMinMax[0].xy, tMinMax[0].zw), min(tMinMax[1].xy, tMinMax[1].zw), min(tMinMax[2].xy, tMinMax[2].zw));
-#if (defined(ENABLE_AMD_INSTRUCTION_SET) && !defined(AMD_F16_BVH))
+#if (defined(ENABLE_AMD_INSTRUCTION_SET))
     tNear = max3(tf[0], tf[1], tf[2]);
 #else
     tNear = max(max(tf[0], tf[1]), tf[2]);
@@ -442,7 +442,7 @@ vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FMAT4X4_ cubeMinMa
 
     tf = FMAT3X2_(max(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[1].xy, tMinMax[1].zw), max(tMinMax[2].xy, tMinMax[2].zw));
     //tf[0] = max(tMinMax[0].xy, tMinMax[0].zw), tf[1] = max(tMinMax[1].xy, tMinMax[1].zw), tf[2] = max(tMinMax[2].xy, tMinMax[2].zw);
-#if (defined(ENABLE_AMD_INSTRUCTION_SET) && !defined(AMD_F16_BVH))
+#if (defined(ENABLE_AMD_INSTRUCTION_SET))
     tFar  = min3(tf[0], tf[1], tf[2]);
 #else
     tFar  = min(min(tf[0], tf[1]), tf[2]);

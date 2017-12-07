@@ -12,10 +12,6 @@
 #include "../include/mathlib.glsl"
 #include "../include/vertex.glsl"
 
-// bvh transcoded storage
-layout ( binding = 5, set = 1 ) uniform sampler2D bvhStorage;
-layout ( binding = 6, set = 1 ) uniform sampler2D bvhBoxes;
-
 // consts
 const int STACK_SIZE = 16; // can be much smaller cache
 const int EXT_STACK_SIZE = 16;
@@ -224,7 +220,7 @@ const int _sgn[2] = {-1, 1};
 // planned block optimized system
 void checkChildNodes() {
     IF (validBox) {
-        int found = -1; BOOL_ skipUpstream = not(validBox); BVEC2_ leftNear = FALSE2_;
+        int found = -1; BOOL_ skipUpstream = not(validBox); BVEC2_ leftNear = TRUE2_;
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
 
         const vec2 inf2 = vec2(INFINITY);
@@ -232,23 +228,24 @@ void checkChildNodes() {
 
         // calculate boxes intersections
         //IF (any(overlapsGeneral)) {
+        ivec2 siblings = (-1).xx;
         IF (validBox) {
-            //BOXF_ 
-            //    lnodebox_packed = Nodes[idx].lbox, 
-            //    rnodebox_packed = Nodes[idx].rbox;
-                
-            // TODO unpacking uint packed half float boxes
-            //UBOXF_ unibox = Nodes[idx].lrbox;
-
-            //FVEC4_ 
-            //    lnodeboxmn = UNPACKF_(lnodebox_packed.mn), lnodeboxmx = UNPACKF_(lnodebox_packed.mx), 
-            //    rnodeboxmn = UNPACKF_(rnodebox_packed.mn), rnodeboxmx = UNPACKF_(rnodebox_packed.mx);
-
-            //hitd = intersectCubeDual(origined, divident, FMAT2X4_(lnodeboxmn, rnodeboxmn), FMAT2X4_(lnodeboxmx, rnodeboxmx), nears, fars);
-            //hitd = intersectCubeDual(origined, divident, unibox, nears, fars);
-            hitd = intersectCubeDual(origined, divident, UNPACK_BOX_(Nodes[idx].lrbox), nears, fars);
-            nears = fma(nears, dirlenInv.xx, toffset.xx);
-
+            {
+                ivec2 _pdx2 = bvhLinear2D(idx);
+                siblings = ivec2(texelFetch(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0), 0).x, texelFetch(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(1,0), 0).x);
+            }
+            
+            {
+                vec2 tm = bvhGatherifyBox(bvhLinear2D(siblings.x));
+                hitd = intersectCubeDual(origined, divident, FMAT4X4_(
+                    FVEC4_(SGATHER(bvhBoxes, tm, 0)).wxzy,
+                    FVEC4_(SGATHER(bvhBoxes, tm, 1)).wxzy,
+                    FVEC4_(SGATHER(bvhBoxes, tm, 2)).wxzy,
+                    FVEC4_(SGATHER(bvhBoxes, tm, 3)).wxzy
+                ), nears, fars);
+                nears = fma(nears, dirlenInv.xx, toffset.xx);
+            }
+            
             // validate intersection
             leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             
@@ -259,26 +256,25 @@ void checkChildNodes() {
         }
 
         // if test is valid, extract BVH meta data
-        ivec2 nodepdata = SSC(any(overlapsGeneral)) ? ivec2(Nodes[idx].pdata.x, Nodes[idx].pdata.y) : ivec2(-1);
+        ivec2 nodepdata = SSC(any(overlapsGeneral)) ? siblings : ivec2(-1);
         overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear).yy, ivec2(esc.x)));
 
+        BVEC2_ leftOrder = mix(overlapsGeneral.xx, leftNear, all(overlapsGeneral).xx);
         { // reorder nodes 
-            BVEC2_ leftOrder = mix(overlapsGeneral.xx, leftNear, all(overlapsGeneral).xx);
             overlapsGeneral.xy = mix(overlapsGeneral.yx, overlapsGeneral.xy, leftOrder);
             nodepdata.xy = mix(nodepdata.yx, nodepdata.xy, leftOrder);
             nears.xy = mix(nears.yx, nears.xy, leftOrder);
         }
 
         { // culled intersection of leaf nodes
-            //IF (overlapsGeneral.x & lessEqualF(nears.x, predist)) includeLeaf(Nodes[nodepdata.x].pdata, overlapsGeneral.x);
-            //IF (overlapsGeneral.y & lessEqualF(nears.y, predist)) includeLeaf(Nodes[nodepdata.y].pdata, overlapsGeneral.y);
-            intersectLeafs2(ivec2(Nodes[nodepdata.x].pdata.w, Nodes[nodepdata.y].pdata.w), overlapsGeneral); 
-            overlapsGeneral &= BVEC2_(notEqual(
-                ivec2(Nodes[nodepdata.x].pdata.x, Nodes[nodepdata.y].pdata.x),
-                ivec2(Nodes[nodepdata.x].pdata.y, Nodes[nodepdata.y].pdata.y)
-            )) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
+            ivec2 vln = bvhLinear2D(siblings.x); vec2 lw = bvhGatherifyStorage(vln, 1), sb = bvhGatherifyStorage(vln, 0);
+            ivec4 sibs = SGATHER(bvhStorage, sb, 0).wxzy; ivec2 tp = SGATHER(bvhStorage, lw, 0).zy;
+            tp = mix(tp.yx, tp.xy, leftOrder), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder);
+            intersectLeafs2(tp, overlapsGeneral);
+            overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
         }
 
+// TODO support for stackless 
 #ifdef STACKLESS_BVH
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
@@ -291,17 +287,17 @@ void checkChildNodes() {
         { // unified child/parent/another switcher
             const bool _ssc = SSC(skipUpstream);
             esc = (lastesc.x != -1 && !_ssc) ? lastesc : ivec2(idx, esc.y), esc.y += _sgn[uint(skipUpstream&TRUE_)], lastesc = _ssc ? lastesc : ivec2(-1, -1), 
-            idx = _ssc ? found : ((esc.x >= 0 && esc.y >= 0 && idx >= 0) ? Nodes[esc.x].pdata.z : -1), 
+            idx = _ssc ? found : ((esc.x >= 0 && esc.y >= 0 && idx >= 0) ? Nodes[esc.x].pdata.z : -1), //LEGACY code
             validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
             idx = mix(-1, idx, validBox);
         }
 #else
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
-            skipUpstream = TRUE_;
-            nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx;
-            found = nodepdata.x;
-            IF (all(overlapsGeneral)) storeStack(min(deferredPtr++, STACK_SIZE_SM-1), nodepdata.y);
+            skipUpstream = TRUE_, nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
+            IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
+                storeStack(min(deferredPtr++, STACK_SIZE_SM-1), nodepdata.y);
+            }
             deferredPtr = min(deferredPtr, STACK_SIZE_SM);
         }
 

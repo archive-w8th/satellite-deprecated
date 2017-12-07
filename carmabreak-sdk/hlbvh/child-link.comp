@@ -1,10 +1,13 @@
 #version 460 core
 
+#define BVH_CREATION
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/mathlib.glsl"
 #include "../include/ballotlib.glsl"
+#include "../include/vertex.glsl"
 #include "./includes.glsl"
 
 LOCAL_SIZE_LAYOUT;
@@ -22,17 +25,23 @@ void main() {
             if (idx >= 0) {
                 
                 // make leafs links
-                HlbvhNode childNode = Nodes[idx];
-                uint leafID = MortoncodesIndices[childNode.pdata.x];
+                //HlbvhNode childNode = Nodes[idx];
+                
+                ivec2 _idx2 = bvhLinear2D(idx), range = imageLoad(bvhStorage, _idx2 * ivec2(4,1) + ivec2(0,0)).xx;
+                uint leafID = MortoncodesIndices[range.x];
                 exchange(Leafs[leafID].pdata.z, int(idx));
-
-                // link BVH
                 HlbvhNode leaf = Leafs[leafID];
-                ivec2 range = childNode.pdata.xy;
-                childNode.lrbox = TRANSPOSEF_(leaf.lrbox);
-                childNode.pdata.xy = range.yy;
-                childNode.pdata.w = leaf.pdata.w;
-                Nodes[idx] = childNode;
+                
+                imageStore(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(0,0), UNPACK_LANE_(leaf.lrbox[0]));
+                imageStore(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(1,0), UNPACK_LANE_(leaf.lrbox[2]));
+                imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(0,0), range.xxxx);
+                imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(1,0), range.xxxx);
+                imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(3,0), leaf.pdata.wwww);
+
+                //childNode.lrbox = TRANSPOSEF_(leaf.lrbox);
+                //childNode.pdata.xy = _idx2.xx;
+                //childNode.pdata.w = leaf.pdata.w;
+                //Nodes[idx] = childNode;
             }
         }
     }

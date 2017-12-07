@@ -1,10 +1,13 @@
 #version 460 core
 
+#define BVH_CREATION
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/mathlib.glsl"
 #include "../include/ballotlib.glsl"
+#include "../include/vertex.glsl"
 #include "./includes.glsl"
 
 const int work_size = 1024;
@@ -17,6 +20,18 @@ void unifyNodeBox(inout UBLANEF_ mnmx, in UBLANEF_ bllane, in UBLANEF_ brlane){
     UBLANEF_UNPACKED_ _bllane = UNPACK_LANE_(bllane), _brlane = UNPACK_LANE_(brlane);
     UBLANEF_UNPACKED_ _mn = UBLANEF_UNPACKED_(_bllane.xy, _brlane.xy), _mx = UBLANEF_UNPACKED_(_bllane.zw, _brlane.zw);
     mnmx = PACK_LANE_(UBLANEF_UNPACKED_(min(_mn.xz, _mn.yw), max(_mx.xz, _mx.yw)));
+}
+
+void unifyNodeBox(inout int idx){
+    ivec2 _pdx2 = bvhLinear2D(idx), _idx2 = bvhLinear2D(imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x);
+
+    UBLANEF_UNPACKED_ lmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(0,0)));
+    UBLANEF_UNPACKED_ rmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(0,1)));
+    imageStore(bvhBoxes, _pdx2 * ivec2(2,1) + ivec2(0,0), min(lmn, rmn));
+
+    UBLANEF_UNPACKED_ lmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(1,0)));
+    UBLANEF_UNPACKED_ rmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(1,1)));
+    imageStore(bvhBoxes, _pdx2 * ivec2(2,1) + ivec2(1,0), max(lmx, rmx));
 }
 
 
@@ -63,18 +78,10 @@ void main() {
             if (globalID < n && globalID >= 0) {
                 int idx = exchange(Actives[aRange[0]+globalID], -1); // get current level node
                 if (idx >= 0) {
-                    // unify boxes in non-leafs
-                    HlbvhNode nd = Nodes[idx];
-                    if (nd.pdata.x != nd.pdata.y) {
-                        unifyNodeBox(nd.lrbox[0],Nodes[nd.pdata.x].lrbox[0],Nodes[nd.pdata.y].lrbox[0]); // x
-                        unifyNodeBox(nd.lrbox[1],Nodes[nd.pdata.x].lrbox[1],Nodes[nd.pdata.y].lrbox[1]); // y
-                        unifyNodeBox(nd.lrbox[2],Nodes[nd.pdata.x].lrbox[2],Nodes[nd.pdata.y].lrbox[2]); // z
-                        unifyNodeBox(nd.lrbox[3],Nodes[nd.pdata.x].lrbox[3],Nodes[nd.pdata.y].lrbox[3]); // w
-                        if (idx >= 0) Nodes[idx] = nd;
-                    }
+                    ivec2 _pdx2 = bvhLinear2D(idx); 
+                    if (imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x != imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(1,0)).x) unifyNodeBox(idx);
 
-                    // solve race condition
-                    int prid = nd.pdata.z;
+                    int prid = imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(2,0)).x;
                     bool validParent = prid >= 0 && idx >= 0;
                     if (validParent) {
                         int _swp = atomicCompSwap(Flags[prid], 0, 1);

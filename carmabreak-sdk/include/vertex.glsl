@@ -232,4 +232,98 @@ float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout
 
 
 
+
+
+
+//==============================
+//BVH boxes future transcoding
+//By textureGather you can get LmnRmnLmxRmx by component, also packed by f16 (and texels gives by 32-bit each)
+//By fetching texels you fetching each 32-bit element (packed two 16-bit), and restore to full 4x vector by two fetch
+//You need allocate 4x4 texels for each element (2x4 as 32-bit representation)
+/* 
+
+      L   L    R   R
+    +================+
+min | x | y || x | y |
+    +================+
+max | x | y || x | y |
+    +================+
+min | z | w || z | w |
+    +================+
+max | z | w || z | w |
+    +================+
+
+*///============================
+
+//==============================
+// Alternate concept of box packing (4x2 as 32-bit representation, available read by 64-bit)
+/*
+      mn  mn  mn  mn   mx  mx  mx  mx
+    +================================+
+ L  | x | y | z | w || x | y | z | w |
+    +================================+
+ R  | x | y | z | w || x | y | z | w |
+    +================================+
+    
+*///============================
+
+
+//==============================
+//BVH data future transcoding (each by 32-bit only)
+//By textureGather you can get siblings
+
+/* 
+        Sib     P    T
+    +==================+
+L   | x || y || z || w |
+    +==================+
+R   | x || y || z || w |
+    +==================+
+    
+*///============================
+
+
+
+// bvh transcoded storage
+#ifdef BVH_CREATION
+layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
+layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
+#else
+layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
+layout ( binding = 6, set = 1 ) uniform sampler2D bvhBoxes;
+#endif
+
+
+
+const int _BVH_WIDTH = 2048;
+const float _BVH_WIDTHF = 2048.f;
+
+ivec2 bvhSibling2D(in int linear){
+    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2); // do gap on height
+}
+
+ivec2 bvhSibling2D(in int linear, in int subnode){
+    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + subnode);
+}
+
+ivec2 bvhLinear2D(in int linear) {
+    int md = linear % 2; linear /= 2;
+    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + md); // do gap on height
+}
+
+#ifndef BVH_CREATION
+vec2 bvhGatherifyBox(in ivec2 ipt){
+    vec2 tx = vec2(ipt * ivec2(2,1));
+    vec2 sz = 1.f / textureSize(bvhBoxes, 0), hs = sz * 0.9999f;
+    return fma(tx, sz, hs);
+}
+
+vec2 bvhGatherifyStorage(in ivec2 ipt, in int prt){
+    vec2 tx = vec2(ipt * ivec2(4,1) + ivec2(2,0)*prt);
+    vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
+    return fma(tx, sz, hs);
+}
+#endif
+
+
 #endif

@@ -1,10 +1,13 @@
 #version 460 core
 
+#define BVH_CREATION
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/mathlib.glsl"
 #include "../include/ballotlib.glsl"
+#include "../include/vertex.glsl"
 #include "./includes.glsl"
 
 LOCAL_SIZE_LAYOUT;
@@ -32,18 +35,20 @@ initAtomicIncFunction(cCounter, cCounterInc, int)
 void splitNode(in int trID) {
     int prID = exchange(Actives[trID], -1);
 
-    HlbvhNode parentNode = Nodes[prID];
-    if (parentNode.pdata.x != parentNode.pdata.y && prID != -1) {
+    //HlbvhNode parentNode = Nodes[prID];
+    ivec2 _hidx = bvhLinear2D(prID);
+    ivec2 _pdata = ivec2(
+        imageLoad(bvhStorage, _hidx * ivec2(4,1) + ivec2(0,0)).x,
+        imageLoad(bvhStorage, _hidx * ivec2(4,1) + ivec2(1,0)).x
+    );
+
+    if (_pdata.x != _pdata.y && prID != -1) {
         // find split
-        int split = findSplit(parentNode.pdata.x, parentNode.pdata.y);
+        int split = findSplit(_pdata.x, _pdata.y);
         int hid = lCounterInc(TRUE_, 2);
-
-        // init child node
-        HlbvhNode childNode = Nodes[hid]; resetBox(childNode);
-        childNode.pdata.zw = ivec2(prID, -1);
-
+        
         // encode with SIMD-like
-        ivec4 transplit = ivec4(parentNode.pdata.x, split+0, split+1, parentNode.pdata.y);
+        ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
         bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1));
         ivec2 hd = hid + ivec2(0, 1);
 
@@ -61,16 +66,27 @@ void splitNode(in int trID) {
             exchange(Actives[aCounterInc(TRUE_)], hd.y);
         }
 
-        childNode.pdata.xy = transplit.xy; // use temporary range
-        Flags[hd.x] = 0;
-        Nodes[hd.x] = childNode;
+        ivec2 _lidx = bvhLinear2D(hd.x), _ridx = bvhLinear2D(hd.y);
 
-        childNode.pdata.xy = transplit.zw; // use temporary range
+        Flags[hd.x] = 0;
+        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(0,0), transplit.xxxx);
+        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(1,0), transplit.yyyy);
+        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(2,0), prID.xxxx);
+        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
+        imageStore(bvhBoxes, _lidx * ivec2(2,1) + ivec2(0,0),  UBLANEF_UNPACKED_(1000.f).xxxx);
+        imageStore(bvhBoxes, _lidx * ivec2(2,1) + ivec2(1,0), -UBLANEF_UNPACKED_(1000.f).xxxx);
+        
         Flags[hd.y] = 0;
-        Nodes[hd.y] = childNode;
+        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(0,0), transplit.zzzz);
+        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(1,0), transplit.wwww);
+        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(2,0), prID.xxxx);
+        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
+        imageStore(bvhBoxes, _ridx * ivec2(2,1) + ivec2(0,0),  UBLANEF_UNPACKED_(1000.f).xxxx);
+        imageStore(bvhBoxes, _ridx * ivec2(2,1) + ivec2(1,0), -UBLANEF_UNPACKED_(1000.f).xxxx);
 
         // link parent with childs
-        Nodes[prID].pdata.xy = hd;
+        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(0,0), hd.xxxx);
+        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(1,0), hd.yyyy);
     }
 }
 
@@ -83,13 +99,19 @@ void main() {
     // create initial (root) node
     bool isBeginning = aRange[1] == 0;
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
-        int hid = lCounterInc(TRUE_, 1);
+        int hid = lCounterInc(TRUE_, 2);
         exchange(Actives[aCounterInc(TRUE_)], hid);
 
-        HlbvhNode node = Nodes[hid]; resetBox(node);
-        node.pdata = ivec4(0, aabbcount[0]-1, (-1).xx);
+        //HlbvhNode node = Nodes[hid]; resetBox(node);
+        //node.pdata = ivec4(0, aabbcount[0]-1, (-1).xx);
         
-        Nodes[hid] = node;
+        ivec2 _hidx = bvhLinear2D(hid);
+        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(0,0), (0).xxxx);
+        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(1,0), (aabbcount[0]-1).xxxx);
+        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(2,0), (-1).xxxx);
+        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
+
+        //Nodes[hid] = node;
         Flags[hid] = 0;
     }
 

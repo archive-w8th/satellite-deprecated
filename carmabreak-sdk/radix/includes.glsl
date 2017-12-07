@@ -2,6 +2,7 @@
 //#extension GL_AMD_gpu_shader_int64 : enable
 #extension GL_ARB_shader_ballot : enable
 #extension GL_ARB_shader_group_vote : enable
+#extension GL_GOOGLE_include_directive : enable
 
 // enable required GAPI extensions
 #ifdef ENABLE_AMD_INSTRUCTION_SET

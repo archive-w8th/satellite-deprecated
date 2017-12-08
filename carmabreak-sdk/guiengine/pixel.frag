@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../include/constants.glsl"
 #include "../include/mathlib.glsl"

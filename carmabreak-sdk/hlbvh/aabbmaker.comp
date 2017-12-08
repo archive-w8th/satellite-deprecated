@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -51,9 +52,6 @@ void main() {
 #endif
                 
                 HlbvhNode outLeaf = Leafs[to];
-#if (!defined(AMD_F16_BVH) && !defined(USE_F32_BVH))
-                mediump 
-#endif
                 UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.001f), mx = UBLANEF_UNPACKED_(bounding.mx+0.001f);
                 outLeaf.lrbox = PACK_BOX_(UBOXF_UNPACKED_(mn,mn,mx,mx));
                 outLeaf.pdata.xy = ivec2(to);

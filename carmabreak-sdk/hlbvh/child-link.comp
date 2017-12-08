@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
 #define BVH_PACKED_LOADER
 #define BVH_CREATION
@@ -33,8 +34,8 @@ void main() {
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(3,0), leaf.pdata.wwww);
                 
                 ivec2 _dix2 = bvhLinear2DH(idx);
-                imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,0), leaf.lrbox[0]);
-                imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,1), leaf.lrbox[2]);
+                imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,0), UNPACK_LANE_(leaf.lrbox[0]));
+                imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,1), UNPACK_LANE_(leaf.lrbox[2]));
             }
         }
     }

@@ -44,8 +44,7 @@
 
 // required extensions
 #extension GL_ARB_gpu_shader_int64 : enable
-//#extension GL_AMD_gpu_shader_int64 : enable // not supported by SPIRV
-#extension GL_ARB_shader_ballot : enable
+#extension GL_ARB_shader_ballot : require
 #extension GL_ARB_shader_group_vote : enable
 #extension GL_EXT_shader_image_load_formatted : enable
 

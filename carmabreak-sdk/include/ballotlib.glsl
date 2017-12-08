@@ -30,11 +30,14 @@
 
 //#define WARP_SIZE_RT ITYPE(gl_SubGroupSizeARB)
 #define WARP_SIZE_RT ITYPE(WARP_SIZE)
-#define   LT_IDX ITYPE(gl_LocalInvocationID.x)
+#define   LT_IDX ITYPE(gl_LocalInvocationIndex)
 //#define   LC_IDX ITYPE(gl_LocalInvocationID.x / WARP_SIZE_RT)
 //#define LANE_IDX ITYPE(gl_LocalInvocationID.x % WARP_SIZE_RT)
-#define   LC_IDX ITYPE(gl_LocalInvocationID.x >> WARP_FILTER_SHIFT)
-#define LANE_IDX ITYPE(gl_LocalInvocationID.x & WARP_FILTER_MASK)
+//#define   LC_IDX ITYPE(gl_LocalInvocationID.x >> WARP_FILTER_SHIFT)
+//#define LANE_IDX ITYPE(gl_LocalInvocationID.x & WARP_FILTER_MASK)
+//#define   LANE_IDX ITYPE(gl_SubGroupInvocationARB)
+#define   LANE_IDX (LT_IDX%WARP_SIZE_RT)
+#define   LC_IDX   (LT_IDX/WARP_SIZE_RT)
 
 #define UVEC_BALLOT_WARP uvec2
 

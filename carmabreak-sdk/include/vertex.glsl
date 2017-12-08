@@ -18,12 +18,15 @@ layout ( binding = 3, set = 1 ) uniform sampler2D modifiers_texture;
 #endif
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
-#define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp, crd, 0, chnl)
+//#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
+//#define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp, crd, 0, chnl)
 #else
+//#define ISTORE(img, crd, data) imageStore(img, crd, data)
+//#define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
+#endif
+
 #define ISTORE(img, crd, data) imageStore(img, crd, data)
 #define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
-#endif
 
 //#define _SWIZV wzx
 #define _SWIZV xyz
@@ -261,21 +264,7 @@ R   | x || y || z || w |
 // bvh transcoded storage
 #ifdef BVH_CREATION
 layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
-
-#ifdef BVH_PACKED_LOADER
-    #ifdef USE_F32_BVH // unsupported, force fp16
-    layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
-    #else
-        #ifdef AMD_F16_BVH
-        layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
-        #else
-        layout ( binding = 6, rg32u, set = 1 ) uniform uimage2D bvhBoxes;
-        #endif
-    #endif
-#else
-    layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
-#endif
-
+layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
 #else
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
 layout ( binding = 6, set = 1 ) uniform sampler2D bvhBoxes;

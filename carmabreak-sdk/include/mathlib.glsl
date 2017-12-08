@@ -439,7 +439,7 @@ vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in bvec3 sgn, in FMAT4X4_
         FVEC4_(min(tMinMax[2].xy, tMinMax[2].zw), max(tMinMax[2].xy, tMinMax[2].zw))
     );
 
-    FVEC2_ 
+    FVEC2_   
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
     tNear = max3(tf[0].xy, tf[1].xy, tf[2].xy),
     tFar  = min3(tf[0].zw, tf[1].zw, tf[2].zw);
@@ -448,15 +448,20 @@ vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in bvec3 sgn, in FMAT4X4_
     tFar  = min(min(tf[0].zw, tf[1].zw), tf[2].zw);
 #endif
 
+    const FVEC2_ pzr = FVEC2_(PZERO.xx);
+    const FVEC2_ inf = FVEC2_(INFINITY);
+    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f)));
+    FVEC2_ 
+    tFar_ = mix(inf, FVEC2_(max(tNear, tFar + pzr) - pzr), isCube);
+    tNear = mix(inf, FVEC2_(min(tNear - pzr, tFar) + pzr), isCube);
+    tFar = tFar_;
+
 #ifdef AMD_F16_BVH
-    near = tNear * 0.99994f, far = tFar * 1.00006f;
+    tNear *= FVEC2_(0.99994f), tFar *= FVEC2_(1.00006f);
 #endif
 
-    const vec2 inf = vec2(INFINITY);
-    BVEC2_ isCube = BVEC2_(greaterThan(far+PZERO, near)) & BVEC2_(greaterThan(far+PZERO, vec2(0.0f)));
-    near = mix(inf, vec2(min(near, far)), isCube);
-    far  = mix(inf, vec2(max(near, far)), isCube);
-    return mix(near, far, lessThanEqual(near + PZERO, vec2(0.0f)));
+    near = tNear, far = tFar;
+    return mix(tNear, tFar, lessThanEqual(tNear, FVEC2_(0.0f)));
 }
 
 

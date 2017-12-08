@@ -1,6 +1,8 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+//#define FLATTEN_BOX
+
 #define SIMPLIFIED_RAY_MANAGMENT
 //#define DISCARD_SHARED_CACHING // store rays in registers if possible
 //#define STACKLESS_BVH
@@ -240,12 +242,21 @@ void checkChildNodes() {
             }
             
             { // test boxes
-                vec2 tm = bvhGatherifyBox(bvhLinear2D(siblings.x));
+#ifdef FLATTEN_BOX
+                ivec2 tm = bvhLinear2DH(siblings.x);
+                hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
+                    texelFetch(bvhBoxes, tm + ivec2(0,0), 0),
+                    texelFetch(bvhBoxes, tm + ivec2(1,0), 0),
+                    texelFetch(bvhBoxes, tm + ivec2(0,1), 0)
+                ), nears, fars);
+#else
+                vec2 tm = bvhGatherifyBox(bvhLinear2DH(siblings.x));
                 hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     SGATHER(bvhBoxes, tm, 0),
                     SGATHER(bvhBoxes, tm, 1),
                     SGATHER(bvhBoxes, tm, 2)
                 ), nears, fars);
+#endif
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }
             

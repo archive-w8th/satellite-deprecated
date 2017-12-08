@@ -294,13 +294,13 @@ ivec2 bvhLinear2D(in int linear) {
 
 ivec2 bvhLinear2DH(in int linear){
     int md = linear & 1; linear >>= 1;
-    return ivec2(((linear % _BVH_WIDTH) << 1) + md, linear / _BVH_WIDTH);
+    return ivec2(((linear % _BVH_WIDTH) << 1) + md, (linear / _BVH_WIDTH) << 1);
 }
 
 
 #ifndef BVH_CREATION
 vec2 bvhGatherifyBox(in ivec2 ipt){
-    vec2 tx = vec2(ipt * ivec2(2,1));
+    vec2 tx = vec2(ipt);
     const vec2 sz = 1.f / textureSize(bvhBoxes, 0), hs = sz * 0.9999f;
     return fma(tx, sz, hs);
 }

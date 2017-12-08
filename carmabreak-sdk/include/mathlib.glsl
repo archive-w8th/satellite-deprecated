@@ -442,11 +442,19 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
 }
 
 vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in BVEC3_ sgn, in FMAT3X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
+#ifdef FLATTEN_BOX
+    FMAT3X4_ tMinMax = FMAT3X4_(
+        fma(cubeMinMax2[0], dr.xxxx, origin.xxxx),
+        fma(cubeMinMax2[1], dr.yyyy, origin.yyyy),
+        fma(cubeMinMax2[2], dr.zzzz, origin.zzzz)
+    );
+#else
     FMAT3X4_ tMinMax = FMAT3X4_(
         fma(cubeMinMax2[0].xywz, dr.xxxx, origin.xxxx),
         fma(cubeMinMax2[1].xywz, dr.yyyy, origin.yyyy),
         fma(cubeMinMax2[2].xywz, dr.zzzz, origin.zzzz)
     );
+#endif
 
     FMAT3X4_ tf = FMAT3X4_(
         FVEC4_(min(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[0].xy, tMinMax[0].zw)),

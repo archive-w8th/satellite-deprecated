@@ -88,7 +88,8 @@ void storeStack(in int STI, in int VALUE) {
 int axis = 2; mat3 M; 
 
 // offload
-FMAT3X4_ origined = FMAT3X4_(0.f.xxxx, 0.f.xxxx, 0.f.xxxx), divident = FMAT3X4_(0.f.xxxx, 0.f.xxxx, 0.f.xxxx);
+FVEC3_ origined = FVEC3_(0.f).xxx, divident = FVEC3_(0.f).xxx;
+bvec3 bsgn = false.xxx;
 BOOL_ validBox = FALSE_;
 float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
 ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
@@ -104,8 +105,10 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     vec3 
         dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz, 
         torig = -mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz;
+
     dirlenInv = 1.f / max(length(dirproj), 0.0001f), toffset = 0.f;
-    dirproj = 1.f / (max(abs(dirproj * dirlenInv),vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
+    dirproj *= dirlenInv;
+    dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
     predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
@@ -121,11 +124,10 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 
     // calculate box projected rays
     {
-        FVEC3_ _dirproj = FVEC3_(dirproj), _torig = fma(FVEC3_(torig),_dirproj,-FVEC3_(toffset).xxx);
-        //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_dirproj.xxxx, _dirproj.yyyy, _dirproj.zzzz);
-        toffset *= dirlenInv, origined = transpose(FMAT4X3_(_torig, _torig, _torig, _torig)), divident = transpose(FMAT4X3_(_dirproj, _dirproj, _dirproj, _dirproj));
-        //FVEC4_ _torig = FVEC4_(torig, dirproj.x); FVEC2_ _dirproj = FVEC2_(dirproj.yz);
-        //origined = FMAT3X4_(_torig.xxxx, _torig.yyyy, _torig.zzzz), divident = FMAT3X4_(_torig.wwww, _dirproj.xxxx, _dirproj.yyyy);
+        divident = FVEC3_(dirproj);
+        origined = FVEC3_(fma(torig, dirproj, -toffset.xxx)); //fma(FVEC3_(torig), _dirproj,-FVEC3_(toffset).xxx);
+        bsgn = bvec3((BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_);
+        toffset *= dirlenInv;
     }
 
     // calculate longest axis
@@ -236,11 +238,11 @@ void checkChildNodes() {
             
             { // test boxes
                 vec2 tm = bvhGatherifyBox(bvhLinear2D(siblings.x));
-                hitd = intersectCubeDual(origined, divident, FMAT4X4_(
-                    FVEC4_(SGATHER(bvhBoxes, tm, 0)).wxzy,
-                    FVEC4_(SGATHER(bvhBoxes, tm, 1)).wxzy,
-                    FVEC4_(SGATHER(bvhBoxes, tm, 2)).wxzy,
-                    FVEC4_(SGATHER(bvhBoxes, tm, 3)).wxzy
+                hitd = intersectCubeDual(origined, divident, bsgn, FMAT4X4_(
+                    SGATHER(bvhBoxes, tm, 0).wxzy,
+                    SGATHER(bvhBoxes, tm, 1).wxzy,
+                    SGATHER(bvhBoxes, tm, 2).wxzy,
+                    SGATHER(bvhBoxes, tm, 3).wxzy
                 ), nears, fars);
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }

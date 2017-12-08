@@ -334,11 +334,13 @@ vec3 barycentric2D(in vec3 p, in mat3x3 triangle) {
 
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
+#define BVEC3_ i16vec3
 #define BVEC2_ i16vec2
 #define BOOL_ int16_t
 #define TRUE_ 1s
 #define FALSE_ 0s
 #else
+#define BVEC3_ ivec3
 #define BVEC2_ ivec2
 #define BOOL_ int
 #define TRUE_ 1
@@ -424,34 +426,36 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
     return mix(near, far, (near + PZERO) <= 0.0f);
 }
 
-vec2 intersectCubeDual(in FMAT3X4_ origin, in FMAT3X4_ dr, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
+vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in bvec3 sgn, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
     FMAT3X4_ tMinMax = FMAT3X4_(
-        fma(cubeMinMax2[0], dr[0], origin[0]), 
-        fma(cubeMinMax2[1], dr[1], origin[1]), 
-        fma(cubeMinMax2[2], dr[2], origin[2])
+        fma(cubeMinMax2[0], dr.xxxx, origin.xxxx), 
+        fma(cubeMinMax2[1], dr.yyyy, origin.yyyy), 
+        fma(cubeMinMax2[2], dr.zzzz, origin.zzzz)
     );
 
-    FVEC2_ tNear, tFar;
-    
-    FMAT3X2_ tf = FMAT3X2_(min(tMinMax[0].xy, tMinMax[0].zw), min(tMinMax[1].xy, tMinMax[1].zw), min(tMinMax[2].xy, tMinMax[2].zw));
+    FMAT3X4_ tf = FMAT3X4_(
+        FVEC4_(min(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[0].xy, tMinMax[0].zw)),
+        FVEC4_(min(tMinMax[1].xy, tMinMax[1].zw), max(tMinMax[1].xy, tMinMax[1].zw)),
+        FVEC4_(min(tMinMax[2].xy, tMinMax[2].zw), max(tMinMax[2].xy, tMinMax[2].zw))
+    );
+
+    FVEC2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tNear = max3(tf[0], tf[1], tf[2]);
+    tNear = max3(tf[0].xy, tf[1].xy, tf[2].xy),
+    tFar  = min3(tf[0].zw, tf[1].zw, tf[2].zw);
 #else
-    tNear = max(max(tf[0], tf[1]), tf[2]);
+    tNear = max(max(tf[0].xy, tf[1].xy), tf[2].xy), 
+    tFar  = min(min(tf[0].zw, tf[1].zw), tf[2].zw);
 #endif
 
-    tf = FMAT3X2_(max(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[1].xy, tMinMax[1].zw), max(tMinMax[2].xy, tMinMax[2].zw));
-    //tf[0] = max(tMinMax[0].xy, tMinMax[0].zw), tf[1] = max(tMinMax[1].xy, tMinMax[1].zw), tf[2] = max(tMinMax[2].xy, tMinMax[2].zw);
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tf[0], tf[1], tf[2]);
-#else
-    tFar  = min(min(tf[0], tf[1]), tf[2]);
+#ifdef AMD_F16_BVH
+    near = tNear * 0.99994f, far = tFar * 1.00006f;
 #endif
 
     const vec2 inf = vec2(INFINITY);
-    BVEC2_ isCube = BVEC2_(greaterThanEqual(tFar+PZERO, tNear)) & BVEC2_(greaterThanEqual(tFar+PZERO, vec2(0.0f)));
-    near = mix(inf, vec2(min(tNear, tFar)), isCube);
-    far  = mix(inf, vec2(max(tNear, tFar)), isCube);
+    BVEC2_ isCube = BVEC2_(greaterThan(far+PZERO, near)) & BVEC2_(greaterThan(far+PZERO, vec2(0.0f)));
+    near = mix(inf, vec2(min(near, far)), isCube);
+    far  = mix(inf, vec2(max(near, far)), isCube);
     return mix(near, far, lessThanEqual(near + PZERO, vec2(0.0f)));
 }
 

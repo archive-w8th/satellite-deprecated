@@ -276,7 +276,7 @@ T fname(in uint clm, in bool value) { \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem[clm], mix(0, sumInOrder, LANE_IDX == activeLane));\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem[clm], sumInOrder * T(LANE_IDX == activeLane));\
     return readLane(gadd, activeLane) + idxInOrder; \
 }
 
@@ -287,7 +287,7 @@ T fname(in uint clm, in bool value) { \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = mem[clm]; mem[clm] += mix(0, sumInOrder, LANE_IDX == activeLane); }\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = mem[clm]; mem[clm] += sumInOrder * T(LANE_IDX == activeLane); }\
     return readLane(gadd, activeLane) + idxInOrder; \
 }
 

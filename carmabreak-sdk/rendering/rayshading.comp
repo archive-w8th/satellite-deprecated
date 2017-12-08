@@ -94,9 +94,9 @@ void invokeSurface(inout bool overflow) {
         vec4 albedo = unpackHalf(hit.albedo);
         compositedHit[searchLayer].uvt = hit.uvt;
         compositedHit[searchLayer].albedo = composite(compositedHit[searchLayer].albedo, albedo);
-        compositedHit[searchLayer].normalHeight = mix(compositedHit[searchLayer].normalHeight, hit.normalHeight, albedo.w);
-        compositedHit[searchLayer].metallicRoughness = mix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), albedo.w);
-        compositedHit[searchLayer].emission = mix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), albedo.w);
+        compositedHit[searchLayer].normalHeight = fmix(compositedHit[searchLayer].normalHeight, hit.normalHeight, albedo.wwww);
+        compositedHit[searchLayer].metallicRoughness = fmix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), albedo.wwww);
+        compositedHit[searchLayer].emission = fmix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), albedo.wwww);
 
         // already filled layer
         if (compositedHit[searchLayer].albedo.a > 0.99999f) break;
@@ -254,12 +254,12 @@ void main() {
                     float refly = compositedHit[currentLayer].metallicRoughness.x; // roughness
                     float metallic = sqrt(compositedHit[currentLayer].metallicRoughness.y); // metallic
 
-                    vec3 freflcolor = mix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f));
-                    vec3 speccolor = mix(freflcolor, diffcolor.xyz, metallic);
+                    vec3 freflcolor = fmix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
+                    vec3 speccolor = fmix(freflcolor, diffcolor.xyz, metallic.xxx);
                     
                     // coefficents
                     float prom = clamp01(1.f - diffcolor.a); // transmission power
-                    float spca = mix(mlength(freflcolor), 1.f, metallic);
+                    float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
                     //spca *= 0.f; // performance debug
 

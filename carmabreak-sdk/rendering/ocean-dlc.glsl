@@ -34,9 +34,9 @@ float noise( in vec2 p ) {
     vec2 i = floor( p );
     vec2 f = fract( p );	
 	vec2 u = f*f*(3.0f - 2.0f * f);
-    return -1.0+2.0*mix( mix( hash( i + vec2(0.0f, 0.0f) ), 
+    return -1.0+2.0*fmix( fmix( hash( i + vec2(0.0f, 0.0f) ), 
                      hash( i + vec2(1.0f, 0.0f) ), u.x),
-                mix( hash( i + vec2(0.0f, 1.0f) ), 
+                fmix( hash( i + vec2(0.0f, 1.0f) ), 
                      hash( i + vec2(1.0f, 1.0f) ), u.x), u.y);
 }
 
@@ -45,7 +45,7 @@ float sea_octave(vec2 uv, float choppy) {
     uv += noise(uv);        
     vec2 wv = 1.0-abs(sin(uv));
     vec2 swv = abs(cos(uv));    
-    wv = mix(wv,swv,wv);
+    wv = fmix(wv,swv,wv);
     return pow(1.0-pow(wv.x * wv.y, 0.65f),choppy);
 }
 
@@ -61,7 +61,7 @@ float map(vec3 p) {
     	d += sea_octave((uv-SEA_TIME)*freq,choppy);
         h += d * amp;        
     	uv *= octave_m; freq *= 1.9f; amp *= 0.22f;
-        choppy = mix(choppy, 1.0f, 0.2f);
+        choppy = fmix(choppy, 1.0f, 0.2f);
     }
     return p.y - h;
 }
@@ -78,7 +78,7 @@ float map_detailed(vec3 p) {
     	d += sea_octave((uv-SEA_TIME)*freq,choppy);
         h += d * amp;        
     	uv *= octave_m; freq *= 1.9f; amp *= 0.22f;
-        choppy = mix(choppy, 1.0f, 0.2f);
+        choppy = fmix(choppy, 1.0f, 0.2f);
     }
     return p.y - h;
 }

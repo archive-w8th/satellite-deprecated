@@ -555,6 +555,7 @@ namespace NSM {
                 glm::vec3 offset = bound.mn.xyz();
                 {
                     glm::dmat4 mat(1.0);
+                    mat *= glm::inverse(glm::translate(glm::dvec3(0.5)) * glm::scale(glm::dvec3(0.5)));
                     mat *= glm::inverse(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale)));
                     //mat *= glm::inverse(glm::dmat4(optimization));
                     geometryBlockData[0].geometryUniform.transform = glm::transpose(glm::mat4(mat));

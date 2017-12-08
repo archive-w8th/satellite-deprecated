@@ -12,7 +12,7 @@ float computeFresnel(in vec3 normal, in vec3 indc, in float n1, in float n2) {
 }
 
 vec3 glossy(in vec3 dir, in vec3 normal, in float refli) {
-    return normalize(mix(normalize(dir), randomCosine(normal), clamp(sqrt(random()) * refli, 0.0f, 1.0f)));
+    return normalize(fmix(normalize(dir), randomCosine(normal), clamp(sqrt(random()) * refli, 0.0f, 1.0f).xxx));
 }
 
 vec3 lightCenter(in int i) {
@@ -90,7 +90,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    ray.color.xyz *= mix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
+    ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED
@@ -136,9 +136,9 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
 
-    //ray.direct.xyz = normalize(mix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
-    //ray.direct.xyz = normalize(mix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * random(), 0.0f, 1.0f)));
-    sdr = normalize(mix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f)));
+    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
+    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * random(), 0.0f, 1.0f)));
+    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
 

@@ -38,7 +38,7 @@ vec4 checkerFetch(in ivec2 tx, in int lod) {
     vec4 px1 = imageLoad(presampled, tx + ivec2(1, 0));
     vec4 py1 = imageLoad(presampled, tx + ivec2(0, 1));
     vec4 mif = midof(px1, py1, ct);
-    return (RAY_BLOCK cameraUniform.interlace == 1 ? mix(mif, ct, 0.5f) : ct);
+    return (RAY_BLOCK cameraUniform.interlace == 1 ? fmix(mif, ct, 0.5f.xxxx) : ct);
 }
 
 LOCAL_SIZE_LINEAR_LAYOUT;

@@ -88,8 +88,9 @@ void storeStack(in int STI, in int VALUE) {
 int axis = 2; mat3 M; 
 
 // offload
-FVEC3_ origined = FVEC3_(0.f).xxx, divident = FVEC3_(0.f).xxx;
-bvec3 bsgn = false.xxx;
+FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
+//vec3 origined = float(0.f).xxx, divident = float(0.f).xxx;
+BVEC3_ bsgn = FALSE_.xxx;
 BOOL_ validBox = FALSE_;
 float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
 ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
@@ -117,7 +118,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     BOOL_ vldbx = valid;
     IF (vldbx) {
         float near = INFINITY, far = INFINITY, 
-        bdist = intersectCubeSingle(torig*dirproj, dirproj, vec4(vec3(-0.0001f), 1.0f), vec4(vec3(1.0001f), 1.0f), near, far);
+        bdist = intersectCubeSingle(torig*dirproj, dirproj, vec4(vec3(-1.001f), 1.0f), vec4(vec3(1.001f), 1.0f), near, far);
         toffset = max(near, 0.f), predist = min(predist, far * dirlenInv);
         vldbx &= lessF(bdist, INFINITY) & lessF(bdist * dirlenInv, INFINITY) & greaterEqualF(bdist, 0.0f);
     }
@@ -125,8 +126,9 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // calculate box projected rays
     {
         divident = FVEC3_(dirproj);
-        origined = FVEC3_(fma(torig, dirproj, -toffset.xxx)); //fma(FVEC3_(torig), _dirproj,-FVEC3_(toffset).xxx);
-        bsgn = bvec3((BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_);
+        origined = FVEC3_(fma(torig, dirproj, -toffset.xxx));
+        //origined = fma(FVEC3_(torig), divident, -FVEC3_(toffset).xxx);
+        bsgn = (BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
         toffset *= dirlenInv;
     }
 
@@ -250,8 +252,7 @@ void checkChildNodes() {
             // validate intersection
             overlapsGeneral &= 
                 BVEC2_(lessThanEqual(nears - PZERO, vec2(predist))) & 
-                BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO))) & 
-                BVEC2_(greaterThan(hitd, -vec2(PZERO)));
+                BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO)));
         }
 
         // if test is valid, extract BVH meta data

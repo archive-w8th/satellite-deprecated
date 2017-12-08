@@ -175,6 +175,7 @@ namespace NSM {
                 pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(&descriptorSetLayouts[0]).setSetLayoutCount(2));
                 descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(descriptorPool).setDescriptorSetCount(2).setPSetLayouts(&descriptorSetLayouts[0]));
 
+
                 // descriptor sets for loaders
                 loaderPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(&descriptorSetLayouts[2]).setSetLayoutCount(2));
                 loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(loaderDescriptorPool).setDescriptorSetCount(2).setPSetLayouts(&descriptorSetLayouts[2]));
@@ -333,7 +334,8 @@ namespace NSM {
                 maxTriangles = maxt;
 
                 // allocate these buffers
-                bvhNodesBuffer = createBuffer(device, strided<HlbvhNode>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                //bvhNodesBuffer = createBuffer(device, strided<HlbvhNode>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                bvhNodesBuffer = createBuffer(device, strided<HlbvhNode>(2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
                 leafsBuffer = createBuffer(device, strided<HlbvhNode>(maxTriangles * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
                 
                 // buffer for working with

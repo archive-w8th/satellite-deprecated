@@ -287,7 +287,21 @@ R   | x || y || z || w |
 // bvh transcoded storage
 #ifdef BVH_CREATION
 layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
-layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
+
+#ifdef BVH_PACKED_LOADER
+    #ifdef USE_F32_BVH // unsupported, force fp16
+    layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
+    #else
+        #ifdef AMD_F16_BVH
+        layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
+        #else
+        layout ( binding = 6, rg32u, set = 1 ) uniform uimage2D bvhBoxes;
+        #endif
+    #endif
+#else
+    layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
+#endif
+
 #else
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
 layout ( binding = 6, set = 1 ) uniform sampler2D bvhBoxes;
@@ -299,16 +313,20 @@ const int _BVH_WIDTH = 2048;
 const float _BVH_WIDTHF = 2048.f;
 
 ivec2 bvhSibling2D(in int linear){
-    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2); // do gap on height
+    //return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2); // do gap on height
+    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) << 1); // do gap on height
 }
 
 ivec2 bvhSibling2D(in int linear, in int subnode){
-    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + subnode);
+    //return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + subnode);
+    return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + subnode);
 }
 
 ivec2 bvhLinear2D(in int linear) {
-    int md = linear % 2; linear /= 2;
-    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + md); // do gap on height
+    //int md = linear % 2; linear /= 2;
+    //return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + md); // do gap on height
+    int md = linear & 1; linear >>= 1;
+    return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
 }
 
 #ifndef BVH_CREATION

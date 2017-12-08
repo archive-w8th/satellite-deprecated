@@ -240,11 +240,10 @@ void checkChildNodes() {
             
             { // test boxes
                 vec2 tm = bvhGatherifyBox(bvhLinear2D(siblings.x));
-                hitd = intersectCubeDual(origined, divident, bsgn, FMAT4X4_(
+                hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     SGATHER(bvhBoxes, tm, 0),
                     SGATHER(bvhBoxes, tm, 1),
-                    SGATHER(bvhBoxes, tm, 2),
-                    SGATHER(bvhBoxes, tm, 3)
+                    SGATHER(bvhBoxes, tm, 2)
                 ), nears, fars);
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }
@@ -256,7 +255,8 @@ void checkChildNodes() {
         }
 
         // if test is valid, extract BVH meta data
-        ivec2 nodepdata = SSC(any(overlapsGeneral)) ? siblings : ivec2(-1);
+        bool _any = SSC(any(overlapsGeneral));
+        ivec2 nodepdata = _any ? siblings : ivec2(-1);
         overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear).yy, ivec2(esc.x)));
 
         BVEC2_ leftOrder = mix(overlapsGeneral.xx, leftNear, all(overlapsGeneral).xx);
@@ -266,9 +266,10 @@ void checkChildNodes() {
             nears.xy = mix(nears.yx, nears.xy, leftOrder);
         }
 
-        { // culled intersection of leaf nodes
+        IF (validBox) { // culled intersection of leaf nodes
             ivec2 vln = bvhLinear2D(siblings.x); vec2 lw = bvhGatherifyStorage(vln, 1), sb = bvhGatherifyStorage(vln, 0);
-            ivec4 sibs = SGATHER(bvhStorage, sb, 0).wxzy; ivec2 tp = SGATHER(bvhStorage, lw, 0).zy;
+            ivec4 sibs = ivec4(-1); ivec2 tp = ivec2(-1);
+            if (_any) { sibs = SGATHER(bvhStorage, sb, 0).wxzy, tp = SGATHER(bvhStorage, lw, 0).zy; }
             tp = mix(tp.yx, tp.xy, leftOrder), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder);
             intersectLeafs2(tp, overlapsGeneral);
             overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));

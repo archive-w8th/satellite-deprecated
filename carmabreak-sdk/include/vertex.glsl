@@ -230,39 +230,14 @@ float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout
 #endif
 
 
-
-
-
-
-
 //==============================
-//BVH boxes future transcoding
-//By textureGather you can get LmnRmnLmxRmx by component, also packed by f16 (and texels gives by 32-bit each)
-//By fetching texels you fetching each 32-bit element (packed two 16-bit), and restore to full 4x vector by two fetch
-//You need allocate 4x4 texels for each element (2x4 as 32-bit representation)
+// Current layout 
 /* 
-
-      L   L    R   R
-    +================+
-min | x | y || x | y |
-    +================+
-max | x | y || x | y |
-    +================+
-min | z | w || z | w |
-    +================+
-max | z | w || z | w |
-    +================+
-
-*///============================
-
-//==============================
-// Alternate concept of box packing (4x2 as 32-bit representation, available read by 64-bit)
-/*
-      mn  mn  mn  mn   mx  mx  mx  mx
+      L   L   L   L    R   R   R   R
     +================================+
- L  | x | y | z | w || x | y | z | w |
+ mn | x | y | z | w || x | y | z | w |
     +================================+
- R  | x | y | z | w || x | y | z | w |
+ mx | x | y | z | w || x | y | z | w |
     +================================+
     
 *///============================
@@ -271,7 +246,6 @@ max | z | w || z | w |
 //==============================
 //BVH data future transcoding (each by 32-bit only)
 //By textureGather you can get siblings
-
 /* 
         Sib     P    T
     +==================+
@@ -328,6 +302,12 @@ ivec2 bvhLinear2D(in int linear) {
     int md = linear & 1; linear >>= 1;
     return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
 }
+
+ivec2 bvhLinear2DH(in int linear){
+    int md = linear & 1; linear >>= 1;
+    return ivec2(((linear % _BVH_WIDTH) << 1) + md, linear / _BVH_WIDTH);
+}
+
 
 #ifndef BVH_CREATION
 vec2 bvhGatherifyBox(in ivec2 ipt){

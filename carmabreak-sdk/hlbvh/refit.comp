@@ -23,15 +23,15 @@ void unifyNodeBox(inout UBLANEF_ mnmx, in UBLANEF_ bllane, in UBLANEF_ brlane){
 }
 
 void unifyNodeBox(inout int idx){
-    ivec2 _pdx2 = bvhLinear2D(idx), _idx2 = bvhLinear2D(imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x);
+    ivec2 _pdx2 = bvhLinear2D(idx), _dix2 = bvhLinear2DH(idx), _idx2 = bvhLinear2DH(imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x);
 
-    UBLANEF_UNPACKED_ lmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(0,0)));
-    UBLANEF_UNPACKED_ rmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(0,1)));
-    imageStore(bvhBoxes, _pdx2 * ivec2(2,1) + ivec2(0,0), min(lmn, rmn));
+    UBLANEF_UNPACKED_ lmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(1,2) + ivec2(0,0)));
+    UBLANEF_UNPACKED_ rmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(1,2) + ivec2(1,0)));
+    imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,0), min(lmn, rmn));
 
-    UBLANEF_UNPACKED_ lmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(1,0)));
-    UBLANEF_UNPACKED_ rmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(1,1)));
-    imageStore(bvhBoxes, _pdx2 * ivec2(2,1) + ivec2(1,0), max(lmx, rmx));
+    UBLANEF_UNPACKED_ lmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(1,2) + ivec2(0,1)));
+    UBLANEF_UNPACKED_ rmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 * ivec2(1,2) + ivec2(1,1)));
+    imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,1), max(lmx, rmx));
 }
 
 

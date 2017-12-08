@@ -24,25 +24,17 @@ void main() {
         if (globalID < wsize && globalID >= 0) {
             int idx = LeafIndices[globalID];
             if (idx >= 0) {
-                
-                // make leafs links
-                //HlbvhNode childNode = Nodes[idx];
-                
                 ivec2 _idx2 = bvhLinear2D(idx), range = imageLoad(bvhStorage, _idx2 * ivec2(4,1) + ivec2(0,0)).xx;
                 uint leafID = MortoncodesIndices[range.x];
                 exchange(Leafs[leafID].pdata.z, int(idx));
                 HlbvhNode leaf = Leafs[leafID];
-                
-                imageStore(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(0,0), leaf.lrbox[0]);
-                imageStore(bvhBoxes, _idx2 * ivec2(2,1) + ivec2(1,0), leaf.lrbox[2]);
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(0,0), range.xxxx);
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(1,0), range.xxxx);
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(3,0), leaf.pdata.wwww);
-
-                //childNode.lrbox = TRANSPOSEF_(leaf.lrbox);
-                //childNode.pdata.xy = _idx2.xx;
-                //childNode.pdata.w = leaf.pdata.w;
-                //Nodes[idx] = childNode;
+                
+                ivec2 _dix2 = bvhLinear2DH(idx);
+                imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,0), leaf.lrbox[0]);
+                imageStore(bvhBoxes, _dix2 * ivec2(1,2) + ivec2(0,1), leaf.lrbox[2]);
             }
         }
     }

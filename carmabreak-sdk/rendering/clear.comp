@@ -5,7 +5,7 @@
 #include "../include/uniforms.glsl"
 #include "../include/mathlib.glsl"
 
-layout ( binding = 0, set = 1, r32ui ) uniform uimage2D sampleflags;
+layout ( binding = 3, set = 1, r32i ) uniform iimage2D sampleflags;
 
 LOCAL_SIZE_LINEAR_LAYOUT;
 
@@ -17,6 +17,6 @@ void main()
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        imageStore(sampleflags, ivec2(it % int(wh.x), it / int(wh.x)), uvec4(1));
+        imageStore(sampleflags, ivec2(it % int(wh.x), it / int(wh.x)), ivec4(1));
     }
 }

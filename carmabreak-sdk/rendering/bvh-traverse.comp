@@ -241,10 +241,10 @@ void checkChildNodes() {
             { // test boxes
                 vec2 tm = bvhGatherifyBox(bvhLinear2D(siblings.x));
                 hitd = intersectCubeDual(origined, divident, bsgn, FMAT4X4_(
-                    SGATHER(bvhBoxes, tm, 0).wxzy,
-                    SGATHER(bvhBoxes, tm, 1).wxzy,
-                    SGATHER(bvhBoxes, tm, 2).wxzy,
-                    SGATHER(bvhBoxes, tm, 3).wxzy
+                    SGATHER(bvhBoxes, tm, 0),
+                    SGATHER(bvhBoxes, tm, 1),
+                    SGATHER(bvhBoxes, tm, 2),
+                    SGATHER(bvhBoxes, tm, 3)
                 ), nears, fars);
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }

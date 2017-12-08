@@ -8,7 +8,7 @@
 layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
 layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
 layout ( binding = 2, set = 1, rgba32f ) uniform image2D prevsample;
-layout ( binding = 3, set = 1, r32ui ) uniform uimage2D sampleflags;
+layout ( binding = 3, set = 1, r32i ) uniform iimage2D sampleflags;
 
 LOCAL_SIZE_LINEAR_LAYOUT;
 
@@ -47,12 +47,13 @@ void main() {
 
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
         if (samplecount > 0) {
-#ifndef MOTION_BLUR
+//#ifndef MOTION_BLUR
             if (imageLoad(sampleflags, cid).x > 0) {
-                imageStore(sampleflags, cid, uvec4(0));
-                imageStore(presampled, cid, vec4(0.0f));
+                vec4 xsample = imageLoad(presampled, cid);
+                imageStore(sampleflags, cid, ivec4(0));
+                imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
             }
-#endif
+//#endif
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             {

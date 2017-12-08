@@ -48,7 +48,6 @@
 #extension GL_ARB_shader_ballot : enable
 #extension GL_ARB_shader_group_vote : enable
 #extension GL_EXT_shader_image_load_formatted : enable
-#extension GL_GOOGLE_include_directive : enable
 
 /*
 #ifdef USE_ARB_CLOCK

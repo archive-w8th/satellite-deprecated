@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
 #define FRAGMENT_SHADER
 #define SIMPLIFIED_RAY_MANAGMENT

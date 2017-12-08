@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
 #define SIMPLIFIED_RAY_MANAGMENT
 //#define DISCARD_SHARED_CACHING // store rays in registers if possible

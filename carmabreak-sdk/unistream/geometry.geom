@@ -1,4 +1,5 @@
 #version 460 core
+#extension GL_GOOGLE_include_directive : enable
 
 // here will population to streams 2D planar arrays, and probably making conservative rasterization
 

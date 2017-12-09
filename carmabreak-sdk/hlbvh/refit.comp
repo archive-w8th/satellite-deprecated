@@ -31,19 +31,22 @@ void unifyNodeBox(inout int idx){
     _idx2 = bvhLinear2DH(imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x);
 
     UBLANEF_UNPACKED_ 
-        lmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 + ivec2(0,0))),
-        rmn = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 + ivec2(1,0))),
-        lmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 + ivec2(0,1))),
-        rmx = UBLANEF_UNPACKED_(imageLoad(bvhBoxes, _idx2 + ivec2(1,1)));
-
-    imageStore(bvhBoxes, _dix2 + ivec2(0,0), min(lmn, rmn));
-    imageStore(bvhBoxes, _dix2 + ivec2(0,1), max(lmx, rmx));
+        lmn = UNPACK_TX_(imageLoad(bvhBoxes, _idx2 + ivec2(0,0)).xy),
+        rmn = UNPACK_TX_(imageLoad(bvhBoxes, _idx2 + ivec2(1,0)).xy),
+        lmx = UNPACK_TX_(imageLoad(bvhBoxes, _idx2 + ivec2(0,0)).zw),
+        rmx = UNPACK_TX_(imageLoad(bvhBoxes, _idx2 + ivec2(1,0)).zw);
+        
+    imageStore(bvhBoxes, _dix2, uvec4(PACK_TX_(min(lmn, rmn)), PACK_TX_(max(lmx, rmx))));
 
 #ifdef FLATTEN_BOX
-    imageStore(bvhBoxes, _idx2 + ivec2(0,0), UBLANEF_UNPACKED_(lmn.x, rmn.x, lmx.x, rmx.x));
-    imageStore(bvhBoxes, _idx2 + ivec2(1,0), UBLANEF_UNPACKED_(lmn.y, rmn.y, lmx.y, rmx.y));
-    imageStore(bvhBoxes, _idx2 + ivec2(0,1), UBLANEF_UNPACKED_(lmn.z, rmn.z, lmx.z, rmx.z));
-    imageStore(bvhBoxes, _idx2 + ivec2(1,1), UBLANEF_UNPACKED_(lmn.w, rmn.w, lmx.w, rmx.w));
+    imageStore(bvhBoxes, _idx2 + ivec2(0,0), uvec4(
+        PACK_TX_(UBLANEF_UNPACKED_(lmn.x, rmn.x, lmx.x, rmx.x)),
+        PACK_TX_(UBLANEF_UNPACKED_(lmn.y, rmn.y, lmx.y, rmx.y))
+    ));
+    imageStore(bvhBoxes, _idx2 + ivec2(1,0), uvec4(
+        PACK_TX_(UBLANEF_UNPACKED_(lmn.z, rmn.z, lmx.z, rmx.z)),
+        PACK_TX_(UBLANEF_UNPACKED_(lmn.w, rmn.w, lmx.w, rmx.w))
+    ));
 #endif
 
 }

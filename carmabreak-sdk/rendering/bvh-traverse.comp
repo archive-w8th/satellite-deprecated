@@ -244,18 +244,21 @@ void checkChildNodes() {
             { // test boxes
 #ifdef FLATTEN_BOX
                 ivec2 tm = bvhLinear2DH(siblings.x);
+                uvec4 
+                    packed_l = texelFetch(bvhBoxes, tm + ivec2(0,0), 0),
+                    packed_r = texelFetch(bvhBoxes, tm + ivec2(1,0), 0);
                 hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
-                    texelFetch(bvhBoxes, tm + ivec2(0,0), 0),
-                    texelFetch(bvhBoxes, tm + ivec2(1,0), 0),
-                    texelFetch(bvhBoxes, tm + ivec2(0,1), 0)
+                    UNPACK_TX_(packed_l.xy), UNPACK_TX_(packed_l.zw), UNPACK_TX_(packed_r.xy)
                 ), nears, fars);
 #else
+                /*
                 vec2 tm = bvhGatherifyBox(bvhLinear2DH(siblings.x));
                 hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     SGATHER(bvhBoxes, tm, 0),
                     SGATHER(bvhBoxes, tm, 1),
                     SGATHER(bvhBoxes, tm, 2)
                 ), nears, fars);
+                */
 #endif
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }

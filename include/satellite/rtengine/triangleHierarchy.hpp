@@ -366,7 +366,7 @@ namespace NSM {
                 // bvh storage (32-bits elements)
                 _MAX_HEIGHT = std::min(maxTriangles > 0 ? (maxTriangles - 1) / _BVH_WIDTH + 1 : 0, _BVH_WIDTH) + 1;
                 bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH * 4), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
-                bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH * 2), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR16G16B16A16Sfloat);
+                bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH * 2), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Uint);
 
 
                 // create sampler

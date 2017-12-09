@@ -74,9 +74,7 @@ void splitNode(in int trID) {
         imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(1,0), transplit.yyyy);
         imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(2,0), prID.xxxx);
         imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
-        imageStore(bvhBoxes, _lidx * ivec2(2,1) + ivec2(0,0),  UBLANEF_UNPACKED_(1000.f).xxxx);
-        imageStore(bvhBoxes, _lidx * ivec2(2,1) + ivec2(1,0), -UBLANEF_UNPACKED_(1000.f).xxxx);
-        
+
         Flags[hd.y] = 0;
         imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(0,0), transplit.zzzz);
         imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(1,0), transplit.wwww);

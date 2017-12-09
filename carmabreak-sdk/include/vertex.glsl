@@ -236,12 +236,12 @@ float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout
 //==============================
 // Current layout 
 /* 
-      L   L   L   L    R   R   R   R
-    +================================+
- mn | x | y | z | w || x | y | z | w |
-    +================================+
- mx | x | y | z | w || x | y | z | w |
-    +================================+
+      mn  mn  mn  mn  mx  mx  mx  mx
+    +===============================+
+ L  | x | y | z | w | x | y | z | w | 128-bit (8x16-bit elements)
+    +===============================+
+ R  | x | y | z | w | x | y | z | w | 128-bit (8x16-bit elements)
+    +===============================+
     
 *///============================
 
@@ -264,10 +264,24 @@ R   | x || y || z || w |
 // bvh transcoded storage
 #ifdef BVH_CREATION
 layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
-layout ( binding = 6, rgba16f, set = 1 ) uniform image2D bvhBoxes;
+layout ( binding = 6, rgba32ui, set = 1 ) uniform uimage2D bvhBoxes;
 #else
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
-layout ( binding = 6, set = 1 ) uniform sampler2D bvhBoxes;
+layout ( binding = 6, set = 1 ) uniform usampler2D bvhBoxes;
+#endif
+
+
+#ifdef USE_F32_BVH // planned full support
+#define UNPACK_TX_(m)unpackHalf(m)
+#define PACK_TX_(m)packHalf2(m)
+#else 
+#ifdef AMD_F16_BVH
+#define UNPACK_TX_(m)unpackHalf2(m)
+#define PACK_TX_(m)packHalf2(m)
+#else
+#define UNPACK_TX_(m)unpackHalf(m)
+#define PACK_TX_(m)packHalf2(m)
+#endif
 #endif
 
 
@@ -294,7 +308,8 @@ ivec2 bvhLinear2D(in int linear) {
 
 ivec2 bvhLinear2DH(in int linear){
     int md = linear & 1; linear >>= 1;
-    return ivec2(((linear % _BVH_WIDTH) << 1) + md, (linear / _BVH_WIDTH) << 1);
+    //return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
+    return ivec2(((linear % _BVH_WIDTH) << 1) + md, linear / _BVH_WIDTH);
 }
 
 

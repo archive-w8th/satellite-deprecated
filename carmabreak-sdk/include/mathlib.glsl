@@ -122,8 +122,6 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
     #define UNPACKF_(a)a
     #define PACKF_(a)a
     #else
-    //#define UNPACKF_ unpackHalf2
-    //#define PACKF_ packHalf2
     #define UNPACKF_(a)a
     #define PACKF_(a)FVEC4_(a)
     #endif
@@ -145,34 +143,6 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
     #define PACKF_ packHalf2
     #endif
 #endif
-
-
-
-
-
-
-
-// bit logic
-
-/*
-int cB4(in bvec4 a) {
-    ivec4 ac = ivec4(a) << ivec4(0, 1, 2, 3);
-    ivec2 mx = ac.xy | ac.wz;
-    return (mx.x | mx.y);
-}
-
-int cB(in bool a, in int offset) {return int(a) << offset;}
-int cB(in bool a) {return int(a);}
-int cB2(in bvec2 a) { ivec2 mx = ivec2(a) << ivec2(0, 1); return (mx.x | mx.y); }
-bool cI(in int a) { return bool(a & 1); }
-bool cI(in int a, in int offset) { return bool((a >> offset) & 1); }
-bvec2 cI2(in int a) { return bvec2(a & 1, (a >> 1) & 1); }
-bvec4 cI4(in int a) { return bvec4(a & 1, (a >> 1) & 1, (a >> 2) & 1, (a >> 3) & 1); }
-bool anyB(in int a) {return a > 0;}
-bool allB(in int a, in int cnt) {return a == ((1 << cnt)-1);}
-*/
-
-
 
 
 
@@ -422,6 +392,9 @@ f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 #endif
 
 
+// single float 32-bit box intersection
+// some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
+// compatible with AMD radeon min3 and max3
 float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cubeMax, inout float near, inout float far) {
     vec3 tMin = fma(cubeMin.xyz, dr, norig);
     vec3 tMax = fma(cubeMax.xyz, dr, norig);
@@ -441,6 +414,12 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
     return fmix(near, far, float((near + PZERO) <= 0.0f));
 }
 
+
+// half float 16/32-bit box intersection (claymore dual style)
+// some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
+// made by DevIL research group
+// also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
+// compatible with NVidia GPU too
 vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in BVEC3_ sgn, in FMAT3X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
 #ifdef FLATTEN_BOX
     FMAT3X4_ tMinMax = FMAT3X4_(

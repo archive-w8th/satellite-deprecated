@@ -59,6 +59,17 @@ layout ( std430, binding = 20, set = 0 ) restrict buffer TraverseBlock { BlockCa
 // pointer in global cache
 int rayID = 0;
 
+// watertight intersection
+int axis = 2; mat3 M; 
+
+// offload cache
+FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
+BVEC3_ bsgn = FALSE_.xxx; BOOL_ validBox = FALSE_;
+float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
+ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
+int idx = 0, bstackCount = 0, deferredPtr = 0;
+#define validBoxIn validBox
+
 
 
 #ifndef STACKLESS_BVH
@@ -87,21 +98,11 @@ void storeStack(in int STI, in int VALUE) {
 }
 #endif
 
-// watertight intersection
-int axis = 2; mat3 M; 
-
-// offload
-FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
-//vec3 origined = float(0.f).xxx, divident = float(0.f).xxx;
-BVEC3_ bsgn = FALSE_.xxx;
-BOOL_ validBox = FALSE_;
-float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
-ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
-int idx = 0, bstackCount = 0, deferredPtr = 0;
-//#define bstackCount nodeCache[rayID].info.bakedStackCount
-#define validBoxIn validBox
 
 
+
+// some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
+// 
 void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     direct = normalize(direct);
 
@@ -110,8 +111,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz, 
         torig = -mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz;
 
-    dirlenInv = 1.f / max(length(dirproj), 0.0001f), toffset = 0.f;
-    dirproj *= dirlenInv;
+    dirlenInv = 1.f / max(length(dirproj), 0.0001f), toffset = 0.f, dirproj *= dirlenInv;
     dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
@@ -130,7 +130,6 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     {
         divident = FVEC3_(dirproj);
         origined = FVEC3_(fma(torig, dirproj, -toffset.xxx));
-        //origined = fma(FVEC3_(torig), divident, -FVEC3_(toffset).xxx);
         bsgn = (BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
         toffset *= dirlenInv;
     }
@@ -139,9 +138,9 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     axis = 2;
     {
         vec3 drs = abs(direct);
-        if (drs.y >= drs.x && drs.y > drs.z) axis = 1; // degenerative axis Z
-        if (drs.x >= drs.z && drs.x > drs.y) axis = 0; // degenerative axis Y
-        if (drs.z >= drs.y && drs.z > drs.x) axis = 2; // degenerative axis X
+        if (drs.y >= drs.x && drs.y > drs.z) axis = 1;
+        if (drs.x >= drs.z && drs.x > drs.y) axis = 0;
+        if (drs.z >= drs.y && drs.z > drs.x) axis = 2;
     }
 
     // calculate affine matrices
@@ -155,7 +154,6 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0;
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
-    //defPtr = 0, deferredStack[defPtr] = int(-1);
 }
 
 //#define _ADD atomicAdd
@@ -182,7 +180,7 @@ void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inou
 }
 
 
-
+// some optimize intersection and resolver
 void intersectLeafs2(in ivec2 tri, inout BVEC2_ isValid){
     BVEC2_ near = BVEC2_(greaterThanEqual(tri, 0.f.xx)) & isValid;
 
@@ -193,11 +191,6 @@ void intersectLeafs2(in ivec2 tri, inout BVEC2_ isValid){
         intersectTriangle(currentRay.origin.xyz, M, axis, tri.y, uv2.zw, near.y)
     );
 
-    // include intersection
-    //near = near & lessF(_d2, INFINITY) & lessEqualF(_d2, nearhit); //& greaterEqualF(_d2, 0.0f);
-
-    // if single thread, do cut (comment this line if WARP-wise)
-    //IF (lessF(_d2, nearhit) & near) { nearhit = min(_d2, nearhit); bstackCount = 0; }
     float _nearhit = predist;
 #ifdef ENABLE_AMD_INSTRUCTION_SET
     predist = min3(predist, _d2.x, _d2.y);
@@ -214,15 +207,7 @@ void intersectLeafs2(in ivec2 tri, inout BVEC2_ isValid){
     IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(tri.y));
 }
 
-
-void includeLeaf(in ivec4 pdata, inout BOOL_ excl){
-    BOOL_ leaf = BOOL_(pdata.x == pdata.y); excl &= not(leaf);
-    testIntersectionPacked(rayID, currentRay.origin.xyz, M, axis, pdata.w, leaf, predist);
-    //testIntersectionPacked(rayID, currentRay.origin.xyz, currentRay.direct.xyz, pdata.w, leaf, predist);
-}
-
-
-const int _sgn[2] = {-1, 1};
+//const int _sgn[2] = {-1, 1};
 
 // planned block optimized system
 void checkChildNodes() {
@@ -250,7 +235,7 @@ void checkChildNodes() {
                 hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     UNPACK_TX_(packed_l.xy), UNPACK_TX_(packed_l.zw), UNPACK_TX_(packed_r.xy)
                 ), nears, fars);
-#else
+#else // TODO support of untransposed
                 /*
                 vec2 tm = bvhGatherifyBox(bvhLinear2DH(siblings.x));
                 hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(

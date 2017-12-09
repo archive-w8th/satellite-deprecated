@@ -81,7 +81,6 @@ namespace NSM {
             UniformBuffer rayStreamsUniform;
 
 
-
             vk::DescriptorPool descriptorPool;
 
             std::vector<vk::DescriptorSet> rayShadingDescriptors;
@@ -111,7 +110,7 @@ namespace NSM {
 
             double starttime = 0.f;
             bool hitCountGot = false;
-
+            bool doCleanSamples = false;
 
         protected:
 
@@ -126,7 +125,6 @@ namespace NSM {
                 memoryCopyCmd(command, rayStreamsUniform.staging, rayStreamsUniform.buffer, { 0, 0, strided<RayStream>(rayStreamsData.size()) });
                 flushCommandBuffer(device, command, true);
             }
-
 
             void initDescriptorSets() {
                 std::vector<vk::DescriptorPoolSize> descriptorPoolSizes = {
@@ -228,7 +226,6 @@ namespace NSM {
                 generalLoadingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
             }
 
-
             void initPipelines() {
                 auto pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());;
 
@@ -281,7 +278,6 @@ namespace NSM {
 
             }
 
-
             void initLights() {
                 lightUniformData.resize(6);
                 for (int i = 0; i < 6; i++) {
@@ -292,7 +288,6 @@ namespace NSM {
                     lightUniformData[i].lightAmbient = glm::vec4(0.0f);
                 }
             }
-
 
             void reloadQueuedRays() {
 
@@ -338,7 +333,6 @@ namespace NSM {
                     copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) }, true); // move unused to preparing
                 }
             }
-
 
             void initBuffers() {
                 // filler buffers
@@ -511,7 +505,6 @@ namespace NSM {
                 rayBlockData[0].cameraUniform.enable360 = 0;
                 clearRays();
             }
-
             
             void init(DeviceQueueType& device) {
                 this->device = device;
@@ -526,14 +519,12 @@ namespace NSM {
                 starttime = milliseconds();
             }
 
-
         public:
 
             void clearRays() {
                 rayBlockData[0].samplerUniform.iterationCount = 0;
                 copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }, true);
             }
-
 
             void resizeCanvas(uint32_t width, uint32_t height) {
                 canvasWidth = width, canvasHeight = height;
@@ -558,14 +549,12 @@ namespace NSM {
                 syncUniforms();
             }
 
-
             void setSkybox(TextureType& skybox) {
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayShadingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPImageInfo(&skybox->descriptorInfo)
                 }, nullptr);
             }
-
 
             void reallocRays(uint32_t width, uint32_t height) {
                 const bool IS_INTERLACED = false;
@@ -634,24 +623,33 @@ namespace NSM {
                 indicesSwap[0] = currentBlocks, indicesSwap[1] = preparingBlocks, availableSwap[0] = availableBlocks, availableSwap[1] = clearingBlocks;
             }
 
-
             void clearSampling() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, samplingPipelineLayout, 0, samplingDescriptors, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, clearSamples.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
+                doCleanSamples = true;
             }
 
-
             void collectSamples() {
+                // clear command
+                vk::CommandBuffer clearCommand;
+                if (doCleanSamples) {
+                    clearCommand = getCommandBuffer(device, true);
+                    clearCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, samplingPipelineLayout, 0, samplingDescriptors, nullptr);
+                    clearCommand.bindPipeline(vk::PipelineBindPoint::eCompute, clearSamples.pipeline);
+                    clearCommand.dispatch(INTENSIVITY, 1, 1);
+                }
+
+                // collect command
                 auto commandBuffer = getCommandBuffer(device, true);
                 commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, samplingPipelineLayout, 0, samplingDescriptors, nullptr);
                 commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, sampleCollection.pipeline);
                 commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
-            }
 
+                // execute commands
+                if (doCleanSamples) flushCommandBuffer(device, clearCommand, true);
+                flushCommandBuffer(device, commandBuffer, true);
+
+                // unflag
+                doCleanSamples = false;
+            }
 
             void rayShading() {
                 // update iteration counter locally
@@ -661,24 +659,25 @@ namespace NSM {
                 auto fft = offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, iterationCount); // choice update target offset
                 //auto rft = offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, time); // choice update target offset
 
-                
-                auto commandBuffer = getCommandBuffer(device, true);
-                memoryCopyCmd(commandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) }); // don't touch criticals
-                //memoryCopyCmd(commandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { rft, rft, sizeof(uint32_t) }); // don't touch criticals
-                memoryCopyCmd(commandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
-                flushCommandBuffer(device, commandBuffer, true);
+                // copy commands
+                auto copyCommandBuffer = getCommandBuffer(device, true);
+                memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) }); // don't touch criticals
+                //memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { rft, rft, sizeof(uint32_t) }); // don't touch criticals
+                memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
 
-                // shade rays
-                commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayShadingPipelineLayout, 0, rayShadingDescriptors, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, rayShadePipeline.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
+                // shade commands
+                auto shadeCommandBuffer = getCommandBuffer(device, true);
+                shadeCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayShadingPipelineLayout, 0, rayShadingDescriptors, nullptr);
+                shadeCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, rayShadePipeline.pipeline);
+                shadeCommandBuffer.dispatch(INTENSIVITY, 1, 1);
+
+                // flush commands
+                flushCommandBuffer(device, copyCommandBuffer, true);
+                flushCommandBuffer(device, shadeCommandBuffer, true);
 
                 // refine rays
                 reloadQueuedRays();
             }
-
 
             void generate(const glm::mat4 &persp, const glm::mat4 &frontSide) {
                 clearRays();
@@ -715,19 +714,8 @@ namespace NSM {
                 reloadQueuedRays();
             }
 
-
             void surfaceShading(std::shared_ptr<MaterialSet>& materialSet) {
                 if (!materialSet->haveMaterials()) return;
-
-                // copy to surfaces
-                auto command = getCommandBuffer(device, true);
-                memoryCopyCmd(command, materialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-                if (!hitCountGot) {
-                    memoryCopyCmd(command, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
-                    memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
-                }
-                flushCommandBuffer(device, command, true);
-                hitCountGot = true;
 
                 // material array loading
                 auto materialBuffer = materialSet->getMaterialBuffer();
@@ -741,14 +729,24 @@ namespace NSM {
                         .setPBufferInfo(&materialBuffer->descriptorInfo)
                 }, nullptr);
 
-                //
+                // copy to surfaces
+                auto copyCommand = getCommandBuffer(device, true);
+                memoryCopyCmd(copyCommand, materialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
+                if (!hitCountGot) {
+                    memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
+                    memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
+                }
+                hitCountGot = true;
+
+                // surface shading command
                 auto commandBuffer = getCommandBuffer(device, true);
                 commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, surfaceDescriptors, nullptr);
                 commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, surfaceShadingPpl.pipeline);
                 commandBuffer.dispatch(INTENSIVITY, 1, 1);
+
+                flushCommandBuffer(device, copyCommand, true);
                 flushCommandBuffer(device, commandBuffer, true);
             }
-
 
             void setTextureSet(std::shared_ptr<TextureSet>& textureSet) {
                 if (!textureSet->haveTextures()) return;
@@ -775,12 +773,10 @@ namespace NSM {
                 }, nullptr);
             }
 
-
             void surfaceShading(std::shared_ptr<MaterialSet>& materialSet, std::shared_ptr<TextureSet>& textureSet) {
                 setTextureSet(textureSet);
                 surfaceShading(materialSet);
             }
-
 
             void traverse(std::shared_ptr<TriangleHierarchy>& hierarchy) {
                 // write descriptors for BVH traverse

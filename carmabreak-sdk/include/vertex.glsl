@@ -263,7 +263,7 @@ R   | x || y || z || w |
 
 // bvh transcoded storage
 #ifdef BVH_CREATION
-layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
+layout ( binding = 5, rgba32i, set = 1 ) uniform iimage2D bvhStorage;
 //layout ( binding = 6, rgba32ui, set = 1 ) uniform uimage2D bvhBoxes;
 #else
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
@@ -285,48 +285,19 @@ layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
 #endif
 
 
-
 const int _BVH_WIDTH = 2048;
-const float _BVH_WIDTHF = 2048.f;
-
-ivec2 bvhSibling2D(in int linear){
-    //return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2); // do gap on height
-    return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) << 1); // do gap on height
-}
-
-ivec2 bvhSibling2D(in int linear, in int subnode){
-    //return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + subnode);
-    return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + subnode);
-}
 
 ivec2 bvhLinear2D(in int linear) {
-    //int md = linear % 2; linear /= 2;
-    //return ivec2(linear % _BVH_WIDTH, (linear / _BVH_WIDTH) * 2 + md); // do gap on height
     int md = linear & 1; linear >>= 1;
     return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
 }
 
-ivec2 bvhLinear2DH(in int linear){
-    int md = linear & 1; linear >>= 1;
-    //return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
-    return ivec2(((linear % _BVH_WIDTH) << 1) + md, linear / _BVH_WIDTH);
-}
-
-
 #ifndef BVH_CREATION
-/*
-vec2 bvhGatherifyBox(in ivec2 ipt){
-    vec2 tx = vec2(ipt);
-    const vec2 sz = 1.f / textureSize(bvhBoxes, 0), hs = sz * 0.9999f;
-    return fma(tx, sz, hs);
-}
-*/
-
-vec2 bvhGatherifyStorage(in ivec2 ipt, in int prt){
-    vec2 tx = vec2(ipt * ivec2(4,1) + ivec2(2,0)*prt);
+vec2 bvhGatherifyStorage(in ivec2 ipt){
     const vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
-    return fma(tx, sz, hs);
+    return fma(vec2(ipt), sz, hs);
 }
+
 #endif
 
 

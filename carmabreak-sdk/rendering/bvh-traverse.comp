@@ -221,16 +221,16 @@ void checkChildNodes() {
         // calculate boxes intersections
         //IF (any(overlapsGeneral)) {
         ivec2 siblings = (-1).xx;
+        ivec4 comp4 = ivec4(-1);
         IF (validBox) {
-            { // fetch siblings ids
-                siblings = texelFetch(bvhStorage, bvhLinear2D(idx) * ivec2(4,1) + ivec2(0,0), 0).xx + ivec2(0,1);
-            }
+            // fetch bvh metadata
+            comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
             
             { // test boxes
 #ifdef FLATTEN_BOX
-                hitd = intersectCubeDual(origined, divident, bsgn, UNPACK_BOX_(bvhBoxes[siblings.x >> 1]), nears, fars);
+                hitd = intersectCubeDual(origined, divident, bsgn, UNPACK_BOX_(bvhBoxes[comp4.x >> 1]), nears, fars);
 #else
-                hitd = intersectCubeDual(origined, divident, bsgn, transpose(UNPACK_BOX_(bvhBoxes[siblings.x >> 1])), nears, fars);
+                hitd = intersectCubeDual(origined, divident, bsgn, transpose(UNPACK_BOX_(bvhBoxes[comp4.x >> 1])), nears, fars);
 #endif
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }
@@ -245,7 +245,7 @@ void checkChildNodes() {
 
         // if test is valid, extract BVH meta data
         bool _any = SSC(any(overlapsGeneral));
-        ivec2 nodepdata = _any ? siblings : ivec2(-1);
+        ivec2 nodepdata = _any ? comp4.xy : ivec2(-1);
         overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear).yy, ivec2(esc.x)));
 
         BVEC2_ leftOrder = mix(overlapsGeneral.xx, leftNear, all(overlapsGeneral).xx);
@@ -256,11 +256,14 @@ void checkChildNodes() {
         }
 
         IF (validBox) { // culled intersection of leaf nodes
-            ivec2 vln = bvhLinear2D(siblings.x); vec2 lw = bvhGatherifyStorage(vln, 1), sb = bvhGatherifyStorage(vln, 0);
-            ivec4 sibs = ivec4(-1); ivec2 tp = ivec2(-1);
-            if (_any) { sibs = SGATHER(bvhStorage, sb, 0).wxzy, tp = SGATHER(bvhStorage, lw, 0).zy; }
-            tp = mix(tp.yx, tp.xy, leftOrder), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder);
-            intersectLeafs2(tp, overlapsGeneral);
+            vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
+            ivec4 sibs = ivec4(-1);
+            ivec2 trig = ivec2(-1);
+            if (_any && comp4.x >= 0) {
+                sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), trig = SGATHER(bvhStorage, lw, 3).wx;
+            }
+            trig = mix(trig.yx, trig.xy, leftOrder), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder);
+            intersectLeafs2(trig, overlapsGeneral);
             overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
         }
 

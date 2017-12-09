@@ -38,11 +38,7 @@ void splitNode(in int trID) {
 
     //HlbvhNode parentNode = Nodes[prID];
     ivec2 _hidx = bvhLinear2D(prID);
-    ivec2 _pdata = ivec2(
-        imageLoad(bvhStorage, _hidx * ivec2(4,1) + ivec2(0,0)).x,
-        imageLoad(bvhStorage, _hidx * ivec2(4,1) + ivec2(1,0)).x
-    );
-
+    ivec4 _pdata = imageLoad(bvhStorage, _hidx);
     if (_pdata.x != _pdata.y && prID != -1) {
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
@@ -68,24 +64,10 @@ void splitNode(in int trID) {
         }
 
         ivec2 _lidx = bvhLinear2D(hd.x), _ridx = bvhLinear2D(hd.y);
-
-        Flags[hd.x] = 0;
-        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(0,0), transplit.xxxx);
-        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(1,0), transplit.yyyy);
-        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(2,0), prID.xxxx);
-        imageStore(bvhStorage, _lidx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
-
-        Flags[hd.y] = 0;
-        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(0,0), transplit.zzzz);
-        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(1,0), transplit.wwww);
-        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(2,0), prID.xxxx);
-        imageStore(bvhStorage, _ridx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
-
-        // TODO reset boxes
-
-        // link parent with childs
-        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(0,0), hd.xxxx);
-        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(1,0), hd.yyyy);
+        Flags[hd.x] = 0, Flags[hd.y] = 0;
+        imageStore(bvhStorage, _lidx, ivec4(transplit.xy, prID, -1));
+        imageStore(bvhStorage, _ridx, ivec4(transplit.zw, prID, -1));
+        imageStore(bvhStorage, _hidx, ivec4(hd.xy, _pdata.zw)); // link parent with childs
     }
 }
 
@@ -101,16 +83,7 @@ void main() {
         int hid = lCounterInc(TRUE_, 2);
         exchange(Actives[aCounterInc(TRUE_)], hid);
 
-        //HlbvhNode node = Nodes[hid]; resetBox(node);
-        //node.pdata = ivec4(0, aabbcount[0]-1, (-1).xx);
-        
-        ivec2 _hidx = bvhLinear2D(hid);
-        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(0,0), (0).xxxx);
-        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(1,0), (aabbcount[0]-1).xxxx);
-        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(2,0), (-1).xxxx);
-        imageStore(bvhStorage, _hidx * ivec2(4,1) + ivec2(3,0), (-1).xxxx);
-
-        //Nodes[hid] = node;
+        imageStore(bvhStorage, bvhLinear2D(hid), ivec4(0, aabbcount[0]-1, -1, -1));
         Flags[hid] = 0;
     }
 

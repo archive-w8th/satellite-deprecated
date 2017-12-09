@@ -66,8 +66,9 @@ int axis = 2; mat3 M;
 FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
 BVEC3_ bsgn = FALSE_.xxx; BOOL_ validBox = FALSE_;
 float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
-ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
+ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1), deftri = ivec2(-1);
 int idx = 0, bstackCount = 0, deferredPtr = 0;
+bool mergeRestCmd = false;
 #define validBoxIn validBox
 
 
@@ -151,7 +152,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
     ));
 
-    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0;
+    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0, mergeRestCmd = false;
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
 }
@@ -181,33 +182,38 @@ void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inou
 
 
 // some optimize intersection and resolver
-void intersectLeafs2(in ivec2 tri, inout BVEC2_ isValid){
-    BVEC2_ near = BVEC2_(greaterThanEqual(tri, 0.f.xx)) & isValid;
+void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
+    deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))) & isValid);
+    {
+        //mergeRestCmd = false;
+        BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
 
-    // planned packed math
-    vec4 uv2 = vec4(0.0f); 
-    vec2 _d2 = vec2(
-        intersectTriangle(currentRay.origin.xyz, M, axis, tri.x, uv2.xy, near.x),
-        intersectTriangle(currentRay.origin.xyz, M, axis, tri.y, uv2.zw, near.y)
-    );
+        // planned packed math
+        vec4 uv2 = vec4(0.0f); 
+        vec2 _d2 = vec2(
+            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x),
+            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y)
+        );
 
-    float _nearhit = predist;
+        float _nearhit = predist;
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    predist = min3(predist, _d2.x, _d2.y);
+        predist = min3(predist, _d2.x, _d2.y);
 #else
-    predist = min(min(predist, _d2.x), _d2.y);
+        predist = min(min(predist, _d2.x), _d2.y);
 #endif
-    IF (lessF(predist, _nearhit)) { bstackCount = 0; }
+        IF (lessF(predist, _nearhit)) { bstackCount = 0; }
 
-    // include to cache
-    near &= 
-        BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
-        BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
-    IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(tri.x));
-    IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(tri.y));
+        // include to cache
+        near &= 
+            BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
+            BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
+        IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
+        IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(deftri.y));
+
+        deftri.x = -1, deftri.y = -1;
+    }
 }
 
-//const int _sgn[2] = {-1, 1};
 
 // planned block optimized system
 void checkChildNodes() {
@@ -441,6 +447,8 @@ void includeChain(inout vec4 intersection) {
 
 
 void choiceBaked() {
+    mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1), BVEC2_(FALSE_)); // intersect rest triangles
+
     if (bstackCount > 0) {
         reorderTriangles();
         for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }

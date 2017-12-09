@@ -35,6 +35,7 @@ namespace NSM {
             BufferType debugOnes32BufferReference;
 
             // worktable buffers
+            BufferType bvhBoxBuffer;
             BufferType bvhNodesBuffer;
             BufferType leafsBuffer;
             BufferType countersBuffer;
@@ -366,8 +367,9 @@ namespace NSM {
                 // bvh storage (32-bits elements)
                 _MAX_HEIGHT = std::min(maxTriangles > 0 ? (maxTriangles - 1) / _BVH_WIDTH + 1 : 0, _BVH_WIDTH) + 1;
                 bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH * 4), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
-                bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH * 2), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Uint);
-
+                //bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH * 2), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Uint);
+                bvhBoxStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(1), uint32_t(1), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Uint);
+                bvhBoxBuffer = createBuffer(device, strided<glm::mat4>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
                 // create sampler
                 vk::SamplerCreateInfo samplerInfo;
@@ -392,7 +394,7 @@ namespace NSM {
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPBufferInfo(&mortonCodesBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&leafsIndicesBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&leafsBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&bvhNodesBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&bvhBoxBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&bvhNodesFlags->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&workingBVHNodesBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
@@ -681,7 +683,7 @@ namespace NSM {
             }
 
             BufferType& getBVHBuffer() {
-                return bvhNodesBuffer;
+                return bvhBoxBuffer;
             }
 
             UniformBuffer getUniformBlockBuffer() {

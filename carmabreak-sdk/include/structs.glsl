@@ -57,6 +57,17 @@ struct bbox {
 #endif
 
 #ifdef USE_F32_BVH
+#define UHBOXF_ mat2x4
+#else 
+#ifdef AMD_F16_BVH
+//#define UBOXF_ f16mat4 // AMD does not support fp16 matrices storage?
+#define UHBOXF_ f16vec4[2]
+#else
+#define UHBOXF_ uvec2[2]
+#endif
+#endif
+
+#ifdef USE_F32_BVH
 #define UBOXF_UNPACKED_ mat4
 #else
 #ifdef AMD_F16_BVH
@@ -67,15 +78,15 @@ struct bbox {
 #endif
 
 #ifdef USE_F32_BVH
-#define UNPACK_BOX_(m)m
-#define PACK_BOX_(m)m
+#define UNPACK_BOX_(m)UBOXF_UNPACKED_(m[0],m[1],m[2],m[3])
+//#define PACK_BOX_(m)UBOXF_(m[0],m[1],m[2],m[3])
 #else 
 #ifdef AMD_F16_BVH
 #define UNPACK_BOX_(m)UBOXF_UNPACKED_(m[0],m[1],m[2],m[3]) // AMD does not support matrices storage?
-#define PACK_BOX_(m)UBOXF_(m[0],m[1],m[2],m[3])
+//#define PACK_BOX_(m)UBOXF_(m[0],m[1],m[2],m[3])
 #else
 #define UNPACK_BOX_(m)UBOXF_UNPACKED_(unpackHalf(m[0]),unpackHalf(m[1]),unpackHalf(m[2]),unpackHalf(m[3]))
-#define PACK_BOX_(m)UBOXF_(packHalf2(m[0]),packHalf2(m[1]),packHalf2(m[2]),packHalf2(m[3]))
+//#define PACK_BOX_(m)UBOXF_(packHalf2(m[0]),packHalf2(m[1]),packHalf2(m[2]),packHalf2(m[3]))
 #endif
 #endif
 
@@ -84,7 +95,7 @@ struct bbox {
 #define PACK_LANE_(m)m
 #else 
 #ifdef AMD_F16_BVH
-#define UNPACK_LANE_(m)m
+#define UNPACK_LANE_(m)UBLANEF_UNPACKED_(m)
 #define PACK_LANE_(m)m
 #else
 #define UNPACK_LANE_(m)unpackHalf(m)
@@ -283,7 +294,7 @@ void RayBounce(inout RayRework ray, in int bn) {
 
 
 struct HlbvhNode {
-     UBOXF_ lrbox;
+     UHBOXF_ lbox;
      ivec4 pdata;
 };
 

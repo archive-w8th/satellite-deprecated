@@ -51,7 +51,7 @@ struct NodeCache {
 };
 
 
-//layout ( std430, binding = 18, set = 0 ) readonly buffer NodesBlock { HlbvhNode Nodes[]; };
+layout ( std430, binding = 18, set = 0 ) readonly buffer BVHBlock { UBLANEF_ bvhBoxes[][4]; };
 layout ( std430, binding = 19, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 layout ( std430, binding = 20, set = 0 ) restrict buffer TraverseBlock { BlockCache blockCache[]; };
 
@@ -228,22 +228,9 @@ void checkChildNodes() {
             
             { // test boxes
 #ifdef FLATTEN_BOX
-                ivec2 tm = bvhLinear2DH(siblings.x);
-                uvec4 
-                    packed_l = texelFetch(bvhBoxes, tm + ivec2(0,0), 0),
-                    packed_r = texelFetch(bvhBoxes, tm + ivec2(1,0), 0);
-                hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
-                    UNPACK_TX_(packed_l.xy), UNPACK_TX_(packed_l.zw), UNPACK_TX_(packed_r.xy)
-                ), nears, fars);
-#else // TODO support of untransposed
-                /*
-                vec2 tm = bvhGatherifyBox(bvhLinear2DH(siblings.x));
-                hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
-                    SGATHER(bvhBoxes, tm, 0),
-                    SGATHER(bvhBoxes, tm, 1),
-                    SGATHER(bvhBoxes, tm, 2)
-                ), nears, fars);
-                */
+                hitd = intersectCubeDual(origined, divident, bsgn, UNPACK_BOX_(bvhBoxes[siblings.x >> 1]), nears, fars);
+#else
+                hitd = intersectCubeDual(origined, divident, bsgn, transpose(UNPACK_BOX_(bvhBoxes[siblings.x >> 1])), nears, fars);
 #endif
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }

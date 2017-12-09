@@ -32,13 +32,7 @@ void main() {
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(0,0), range.xxxx);
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(1,0), range.xxxx);
                 imageStore(bvhStorage, _idx2 * ivec2(4,1) + ivec2(3,0), leaf.pdata.wwww);
-                
-                ivec2 _dix2 = bvhLinear2DH(idx);
-#if (!defined(AMD_F16_BVH) && !defined(USE_F32_BVH))
-                imageStore(bvhBoxes, _dix2 + ivec2(0,0), uvec4(leaf.lrbox[0], leaf.lrbox[2]));
-#else
-                imageStore(bvhBoxes, _dix2 + ivec2(0,0), uvec4(PACK_TX_(leaf.lrbox[0]), PACK_TX_(leaf.lrbox[2])));
-#endif
+                bvhBoxes[idx][0] = leaf.lbox[0], bvhBoxes[idx][1] = leaf.lbox[1];
             }
         }
     }

@@ -264,10 +264,10 @@ R   | x || y || z || w |
 // bvh transcoded storage
 #ifdef BVH_CREATION
 layout ( binding = 5, r32i, set = 1 ) uniform iimage2D bvhStorage;
-layout ( binding = 6, rgba32ui, set = 1 ) uniform uimage2D bvhBoxes;
+//layout ( binding = 6, rgba32ui, set = 1 ) uniform uimage2D bvhBoxes;
 #else
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
-layout ( binding = 6, set = 1 ) uniform usampler2D bvhBoxes;
+//layout ( binding = 6, set = 1 ) uniform usampler2D bvhBoxes;
 #endif
 
 
@@ -314,11 +314,13 @@ ivec2 bvhLinear2DH(in int linear){
 
 
 #ifndef BVH_CREATION
+/*
 vec2 bvhGatherifyBox(in ivec2 ipt){
     vec2 tx = vec2(ipt);
     const vec2 sz = 1.f / textureSize(bvhBoxes, 0), hs = sz * 0.9999f;
     return fma(tx, sz, hs);
 }
+*/
 
 vec2 bvhGatherifyStorage(in ivec2 ipt, in int prt){
     vec2 tx = vec2(ipt * ivec2(4,1) + ivec2(2,0)*prt);

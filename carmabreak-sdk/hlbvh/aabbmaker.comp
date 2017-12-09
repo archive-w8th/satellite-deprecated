@@ -53,7 +53,7 @@ void main() {
                 
                 HlbvhNode outLeaf = Leafs[to];
                 UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.0011f), mx = UBLANEF_UNPACKED_(bounding.mx+0.0011f);
-                outLeaf.lrbox = PACK_BOX_(UBOXF_UNPACKED_(mn,mn,mx,mx));
+                outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
                 outLeaf.pdata.xy = ivec2(to);
                 outLeaf.pdata.zw = ivec2(-1, t);
                 Leafs[to] = outLeaf;

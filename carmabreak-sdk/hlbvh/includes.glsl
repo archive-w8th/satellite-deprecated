@@ -13,9 +13,9 @@ layout ( std430, binding = 3, set = 0 ) coherent buffer LeafBlock {
 };
 
 // BVH nodes
-//layout ( std430, binding = 4, set = 0 ) restrict buffer NodesBlock {
-//    HlbvhNode Nodes[];
-//};
+layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBlock {
+    UBLANEF_ bvhBoxes[][2];
+};
 
 layout ( std430, binding = 5, set = 0 ) restrict buffer FlagsBlock {
     int Flags[];

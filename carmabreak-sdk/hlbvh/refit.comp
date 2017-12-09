@@ -25,8 +25,27 @@ void unifyNodeBox(inout UBLANEF_ mnmx, in UBLANEF_ bllane, in UBLANEF_ brlane){
 }
 
 void unifyNodeBox(inout int idx){
-    ivec2 
-    _pdx2 = bvhLinear2D(idx), 
+    ivec2 _pdx2 = bvhLinear2D(idx);
+    int sibid2 = imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x;
+    
+    UBLANEF_UNPACKED_ 
+        lmn = UNPACK_LANE_(bvhBoxes[sibid2+0][0]),
+        rmn = UNPACK_LANE_(bvhBoxes[sibid2+1][0]),
+        lmx = UNPACK_LANE_(bvhBoxes[sibid2+0][1]),
+        rmx = UNPACK_LANE_(bvhBoxes[sibid2+1][1]);
+
+    bvhBoxes[idx][0] = PACK_LANE_(min(lmn, rmn));
+    bvhBoxes[idx][1] = PACK_LANE_(max(lmx, rmx));
+
+#ifdef FLATTEN_BOX
+    bvhBoxes[sibid2+0][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.x, rmn.x, lmx.x, rmx.x));
+    bvhBoxes[sibid2+0][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.y, rmn.y, lmx.y, rmx.y));
+    bvhBoxes[sibid2+1][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.z, rmn.z, lmx.z, rmx.z));
+    bvhBoxes[sibid2+1][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.w, rmn.w, lmx.w, rmx.w));
+#endif
+
+    /*
+    
     _dix2 = bvhLinear2DH(idx), 
     _idx2 = bvhLinear2DH(imageLoad(bvhStorage, _pdx2 * ivec2(4,1) + ivec2(0,0)).x);
 
@@ -48,7 +67,7 @@ void unifyNodeBox(inout int idx){
         PACK_TX_(UBLANEF_UNPACKED_(lmn.w, rmn.w, lmx.w, rmx.w))
     ));
 #endif
-
+    */
 }
 
 

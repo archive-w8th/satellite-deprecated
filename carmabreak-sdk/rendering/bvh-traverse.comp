@@ -237,8 +237,10 @@ void checkChildNodes() {
             
             // validate intersection
             overlapsGeneral &= 
-                BVEC2_(lessThanEqual(nears - PZERO, vec2(predist))) & 
-                BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO)));
+                BVEC2_(lessThan(nears, vec2(predist + PZERO))) & 
+                BVEC2_(greaterThan(hitd, vec2(-PZERO))) & 
+                BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO))) & 
+                BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
         }
 
         // if test is valid, extract BVH meta data

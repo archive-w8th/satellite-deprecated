@@ -273,7 +273,6 @@ void checkChildNodes() {
             overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
         }
 
-// TODO support for stackless 
 #ifdef STACKLESS_BVH
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
@@ -286,7 +285,7 @@ void checkChildNodes() {
         { // unified child/parent/another switcher
             const bool _ssc = SSC(skipUpstream);
             esc = (lastesc.x != -1 && !_ssc) ? lastesc : ivec2(idx, esc.y), esc.y += _sgn[uint(skipUpstream&TRUE_)], lastesc = _ssc ? lastesc : ivec2(-1, -1), 
-            idx = _ssc ? found : ((esc.x >= 0 && esc.y >= 0 && idx >= 0) ? Nodes[esc.x].pdata.z : -1), //LEGACY code
+            idx = _ssc ? found : ((esc.x >= 0 && esc.y >= 0 && idx >= 0) ? comp4.z : -1), //LEGACY code
             validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
             idx = mix(-1, idx, validBox);
         }

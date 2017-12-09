@@ -222,7 +222,7 @@ void checkChildNodes() {
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
 
         const vec2 inf2 = vec2(INFINITY);
-        vec2 nears = inf2, fars = inf2, hitd = inf2;
+        vec2 nears = inf2, fars = inf2;
 
         // calculate boxes intersections
         //IF (any(overlapsGeneral)) {
@@ -232,20 +232,29 @@ void checkChildNodes() {
             // fetch bvh metadata
             comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
             
+            BVEC2_ hitd = FALSE_.xx;
             { // test boxes
+                int _cmp = comp4.x >> 1;
 #ifdef FLATTEN_BOX
-                hitd = intersectCubeDual(origined, divident, bsgn, UNPACK_BOX_(bvhBoxes[comp4.x >> 1]), nears, fars);
+                hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
+                    UNPACK_LANE_(bvhBoxes[_cmp][0]),
+                    UNPACK_LANE_(bvhBoxes[_cmp][1]),
+                    UNPACK_LANE_(bvhBoxes[_cmp][2])
+                ), nears, fars);
 #else
-                hitd = intersectCubeDual(origined, divident, bsgn, transpose(UNPACK_BOX_(bvhBoxes[comp4.x >> 1])), nears, fars);
+                hitd = intersectCubeDual(origined, divident, bsgn, transpose(FMAT4X3_(
+                    UNPACK_LANE_(bvhBoxes[_cmp][0]).xyz,
+                    UNPACK_LANE_(bvhBoxes[_cmp][1]).xyz,
+                    UNPACK_LANE_(bvhBoxes[_cmp][2]).xyz,
+                    UNPACK_LANE_(bvhBoxes[_cmp][3]).xyz
+                )), nears, fars);
 #endif
                 nears = fma(nears, dirlenInv.xx, toffset.xx), leftNear = BVEC2_(lessEqualF(nears.x, nears.y));
             }
             
             // validate intersection
-            overlapsGeneral &= 
+            overlapsGeneral &= hitd & 
                 BVEC2_(lessThan(nears, vec2(predist + PZERO))) & 
-                BVEC2_(greaterThan(hitd, vec2(-PZERO))) & 
-                BVEC2_(lessThanEqual(hitd, vec2(INFINITY-PZERO))) & 
                 BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
         }
 

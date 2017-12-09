@@ -420,35 +420,33 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
 // made by DevIL research group
 // also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
 // compatible with NVidia GPU too
-vec2 intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in BVEC3_ sgn, in FMAT4X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
+BVEC2_ intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in BVEC3_ sgn, in FMAT3X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
     FMAT3X4_ tMinMax = FMAT3X4_(
-        fma(cubeMinMax2[0], dr.xxxx, origin.xxxx),
-        fma(cubeMinMax2[1], dr.yyyy, origin.yyyy),
-        fma(cubeMinMax2[2], dr.zzzz, origin.zzzz)
+        fma(SSC(sgn.x) ? cubeMinMax2[0].xyzw : cubeMinMax2[0].zwxy, dr.xxxx, origin.xxxx),
+        fma(SSC(sgn.y) ? cubeMinMax2[1].xyzw : cubeMinMax2[1].zwxy, dr.yyyy, origin.yyyy),
+        fma(SSC(sgn.z) ? cubeMinMax2[2].xyzw : cubeMinMax2[2].zwxy, dr.zzzz, origin.zzzz)
     );
 
-    FMAT3X4_ tf = FMAT3X4_(
-        FVEC4_(min(tMinMax[0].xy, tMinMax[0].zw), max(tMinMax[0].xy, tMinMax[0].zw)),
-        FVEC4_(min(tMinMax[1].xy, tMinMax[1].zw), max(tMinMax[1].xy, tMinMax[1].zw)),
-        FVEC4_(min(tMinMax[2].xy, tMinMax[2].zw), max(tMinMax[2].xy, tMinMax[2].zw))
-    );
-
-    FVEC2_   
+    FVEC2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tf[0].zw, tf[1].zw, tf[2].zw),
-    tNear = max3(tf[0].xy, tf[1].xy, tf[2].xy);
+    tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
+    tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
 #else
-    tFar  = min(min(tf[0].zw, tf[1].zw), tf[2].zw),
-    tNear = max(max(tf[0].xy, tf[1].xy), tf[2].xy);
+    tFar  = min(min(tMinMax[0].zw, tMinMax[1].zw), tMinMax[2].zw),
+    tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
 #endif
 
-    const vec2 inf = vec2(INFINITY);
-    const FVEC2_ pzr = FVEC2_(PZERO.xx);
-    tFar += pzr, tNear -= pzr;
+    // precise error correct
+    tFar += FVEC2_(PZERO.xx);
 
-    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f)));
+    // validate hit
+    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(tNear, FVEC2_(INFINITY-PZERO)));
+
+    // resolve hit
+    const vec2 inf = vec2(INFINITY);
     near = mix(inf, vec2(tNear), isCube), far = mix(inf, vec2(tFar), isCube);
-    return mix(near, far, lessThanEqual(near + PZERO, vec2(0.0f)));
+    //return mix(near, far, lessThanEqual(near, vec2(-PZERO)));
+    return isCube;
 }
 
 

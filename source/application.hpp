@@ -123,7 +123,7 @@ namespace SatelliteExample {
 
 
     class CameraController {
-        bool monteCarlo = true;
+        bool monteCarlo = false;
 
     public:
         glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f);

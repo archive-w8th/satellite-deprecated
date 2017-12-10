@@ -37,8 +37,9 @@ void main() {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
                     vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
-                        samplecount += 1.f; newc += texelBuf.nodes[ts].color;
-                        //texelBuf.nodes[ts].color = vec4(0);
+                        samplecount += 1.f;
+                        newc += texelBuf.nodes[ts].color;
+                        texelBuf.nodes[ts].color = vec4(0);
                     }
                 }
                 
@@ -48,13 +49,11 @@ void main() {
 
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
         if (samplecount > 0) {
-//#ifndef MOTION_BLUR
             if (imageLoad(sampleflags, cid).x > 0) {
                 vec4 xsample = imageLoad(presampled, cid);
                 imageStore(sampleflags, cid, ivec4(0));
                 imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
             }
-//#endif
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             {

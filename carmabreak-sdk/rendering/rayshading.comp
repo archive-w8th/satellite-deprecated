@@ -287,7 +287,7 @@ void main() {
                     IF (not(RayActived(currentRay))) confirmed = true;
                     
                     IFANY (!confirmed) { // if any ray allowed
-                        // diffuse rays
+                        // diffuse rays (planned acceleration by rasterizer)
                         rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(diffuseBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);

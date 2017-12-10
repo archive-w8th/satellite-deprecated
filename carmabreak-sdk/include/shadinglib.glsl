@@ -85,8 +85,8 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
 
-    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
+    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
@@ -132,8 +132,8 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
 #endif
 
-    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
+    vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = rayStreams[int(16 * random(rayStreams[RayBounce(ray)].superseed.x))].diffuseStream.xyz; // experimental random choiced selection
     //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
 
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));

@@ -170,8 +170,10 @@ namespace NSM {
                     copyBuffers.push_back(copyCounterCommand);
                 }
 
-                // histogram command
+                // histogram command (include copy command)
                 auto histogramCommand = getCommandBuffer(device, true);
+                memoryCopyCmd(histogramCommand, InKeys, TmpKeys, { 0, 0, strided<uint64_t>(size) });
+                memoryCopyCmd(histogramCommand, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
                 histogramCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
                 histogramCommand.bindPipeline(vk::PipelineBindPoint::eCompute, histogram.pipeline);
                 histogramCommand.dispatch(32, 1, 1); // dispatch few counts

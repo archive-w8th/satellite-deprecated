@@ -274,9 +274,9 @@ void main() {
                     if (hasProcedural) { prom = 1.f; confirmed = true; }
 
                     // binarize/quantize 
-                    bool tprior = prom >= spca;
-                    float qprom = RayType(currentRay) == 3 &&  tprior ? prom : (random() < prom ? 1.f : 0.f); //random() < prom ? 1.f : 0.f;
-                    float qspca = RayType(currentRay) == 3 && !tprior ? spca : (random() < spca ? 1.f : 0.f); // only primary rays can division (because stupid user/gamer can't seen noise effects after reflections)
+                    //bool tprior = prom >= spca;
+                    float qprom = RayType(currentRay) == 3 ? prom : (random() < prom ? 1.f : 0.f); //random() < prom ? 1.f : 0.f;
+                    float qspca = RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f); // only primary rays can division (because stupid user/gamer can't seen noise effects after reflections)
                     //float qspca = random() < spca ? 1.f : 0.f;
 
                     // transparent rays

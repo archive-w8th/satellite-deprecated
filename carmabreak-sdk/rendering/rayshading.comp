@@ -274,21 +274,22 @@ void main() {
                     if (hasProcedural) { prom = 1.f; confirmed = true; }
 
                     // binarize/quantize 
-                    float qprom = random() < prom ? 1.f : 0.f;
+                    float qprom = RayType(currentRay) == 3 ? prom : (random() < prom ? 1.f : 0.f); //random() < prom ? 1.f : 0.f;
                     float qspca = RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f); // only primary rays can division (because stupid user/gamer can't seen noise effects after reflections)
                     //float qspca = random() < spca ? 1.f : 0.f;
 
                     // transparent rays
                     RayRework rayTemplate = promised(currentRay, normal); 
-                    rayTemplate.color.xyz *= RayType(rayTemplate) == 2 ? prom : qprom; // shadows dims 
+                    rayTemplate.color.xyz *= RayType(currentRay) == 2 ? prom : qprom; // shadows dims 
                     invalidateRay(rayTemplate, overflow);
                     storeRay(overwriteBlock, rayTemplate);
                     confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
                     IF (not(RayActived(currentRay))) confirmed = true;
                     
-                    IFANY (!confirmed) { // if any ray allowed
+                    //IFANY (!confirmed) { // if any ray allowed
                         // diffuse rays (planned acceleration by rasterizer)
                         rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
+                        if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(diffuseBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || diffuseBlock >= 0 ? diffuseBlock : overwriteBlock, rayTemplate);
@@ -296,25 +297,28 @@ void main() {
 
                         // reflection rays
                         rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
+                        if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
                         // shadow rays
+                        confirmed = true; // no, you can't write shadows on...
                         rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
+                        if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
-                        createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1 /*&& confirmed*/);
+                        createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || shadowBlock >= 0 ? shadowBlock : overwriteBlock, rayTemplate);
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
                         // emissions
                         rayTemplate = emissive(currentRay, _emission, normal);
-                        if (overflow) rayTemplate.final = vec4(0.f);
+                        if (overflow || RayType(currentRay) == 2) rayTemplate.final = vec4(0.f);
                         invalidateRay(rayTemplate, true);
                         createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
-                    }
+                    //}
                 }
             }
 

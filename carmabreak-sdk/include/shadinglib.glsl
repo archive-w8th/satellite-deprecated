@@ -83,7 +83,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     ray.color.xyz *= color;
     ray.final.xyz *= 0.f;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
-    RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
+    RayBounce(ray, min(2, max(RayBounce(ray) - (RayType(ray) == 0 ? 0 : 1), 0)));
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
     //vec3 sdr = rayStreams[int(floor(16.f * random(rayStreams[RayBounce(ray)].superseed.x)))].diffuseStream.xyz; // experimental random choiced selection
@@ -122,15 +122,14 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     ray.color.xyz *= color;
     ray.final.xyz *= 0.f;
 
+    // bounce mini-config
+    const int caustics_bounces = 1;
+    const int reflection_bounces = 1;
+
     //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
     if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
-
-#ifdef USE_SIMPLIFIED_MODE
-    RayBounce(ray, min(1, max(RayBounce(ray)-1, 0)));
-#else
-    RayBounce(ray, min(2, max(RayBounce(ray)-1, 0)));
-#endif
+    RayBounce(ray, min(RayType(ray) == 1 ? caustics_bounces : reflection_bounces, max(RayBounce(ray)-1, 0)));
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
     //vec3 sdr = rayStreams[int(floor(16.f * random(rayStreams[RayBounce(ray)].superseed.x)))].diffuseStream.xyz; // experimental random choiced selection
@@ -139,7 +138,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * random(), 0.0f, 1.0f)));
     //sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
-    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(sqrt(random()) * modularize(refly), 0.0f, 1.0f).xxx));
+    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
 

@@ -568,7 +568,7 @@ namespace NSM {
                 const size_t BLOCK_BIN_SIZE = 4 * BLOCK_SIZE + 64;
                 const size_t TRAVERSE_CACHE_SIZE = 1024 * 256;
                 const size_t TRAVERSE_BLOCK_SIZE = 2048 + 64;
-                const size_t ALLOC_MULT = 8;
+                const size_t ALLOC_MULT = 16;
 
 
                 size_t wrsize = width * height;

@@ -200,8 +200,8 @@ namespace SatelliteExample {
                 if (monteCarlo) raysp->clearSampling();
             }
 
-            eye = (unviewm * glm::vec4(ca, 1.0f)).xyz();
-            view = (unviewm * glm::vec4(vi, 1.0f)).xyz();
+            eye = (unviewm * glm::dvec4(ca, 1.0f)).xyz();
+            view = (unviewm * glm::dvec4(vi, 1.0f)).xyz();
         }
 
         void leftRight(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {

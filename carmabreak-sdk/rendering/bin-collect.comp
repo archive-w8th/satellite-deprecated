@@ -45,7 +45,7 @@ void main() {
                             int texel = blockBins[globalID].texels[nid]-1;
                             vec4 color = rayBlockNodes[idx][nid].data.final;
                             rayBlockNodes[idx][nid].data.final = vec4(0);
-                            if (texel >= 0) texelBuf.nodes[texel].color.xyz += min(color.xyz, vec3(100.f));
+                            if (texel >= 0) texelBuf.nodes[texel].color.xyz += color.xyz;
                         }
                     }
                     int preidx = readLane(idx >= 0 ? rayBlocks[idx].info.next : -1, 0); 

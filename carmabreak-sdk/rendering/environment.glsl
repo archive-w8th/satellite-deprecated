@@ -52,6 +52,7 @@ vec3 lightCenterSky(in int i) {
 void env(inout vec4 color, in RayRework ray) {
     color = readEnv(ray.direct.xyz);
     color = fromLinear(color); // HDR support (gamma correct)
+    color = clamp(color, vec4(0.f.xxxx), vec4(2.f,2.f,2.f,1.f));
     
     //vec3 lcenter = lightCenterSky(0);
     //color.xyz = js_getScatter(ray.direct.xyz, -normalize(lcenter - ray.origin.xyz), 800.0f) +

@@ -76,7 +76,8 @@ int btc(in uint vlc) { return bitCount(vlc); }
 int lsb(in uint vlc) { return findLSB(vlc); }
 int msb(in uint vlc) { return findMSB(vlc); }
 int bitCount64(in uvec2 lh) { return btc(lh.x) + btc(lh.y); }
-
+int btc(in uvec2 lh) { return bitCount64(lh); }
+int btc(in uint64_t lh) { return bitCount64(U2P(lh)); }
 
 
 // bit measure utils

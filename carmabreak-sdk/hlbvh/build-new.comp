@@ -16,10 +16,10 @@ LOCAL_SIZE_LAYOUT;
 
 int findSplit( in int first, in int last) {
     MORTONTYPE firstCode = Mortoncodes[first], lastCode = Mortoncodes[last];
-    int commonPrefix = nlz(firstCode ^ lastCode), split = commonPrefix == 0 ? ((first + last) >> 1) : first, step = last - first;
-    for (int i=0;(i<8192 && step>1 && commonPrefix != 0);i++) {
-        step = (step + 1) >> 1;
-        int newSplit = split + step;
+    int commonPrefix = nlz(firstCode ^ lastCode), split = commonPrefix == 0 ? ((first + last) >> 1) : first, nstep = last - first;
+    for (int i=0;(i<8192 && nstep>1 && commonPrefix != 0);i++) {
+        nstep = (nstep + 1) >> 1;
+        int newSplit = split + nstep;
         split = newSplit < last && nlz(firstCode ^ Mortoncodes[newSplit]) > commonPrefix ? newSplit : split;
     }
     return clamp(split, first, last-1);

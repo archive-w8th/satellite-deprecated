@@ -45,9 +45,21 @@ void main() {
 
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         if (imageLoad(sampleflags, cid).x < 1) {
-                            vec4 cpj = divW(mult4(vProj, mult4(camProj, texelBuf.nodes[ts].p3d)));
-                            prevc = imageLoad(prevsample, ivec2(floor(clamp(fma(cpj.xy, 0.5f.xx, 0.5f.xx), 0.f.xx, 0.9999f.xx) * whs)));
-                            prevc.xyz *= prevc.w;
+                            vec4 cpj = texelBuf.nodes[ts].p3d;
+                            if (RAY_BLOCK cameraUniform.enable360 == 1) {
+                                cpj = divW(mult4(camProj, texelBuf.nodes[ts].p3d)); vec3 dir = normalize(cpj.xyz);
+                                cpj.xy = vec2(atan(dir.z, dir.x), asin(dir.y) * 2.0) / PI;
+                            } else {
+                                cpj = divW(mult4(vProj, mult4(camProj, texelBuf.nodes[ts].p3d)));
+                            }
+                            vec2 ssd = fma(cpj.xy, 0.5f.xx, 0.5f.xx);
+                            IF (greaterEqualF(ssd.x,0.f) & greaterEqualF(ssd.y,0.f) & lessEqualF(ssd.x,1.f) & lessEqualF(ssd.y,1.f)) {
+                                if (RAY_BLOCK cameraUniform.enable360 == 1) {
+                                    ssd.x = fract(ssd.x+0.25f);
+                                }
+                                prevc = imageLoad(prevsample, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs)));
+                                prevc.xyz *= prevc.w;
+                            }
                         }
                         
                         samplecount += 1.f, hsmp = 1.f;

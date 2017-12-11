@@ -289,7 +289,7 @@ void main() {
                     IF (not(RayActived(currentRay))) confirmed = true;
 
                     // save last 3d point (for reprojection purpose)
-                    IF (BOOL_(RayType(currentRay) == 3) & RayActived(currentRay)) {
+                    IF (BOOL_(RayType(rayTemplate) == 3) & not(RayActived(rayTemplate))) {
                         texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId-1].texels[currentBlockNode]-1].p3d = vec4(currentRay.origin.xyz, 1.f);
                     }
 

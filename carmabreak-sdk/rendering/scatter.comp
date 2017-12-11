@@ -10,6 +10,8 @@ layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
 layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
 layout ( binding = 2, set = 1, rgba32f ) uniform image2D prevsample;
 layout ( binding = 3, set = 1, r32i ) uniform iimage2D sampleflags;
+layout ( binding = 4, set = 1, rgba32f ) uniform image2D prevdepth;
+layout ( binding = 5, set = 1, rgba32f ) uniform image2D currdepth;
 
 LOCAL_SIZE_LINEAR_LAYOUT;
 
@@ -33,7 +35,10 @@ void main() {
         vec2 basis = floor(screen * aspect);
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
 
+        vec4 depth = vec4(0.0f);
         vec4 newc = vec4(0.0f); float samplecount = 0;
+        float dpl = INFINITY;
+
         for (float x=-1.f;x<=scl.x;x+=1.f) {
             for (float y=-1.f;y<=scl.y;y+=1.f) {
                 vec2 cmp = basis + vec2(x, y);
@@ -45,20 +50,29 @@ void main() {
 
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
-                            vec4 cpj = texelBuf.nodes[ts].p3d;
+                            vec4 prj = texelBuf.nodes[ts].p3d;
+                            vec4 cpj = prj; //depth += cpj;
                             if (RAY_BLOCK cameraUniform.enable360 == 1) {
                                 cpj = divW(mult4(camProj, texelBuf.nodes[ts].p3d)); vec3 dir = normalize(cpj.xyz);
                                 cpj.xy = vec2(atan(dir.z, dir.x), asin(dir.y) * 2.0) / PI;
                             } else {
                                 cpj = divW(mult4(vProj, mult4(camProj, texelBuf.nodes[ts].p3d)));
                             }
+
+                            float rd = length(prj.xyz);
+                            IF (equalF(rd, dpl)) { dpl = rd; depth += prj; } else 
+                            IF (lessF(rd, dpl)) { dpl = rd; depth = prj; }
+                            //depth += prj;
+
                             vec2 ssd = fma(cpj.xy, 0.5f.xx, 0.5f.xx);
                             IF (greaterEqualF(ssd.x,0.f) & greaterEqualF(ssd.y,0.f) & lessEqualF(ssd.x,1.f) & lessEqualF(ssd.y,1.f)) {
-                                if (RAY_BLOCK cameraUniform.enable360 == 1) {
-                                    ssd.x = fract(ssd.x+0.25f);
+                                if (RAY_BLOCK cameraUniform.enable360 == 1) { ssd.x = fract(ssd.x+0.25f); }
+
+                                vec3 pd = imageLoad(prevdepth, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs))).xyz;
+                                if (length(pd - prj.xyz) < 0.1f) {
+                                    prevc = imageLoad(prevsample, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs)));
+                                    prevc.xyz *= prevc.w;
                                 }
-                                prevc = imageLoad(prevsample, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs)));
-                                prevc.xyz *= prevc.w;
                             }
                         }
                         
@@ -93,6 +107,7 @@ void main() {
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
+            imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
             imageStore(presampled, cid, vec4(xsample)); // store in current projection
         }
     }

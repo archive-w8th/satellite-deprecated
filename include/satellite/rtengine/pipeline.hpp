@@ -71,6 +71,9 @@ namespace NSM {
             TextureType filteredImage;
             TextureType flagsImage;
 
+            TextureType depthImage;
+            TextureType previousDepthImage;
+
 
             std::vector<LightUniformStruct> lightUniformData;
             UniformBuffer lightUniform;
@@ -183,6 +186,8 @@ namespace NSM {
                     vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // filtered sampled
                     vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // previous sampled image
                     vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // clear samples flags
+                    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // previous depth
+                    vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // current depth
                 };
 
                 // textures for surfaces
@@ -541,12 +546,17 @@ namespace NSM {
                 previousImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
                 flagsImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
 
+                previousDepthImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+                depthImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&previousImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&flagsImage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPImageInfo(&previousDepthImage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPImageInfo(&depthImage->descriptorInfo),
                 }, nullptr);
 
                 clearSampling();
@@ -639,12 +649,19 @@ namespace NSM {
                 copyDesc.dstOffset = { 0, 0, 0 };
                 copyDesc.srcOffset = { 0, 0, 0 };
                 copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight), 1 };
-                copyDesc.srcSubresource = accumulationImage->subresourceLayers;
-                copyDesc.dstSubresource = previousImage->subresourceLayers;
+                
 
                 // copy images command
                 auto copyCommand = getCommandBuffer(device, true);
+
+                copyDesc.srcSubresource = accumulationImage->subresourceLayers;
+                copyDesc.dstSubresource = previousImage->subresourceLayers;
                 memoryCopyCmd(copyCommand, accumulationImage, previousImage, copyDesc);
+
+                copyDesc.srcSubresource = depthImage->subresourceLayers;
+                copyDesc.dstSubresource = previousDepthImage->subresourceLayers;
+                memoryCopyCmd(copyCommand, depthImage, previousDepthImage, copyDesc);
+
                 flushCommandBuffer(device, copyCommand, true);
 
                 // clear command

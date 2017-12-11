@@ -48,7 +48,7 @@ void main() {
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;
         if (globalID < n && globalID >= 0) {
-            int idx = exchange(LeafIndices[globalID], -1);//imageLoad(bvhStorage, bvhLinear2D(exchange(LeafIndices[globalID], -1))).z;
+            int idx = exchange(LeafIndices[globalID], -1);
             for (int l=0;l<256;l++) {
                 ivec4 cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
 

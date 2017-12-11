@@ -13,7 +13,7 @@
 
 ### Videos
 
-* Will remedy soon... 
+* https://www.youtube.com/watch?v=K0WAnRPR8ME
 
 ### Contacts 
 

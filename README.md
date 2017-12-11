@@ -14,6 +14,7 @@
 ### Videos
 
 * https://www.youtube.com/watch?v=K0WAnRPR8ME
+* https://www.youtube.com/watch?v=Uw9stHcFcHw (with reprojection support)
 
 ### Contacts 
 

@@ -287,7 +287,7 @@ namespace NSM {
             void initLights() {
                 lightUniformData.resize(6);
                 for (int i = 0; i < 6; i++) {
-                    lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 200.f, 40.0f);
+                    lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 400.f, 40.0f);
                     //lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 3600.f, 10.0f);
                     lightUniformData[i].lightVector = glm::vec4(0.3f, 1.0f, 0.1f, 400.0f);
                     lightUniformData[i].lightOffset = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);

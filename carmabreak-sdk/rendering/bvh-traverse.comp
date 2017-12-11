@@ -111,8 +111,8 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz, 
         torig = -mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz;
 
-    dirlenInv = 1.f / max(length(dirproj), 0.0001f), toffset = 0.f, dirproj *= dirlenInv;
-    dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
+    dirlenInv = 1.f / max(length(dirproj), 0.000001f), toffset = 0.f, dirproj *= dirlenInv;
+    dirproj = 1.f / (max(abs(dirproj), vec3(0.000001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
     predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
@@ -192,6 +192,9 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
         vec2 _d2 = vec2(
             intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x),
             intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y)
+
+            //intersectTriangle(currentRay.origin.xyz, currentRay.direct.xyz, deftri.x, uv2.xy, near.x),
+            //intersectTriangle(currentRay.origin.xyz, currentRay.direct.xyz, deftri.y, uv2.zw, near.y)
         );
 
         float _nearhit = predist;

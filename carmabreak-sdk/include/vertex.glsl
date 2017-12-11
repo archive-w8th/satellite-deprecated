@@ -173,7 +173,7 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
         vec3 UVW_ = D[axis] * inverse(ABC);
         valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f)))) | BOOL_(all(lessThanEqual(UVW_, vec3(0.f))));
         IF (valid) {
-            float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.0001f)*(det>=0.f?1:-1));
+            float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.000001f)*(det>=0.f?1:-1));
             UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
             T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
             T = mix(INFINITY, T, greaterEqualF(T, 0.0f) & valid);
@@ -186,43 +186,25 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
 float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout vec2 UV, inout BOOL_ _valid) {
     float T = INFINITY; BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
     IF (valid) {
-        /*
-        vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
-        vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
-        mat3 ABC = mat3(
-            orig.x - SGATHER(vertex_texture, ntri, 0)._SWIZV,
-            orig.y - SGATHER(vertex_texture, ntri, 1)._SWIZV,
-            orig.z - SGATHER(vertex_texture, ntri, 2)._SWIZV
-        );
-        mat2x3 e12t = transpose(mat3x2(
-            ABC[0].xx - ABC[0].yz, 
-            ABC[1].xx - ABC[1].yz, 
-            ABC[2].xx - ABC[2].yz
-        ));
-        */
-        
         ivec2 ntri = gatherMosaic(getUniformCoord(tri));
         mat3 ABC = mat3(
             orig.xyz - fetchMosaic(vertex_texture, ntri, 0).xyz,
             orig.xyz - fetchMosaic(vertex_texture, ntri, 1).xyz,
             orig.xyz - fetchMosaic(vertex_texture, ntri, 2).xyz
         );
-        mat2x3 e12t = mat2x3(ABC[0] - ABC[1], ABC[0] - ABC[2]);
+        ABC[1] = ABC[0] - ABC[1], ABC[2] = ABC[0] - ABC[2];
         
-        vec3 pvec = cross(direct, e12t[1]);
-        float det = dot(e12t[0], pvec), idet = 1.f/(max(abs(det),0.0001f)*(det >= 0.f?1:-1));
-        //vec3 tvec = vec3(ABC[0].x, ABC[1].x, ABC[2].x);
-        vec3 tvec = ABC[0];
-        float u = dot(tvec, pvec) * idet;
-        vec3 qvec = cross(tvec, e12t[0]);
-        float v = dot(direct, qvec) * idet;
-        float t = dot(e12t[1], qvec) * idet;
-        valid &= greaterEqualF(t, 0.f);
-        //valid &= BOOL(abs(det) >= 0.0001f);
-        valid &= greaterEqualF(u, 0.f);
-        valid &= greaterEqualF(v, 0.f);
-        valid &= lessEqualF(u+v, 1.f);
-        UV = vec2(u,v);
+        vec3 pvec = cross(direct, ABC[2]);
+        float idet = dot(ABC[1], pvec); idet = 1.f/(max(abs(idet),0.000001f)*(idet >= 0.f?1:-1));
+        float u = dot(ABC[0], pvec) * idet;
+        //vec3 qvec = cross(ABC[0], ABC[1]);
+        //float v = dot(direct, qvec) * idet;
+        //float t = dot(ABC[2], qvec) * idet;
+        pvec = cross(ABC[0], ABC[1]); // reuse variable
+        float v = dot(direct, pvec) * idet;
+        float t = dot(ABC[2], pvec) * idet;
+
+        valid &= greaterEqualF(t, 0.f) & greaterEqualF(u, 0.f) & greaterEqualF(v, 0.f) & lessEqualF(u+v, 1.f) & BOOL_(abs(idet) < 100000.f), UV = vec2(u,v);
         return mix(INFINITY, t, valid);
     }
     return T;

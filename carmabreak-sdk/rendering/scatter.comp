@@ -44,7 +44,7 @@ void main() {
                     float hsmp = 0.f;
 
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
-                        if (imageLoad(sampleflags, cid).x < 1) {
+                        if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
                             vec4 cpj = texelBuf.nodes[ts].p3d;
                             if (RAY_BLOCK cameraUniform.enable360 == 1) {
                                 cpj = divW(mult4(camProj, texelBuf.nodes[ts].p3d)); vec3 dir = normalize(cpj.xyz);
@@ -85,13 +85,11 @@ void main() {
         newc /= samplecount;
         
         if (samplecount > 0) {
-            //if (imageLoad(sampleflags, cid).x > 0) {
-            //    vec4 xsample = imageLoad(presampled, cid);
-            //    imageStore(sampleflags, cid, ivec4(0));
-            //    imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
-            //}
-
-            imageStore(sampleflags, cid, ivec4(0));
+            if (imageLoad(sampleflags, cid).x > 0) {
+                vec4 xsample = imageLoad(presampled, cid);
+                imageStore(sampleflags, cid, ivec4(0));
+                imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
+            }
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);

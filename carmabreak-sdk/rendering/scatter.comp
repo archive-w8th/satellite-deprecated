@@ -51,15 +51,16 @@ void main() {
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
                             vec4 prj = texelBuf.nodes[ts].p3d;
-                            vec4 cpj = prj; //depth += cpj;
+                            vec4 cpj = divW(mult4(camProj, texelBuf.nodes[ts].p3d)); //depth += cpj;
+                            float rd = length(cpj.xyz);
+
                             if (RAY_BLOCK cameraUniform.enable360 == 1) {
-                                cpj = divW(mult4(camProj, texelBuf.nodes[ts].p3d)); vec3 dir = normalize(cpj.xyz);
+                                vec3 dir = normalize(cpj.xyz);
                                 cpj.xy = vec2(atan(dir.z, dir.x), asin(dir.y) * 2.0) / PI;
                             } else {
-                                cpj = divW(mult4(vProj, mult4(camProj, texelBuf.nodes[ts].p3d)));
+                                cpj = divW(mult4(vProj, cpj));
                             }
 
-                            float rd = length(prj.xyz);
                             IF (equalF(rd, dpl)) { dpl = rd; depth += prj; } else 
                             IF (lessF(rd, dpl)) { dpl = rd; depth = prj; }
                             //depth += prj;
@@ -68,8 +69,8 @@ void main() {
                             IF (greaterEqualF(ssd.x,0.f) & greaterEqualF(ssd.y,0.f) & lessEqualF(ssd.x,1.f) & lessEqualF(ssd.y,1.f)) {
                                 if (RAY_BLOCK cameraUniform.enable360 == 1) { ssd.x = fract(ssd.x+0.25f); }
 
-                                vec3 pd = imageLoad(prevdepth, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs))).xyz;
-                                if (length(pd - prj.xyz) < 0.1f) {
+                                vec4 pd = vec4(imageLoad(prevdepth, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs))).xyz, 1.f);
+                                if (length(pd.xyz - prj.xyz) < rd * 0.01f) {
                                     prevc = imageLoad(prevsample, ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs)));
                                     prevc.xyz *= prevc.w;
                                 }

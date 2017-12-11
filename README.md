@@ -13,8 +13,7 @@
 
 ### Videos
 
-Sponza with reflections (full, not screen space).
-* Will remedy 
+* Will remedy soon... 
 
 ### Contacts 
 

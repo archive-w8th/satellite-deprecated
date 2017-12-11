@@ -42,69 +42,32 @@ void unifyNodeBox(inout int idx){
 
 
 void main() {
-    //int localID = int(gl_LocalInvocationID.x);
+    int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
+    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;
+        if (globalID < n && globalID >= 0) {
+            int idx = exchange(LeafIndices[globalID], -1);//imageLoad(bvhStorage, bvhLinear2D(exchange(LeafIndices[globalID], -1))).z;
+            for (int l=0;l<256;l++) {
+                ivec4 cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
 
-    // init counter
-    //if (localID == 0) {
-    //    aCounter = 0;
-    //    aRange[0] = 0;
-    //    aRange[1] = 0;
-    //}
+                bool validParent = cmp4.z >= 0 && idx >= 0;
+                if (validParent) {
+                    int _swp = atomicCompSwap(Flags[cmp4.z], 0, 1);
+                    validParent = validParent && _swp == 1; // resolve race condition
+                    if (validParent) { idx = cmp4.z; } else { idx = -1; }
+                } else {
+                    idx = -1;
+                }
 
-    //{ // form first active list
-    //    memoryBarrier(); barrier();
-    //    //int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
-    //    #define wsize (GEOMETRY_BLOCK geometryUniform.triangleCount)
-    //    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
-    //    for (int w=0;w<wcount;w++) {
-    //        int globalID = w * int(gl_WorkGroupSize.x) + localID;
-    //        if (globalID >= wsize) break;
-    //        if (globalID < wsize && globalID >= 0) {
-    //            int idx = exchange(LeafIndices[globalID], -1);
-    //            if (idx >= 0) Actives[aCounterInc( TRUE_ )] = idx;
-    //        }
-    //    }
-    //}
-
-    // from lower to upper
-    //for (int l=0;l<256;l++) {
-        // sync count
-        //memoryBarrier(); barrier(); 
-        //if (localID == 0) {
-        //    aRange[0] = aRange[1];
-        //    aRange[1] = aCounter;
-        //}
-
-        // sync count
-        memoryBarrier(); barrier();
-        int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
-        int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
-        int wgs = int(gl_NumWorkGroups);
-        for (int w=0;w<wcount;w+=wgs) {
-            int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;
-            if (globalID < n && globalID >= 0) {
-                int idx = exchange(LeafIndices[globalID], -1);//imageLoad(bvhStorage, bvhLinear2D(exchange(LeafIndices[globalID], -1))).z;
-                for (int l=0;l<256;l++) {
-                    ivec4 cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
-                    
-                    bool validParent = cmp4.z >= 0 && idx >= 0;
-                    if (validParent) {
-                        int _swp = atomicCompSwap(Flags[cmp4.z], 0, 1);
-                        validParent = validParent && _swp == 1; // resolve race condition
-                        if (validParent) { idx = cmp4.z; } else { idx = -1; }
-                    } else {
-                        idx = -1;
-                    }
-
-                    if (idx >= 0) {
-                        cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
-                        if (cmp4.x != cmp4.y) unifyNodeBox(idx);
-                    } else {
-                        break;
-                    }
+                if (idx >= 0) {
+                    cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
+                    if (cmp4.x != cmp4.y) unifyNodeBox(idx);
+                } else {
+                    break;
                 }
             }
         }
-    //}
-    
+    }
 }

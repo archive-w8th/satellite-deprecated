@@ -289,8 +289,8 @@ void main() {
                     IF (not(RayActived(currentRay))) confirmed = true;
 
                     // save last 3d point (for reprojection purpose)
-                    IF (RayActived(rayTemplate) & BOOL_(RayType(rayTemplate) == 3)) {
-                        texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId].texels[currentBlockNode]].p3d = vec4(rayTemplate.origin.xyz, 1.f);
+                    IF (BOOL_(RayType(currentRay) == 3) & RayActived(currentRay)) {
+                        texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId-1].texels[currentBlockNode]-1].p3d = vec4(currentRay.origin.xyz, 1.f);
                     }
 
                     //IFANY (!confirmed) { // if any ray allowed

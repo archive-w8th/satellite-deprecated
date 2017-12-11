@@ -225,7 +225,8 @@ namespace NSM {
                     auto commandBuffer = getCommandBuffer(device, true);
                     commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
                     commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, refitBVH.pipeline);
-                    commandBuffer.dispatch(1, 1, 1);
+                    //commandBuffer.dispatch(1, 1, 1);
+                    commandBuffer.dispatch(INTENSIVITY, 1, 1);
                     flushCommandBuffer(device, commandBuffer, true);
                 };
 

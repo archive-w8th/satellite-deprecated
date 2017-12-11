@@ -63,7 +63,7 @@ call glslangValidator %CFLAGSV% %INDIR%%RNDR%rayshading.comp    -o %OUTDIR%%RNDR
 call glslangValidator %CFLAGSV% %INDIR%%HLBV%build-new.comp     -o %OUTDIR%%HLBV%build-new.comp.spv
 call glslangValidator %CFLAGSV% %INDIR%%HLBV%aabbmaker.comp     -o %OUTDIR%%HLBV%aabbmaker.comp.spv
 call glslangValidator %CFLAGSV% %INDIR%%HLBV%minmax.comp        -o %OUTDIR%%HLBV%minmax.comp.spv
-call glslangValidator %CFLAGSV% %INDIR%%HLBV%refit.comp         -o %OUTDIR%%HLBV%refit.comp.spv
+call glslangValidator %CFLAGSV% %INDIR%%HLBV%refit-incore.comp  -o %OUTDIR%%HLBV%refit.comp.spv
 call glslangValidator %CFLAGSV% %INDIR%%HLBV%child-link.comp    -o %OUTDIR%%HLBV%child-link.comp.spv
 
 call glslangValidator %CFLAGSV% %INDIR%%RDXI%permute.comp       -o %OUTDIR%%RDXI%permute.comp.spv

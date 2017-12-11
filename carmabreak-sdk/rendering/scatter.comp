@@ -21,6 +21,9 @@ void main() {
 
     int wsize = int(ceil(whs.x * whs.y));
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 100000);
+    
+    mat4 vProj = transpose(inverse(transpose(RAY_BLOCK cameraUniform.projInv)));
+    mat4 camProj = transpose(inverse(transpose(RAY_BLOCK cameraUniform.prevCamInv)));
 
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
@@ -28,6 +31,7 @@ void main() {
         float ft = float(it);
         vec2 screen = vec2(ft - whs.x * floor(ft / whs.x + 0.0001f), floor(float(it) / whs.x));
         vec2 basis = floor(screen * aspect);
+        ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
 
         vec4 newc = vec4(0.0f); float samplecount = 0;
         for (float x=-1.f;x<=scl.x;x+=1.f) {
@@ -36,38 +40,49 @@ void main() {
                 if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
                     vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);
+                    vec4 color = vec4(0.f), prevc = vec4(0.f);
+                    float hsmp = 0.f;
+
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
-                        samplecount += 1.f;
-                        newc += texelBuf.nodes[ts].color;
+                        if (imageLoad(sampleflags, cid).x < 1) {
+                            vec4 cpj = divW(mult4(vProj, mult4(camProj, texelBuf.nodes[ts].p3d)));
+                            prevc = imageLoad(prevsample, ivec2(floor(clamp(fma(cpj.xy, 0.5f.xx, 0.5f.xx), 0.f.xx, 0.9999f.xx) * whs)));
+                            prevc.xyz *= prevc.w;
+                        }
+                        
+                        samplecount += 1.f, hsmp = 1.f;
+                        color = texelBuf.nodes[ts].color;
                         texelBuf.nodes[ts].color = vec4(0);
+
+                        {
+                            float next = prevc.w + hsmp, prev = prevc.w, divisor = prev / next;
+                            prevc.xyz += color.xyz;
+                            prevc.xyz /= next;
+#ifdef MOTION_BLUR
+                            prevc.w = min(next, SAMPLES_LOCK-1);
+#else
+                            prevc.w = next;
+#endif
+                            prevc.xyz *= prevc.w;
+                        }
+                        newc += prevc;
                     }
                 }
-                
             }
         }
         newc /= samplecount;
-
-        ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
+        
         if (samplecount > 0) {
-            if (imageLoad(sampleflags, cid).x > 0) {
-                vec4 xsample = imageLoad(presampled, cid);
-                imageStore(sampleflags, cid, ivec4(0));
-                imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
-            }
+            //if (imageLoad(sampleflags, cid).x > 0) {
+            //    vec4 xsample = imageLoad(presampled, cid);
+            //    imageStore(sampleflags, cid, ivec4(0));
+            //    imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
+            //}
+
+            imageStore(sampleflags, cid, ivec4(0));
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
-            {
-                float next = xsample.w + float(samplecount);
-                float prev = xsample.w;
-                float divisor = prev / next;
-
-                xsample.xyz = fma(xsample.xyz, vec3(divisor), newc.xyz * (1.0f - divisor));
-#ifdef MOTION_BLUR
-                xsample.w = min(next, SAMPLES_LOCK-1);
-#else
-                xsample.w = next;
-#endif
-            }
+            xsample = vec4(newc.xyz/newc.w, newc.w);
             imageStore(presampled, cid, vec4(xsample)); // store in current projection
         }
     }

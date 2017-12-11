@@ -44,6 +44,7 @@ namespace NSM {
         struct Texel {
             glm::vec4 coord;
             glm::vec4 color; // when collected from blocks
+            glm::vec4 p3d;
         };
 
         struct HlbvhNode {

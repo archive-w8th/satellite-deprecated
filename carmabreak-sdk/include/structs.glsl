@@ -6,6 +6,7 @@
 struct Texel {
      vec4 coord;
      vec4 color; // when collected from blocks
+     vec4 p3d;
 };
 
 struct bbox {

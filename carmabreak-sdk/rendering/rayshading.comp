@@ -287,7 +287,12 @@ void main() {
                     storeRay(overwriteBlock, rayTemplate);
                     confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
                     IF (not(RayActived(currentRay))) confirmed = true;
-                    
+
+                    // save last 3d point (for reprojection purpose)
+                    IF (RayActived(rayTemplate) & BOOL_(RayType(rayTemplate) == 3)) {
+                        texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId].texels[currentBlockNode]].p3d = vec4(rayTemplate.origin.xyz, 1.f);
+                    }
+
                     //IFANY (!confirmed) { // if any ray allowed
                         // diffuse rays (planned acceleration by rasterizer)
                         rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);

@@ -66,6 +66,7 @@ namespace NSM {
             BufferType traverseCacheData;
 
             // output images
+            TextureType previousImage;
             TextureType accumulationImage;
             TextureType filteredImage;
             TextureType flagsImage;
@@ -532,20 +533,23 @@ namespace NSM {
                 device->logical.waitIdle();
                 destroyTexture(accumulationImage);
                 destroyTexture(filteredImage);
+                destroyTexture(previousImage);
                 destroyTexture(flagsImage);
 
                 accumulationImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
                 filteredImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+                previousImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
                 flagsImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(width), uint32_t(height), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
 
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&accumulationImage->descriptorInfo), // TODO previous sample not equalize to current
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&previousImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&flagsImage->descriptorInfo),
                 }, nullptr);
 
+                clearSampling();
                 syncUniforms();
             }
 
@@ -624,10 +628,25 @@ namespace NSM {
             }
 
             void clearSampling() {
+                rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
                 doCleanSamples = true;
             }
 
             void collectSamples() {
+
+                // copy texel storage data
+                vk::ImageCopy copyDesc;
+                copyDesc.dstOffset = { 0, 0, 0 };
+                copyDesc.srcOffset = { 0, 0, 0 };
+                copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight), 1 };
+                copyDesc.srcSubresource = accumulationImage->subresourceLayers;
+                copyDesc.dstSubresource = previousImage->subresourceLayers;
+
+                // copy images command
+                auto copyCommand = getCommandBuffer(device, true);
+                memoryCopyCmd(copyCommand, accumulationImage, previousImage, copyDesc);
+                flushCommandBuffer(device, copyCommand, true);
+
                 // clear command
                 vk::CommandBuffer clearCommand;
                 if (doCleanSamples) {
@@ -699,6 +718,7 @@ namespace NSM {
                 
                 //rayBlockData[0].materialUniform.time = randm();
                 rayBlockData[0].cameraUniform.ftime = float((milliseconds() - starttime) / (1000.0));
+                rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
                 rayBlockData[0].cameraUniform.camInv = glm::transpose(glm::inverse(frontSide));
                 rayBlockData[0].cameraUniform.projInv = glm::transpose(glm::inverse(persp));
                 syncUniforms();

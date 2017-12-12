@@ -81,7 +81,6 @@ set OPTFLAGS= ^
 --strip-debug ^
 --freeze-spec-const ^
 --cfg-cleanup ^
---merge-return ^
 --merge-blocks ^
 --strength-reduction ^
 --inline-entry-points-exhaustive ^
@@ -95,9 +94,7 @@ set OPTFLAGS= ^
 --eliminate-local-single-store ^
 --eliminate-local-multi-store ^
 --eliminate-common-uniform ^
---eliminate-insert-extract ^
---redundancy-elimination ^
---relax-store-struct 
+--eliminate-insert-extract 
 
 call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader.comp.spv         -o %OUTDIR%%VRTX%loader.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader-int16.comp.spv   -o %OUTDIR%%VRTX%loader-int16.comp.spv

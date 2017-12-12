@@ -160,26 +160,6 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 //#define _ADD(m,k) add(m,k)
 #define _ADD(m,k) min(m++,BAKED_STACK_SIZE-1)
 
-// intersectors for WARP's
-void testIntersectionPacked(inout int rayID, inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout BOOL_ isValid, inout float nearhit) {
-//void testIntersectionPacked(inout int rayID, inout vec3 orig, inout vec3 direct, inout int tri, inout BOOL_ isValid, inout float nearhit) {
-    BOOL_ near = BOOL_(tri >= 0) & isValid;
-
-    // planned packed math
-    vec2 uv2 = vec2(0.0f); float _d2 = intersectTriangle(orig, M, axis, tri, uv2, near);
-    //vec2 uv2 = vec2(0.0f); float _d2 = intersectTriangle(orig, direct, tri, uv2, near);
-
-    // include intersection
-    near = near & lessF(_d2, INFINITY) & lessEqualF(_d2, nearhit); //& greaterEqualF(_d2, 0.0f);
-
-    // if single thread, do cut (comment this line if WARP-wise)
-    IF (lessF(_d2, nearhit) & near) { nearhit = min(_d2, nearhit); bstackCount = 0; }
-
-    // include to cache
-    IF (near) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2, _d2, intBitsToFloat(tri));
-}
-
-
 // some optimize intersection and resolver
 void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
     deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))) & isValid);

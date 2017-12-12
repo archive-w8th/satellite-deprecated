@@ -351,13 +351,11 @@ bvec2 SSC(in bvec2 b){return b;}
 
 #define IF(b)if(SSC(b))
 
-
-
 // roundly comparsion functions
-BOOL_ lessEqualF(in float a, in float b) { return BOOL_((b-a) > -PZERO); }
-BOOL_ lessF(in float a, in float b) { return BOOL_((b-a) >= PZERO); }
-BOOL_ greaterEqualF(in float a, in float b) { return BOOL_((a-b) > -PZERO); }
-BOOL_ greaterF(in float a, in float b) { return BOOL_((a-b) >= PZERO); }
+BOOL_ lessEqualF(in float a, in float b) { return BOOL_(a<b+PZERO); }
+BOOL_ lessF(in float a, in float b) { return BOOL_(a<=b-PZERO); }
+BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(a+PZERO>b); }
+BOOL_ greaterF(in float a, in float b) { return BOOL_(a-PZERO>=b); }
 BOOL_ equalF(in float a, in float b) { return BOOL_(abs(a-b) < PZERO); }
 
 /*

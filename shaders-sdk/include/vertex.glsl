@@ -184,8 +184,9 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
 
 // 
 float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout vec2 UV, inout BOOL_ _valid) {
-    float T = INFINITY; BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
-    IF (valid) {
+    float T = INFINITY; _valid = tri < 0 ? FALSE_ : _valid; // pre-define
+    BOOL_ valid = FALSE_;
+    IF (_valid) {
         ivec2 ntri = gatherMosaic(getUniformCoord(tri));
         mat3 ABC = mat3(
             orig.xyz - fetchMosaic(vertex_texture, ntri, 0).xyz,
@@ -196,16 +197,20 @@ float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout
         
         vec3 pvec = cross(direct, ABC[2]);
         float idet = dot(ABC[1], pvec); idet = 1.f/(max(abs(idet),0.00001f)*(idet >= 0.f?1:-1));
-        float u = dot(ABC[0], pvec) * idet;
-        //vec3 qvec = cross(ABC[0], ABC[1]);
-        //float v = dot(direct, qvec) * idet;
-        //float t = dot(ABC[2], qvec) * idet;
-        pvec = cross(ABC[0], ABC[1]); // reuse variable
-        float v = dot(direct, pvec) * idet;
-        float t = dot(ABC[2], pvec) * idet;
-
-        valid &= greaterEqualF(t, 0.f) & greaterEqualF(u, 0.f) & greaterEqualF(v, 0.f) & lessEqualF(u+v, 1.f) & BOOL_(abs(idet) < 100000.f), UV = vec2(u,v);
-        return mix(INFINITY, t, valid);
+        if (abs(idet) < 100000.f) {
+            float u = dot(ABC[0], pvec) * idet;
+            if (u >= 0.f) {
+                vec3 qvec = cross(ABC[0], ABC[1]);
+                float t = dot(ABC[2], qvec) * idet;
+                IF (greaterEqualF(t, 0.f) & lessF(t, INFINITY)) {
+                    float v = dot(direct, qvec) * idet;
+                    if (v >= 0.f && u+v <= 1.f) {
+                        UV = vec2(u,v), T = t;
+                        valid = tri < 0 ? FALSE_ : _valid;
+                    }
+                }
+            }
+        }
     }
     return T;
 }

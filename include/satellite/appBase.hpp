@@ -53,9 +53,9 @@ namespace NSM {
 
         // instance layers
         std::vector<const char*> wantedLayers = {
-            "VK_LAYER_LUNARG_standard_validation",
-            "VK_LAYER_LUNARG_parameter_validation",
-            "VK_LAYER_LUNARG_core_validation",
+            //"VK_LAYER_LUNARG_standard_validation",
+            //"VK_LAYER_LUNARG_parameter_validation",
+            //"VK_LAYER_LUNARG_core_validation",
             "VK_LAYER_AMD_switchable_graphics",
             "VK_LAYER_GOOGLE_threading",
             "VK_LAYER_NV_optimus"
@@ -63,9 +63,6 @@ namespace NSM {
 
         // default device layers
         std::vector<const char*> wantedDeviceValidationLayers = {
-            "VK_LAYER_LUNARG_standard_validation",
-            "VK_LAYER_LUNARG_parameter_validation",
-            "VK_LAYER_LUNARG_core_validation",
             "VK_LAYER_AMD_switchable_graphics",
             "VK_LAYER_NV_optimus"
         };

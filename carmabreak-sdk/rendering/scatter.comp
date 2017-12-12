@@ -8,16 +8,14 @@
 
 layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
 layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
-layout ( binding = 2, set = 1, rgba32f ) uniform image2D prevsample;
-layout ( binding = 3, set = 1, r32i ) uniform iimage2D sampleflags;
-layout ( binding = 4, set = 1, rgba32f ) uniform image2D prevdepth;
-layout ( binding = 5, set = 1, rgba32f ) uniform image2D currdepth;
+layout ( binding = 2, set = 1, r32i ) uniform iimage2D sampleflags;
+layout ( binding = 3, set = 1, rgba32f ) uniform image2D currdepth;
 
 LOCAL_SIZE_LINEAR_LAYOUT;
 
 void main() {
     vec2 wh = vec2(RAY_BLOCK samplerUniform.sceneRes.xy);
-    vec2 whs = vec2(imageSize(presampled).xy);
+    vec2 whs = vec2(imageSize(presampled).xy); whs.y *= 0.5f; // divide height
     vec2 aspect = wh / whs;
     vec2 scl = ceil(aspect);
 
@@ -63,16 +61,18 @@ void main() {
 
                             IF (equalF(rd, dpl)) { dpl = rd; depth += prj; } else 
                             IF (lessF(rd, dpl)) { dpl = rd; depth = prj; }
-                            //depth += prj;
 
                             vec2 ssd = fma(cpj.xy, 0.5f.xx, 0.5f.xx);
                             IF (greaterEqualF(ssd.x,0.f) & greaterEqualF(ssd.y,0.f) & lessEqualF(ssd.x,1.f) & lessEqualF(ssd.y,1.f)) {
                                 if (RAY_BLOCK cameraUniform.enable360 == 1) { ssd.x = fract(ssd.x+0.25f); }
-                                ivec2 s2 = ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs));
-                                vec4 pd = vec4(imageLoad(prevdepth, s2).xyz, 1.f);
+                                ivec2 s2 = ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs + 0.0001f)); s2.y += int(whs.y);
+                                vec4 pd = vec4(imageLoad(currdepth, s2).xyz, 1.f);
                                 bool depthvld = length(pd.xyz - prj.xyz) < rd * 0.01f;
-                                if (depthvld || (s2.x == int(coord.x) && s2.y == int(coord.y)) && ( SSC(lessF(rd, INFINITY * 0.99f)) ? true : depthvld ) ) {
-                                    prevc = imageLoad(prevsample, s2);
+                                if (
+                                    (depthvld || (s2.x == int(coord.x) && (s2.y - int(whs.y)) == int(coord.y)) && ( SSC(lessF(rd, INFINITY * 0.99f)) ? true : depthvld )) && 
+                                    imageLoad(sampleflags, s2).x < 1
+                                ) {
+                                    prevc = imageLoad(presampled, s2);
                                     prevc.xyz *= prevc.w;
                                 }
                             }
@@ -104,7 +104,8 @@ void main() {
             if (imageLoad(sampleflags, cid).x > 0) {
                 vec4 xsample = imageLoad(presampled, cid);
                 imageStore(sampleflags, cid, ivec4(0));
-                imageStore(presampled, cid, vec4(xsample.xyz, min(0.f, xsample.a)));
+                imageStore(presampled, cid, vec4(0.f);
+                imageStore(presampled, cid + ivec2(0, whs.y), vec4(0.f));
             }
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample

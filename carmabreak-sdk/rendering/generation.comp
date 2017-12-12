@@ -111,7 +111,7 @@ void main()
                         dir = vec4(normalize(co.xyz - orig.xyz), 0.0f);
                     }
 
-                    texelBuf.nodes[idx].p3d = vec4(fma(dir.xyz, INFINITY.xxx, orig.xyz), 1.f);
+                    texelBuf.nodes[idx].p3d = vec4(fma(dir.xyz, INFINITY.xxx, eye.xyz), 1.f);
 
 
                     // apply DOF

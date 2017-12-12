@@ -53,14 +53,21 @@ namespace NSM {
 
         // instance layers
         std::vector<const char*> wantedLayers = {
-            //"VK_LAYER_LUNARG_standard_validation",
-            //"VK_LAYER_RENDERDOC_Capture"
+            "VK_LAYER_LUNARG_standard_validation",
+            "VK_LAYER_LUNARG_parameter_validation",
+            "VK_LAYER_LUNARG_core_validation",
+            "VK_LAYER_AMD_switchable_graphics",
+            "VK_LAYER_GOOGLE_threading",
+            "VK_LAYER_NV_optimus"
         };
 
         // default device layers
         std::vector<const char*> wantedDeviceValidationLayers = {
-            //"VK_LAYER_LUNARG_standard_validation",
-            //"VK_LAYER_RENDERDOC_Capture"
+            "VK_LAYER_LUNARG_standard_validation",
+            "VK_LAYER_LUNARG_parameter_validation",
+            "VK_LAYER_LUNARG_core_validation",
+            "VK_LAYER_AMD_switchable_graphics",
+            "VK_LAYER_NV_optimus"
         };
 
         vk::Instance createInstance() {
@@ -161,7 +168,7 @@ namespace NSM {
             uint32_t graphicsFamilyIndex = 0;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
             for (auto& queuefamily : gpuQueueProps) {
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics)) { // if graphics (and compute) queue?
+                if ((queuefamily.queueFlags & vk::QueueFlagBits::eGraphics) && (queuefamily.queueFlags & vk::QueueFlagBits::eCompute)) { // if graphics (and compute) queue?
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), graphicsFamilyIndex, 1, &priority));
                     break;
                 }

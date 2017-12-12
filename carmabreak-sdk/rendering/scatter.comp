@@ -104,7 +104,7 @@ void main() {
             if (imageLoad(sampleflags, cid).x > 0) {
                 vec4 xsample = imageLoad(presampled, cid);
                 imageStore(sampleflags, cid, ivec4(0));
-                imageStore(presampled, cid, vec4(0.f);
+                imageStore(presampled, cid, vec4(0.f));
                 imageStore(presampled, cid + ivec2(0, whs.y), vec4(0.f));
             }
 

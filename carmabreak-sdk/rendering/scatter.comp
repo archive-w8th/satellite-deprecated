@@ -66,10 +66,9 @@ void main() {
                             //depth += prj;
 
                             vec2 ssd = fma(cpj.xy, 0.5f.xx, 0.5f.xx);
-                            ivec2 s2 = ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs));
                             IF (greaterEqualF(ssd.x,0.f) & greaterEqualF(ssd.y,0.f) & lessEqualF(ssd.x,1.f) & lessEqualF(ssd.y,1.f)) {
                                 if (RAY_BLOCK cameraUniform.enable360 == 1) { ssd.x = fract(ssd.x+0.25f); }
-
+                                ivec2 s2 = ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs));
                                 vec4 pd = vec4(imageLoad(prevdepth, s2).xyz, 1.f);
                                 if (length(pd.xyz - prj.xyz) < rd * 0.01f || (s2.x == int(coord.x) && s2.y == int(coord.y)) && SSC(lessF(rd, INFINITY * 0.99f))) {
                                     prevc = imageLoad(prevsample, s2);

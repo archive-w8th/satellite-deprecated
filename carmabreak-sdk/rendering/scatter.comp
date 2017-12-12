@@ -68,10 +68,10 @@ void main() {
                                 if (RAY_BLOCK cameraUniform.enable360 == 1) { ssd.x = fract(ssd.x+0.25f); }
                                 ivec2 s2 = ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs + 0.0001f)); s2.y += int(whs.y);
                                 vec4 pd = vec4(imageLoad(currdepth, s2).xyz, 1.f);
-                                bool depthvld = length(pd.xyz - prj.xyz) < rd * 0.01f;
+                                bool depthvld = length(pd.xyz - prj.xyz) < rd * 0.002f;
                                 //vec4 cpj = divW(mult4(camProj, pd));
                                 if (
-                                    (depthvld || (s2.x == int(coord.x) && (s2.y - int(whs.y)) == int(coord.y) && rd <= INFINITY*0.999f-PZERO)) && 
+                                    (depthvld || (s2.x == int(coord.x) && (s2.y - int(whs.y)) == int(coord.y) && (rd < (INFINITY*0.999f) ? true : depthvld) )) && 
                                     imageLoad(sampleflags, s2).x < 1
                                 ) {
                                     prevc = imageLoad(presampled, s2);

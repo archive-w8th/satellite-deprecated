@@ -99,8 +99,6 @@ void storeStack(in int STI, in int VALUE) {
 #endif
 
 
-
-
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // 
 void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
@@ -168,13 +166,10 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
         BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
 
         // planned packed math
-        vec4 uv2 = vec4(0.0f); 
+        vec4 uv2 = vec4(0.0f);
         vec2 _d2 = vec2(
-            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x),
-            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y)
-
-            //intersectTriangle(currentRay.origin.xyz, currentRay.direct.xyz, deftri.x, uv2.xy, near.x),
-            //intersectTriangle(currentRay.origin.xyz, currentRay.direct.xyz, deftri.y, uv2.zw, near.y)
+            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x, predist),
+            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y, predist)
         );
 
         float _nearhit = predist;
@@ -196,91 +191,71 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
     }
 }
 
-
 // planned block optimized system
 void checkChildNodes() {
     IF (validBox) {
-        int found = -1; BOOL_ skipUpstream = not(validBox); BVEC2_ leftNear = TRUE2_;
+        int found = -1; BOOL_ skipUpstream = not(validBox);
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
+        bool leftNear = false;
 
         const vec2 inf2 = vec2(INFINITY);
         vec2 nears = inf2, fars = inf2;
 
         // calculate boxes intersections
         //IF (any(overlapsGeneral)) {
-        ivec2 siblings = (-1).xx;
-        ivec4 comp4 = ivec4(-1);
+        ivec4 comp4 = (-1).xxxx;
         IF (validBox) {
             // fetch bvh metadata
             comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
-            
-            BVEC2_ hitd = FALSE_.xx;
             { // test boxes
                 int _cmp = comp4.x >> 1;
 #ifdef FLATTEN_BOX
-                hitd = intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
+                overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
                     UNPACK_LANE_(bvhBoxes[_cmp][1]),
                     UNPACK_LANE_(bvhBoxes[_cmp][2])
                 ), nears, fars);
 #else
-                hitd = intersectCubeDual(origined, divident, bsgn, transpose(FMAT4X3_(
+                overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, transpose(FMAT4X3_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]).xyz,
                     UNPACK_LANE_(bvhBoxes[_cmp][1]).xyz,
                     UNPACK_LANE_(bvhBoxes[_cmp][2]).xyz,
                     UNPACK_LANE_(bvhBoxes[_cmp][3]).xyz
                 )), nears, fars);
 #endif
-                leftNear = BVEC2_(lessEqualF(nears.x, nears.y)), nears = fma(nears, dirlenInv.xx, toffset.xx);
+                leftNear = bool(lessEqualF(nears.x, nears.y)), nears = fma(nears, dirlenInv.xx, toffset.xx);
             }
             
             // validate intersection
-            overlapsGeneral &= hitd & 
+            overlapsGeneral &= 
                 BVEC2_(lessThan(nears, vec2(predist+PZERO))) & 
                 BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
         }
 
         // if test is valid, extract BVH meta data
-        bool _any = SSC(any(overlapsGeneral));
-        ivec2 nodepdata = _any ? comp4.xy : ivec2(-1);
-        overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear).yy, ivec2(esc.x)));
+        ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
+        //overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear.xx).yy, ivec2(esc.x)));
 
-        BVEC2_ leftOrder = mix(overlapsGeneral.xx, leftNear, all(overlapsGeneral).xx);
-        { // reorder nodes 
-            overlapsGeneral.xy = mix(overlapsGeneral.yx, overlapsGeneral.xy, leftOrder);
-            nodepdata.xy = mix(nodepdata.yx, nodepdata.xy, leftOrder);
-            nears.xy = mix(nears.yx, nears.xy, leftOrder);
+        // reorder nodes 
+        bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
+        if (!leftOrder) {
+            overlapsGeneral.xy = overlapsGeneral.yx, nodepdata.xy = nodepdata.yx, nears.xy = nears.yx;
         }
 
-        IF (validBox) { // culled intersection of leaf nodes
+        // culled intersection of leaf nodes
+        IF (validBox & any(overlapsGeneral)) {
             vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
             ivec4 sibs = ivec4(-1);
             ivec2 trig = ivec2(-1);
-            if (_any && comp4.x >= 0) {
-                sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), trig = SGATHER(bvhStorage, lw, 3).wx;
+            if (comp4.x >= 0) {
+                sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), 
+                trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);
             }
-            trig = mix(trig.yx, trig.xy, leftOrder), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder);
+            trig = mix(trig.yx, trig.xy, leftOrder.xx), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder.xx), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder.xx);
             intersectLeafs2(trig, overlapsGeneral);
             overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
         }
 
-#ifdef STACKLESS_BVH
-        // choice child nodes by nears
-        IF (any(overlapsGeneral)) {
-            skipUpstream = TRUE_;
-            nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx;
-            found = nodepdata.x;
-            IF (all(overlapsGeneral)) lastesc = ivec2(found, esc.y+1);
-        }
-
-        { // unified child/parent/another switcher
-            const bool _ssc = SSC(skipUpstream);
-            esc = (lastesc.x != -1 && !_ssc) ? lastesc : ivec2(idx, esc.y), esc.y += _sgn[uint(skipUpstream&TRUE_)], lastesc = _ssc ? lastesc : ivec2(-1, -1), 
-            idx = _ssc ? found : ((esc.x >= 0 && esc.y >= 0 && idx >= 0) ? comp4.z : -1), //LEGACY code
-            validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
-            idx = mix(-1, idx, validBox);
-        }
-#else
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
             skipUpstream = TRUE_, nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
@@ -298,10 +273,8 @@ void checkChildNodes() {
             validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
             idx = mix(-1, idx, validBox);
         }
-#endif
     }
 }
-
 
 void reorderTriangles() {
     int cnt = max(min(bstackCount, BAKED_STACK_SIZE), 0);
@@ -338,21 +311,14 @@ void reorderTriangles() {
     bstackCount = cleanBakedStackCount;
 }
 
-
 HitRework interpolateMeshData(inout HitRework res) {
     int tri = floatBitsToInt(res.uvt.w);
-    
     BOOL_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & BOOL_(tri != LONGEST);
-    //if (anyInvoc(validInterpolant)) {
     IF (validInterpolant) {
         ivec2 triv = gatherMosaic(getUniformCoord(tri));
 
         // transposed
-        mat3x3 triverts = mat3x3(
-            fetchMosaic(vertex_texture, triv, 0).xyz, 
-            fetchMosaic(vertex_texture, triv, 1).xyz, 
-            fetchMosaic(vertex_texture, triv, 2).xyz
-        );
+        mat3x3 triverts = mat3x3(fetchMosaic(vertex_texture, triv, 0).xyz, fetchMosaic(vertex_texture, triv, 1).xyz, fetchMosaic(vertex_texture, triv, 2).xyz);
         vec3 deltaPos1 = triverts[1] - triverts[0];
         vec3 deltaPos2 = triverts[2] - triverts[0];
         vec3 normal = normalize(cross(deltaPos1, deltaPos2));
@@ -364,17 +330,10 @@ HitRework interpolateMeshData(inout HitRework res) {
 
         // gather 
 #define trinorms triverts
-        trinorms = mat3x3(
-            SGATHER(normal_texture, trig, 0)._SWIZV,
-            SGATHER(normal_texture, trig, 1)._SWIZV,
-            SGATHER(normal_texture, trig, 2)._SWIZV
-        );
+        trinorms = mat3x3(SGATHER(normal_texture, trig, 0)._SWIZV, SGATHER(normal_texture, trig, 1)._SWIZV, SGATHER(normal_texture, trig, 2)._SWIZV);
         normal = faceforward(vs * trinorms, -normal, normal); // mult matrix
 
-        mat2x3 texcoords = mat2x3(
-            SGATHER(texcoords_texture, trig, 0)._SWIZV,
-            SGATHER(texcoords_texture, trig, 1)._SWIZV
-        );
+        mat2x3 texcoords = mat2x3(SGATHER(texcoords_texture, trig, 0)._SWIZV, SGATHER(texcoords_texture, trig, 1)._SWIZV);
         mat3x2 txds = transpose(texcoords);
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
@@ -392,17 +351,16 @@ HitRework interpolateMeshData(inout HitRework res) {
             HitActived(res, TRUE_); // temporary enable
         }
     }
-
     return res;
 }
 
-
 void includeChain(inout vec4 intersection) {
-    // reuse old chains (i.e. override)
+    // initial hit
     HitRework hitp; 
-    hitp.next = -1; 
-    hitp.uvt = vec4(vec2(0.0f), INFINITY, intBitsToFloat(-1));
+    hitp.next = -1;
+    //hitp.uvt = vec4(vec2(0.0f), INFINITY, intBitsToFloat(-1));
 
+    // reuse old chains (i.e. override)
     int hid = nodeCache[rayID].info.nextHt; if (hid > 0) hitp = hits[hid-1];
     nodeCache[rayID].info.nextHt = hitp.next > 0 ? hitp.next : -1; // next linked ID
 
@@ -429,24 +387,17 @@ void includeChain(inout vec4 intersection) {
 
         // link previous element (or header) with current
         int prvh = exchange(nodeCache[rayID].info.prevHt, hid);
-        if (prvh == -1) {
-            nodeCache[rayID].info.chainID = hid;
-        } else {
-            exchange(hits[prvh-1].next, hid);
-        }
+        if (prvh == -1) { nodeCache[rayID].info.chainID = hid; } else { exchange(hits[prvh-1].next, hid); }
     }
 }
 
-
 void choiceBaked() {
     mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1), BVEC2_(FALSE_)); // intersect rest triangles
-
     if (bstackCount > 0) {
         reorderTriangles();
         for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }
     }
 }
-
 
 LOCAL_SIZE_LAYOUT;
 
@@ -466,13 +417,12 @@ void main() {
         // begin traverse (save to caches)
         overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
         nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
-        beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
-
+        
         // global traversing
+        beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
         for (int iteration=0;iteration<2048;iteration++) {
             IFALL(not(validBox) | overflow | BOOL_(idx < 0)) break;
             checkChildNodes(); // traverse BVH
-            //simdIntersectionTriangles();
         }
         choiceBaked(); // sort of intersections
 
@@ -483,64 +433,4 @@ void main() {
             storeRay();
         }
     }
-
-/*
-    #define wsize RAY_BLOCK samplerUniform.blockCount
-    rayID = (int(gl_WorkGroupID.x) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x));
-    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
-    int wcount = min(tiled(wsize, wcsize), 50000);
-
-    // invoke available blocks
-    bool overflow = false;
-    int wgs = int(gl_NumWorkGroups);
-    for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
-
-        // check if not reached blocks limit
-        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
-        IFALL(overflow) break;
-        if (!overflow) {
-            
-            // accquire shading block
-            currentBlock = -1;
-            if (!overflow) accquireBlock(globalID);
-            bool invld = anyInvoc(overflow || currentBlock < 0 || currentBlockSize <= 0);
-            if (invld) { currentBlock = -1; continue; }
-            
-            // invoke block data
-            if (!invld) {
-                int bts = min(R_BLOCK_SIZE, currentBlockSize);
-                for (int tb = 0; tb < bts; tb += WARP_SIZE_RT) {
-                    int nid = tb + int(LANE_IDX);
-                    
-                    // overflow control
-                    BOOL_ overflow = BOOL_(invld || overflow || nid >= bts || nid < 0);
-                    IFALL(overflow) break;
-                    accquireNode(nid); overflow |= BOOL_(currentBlockNode < 0);
-                    IFALL(overflow) break;
-
-                    // begin traverse (save to caches)
-                    overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
-                    nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
-                    beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
-
-                    // global traversing
-                    for (int iteration=0;iteration<2048;iteration++) {
-                        IFALL(not(validBox) | overflow | BOOL_(idx < 0)) break;
-                        checkChildNodes(); // traverse BVH
-                        //simdIntersectionTriangles();
-                    }
-                    choiceBaked(); // sort of intersections
-
-                    // resolve intersection
-                    int chainID = nodeCache[rayID].info.chainID;
-                    if (chainID > 0 && SSC(not(overflow))) {
-                        currentRay.origin.w = intBitsToFloat(chainID);
-                        storeRay();
-                    }
-                }
-            }
-        }
-    }
-    */
 }

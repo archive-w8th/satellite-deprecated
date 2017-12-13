@@ -65,102 +65,13 @@ vec2 dot2(in mat3x2 a, in mat3x2 b) {
     //return vec2(dot(at[0], bt[0]), dot(at[1], bt[1]));
 }
 
-
-
 #ifndef VERTEX_FILLING
-
-vec2 intersectTriangle2(inout vec3 orig, inout vec3 dir, inout ivec2 tri, inout vec4 UV, inout bvec2 valid) {
-    UV = vec4(0.f);
-
-    vec2 t2 = vec2(INFINITY);
-
-    valid = and(valid, notEqual(tri, ivec2(LONGEST)));
-    if (any(valid)) {
-        ivec2 tri0 = gatherMosaic(getUniformCoord(tri.x));
-        ivec2 tri1 = gatherMosaic(getUniformCoord(tri.y));
-
-        mat3x2 v012x, v012y, v012z;
-        {
-            vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
-            vec2 ntri0 = fma(vec2(tri0), sz, hs), ntri1 = fma(vec2(tri1), sz, hs);
-            v012x = transpose(mat2x3(
-                SGATHER(vertex_texture, ntri0, 0)._SWIZV,
-                SGATHER(vertex_texture, ntri1, 0)._SWIZV
-            )), 
-            v012y = transpose(mat2x3(
-                SGATHER(vertex_texture, ntri0, 1)._SWIZV,
-                SGATHER(vertex_texture, ntri1, 1)._SWIZV
-            )), 
-            v012z = transpose(mat2x3(
-                SGATHER(vertex_texture, ntri0, 2)._SWIZV,
-                SGATHER(vertex_texture, ntri1, 2)._SWIZV
-            ));
-        }
-
-        mat3x2 e1 = mat3x2(v012x[1] - v012x[0], v012y[1] - v012y[0], v012z[1] - v012z[0]);
-        mat3x2 e2 = mat3x2(v012x[2] - v012x[0], v012y[2] - v012y[0], v012z[2] - v012z[0]);
-        mat3x2 dir2 = mat3x2(dir.xx, dir.yy, dir.zz);
-        mat3x2 orig2 = mat3x2(orig.xx, orig.yy, orig.zz);
-
-        mat3x2 pvec = mat3x2(
-            fma(dir2[1], e2[2], - dir2[2] * e2[1]), 
-            fma(dir2[2], e2[0], - dir2[0] * e2[2]), 
-            fma(dir2[0], e2[1], - dir2[1] * e2[0])
-        );
-
-        vec2 det = dot2(pvec, e1);
-        valid = and(valid, greaterThan(abs(det), vec2(0.f)));
-        if (any(valid)) {
-            vec2 invDev = 1.f / (max(abs(det), 0.0001f) * sign(det));
-            mat3x2 tvec = orig2; // reuse
-            tvec = mat3x2(
-                tvec[0] - v012x[0],
-                tvec[1] - v012y[0], 
-                tvec[2] - v012z[0]
-            );
-
-            vec2 u = vec2(0.f);
-            u = dot2(tvec, pvec) * invDev;
-            valid = and(valid, and(greaterThanEqual(u, vec2(-0.0001f)), lessThan(u, vec2(1.0001f))));
-            if (any(valid)) {
-                mat3x2 qvec = tvec;
-                qvec = mat3x2(
-                    fma(qvec[1], e1[2], -qvec[2] * e1[1]),
-                    fma(qvec[2], e1[0], -qvec[0] * e1[2]),
-                    fma(qvec[0], e1[1], -qvec[1] * e1[0])
-                );
-
-                vec2 v = vec2(0.f);
-                v = dot2(dir2, qvec) * invDev;
-                valid = and(valid, and(greaterThanEqual(v, vec2(-0.0001f)), lessThan(u+v, vec2(1.0001f))));
-                if (any(valid)) {
-                    // distance
-                    t2 = dot2(e2, qvec) * invDev;
-                    valid = and(valid, lessThan(t2, vec2(INFINITY - PZERO)));
-                    valid = and(valid, greaterThan(t2, vec2(0.0f - PZERO)));
-
-                    UV = vec4(u, v);
-                }
-            }
-        }
-    }
-
-    return mix(vec2(INFINITY), t2, valid);
-}
-
-
-
-
-
-
-const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
-
-// 
-float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout vec2 UV, inout BOOL_ _valid) {
+float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
     float T = INFINITY; BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
+    const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
+    const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
     IF (valid) {
-        // gather patterns (may have papers, I didn't know)
-        vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
+        // gather patterns
         vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
         mat3 ABC = mat3(
             SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
@@ -171,7 +82,7 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
         // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
         // http://jcgt.org/published/0002/01/05/paper.pdf
         vec3 UVW_ = D[axis] * inverse(ABC);
-        valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f)))) | BOOL_(all(lessThanEqual(UVW_, vec3(0.f))));
+        valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
         IF (valid) {
             float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.00001f)*(det>=0.f?1:-1));
             UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
@@ -181,44 +92,7 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
     }
     return T;
 }
-
-// 
-float intersectTriangle(inout vec3 orig, inout vec3 direct, inout int tri, inout vec2 UV, inout BOOL_ _valid) {
-    float T = INFINITY; _valid = tri < 0 ? FALSE_ : _valid; // pre-define
-    BOOL_ valid = FALSE_;
-    IF (_valid) {
-        ivec2 ntri = gatherMosaic(getUniformCoord(tri));
-        mat3 ABC = mat3(
-            orig.xyz - fetchMosaic(vertex_texture, ntri, 0).xyz,
-            orig.xyz - fetchMosaic(vertex_texture, ntri, 1).xyz,
-            orig.xyz - fetchMosaic(vertex_texture, ntri, 2).xyz
-        );
-        ABC[1] = ABC[0] - ABC[1], ABC[2] = ABC[0] - ABC[2];
-        
-        vec3 pvec = cross(direct, ABC[2]);
-        float idet = dot(ABC[1], pvec); idet = 1.f/(max(abs(idet),0.00001f)*(idet >= 0.f?1:-1));
-        if (abs(idet) < 100000.f) {
-            float u = dot(ABC[0], pvec) * idet;
-            if (u >= 0.f) {
-                vec3 qvec = cross(ABC[0], ABC[1]);
-                float t = dot(ABC[2], qvec) * idet;
-                IF (greaterEqualF(t, 0.f) & lessF(t, INFINITY)) {
-                    float v = dot(direct, qvec) * idet;
-                    if (v >= 0.f && u+v <= 1.f) {
-                        UV = vec2(u,v), T = t;
-                        valid = tri < 0 ? FALSE_ : _valid;
-                    }
-                }
-            }
-        }
-    }
-    return T;
-}
-
-
-
 #endif
-
 
 //==============================
 // Current layout 

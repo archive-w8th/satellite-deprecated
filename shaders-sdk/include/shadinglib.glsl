@@ -22,8 +22,8 @@ vec3 lightCenter(in int i) {
 }
 
 vec3 sLight(in int i) {
-    return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
-    //return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
+    //return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
+    return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
 }
 
 float intersectSphere(in vec3 origin, in vec3 ray, in vec3 sphereCenter, in float sphereRadius) {
@@ -55,10 +55,10 @@ float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist)
 RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 normal) {
     RayActived(directRay, RayType(directRay) == 2 ? FALSE_ : RayActived(directRay));
     RayDL(directRay, TRUE_);
-    RayType(directRay, 2);
     RayTargetLight(directRay, i);
-    RayBounce(directRay, min(1, max(RayBounce(directRay)-1, 0)));
-    
+    RayBounce(directRay, min(1, max(RayBounce(directRay) - (RayType(directRay) == 0 ? 0 : 1), 0)));
+    RayType(directRay, 2);
+
     vec3 lpath = sLight(i) - directRay.origin.xyz;
     vec3 ldirect = normalize(lpath);
     float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
@@ -82,15 +82,17 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 n
 RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     ray.color.xyz *= color;
     ray.final.xyz *= 0.f;
+
+    const int diffuse_reflections = 1; // i.e. support only emissions, even no support caustics 
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
-    RayBounce(ray, min(2, max(RayBounce(ray) - (RayType(ray) == 0 ? 0 : 1), 0)));
+    RayBounce(ray, min(diffuse_reflections, max(RayBounce(ray) - (RayType(ray) == 0 ? 0 : 1), 0)));
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    //vec3 sdr = rayStreams[int(floor(16.f * random(rayStreams[RayBounce(ray)].superseed.x)))].diffuseStream.xyz; // experimental random choiced selection
-    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    vec3 sdr = rayStreams[int(floor(16.f * random(rayStreams[RayBounce(ray)].superseed.x)))].diffuseStream.xyz; // experimental random choiced selection
+    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    //ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
+    ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED
@@ -123,8 +125,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     ray.final.xyz *= 0.f;
 
     // bounce mini-config
-    const int caustics_bounces = 1;
-    const int reflection_bounces = 2;
+    const int caustics_bounces = 1, reflection_bounces = 1;
 
     //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
     if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics
@@ -132,13 +133,13 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     RayBounce(ray, min(RayType(ray) == 1 ? caustics_bounces : reflection_bounces, max(RayBounce(ray)-1, 0)));
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    //vec3 sdr = rayStreams[int(floor(16.f * random(rayStreams[RayBounce(ray)].superseed.x)))].diffuseStream.xyz; // experimental random choiced selection
-    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    vec3 sdr = rayStreams[int(floor(16.f * random(rayStreams[RayBounce(ray)].superseed.x)))].diffuseStream.xyz; // experimental random choiced selection
+    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
 
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * random(), 0.0f, 1.0f)));
-    //sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
-    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
+    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
+    //sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
 

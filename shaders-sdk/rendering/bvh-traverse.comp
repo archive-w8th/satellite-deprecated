@@ -67,7 +67,7 @@ BVEC3_ bsgn = FALSE_.xxx; BOOL_ validBox = FALSE_;
 float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
 ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1), deftri = ivec2(-1);
 int idx = 0, bstackCount = 0, deferredPtr = 0;
-bool mergeRestCmd = false;
+bool mergeRestCmd = false, awaitFlag = false;
 #define validBoxIn validBox
 
 
@@ -161,6 +161,8 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 // some optimize intersection and resolver
 void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
     deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))) & isValid);
+
+    //if (allInvoc(deftri.x >= 0 || deftri.y >= 0 || !validBox) || mergeRestCmd) 
     {
         //mergeRestCmd = false;
         BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
@@ -187,8 +189,10 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
         IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
         IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(deftri.y));
 
-        deftri.x = -1, deftri.y = -1;
-    }
+        deftri.x = -1, deftri.y = -1, awaitFlag = false;
+    } //else {
+        //awaitFlag = true;
+    //}
 }
 
 // planned block optimized system
@@ -228,7 +232,7 @@ void checkChildNodes() {
             
             // validate intersection
             overlapsGeneral &= 
-                BVEC2_(lessThan(nears, vec2(predist+PZERO))) & 
+                //BVEC2_(lessThan(nears, vec2(predist+PZERO))) & 
                 BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
         }
 

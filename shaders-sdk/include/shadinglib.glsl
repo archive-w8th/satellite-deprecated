@@ -83,7 +83,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     ray.color.xyz *= color;
     ray.final.xyz *= 0.f;
 
-    const int diffuse_reflections = 1; // i.e. support only emissions, even no support caustics 
+    const int diffuse_reflections = 2;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayBounce(ray, min(diffuse_reflections, max(RayBounce(ray) - (RayType(ray) == 0 ? 0 : 1), 0)));
 
@@ -125,7 +125,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     ray.final.xyz *= 0.f;
 
     // bounce mini-config
-    const int caustics_bounces = 1, reflection_bounces = 1;
+    const int caustics_bounces = 0, reflection_bounces = 2;
 
     //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
     if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics

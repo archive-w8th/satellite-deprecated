@@ -194,7 +194,7 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
 // planned block optimized system
 void checkChildNodes() {
     IF (validBox) {
-        int found = -1; BOOL_ skipUpstream = not(validBox);
+        int found = -1;
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
         bool leftNear = false;
 
@@ -234,7 +234,6 @@ void checkChildNodes() {
 
         // if test is valid, extract BVH meta data
         ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
-        //overlapsGeneral &= BVEC2_(nodepdata.x != esc.x, nodepdata.y != esc.x) & BVEC2_(notEqual(mix(nodepdata.yx, nodepdata.xy, leftNear.xx).yy, ivec2(esc.x)));
 
         // reorder nodes 
         bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
@@ -258,7 +257,7 @@ void checkChildNodes() {
 
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
-            skipUpstream = TRUE_, nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
+            nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
             IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
                 storeStack(min(deferredPtr++, STACK_SIZE_SM-1), nodepdata.y);
             }
@@ -266,12 +265,9 @@ void checkChildNodes() {
         }
 
         { // unified child/parent/another switcher
-            const bool _ssc = SSC(skipUpstream);
-            int ptr = (deferredPtr -= not(skipUpstream)); 
-            deferredPtr = max(deferredPtr, 0);
-            esc.x = idx, idx = _ssc ? found : loadStack(ptr), 
-            validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), 
-            idx = mix(-1, idx, validBox);
+            bool _ssc = found >= 0;
+            int ptr = (deferredPtr -= _ssc ? 0 : 1); deferredPtr = max(deferredPtr, 0);
+            esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
         }
     }
 }

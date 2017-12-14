@@ -262,7 +262,7 @@ void main() {
                     float prom = clamp01(1.f - diffcolor.a); // transmission power
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
-                    //spca *= 0.f; // performance debug
+                    spca *= 0.f; // performance debug
 
                     // diffuse and specular colors (based on priorities)
                     vec3 _specular = clamp01(speccolor.xyz / spca);
@@ -309,7 +309,7 @@ void main() {
                         createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
                         storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
-                        
+
                         // shadow rays
                         confirmed = true; // no, you can't write shadows on...
                         rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);

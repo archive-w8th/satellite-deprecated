@@ -127,7 +127,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // calculate box projected rays
     {
         divident = FVEC3_(dirproj);
-        origined = FVEC3_(fma(torig,dirproj, -toffset.xxx));
+        origined = FVEC3_(fma(-toffset.xxx,1.f/dirproj,torig)*dirproj);
         bsgn = (BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
         toffset *= dirlenInv;
     }
@@ -232,7 +232,7 @@ void checkChildNodes() {
             
             // validate intersection
             overlapsGeneral &= 
-                //BVEC2_(lessThan(nears, vec2(predist+PZERO))) & 
+                BVEC2_(lessThan(nears, vec2(predist+PZERO))) & 
                 BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
         }
 

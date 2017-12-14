@@ -224,6 +224,7 @@ void main() {
 
             emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
             diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
+            //diffuse = vec4(1.f.xxxx);
 
             hit.normalHeight.xyzw = vec4(normalize(tbn * normalize(textured.bump.xyz)), 1.f).xyzw;
             hit.emission.xy = packHalf2(emission.xyzw).xy;

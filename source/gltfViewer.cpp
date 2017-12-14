@@ -339,7 +339,7 @@ namespace SatelliteExample {
         if (gltfModel.scenes.size() > 0) {
             for (int n = 0; n < gltfModel.scenes[sceneID].nodes.size(); n++) {
                 tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
-                traverse(node, glm::dmat4(matrix), 2);
+                traverse(node, glm::dmat4(matrix), 8);
             }
         }
 #endif

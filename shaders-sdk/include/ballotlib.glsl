@@ -138,6 +138,9 @@ uvec2 genLtMask() {
     return lookat_lt[LANE_IDX] & filterBallot();
 }
 
+uvec2 genGeMask() {
+    return lookat_lt[LANE_IDX] ^ filterBallot();
+}
 
 vec4 readLane(in vec4 val, in int lane) {
     return readInvocationARB(val, lane);
@@ -221,7 +224,7 @@ int countInvocs(in BOOL_ val){
 
 
 int firstActive() {
-    return lsb(ballotHW(TRUE_));
+    return msb(ballotHW(TRUE_));
 }
 
 
@@ -303,6 +306,9 @@ T fname(in uint WHERE, in BOOL_ value) { \
 }
 
 
+int interpolInvocation(in BOOL_ value){
+    return msb(ballotHW(value) & genGeMask());
+}
 
 
 bool allInvoc(in bool bc){

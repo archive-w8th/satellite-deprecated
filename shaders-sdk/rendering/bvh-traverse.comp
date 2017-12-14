@@ -163,6 +163,10 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
     deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))) & isValid);
 
     //if (allInvoc(deftri.x >= 0 || deftri.y >= 0 || !validBox) || mergeRestCmd) 
+
+    // interlane intersection may occur double-triangle issue (and transparency problems)
+    //int interpL = interpolInvocation(BOOL_(deftri.x >= 0)), interpR = interpolInvocation(BOOL_(deftri.y >= 0)); // implant for unbusy lanes
+    //deftri = mix(ivec2(readLane(deftri.x, interpL), readLane(deftri.y, interpR)), deftri, greaterThanEqual(deftri, ivec2(0)));
     {
         //mergeRestCmd = false;
         BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
@@ -246,15 +250,17 @@ void checkChildNodes() {
         }
 
         // culled intersection of leaf nodes
+        ivec2 trig = ivec2(-1); ivec4 sibs = ivec4(-1);
         IF (validBox & any(overlapsGeneral)) {
             vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
-            ivec4 sibs = ivec4(-1);
-            ivec2 trig = ivec2(-1);
             if (comp4.x >= 0) {
                 sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), 
                 trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);
             }
             trig = mix(trig.yx, trig.xy, leftOrder.xx), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder.xx), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder.xx);
+        }
+
+        IF (validBox) { // intersect with interpolations per neightbors
             intersectLeafs2(trig, overlapsGeneral);
             overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
         }

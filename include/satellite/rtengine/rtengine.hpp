@@ -1,4 +1,4 @@
-//#pragma once
+//#pragma once // it is aggregation of implementation and headers
 
 #include "./structs.hpp"
 #include "./triangleHierarchy.hpp"

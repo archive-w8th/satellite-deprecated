@@ -132,13 +132,13 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
     int streamID = int(floor(16.f * random()));
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
-    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
+    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
 
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
     //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * random(), 0.0f, 1.0f)));
-    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
-    //sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
+    //sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
+    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
     //sdr = reflect(ray.direct.xyz, normal);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);

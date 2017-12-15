@@ -634,6 +634,7 @@ namespace NSM {
             }
 
             void clearSampling() {
+                sequenceId = sequenceId % 2147483647;
                 rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
                 doCleanSamples = true;
             }
@@ -724,7 +725,7 @@ namespace NSM {
                     rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
                     rayStreamsData[i].superseed = glm::ivec4(sequenceId+i, sequenceId+i + num_seeds*1, sequenceId+i + num_seeds*2, sequenceId+i + num_seeds*3);
                 }
-                sequenceId++;
+                sequenceId = (sequenceId+1) % 2147483647;
 
                 // precalculate light center
                 for (int i = 0; i < lightUniformData.size(); i++) {

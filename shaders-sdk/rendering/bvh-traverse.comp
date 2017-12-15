@@ -127,7 +127,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // calculate box projected rays
     {
         divident = FVEC3_(dirproj);
-        origined = FVEC3_(fma(-toffset.xxx,1.f/dirproj,torig)*dirproj);
+        origined = FVEC3_(fma(torig,dirproj,-toffset.xxx));
         bsgn = (BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
         toffset *= dirlenInv;
     }

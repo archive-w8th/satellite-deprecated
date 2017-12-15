@@ -4,11 +4,8 @@
 #include "./vkutils/vkUtils.hpp"
 
 namespace NSM {
-
     class ApplicationBase {
     protected:
-
-        
 
         struct SurfaceWindow {
             GLFWwindow* window;

@@ -125,10 +125,5 @@ namespace ambientIO {
         //  mousewheel support
         //  
 
-
     }
-
-
-
-
 };

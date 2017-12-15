@@ -1,12 +1,10 @@
 #pragma once
 
 #include "imgui.h"
-
 #include "./vkutils/vkStructures.hpp"
 #include "./vkutils/vkUtils.hpp"
 
 namespace NSM {
-
     class GuiRenderEngine {
     protected:
 
@@ -23,16 +21,11 @@ namespace NSM {
         vk::PipelineLayout pipelineLayout;
         vk::PipelineCache pipelineCache;
 
-
-
         // where will upload/loading data
-        BufferType generalStagingBuffer;
-        BufferType generalLoadingBuffer;
-
+        BufferType generalStagingBuffer, generalLoadingBuffer;
 
         // vertex and indices buffers
-        BufferType vertBuffer;
-        BufferType idcsBuffer;
+        BufferType vertBuffer, idcsBuffer;
         TextureType fontTexture;
 
 
@@ -389,8 +382,5 @@ namespace NSM {
             }
         }
 
-
-
     };
-
 };

@@ -17,9 +17,8 @@
 #include <GLFW/glfw3native.h>
 #include <functional>
 
+#include "satellite/rtengine/rtengine.hpp"
 #include "satellite/appBase.hpp"
-#include "satellite/rtengine/triangleHierarchy.hpp"
-#include "satellite/rtengine/pipeline.hpp"
 #include "satellite/guiEngine.hpp"
 #include "satellite/ambientIO.hpp"
 #include "args.hxx"

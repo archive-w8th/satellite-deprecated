@@ -1,11 +1,9 @@
 #pragma once
 
-// Readme license https://github.com/AwokenGraphics/prismarine-core/blob/master/LICENSE.md
-
-#include "../utils.hpp"
+//#include "../utils.hpp"
+#include "glm/glm.hpp"
 
 namespace NSM {
-
     namespace rt {
 
         struct bbox {
@@ -39,7 +37,6 @@ namespace NSM {
             int materialID;
             int next;
         };
-
 
         struct Texel {
             glm::vec4 coord;
@@ -216,5 +213,4 @@ namespace NSM {
         };
 
     }
-
 }

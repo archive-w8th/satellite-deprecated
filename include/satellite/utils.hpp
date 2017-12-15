@@ -16,6 +16,7 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/transform.hpp"
+#include "glm/gtc/random.hpp"
 
 #ifdef USE_FREEIMAGE
 #include "FreeImage.h"
@@ -36,7 +37,6 @@
 #endif
 
 namespace NSM {
-
     auto randm() {
         auto dvc = std::mt19937(std::random_device()());
         return std::uniform_int_distribution<int>(0, 2147483647)(dvc);
@@ -63,9 +63,4 @@ namespace NSM {
     }
 
     const int32_t zero[1] = { 0 };
-
-
-
-
-
 }

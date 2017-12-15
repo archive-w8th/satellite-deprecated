@@ -5,8 +5,14 @@
 #include "satellite/ambientIO.hpp"
 #include "application.hpp"
 
-// application space itself
 
+// load implementations
+#define RT_ENGINE_IMPLEMENT 
+#include "satellite/rtengine/rtengine.hpp"
+#include "satellite/impl/radixSort.inl"
+
+
+// application space itself
 namespace SatelliteExample {
 
     int32_t getTextureIndex(std::map<std::string, double> &mapped) {

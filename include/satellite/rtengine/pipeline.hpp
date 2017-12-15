@@ -115,6 +115,8 @@ namespace NSM {
             bool hitCountGot = false;
             bool doCleanSamples = false;
 
+            size_t sequenceId = 0;
+
         protected:
 
             void syncUniforms() {
@@ -716,11 +718,13 @@ namespace NSM {
             void generate(const glm::mat4 &persp, const glm::mat4 &frontSide) {
                 clearRays();
 
-                rayStreamsData.resize(16);
+                const size_t num_seeds = 16;
+                rayStreamsData.resize(num_seeds);
                 for (int i = 0; i < rayStreamsData.size();i++) {
                     rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
-                    rayStreamsData[i].superseed = glm::ivec4(randm(), randm(), randm(), randm());
+                    rayStreamsData[i].superseed = glm::ivec4(sequenceId+i, sequenceId+i + num_seeds*1, sequenceId+i + num_seeds*2, sequenceId+i + num_seeds*3);
                 }
+                sequenceId++;
 
                 // precalculate light center
                 for (int i = 0; i < lightUniformData.size(); i++) {

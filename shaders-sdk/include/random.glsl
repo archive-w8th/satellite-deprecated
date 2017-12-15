@@ -5,18 +5,16 @@ uint randomClocks = 0;
 uint globalInvocationSMP = 0;
 uint subHash = 0;
 
-uint hash( uint x ) {
-    x += ( x << 10u );
-    x ^= ( x >>  6u );
-    x += ( x <<  3u );
-    x ^= ( x >> 11u );
-    x += ( x << 15u );
-    return x;
-}
 
-uint hash( uvec2 v ) { return hash( v.x ^ hash(v.y)                         ); }
-uint hash( uvec3 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z))             ); }
-uint hash( uvec4 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z ^ hash(v.w))) ); }
+// bitfield >> float aggregators
+float radicalInverse_VdC(in uint bits) {
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return clamp(fract(float(bits) * 2.3283064365386963e-10), 0.f, 1.f);
+}
 
 float floatConstruct( in uint m ) {
     uint ieeeMantissa = 0x007FFFFFu;
@@ -26,50 +24,56 @@ float floatConstruct( in uint m ) {
     return clamp(fract(uintBitsToFloat(m)), 0.f, 1.f);
 }
 
-float random( in uint   x ) { return floatConstruct(hash(x)); }
-float random( in uvec2  v ) { return floatConstruct(hash(v)); }
-float random( in uvec3  v ) { return floatConstruct(hash(v)); }
-float random( in uvec4  v ) { return floatConstruct(hash(v)); }
 
-float randomSeeded( in int superseed) {
-#ifdef USE_ARB_CLOCK
-    return random(uvec4( globalInvocationSMP << 6, clock2x32ARB(), subHash ));
-#else
-    uint hs = hash(uvec2(++randomClocks, superseed)); randomClocks = hs;
-    return random(uvec3( globalInvocationSMP << 6, hs, subHash ));
-#endif
-}
-
-float random() {
-    return randomSeeded(rayStreams[0].superseed.x);
+// seeds hashers
+uint hash( in uint x ) {
+    x += ( x << 10u );
+    x ^= ( x >>  6u );
+    x += ( x <<  3u );
+    x ^= ( x >> 11u );
+    x += ( x << 15u );
+    return x;
 }
 
 
-vec3 randomCosine(in vec3 normal) {
-     float up = sqrt(random());
-     float over = sqrt(1.f - up * up);
-     float around = random() * TWO_PI;
+// multi-dimensional seeds hashers
+uint hash( in uvec2 v ) { return hash( v.x ^ hash(v.y)                         ); }
+uint hash( in uvec3 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z))             ); }
+uint hash( in uvec4 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z ^ hash(v.w))) ); }
 
-    vec3 perpendicular0 = vec3(0, 0, 1);
-    if (abs(normal.x) < SQRT_OF_ONE_THIRD) {
-        perpendicular0 = vec3(1, 0, 0);
-    } else if (abs(normal.y) < SQRT_OF_ONE_THIRD) {
-        perpendicular0 = vec3(0, 1, 0);
-    }
 
-     vec3 perpendicular1 = normalize( cross(normal, perpendicular0) );
-     vec3 perpendicular2 =            cross(normal, perpendicular1);
-    return normalize(
-        fma(normal, vec3(up),
-            fma( perpendicular1 , vec3(cos(around)) * over,
-                 perpendicular2 * vec3(sin(around)) * over
-            )
-        )
-    );
+// aggregated randoms from seeds
+float hrand( in uint   x ) { return radicalInverse_VdC(hash(x)); }
+float hrand( in uvec2  v ) { return radicalInverse_VdC(hash(v)); }
+float hrand( in uvec3  v ) { return radicalInverse_VdC(hash(v)); }
+float hrand( in uvec4  v ) { return radicalInverse_VdC(hash(v)); }
+
+
+// 1D random generators from superseed
+float random( in int superseed ) {
+    uint hs = (++randomClocks); randomClocks <<= 1;
+    return hrand( uvec4(globalInvocationSMP << 6, subHash, superseed, hs) );
 }
 
+
+// 2D random generators from superseed
+vec2 hammersley2d(in uint N, in int superseed) {
+    uint hs = (++randomClocks); randomClocks <<= 1;
+    uint i = hash( uvec4(globalInvocationSMP << 6, subHash, superseed, hs) );
+    return vec2(fract(float(i%N) / float(N)), radicalInverse_VdC(i));
+}
+
+
+// static aggregated randoms
+float random() { return random(rayStreams[0].superseed.x); }
+vec2 hammersley2d(in uint N) { return hammersley2d(N, rayStreams[0].superseed.x); }
+
+
+
+// geometric random generators
 vec3 randomCosine(in vec3 normal, in int superseed) {
-    float up = sqrt(randomSeeded(superseed)), over = sqrt(1.f - up * up), around = randomSeeded(superseed) * TWO_PI;
+    vec2 hmsm = hammersley2d(32, superseed);
+    float up = sqrt(hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
     vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
     vec3 perpendicular2 = normalize(cross(normal, perpendicular1));
@@ -77,7 +81,8 @@ vec3 randomCosine(in vec3 normal, in int superseed) {
 }
 
 vec3 randomDirectionInSphere() {
-    float up = fma(random(), 2.0f, -1.0f), over = sqrt(1.f - up * up), around = random() * TWO_PI;
+    vec2 hmsm = hammersley2d(32);
+    float up = fma(hmsm.x, 2.0f, -1.0f), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( up, cos(around) * over, sin(around) * over ));
 }
 

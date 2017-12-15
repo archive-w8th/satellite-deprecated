@@ -11,10 +11,6 @@ float computeFresnel(in vec3 normal, in vec3 indc, in float n1, in float n2) {
     return sqrt(clamp(sqlen(vec2(Rs, Rp)) * 0.5f, 0.0f, 1.0f));
 }
 
-vec3 glossy(in vec3 dir, in vec3 normal, in float refli) {
-    return normalize(fmix(normalize(dir), randomCosine(normal), clamp(sqrt(random()) * refli, 0.0f, 1.0f).xxx));
-}
-
 vec3 lightCenter(in int i) {
     vec3 playerCenter = vec3(0.0f);
     vec3 lvec = normalize(lightUniform.lightNode[i].lightVector.xyz) * (lightUniform.lightNode[i].lightVector.y < 0.0f ? -1.0f : 1.0f);
@@ -90,11 +86,11 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     int streamID = int(floor(16.f * random()));
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
-    //vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
+    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
+    //ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED
@@ -114,7 +110,6 @@ RayRework emissive(in RayRework ray, in vec3 color, in vec3 normal) {
     ray.final.xyz = max(ray.color.xyz * color, vec3(0.0f));
     ray.final = RayType(ray) == 2 ? vec4(0.0f) : ray.final;
     ray.color.xyz *= 0.0f;
-    ray.direct.xyz = normalize(randomCosine(normal));
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
     RayBounce(ray, 0);
     RayActived(ray, FALSE_);

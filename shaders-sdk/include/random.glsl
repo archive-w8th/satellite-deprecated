@@ -16,23 +16,19 @@ float radicalInverse_VdC(in uint bits) {
     return clamp(fract(float(bits) * 2.3283064365386963e-10), 0.f, 1.f);
 }
 
+
 float floatConstruct( in uint m ) {
-    uint ieeeMantissa = 0x007FFFFFu;
-    uint ieeeOne = 0x3F800000u;
-    m &= ieeeMantissa;
-    m |= ieeeOne;
-    return clamp(fract(uintBitsToFloat(m)), 0.f, 1.f);
+    return clamp(fract(1.f-uintBitsToFloat((m & 0x007FFFFFu) | 0x3F800000u)), 0.f, 1.f);
 }
 
 
 // seeds hashers
 uint hash( in uint a ) {
-    a = (a+0x7ed55d16) + (a<<12);
-    a = (a^0xc761c23c) ^ (a>>19);
-    a = (a+0x165667b1) + (a<<5);
-    a = (a+0xd3a2646c) ^ (a<<9);
-    a = (a+0xfd7046c5) + (a<<3);
-    a = (a^0xb55a4f09) ^ (a>>16);
+    a += ( a << 10u );
+    a ^= ( a >>  6u );
+    a += ( a <<  3u );
+    a ^= ( a >> 11u );
+    a += ( a << 15u );
     return a;
 }
 

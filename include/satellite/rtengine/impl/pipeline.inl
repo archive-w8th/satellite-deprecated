@@ -520,7 +520,7 @@ namespace NSM {
         }
 
         void Pipeline::clearSampling() {
-            sequenceId = sequenceId % 2147483647;
+            sequenceId = randm(2147483647); // regenerate starting sequence
             rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
             doCleanSamples = true;
         }

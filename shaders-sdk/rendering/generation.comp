@@ -77,7 +77,7 @@ void main()
 
                 IFALL(overflow) break;
                 if (vbn) {
-                    vec2 rnd = hammersley2d(1024, rayStreams[_SEED_ID].superseed.x);
+                    vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed.x);
                     vec2 coord = (vec2(xy) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
 
                     Texel txfi = texelBuf.nodes[idx];

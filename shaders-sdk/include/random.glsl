@@ -26,13 +26,14 @@ float floatConstruct( in uint m ) {
 
 
 // seeds hashers
-uint hash( in uint x ) {
-    x += ( x << 10u );
-    x ^= ( x >>  6u );
-    x += ( x <<  3u );
-    x ^= ( x >> 11u );
-    x += ( x << 15u );
-    return x;
+uint hash( in uint a ) {
+    a = (a+0x7ed55d16) + (a<<12);
+    a = (a^0xc761c23c) ^ (a>>19);
+    a = (a+0x165667b1) + (a<<5);
+    a = (a+0xd3a2646c) ^ (a<<9);
+    a = (a+0xfd7046c5) + (a<<3);
+    a = (a^0xb55a4f09) ^ (a>>16);
+    return a;
 }
 
 
@@ -68,15 +69,26 @@ vec2 hammersley2d( in uint N, in int superseed ) {
 }
 
 
+// another 2D random generator
+vec2 randf2x( in int superseed ) {
+    uint hclk = ++randomClocks; randomClocks <<= 1;
+    uint plan = (globalInvocationSMP << 10) ^ subHash;
+    uint gseq = uint(superseed);
+    uint comb = hash(uvec3(hclk, plan, gseq));
+    return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
+}
+
+
+
 // static aggregated randoms
 float random() { return random(rayStreams[0].superseed.x); }
 vec2 hammersley2d(in uint N) { return hammersley2d(N, rayStreams[0].superseed.x); }
-
+vec2 randf2x() { return randf2x(rayStreams[0].superseed.x); }
 
 
 // geometric random generators
 vec3 randomCosine(in vec3 normal, in int superseed) {
-    vec2 hmsm = hammersley2d(1024, superseed);
+    vec2 hmsm = randf2x(superseed);
     float up = sqrt(hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
     vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
@@ -85,7 +97,7 @@ vec3 randomCosine(in vec3 normal, in int superseed) {
 }
 
 vec3 randomDirectionInSphere() {
-    vec2 hmsm = hammersley2d(1024);
+    vec2 hmsm = randf2x();
     float up = fma(hmsm.x, 2.0f, -1.0f), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( up, cos(around) * over, sin(around) * over ));
 }

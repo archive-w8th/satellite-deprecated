@@ -16,8 +16,8 @@
 #include "../include/vertex.glsl"
 
 // consts
-const int STACK_SIZE = 16; // can be much smaller cache
-const int EXT_STACK_SIZE = 16;
+const int STACK_SIZE = 8; // can be much smaller cache
+const int EXT_STACK_SIZE = 24;
 const int BAKED_STACK_SIZE = 1;
 const int ESTIMATE_BATCH = WARP_SIZE;
 const int STACK_SIZE_SM = EXT_STACK_SIZE + STACK_SIZE;

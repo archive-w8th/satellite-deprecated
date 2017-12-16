@@ -52,9 +52,6 @@ vec4 mult4(in vec4 vec, in mat4 tmat) { return tmat * vec; }
 vec4 mult4(in mat4 tmat, in vec4 vec) { return vec * tmat; }
 
 
-
-
-
 // 64-bit packing
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 uvec2 U2P(in uint64_t pckg) { return unpackUint2x32(pckg); }
@@ -64,11 +61,10 @@ uvec2 U2P(in uint64_t pckg) { return uvec2(pckg >> 0ul, pckg >> 32ul); }
 uint64_t P2U(in uvec2 pckg) { return uint64_t(pckg.x) | (uint64_t(pckg.y) << 32ul); }
 #endif
 
+
 // 128-bit packing (2x64bit)
 uvec4 U4P(in u64vec2 pckg) { return uvec4(U2P(pckg.x), U2P(pckg.y)); }
 u64vec2 P4U(in uvec4 pckg) { return u64vec2(uint64_t(P2U(pckg.xy)), uint64_t(P2U(pckg.zw))); }
-
-
 
 
 
@@ -83,7 +79,7 @@ int btc(in uint64_t lh) { return bitCount64(U2P(lh)); }
 // bit measure utils
 int lsb(in uint64_t vlc) {
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    return vlc == 0 ? -1 : findLSB(vlc); 
+    return findLSB(vlc); 
 #else
     uvec2 pair = U2P(vlc); int lv = lsb(pair.x), hi = lsb(pair.y); return (lv >= 0) ? lv : (32 + hi);
 #endif
@@ -91,11 +87,13 @@ int lsb(in uint64_t vlc) {
 
 int msb(in uint64_t vlc) {
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    return vlc == 0 ? -1 : findMSB(vlc); 
+    return findMSB(vlc); 
 #else
     uvec2 pair = U2P(vlc); int lv = msb(pair.x), hi = msb(pair.y); return (hi >= 0) ? (32 + hi) : lv;
 #endif
 }
+
+
 
 // bit insert and extract
 int BFE_HW(in int base, in int offset, in int bits) { return bitfieldExtract(base, offset, bits); }
@@ -208,14 +206,10 @@ vec4 textureBicubic(in sampler2D tx, in vec2 texCoords) {
 
 
 int msb(in uvec2 pair) {
-    //int lv = msb(pair.x), hi = msb(pair.y);
-    //return (hi >= 0) ? (32 + hi) : lv;
     return msb(P2U(pair));
 }
 
 int lsb(in uvec2 pair) {
-    //int lv = lsb(pair.x), hi = lsb(pair.y);
-    //return (lv >= 0) ? lv : (32 + hi);
     return lsb(P2U(pair));
 }
 
@@ -451,9 +445,15 @@ BVEC2_ intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in BVEC3_ sgn, in FMAT3
 
 
 uint64_t bitfieldReverse64(in uint64_t a){uvec2 p = U2P(a);p=bitfieldReverse(p);return P2U(p.yx);}
-int nlz(in uint64_t x) { int vl = lsb(bitfieldReverse64(x)); return vl >= 0 ? vl : 64; }
-int nlz(in uint x) { int vl = lsb(bitfieldReverse64(x)); return vl >= 0 ? vl : 64; }
 
+//int nlz(in uint64_t x) { int vl = lsb(bitfieldReverse64(x)); return vl >= 0 ? vl : 64; }
+//int nlz(in uint x) { int vl = lsb(bitfieldReverse(x)); return vl >= 0 ? vl : 32; }
+
+int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
+int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
+
+//int nlz(in uint64_t x) { return 64-(msb(x)+1); }
+//int nlz(in uint x) { return 32-(msb(x)+1); }
 
 
 const float HDR_GAMMA = 2.2f;

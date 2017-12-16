@@ -109,7 +109,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         dirproj = mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(direct, 0.0f)).xyz, 
         torig = -mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f)).xyz;
 
-    dirlenInv = 1.f / max(length(dirproj), 0.00001f), toffset = 0.f, dirproj *= dirlenInv;
+    dirlenInv = 1.f / max(length(dirproj), 0.00001f), toffset = 0.f, dirproj *= dirlenInv; 
     dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
@@ -129,7 +129,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         divident = FVEC3_(dirproj);
         origined = FVEC3_(fma(torig,dirproj,-toffset.xxx));
         bsgn = (BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
-        toffset *= dirlenInv;
+        //toffset *= dirlenInv;
     }
 
     // calculate longest axis
@@ -162,11 +162,12 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
     deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))) & isValid);
 
-    //if (allInvoc(deftri.x >= 0 || deftri.y >= 0 || !validBox) || mergeRestCmd) 
-
     // interlane intersection may occur double-triangle issue (and transparency problems)
-    //int interpL = interpolInvocation(BOOL_(deftri.x >= 0)), interpR = interpolInvocation(BOOL_(deftri.y >= 0)); // implant for unbusy lanes
-    //deftri = mix(ivec2(readLane(deftri.x, interpL), readLane(deftri.y, interpR)), deftri, greaterThanEqual(deftri, ivec2(0)));
+    BVEC2_ primary = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
+    int interpL = interpolInvocation(primary.x), interpR = interpolInvocation(primary.y); // implant for unbusy lanes
+    //deftri += 1; // avoid invocation read error
+    //deftri = mix(ivec2(readLane(deftri.x, interpL), readLane(deftri.y, interpR)), deftri, primary);
+    //deftri -= 1; // avoid invocation read error
     {
         //mergeRestCmd = false;
         BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
@@ -187,7 +188,7 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
         IF (lessF(predist, _nearhit)) { bstackCount = 0; }
 
         // include to cache
-        near &= 
+        near &= primary & 
             BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
             BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
         IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
@@ -207,16 +208,16 @@ void checkChildNodes() {
         bool leftNear = false;
 
         const vec2 inf2 = vec2(INFINITY);
-        vec2 nears = inf2, fars = inf2;
+        vec2 nears = inf2;
 
         // calculate boxes intersections
-        //IF (any(overlapsGeneral)) {
         ivec4 comp4 = (-1).xxxx;
         IF (validBox) {
             // fetch bvh metadata
             comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
             { // test boxes
                 int _cmp = comp4.x >> 1;
+                vec2 fars = inf2; // unused in traverse
 #ifdef FLATTEN_BOX
                 overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
@@ -231,13 +232,11 @@ void checkChildNodes() {
                     UNPACK_LANE_(bvhBoxes[_cmp][3]).xyz
                 )), nears, fars);
 #endif
-                leftNear = bool(lessEqualF(nears.x, nears.y)), nears = fma(nears, dirlenInv.xx, toffset.xx);
+                nears = (nears+toffset) * dirlenInv, leftNear = bool(lessEqualF(nears.x, nears.y));
             }
             
             // validate intersection
-            overlapsGeneral &= 
-                BVEC2_(lessThan(nears, vec2(predist+PZERO))) & 
-                BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
+            overlapsGeneral &= BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
         }
 
         // if test is valid, extract BVH meta data
@@ -245,29 +244,26 @@ void checkChildNodes() {
 
         // reorder nodes 
         bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
-        if (!leftOrder) {
-            overlapsGeneral.xy = overlapsGeneral.yx, nodepdata.xy = nodepdata.yx, nears.xy = nears.yx;
-        }
+        if (!leftOrder) { overlapsGeneral.xy = overlapsGeneral.yx, nodepdata.xy = nodepdata.yx, nears.xy = nears.yx; }
 
         // culled intersection of leaf nodes
         ivec2 trig = ivec2(-1); ivec4 sibs = ivec4(-1);
         IF (validBox & any(overlapsGeneral)) {
             vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
-            if (comp4.x >= 0) {
-                sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), 
-                trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);
-            }
-            trig = mix(trig.yx, trig.xy, leftOrder.xx), sibs.xy = mix(sibs.yx, sibs.xy, leftOrder.xx), sibs.zw = mix(sibs.wz, sibs.zw, leftOrder.xx);
+            if (comp4.x > 0) {sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);}
         }
 
-        IF (validBox) { // intersect with interpolations per neightbors
-            intersectLeafs2(trig, overlapsGeneral);
-            overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThanEqual(nears - PZERO, vec2(predist)));
+        // intersect triangles
+        IF (validBox) {
+            intersectLeafs2(mix(trig.yx, trig.xy, leftOrder.xx), overlapsGeneral);
+            BVEC2_ vrt = BVEC2_(notEqual(sibs.xy, sibs.zw));
+            overlapsGeneral &= mix(vrt.yx, vrt.xy, leftOrder.xx) & BVEC2_(lessThan(nears, vec2(predist+PZERO)));
         }
 
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
-            nodepdata.xy = SSC(overlapsGeneral.x) ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
+            leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
+            nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
             IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
                 storeStack(min(deferredPtr++, STACK_SIZE_SM-1), nodepdata.y);
             }

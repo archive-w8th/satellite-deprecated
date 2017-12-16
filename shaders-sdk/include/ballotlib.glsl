@@ -227,6 +227,10 @@ int firstActive() {
     return msb(ballotHW(TRUE_));
 }
 
+int interpolInvocation(in BOOL_ value){
+    return msb(ballotHW(value) & genGeMask());
+}
+
 
 int mcount64(in UVEC_BALLOT_WARP bits){
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -305,10 +309,6 @@ T fname(in uint WHERE, in BOOL_ value) { \
     return readLane(gadd, activeLane) + idxInOrder; \
 }
 
-
-int interpolInvocation(in BOOL_ value){
-    return msb(ballotHW(value) & genGeMask());
-}
 
 
 bool allInvoc(in bool bc){

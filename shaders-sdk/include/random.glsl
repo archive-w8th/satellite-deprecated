@@ -51,16 +51,20 @@ float hrand( in uvec4  v ) { return radicalInverse_VdC(hash(v)); }
 
 // 1D random generators from superseed
 float random( in int superseed ) {
-    uint hs = (++randomClocks); randomClocks <<= 1;
-    return hrand( uvec4(globalInvocationSMP << 6, subHash, superseed, hs) );
+    uint hclk = ++randomClocks; randomClocks <<= 1;
+    uint plan = (globalInvocationSMP << 10) ^ subHash;
+    uint gseq = uint(superseed);
+    return hrand(uvec3(hclk, plan, gseq));
 }
 
 
 // 2D random generators from superseed
-vec2 hammersley2d(in uint N, in int superseed) {
-    uint hs = (++randomClocks); randomClocks <<= 1;
-    uint i = hash( uvec4(globalInvocationSMP << 6, subHash, superseed, hs) );
-    return vec2(fract(float(i%N) / float(N)), radicalInverse_VdC(i));
+vec2 hammersley2d( in uint N, in int superseed ) {
+    uint hclk = ++randomClocks; randomClocks <<= 1;
+    uint plan = (globalInvocationSMP << 10) ^ subHash;
+    uint gseq = uint(superseed);
+    uint comb = hash(uvec3(hclk, plan, gseq));
+    return vec2(fract(float(comb%N) / float(N)), radicalInverse_VdC(comb));
 }
 
 

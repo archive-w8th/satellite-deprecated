@@ -203,12 +203,12 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
 // planned block optimized system
 void checkChildNodes() {
     IF (validBox) {
-        int found = -1;
+        int found = -1, _cmp = 0;
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
-        bool leftNear = false;
+        bool leftNear = true;
 
         const vec2 inf2 = vec2(INFINITY);
-        vec2 nears = inf2;
+        vec2 nears = inf2, fars = inf2;
 
         // calculate boxes intersections
         ivec4 comp4 = (-1).xxxx;
@@ -216,8 +216,7 @@ void checkChildNodes() {
             // fetch bvh metadata
             comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
             { // test boxes
-                int _cmp = comp4.x >> 1;
-                vec2 fars = inf2; // unused in traverse
+                _cmp = comp4.x >> 1;
 #ifdef FLATTEN_BOX
                 overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
@@ -232,11 +231,11 @@ void checkChildNodes() {
                     UNPACK_LANE_(bvhBoxes[_cmp][3]).xyz
                 )), nears, fars);
 #endif
-                nears = (nears+toffset) * dirlenInv, leftNear = bool(lessEqualF(nears.x, nears.y));
+                leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
             }
             
             // validate intersection
-            overlapsGeneral &= BVEC2_(lessThanEqual(nears, vec2(INFINITY-PZERO)));
+            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR)));// & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
         }
 
         // if test is valid, extract BVH meta data
@@ -257,12 +256,13 @@ void checkChildNodes() {
         IF (validBox) {
             intersectLeafs2(mix(trig.yx, trig.xy, leftOrder.xx), overlapsGeneral);
             BVEC2_ vrt = BVEC2_(notEqual(sibs.xy, sibs.zw));
-            overlapsGeneral &= mix(vrt.yx, vrt.xy, leftOrder.xx) & BVEC2_(lessThan(nears, vec2(predist+PZERO)));
+            overlapsGeneral &= mix(vrt.yx, vrt.xy, leftOrder.xx) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
         }
 
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
             leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
+            nodepdata = mix((-1).xx, nodepdata.xy, overlapsGeneral);
             nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
             IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
                 storeStack(min(deferredPtr++, STACK_SIZE_SM-1), nodepdata.y);

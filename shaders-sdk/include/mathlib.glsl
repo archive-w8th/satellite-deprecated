@@ -1,6 +1,81 @@
 #ifndef _MATHLIB_H
 #define _MATHLIB_H
 
+
+// float 16 or 32 types
+#ifdef AMD_F16_BVH
+#define FTYPE_ float16_t
+#define FVEC3_ f16vec3
+#define FVEC4_ f16vec4
+#define FVEC2_ f16vec2
+#define FMAT2X4_ f16mat2x4
+#define FMAT4X4_ f16mat4x4
+#define FMAT3X4_ f16mat3x4
+#define FMAT3X2_ f16mat3x2
+#define FMAT4X3_ f16mat4x3
+    #ifdef USE_F32_BVH
+    #define UNPACKF_(a)a
+    #define PACKF_(a)a
+    #else
+    #define UNPACKF_(a)a
+    #define PACKF_(a)FVEC4_(a)
+    #endif
+#else 
+#define FTYPE_ float
+#define FVEC2_ vec2
+#define FVEC3_ vec3
+#define FVEC4_ vec4
+#define FMAT2X4_ mat2x4
+#define FMAT4X4_ mat4x4
+#define FMAT3X4_ mat3x4
+#define FMAT3X2_ mat3x2
+#define FMAT4X3_ mat4x3
+    #ifdef USE_F32_BVH
+    #define UNPACKF_(a)a
+    #define PACKF_(a)a
+    #else
+    #define UNPACKF_ unpackHalf
+    #define PACKF_ packHalf2
+    #endif
+#endif
+
+#if defined(ENABLE_AMD_INSTRUCTION_SET) || defined(ENABLE_NVIDIA_INSTRUCTION_SET)
+#define INDEX16 uint16_t
+#define M16(m, i) (m[i])
+#else
+#define INDEX16 uint
+#define M16(m, i) (BFE_HW(m[(i)>>1], int(16*((i)&1)), 16))
+#endif
+
+#ifdef ENABLE_INT16_LOADING
+#define INDICE_T INDEX16
+#define PICK(m, i) M16(m, i)
+#else
+#define INDICE_T uint
+#define PICK(m, i) m[i]
+#endif
+
+
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+#define BVEC3_ i16vec3
+#define BVEC2_ i16vec2
+#define BOOL_ int16_t
+#define TRUE_ 1s
+#define FALSE_ 0s
+#else
+#define BVEC3_ ivec3
+#define BVEC2_ ivec2
+#define BOOL_ int
+#define TRUE_ 1
+#define FALSE_ 0
+#endif
+
+#define TRUE2_ TRUE_.xx
+#define FALSE2_ FALSE_.xx
+
+
+
+
 // null of indexing in float representation
 float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0
@@ -93,6 +168,11 @@ int msb(in uint64_t vlc) {
 #endif
 }
 
+int msb(in uvec2 pair) { return msb(P2U(pair)); }
+int lsb(in uvec2 pair) { return lsb(P2U(pair)); }
+
+
+
 
 
 // bit insert and extract
@@ -106,64 +186,11 @@ int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
 
 
 
-// float 16 or 32 types
-#ifdef AMD_F16_BVH
-#define FTYPE_ float16_t
-#define FVEC3_ f16vec3
-#define FVEC4_ f16vec4
-#define FVEC2_ f16vec2
-#define FMAT2X4_ f16mat2x4
-#define FMAT4X4_ f16mat4x4
-#define FMAT3X4_ f16mat3x4
-#define FMAT3X2_ f16mat3x2
-#define FMAT4X3_ f16mat4x3
-    #ifdef USE_F32_BVH
-    #define UNPACKF_(a)a
-    #define PACKF_(a)a
-    #else
-    #define UNPACKF_(a)a
-    #define PACKF_(a)FVEC4_(a)
-    #endif
-#else 
-#define FTYPE_ float
-#define FVEC2_ vec2
-#define FVEC3_ vec3
-#define FVEC4_ vec4
-#define FMAT2X4_ mat2x4
-#define FMAT4X4_ mat4x4
-#define FMAT3X4_ mat3x4
-#define FMAT3X2_ mat3x2
-#define FMAT4X3_ mat4x3
-    #ifdef USE_F32_BVH
-    #define UNPACKF_(a)a
-    #define PACKF_(a)a
-    #else
-    #define UNPACKF_ unpackHalf
-    #define PACKF_ packHalf2
-    #endif
-#endif
 
 
 
-// texture utils
-
-vec4 composite(in vec4 src, in vec4 dst) {
-    float oa = src.a + dst.a * (1.0f - src.a);
-    return clamp(vec4((src.rgb * src.a + dst.rgb * dst.a * (1.0f - src.a)) / max(oa, 0.0001f), oa), vec4(0.0f), vec4(1.0f));
-}
-
-vec4 cubic(in float v) {
-    vec4 s = vec4(1.0f,2.0f,3.0f,4.0f) - v;
-    s *= s*s;
-    float x = s.x;
-    float y = fma(s.x,-4.f,s.y);
-    float z = fma(s.y,-4.f,s.z) + 6.0f*s.x;
-    float w = 6.0f-x-y-z;
-    return vec4(x,y,z,w)*(1.0f/6.0f);
-}
-
+// precise optimized mix/lerp
 #define _FMOP fma(b,c,fma(a,-c,a)) // fma based mix/lerp
-
 float fmix(in float a, in float b, in float c){ return _FMOP; }
 vec2 fmix(in vec2 a, in vec2 b, in vec2 c){ return _FMOP; }
 vec3 fmix(in vec3 a, in vec3 b, in vec3 c){ return _FMOP; }
@@ -175,6 +202,24 @@ f16vec3 fmix(in f16vec3 a, in f16vec3 b, in f16vec3 c){ return _FMOP; }
 f16vec4 fmix(in f16vec4 a, in f16vec4 b, in f16vec4 c){ return _FMOP; }
 #endif
 
+
+
+
+
+// texture utils
+vec4 composite(in vec4 src, in vec4 dst) {
+    float oa = src.a + dst.a * (1.0f - src.a);
+    return clamp(vec4((src.rgb * src.a + dst.rgb * dst.a * (1.0f - src.a)) / max(oa, 0.0001f), oa), vec4(0.0f), vec4(1.0f));
+}
+
+vec4 cubic(in float v) {
+    vec4 s = vec4(1.0f,2.0f,3.0f,4.0f) - v; s *= s*s;
+    float x = s.x;
+    float y = fma(s.x,-4.f,s.y);
+    float z = fma(s.y,-4.f,s.z) + 6.0f*s.x;
+    float w = 6.0f-x-y-z;
+    return vec4(x,y,z,w)*(1.0f/6.0f);
+}
 
 vec4 textureBicubic(in sampler2D tx, in vec2 texCoords) {
     vec2 texSize = textureSize(tx, 0);
@@ -202,20 +247,32 @@ vec4 textureBicubic(in sampler2D tx, in vec2 texCoords) {
     return fmix(fmix(sample3, sample2, sx.xxxx), fmix(sample1, sample0, sx.xxxx), sy.xxxx);
 }
 
+const float HDR_GAMMA = 2.2f;
 
-
-
-int msb(in uvec2 pair) {
-    return msb(P2U(pair));
+vec4 fromLinear(in vec4 linearRGB) {
+    return pow(linearRGB, vec4(1.f/HDR_GAMMA));
+    //return mix(vec4(1.055)*pow(linearRGB, vec4(1.0/2.4)) - vec4(0.055), linearRGB * vec4(12.92), lessThan(linearRGB, vec4(0.0031308)));
 }
 
-int lsb(in uvec2 pair) {
-    return lsb(P2U(pair));
+vec4 toLinear(in vec4 sRGB) {
+    return pow(sRGB, vec4(HDR_GAMMA));
+    //return mix(pow((sRGB + vec4(0.055))/vec4(1.055), vec4(2.4)), sRGB/vec4(12.92), lessThan(sRGB, vec4(0.04045)));
 }
+
+vec3 fromLinear(in vec3 linearRGB) {
+    return pow(linearRGB, vec3(1.f/HDR_GAMMA));
+    //return mix(vec3(1.055)*pow(linearRGB, vec3(1.0/2.4)) - vec3(0.055), linearRGB * vec3(12.92), lessThan(linearRGB, vec3(0.0031308)));
+}
+
+vec3 toLinear(in vec3 sRGB) {
+    return pow(sRGB, vec3(HDR_GAMMA));
+    //return mix(pow((sRGB + vec3(0.055))/vec3(1.055), vec3(2.4)), sRGB/vec3(12.92), lessThan(sRGB, vec3(0.04045)));
+}
+
+
 
 
 // half float packing (64-bit)
-
 vec4 unpackHalf(in uvec2 hilo) {
     return vec4(unpackHalf2x16(hilo.x), unpackHalf2x16(hilo.y));
 }
@@ -228,7 +285,7 @@ uvec2 packHalf2(in vec4 floats) {
     return uvec2(packHalf2x16(floats.xy), packHalf2x16(floats.zw));
 }
 
-// AMD based
+// AMD based half float
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 f16vec4 unpackHalf2(in uvec2 hilo) {
     return f16vec4(unpackFloat2x16(hilo.x), unpackFloat2x16(hilo.y));
@@ -246,7 +303,6 @@ uvec2 packHalf2(in f16vec4 floats) {
 
 
 // float packing (128-bit)
-
 vec4 unpackFloat(in uvec4 hilo) {
     //return vec4(unpackHalf2x16(hilo.x), unpackHalf2x16(hilo.y));
     return vec4(uintBitsToFloat(hilo.x), uintBitsToFloat(hilo.y), uintBitsToFloat(hilo.z), uintBitsToFloat(hilo.w));
@@ -260,7 +316,7 @@ uvec4 packFloat2(in vec4 floats) {
     return uvec4(floatBitsToUint(floats.x), floatBitsToUint(floats.y), floatBitsToUint(floats.z), floatBitsToUint(floats.w));
 }
 
-// AMD based
+// AMD based half float
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 f16vec4 unpackFloat2(in uvec4 hilo) {
     return f16vec4(unpackFloat(hilo));
@@ -280,54 +336,7 @@ uvec4 packFloat2(in f16vec4 floats) {
 
 
 
-
-
-// reserved for future rasterizers
-// just for save
-vec3 barycentric2D(in vec3 p, in mat3x3 triangle) {
-    mat3x3 plc = transpose(mat3x3(triangle[2] - triangle[0], triangle[1] - triangle[0], triangle[0] - p));
-    vec3 u = cross(plc[0], plc[1]); // xy (2d) cross
-    if (abs(u.z) < 1.f) return vec3(-1.f,1.f,1.f); 
-    return vec3(u.z-(u.x+u.y), u.y, u.x)/u.z;
-}
-
-
-
-
-
-#if defined(ENABLE_AMD_INSTRUCTION_SET) || defined(ENABLE_NVIDIA_INSTRUCTION_SET)
-#define INDEX16 uint16_t
-#define M16(m, i) (m[i])
-#else
-#define INDEX16 uint
-#define M16(m, i) (BFE_HW(m[(i)>>1], int(16*((i)&1)), 16))
-#endif
-
-#ifdef ENABLE_INT16_LOADING
-#define INDICE_T INDEX16
-#define PICK(m, i) M16(m, i)
-#else
-#define INDICE_T uint
-#define PICK(m, i) m[i]
-#endif
-
-
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-#define BVEC3_ i16vec3
-#define BVEC2_ i16vec2
-#define BOOL_ int16_t
-#define TRUE_ 1s
-#define FALSE_ 0s
-#else
-#define BVEC3_ ivec3
-#define BVEC2_ ivec2
-#define BOOL_ int
-#define TRUE_ 1
-#define FALSE_ 0
-#endif
-
-#define TRUE2_ TRUE_.xx
-#define FALSE2_ FALSE_.xx
+// optimized boolean operations
 BOOL_ any(in BVEC2_ b){return b.x|b.y;}
 BOOL_ all(in BVEC2_ b){return b.x&b.y;}
 BOOL_ not(in BOOL_ b){return TRUE_^b;}
@@ -345,30 +354,19 @@ bvec2 SSC(in bvec2 b){return b;}
 
 #define IF(b)if(SSC(b))
 
-// roundly comparsion functions
-BOOL_ lessEqualF(in float a, in float b) { return BOOL_(a<b+PZERO); }
-BOOL_ lessF(in float a, in float b) { return BOOL_(a<=b-PZERO); }
-BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(a+PZERO>b); }
-BOOL_ greaterF(in float a, in float b) { return BOOL_(a-PZERO>=b); }
-BOOL_ equalF(in float a, in float b) { return BOOL_(abs(a-b) < PZERO); }
 
-/*
-int mix(in int a, in int b, in BOOL_ c) { return (a*not(c)) | (b*c); }
-uint mix(in uint a, in uint b, in BOOL_ c) { return (a*not(c)) | (b*c); }
-float mix(in float a, in float b, in BOOL_ c) { return (a*not(c)) + (b*c); }
-ivec2 mix(in ivec2 a, in ivec2 b, in BVEC2_ c) { return (a*not(c)) | (b*c); }
-uvec2 mix(in uvec2 a, in uvec2 b, in BVEC2_ c) { return (a*not(c)) | (b*c); }
-vec2 mix(in vec2 a, in vec2 b, in BVEC2_ c) { return (a*not(c)) + (b*c); }
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-int16_t mix(in int16_t a, in int16_t b, in BOOL_ c) { return (a*not(c)) | (b*c); }
-uint16_t mix(in uint16_t a, in uint16_t b, in BOOL_ c) { return (a*not(c)) | (b*c); }
-float16_t mix(in float16_t a, in float16_t b, in BOOL_ c) { return (a*not(c)) + (b*c); }
-i16vec2 mix(in i16vec2 a, in i16vec2 b, in BVEC2_ c) { return (a*not(c)) | (b*c); }
-u16vec2 mix(in u16vec2 a, in u16vec2 b, in BVEC2_ c) { return (a*not(c)) | (b*c); }
-f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return (a*not(c)) + (b*c); }
-#endif
-*/
 
+// inprecise comparsion functions
+const float PRECERR = PZERO;
+BOOL_ lessEqualF(in float a, in float b) { return BOOL_(a<b+PRECERR); }
+BOOL_ lessF(in float a, in float b) { return BOOL_(a<=b-PRECERR); }
+BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(a+PRECERR>b); }
+BOOL_ greaterF(in float a, in float b) { return BOOL_(a-PRECERR>=b); }
+BOOL_ equalF(in float a, in float b) { return BOOL_(abs(a-b) < PRECERR); }
+
+
+
+// selection product
 int mix(in int a, in int b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 uint mix(in uint a, in uint b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 float mix(in float a, in float b, in BOOL_ c) { return mix(a,b,SSC(c)); }
@@ -402,8 +400,7 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
 #endif
     float isCube = float(greaterEqualF(tFar, tNear) & greaterEqualF(tFar, 0.0f));
     const float inf = INFINITY;
-    near = fmix(inf, min(tNear, tFar), isCube);
-    far  = fmix(inf, max(tNear, tFar), isCube);
+    near = fmix(inf, min(tNear, tFar), isCube), far = fmix(inf, max(tNear, tFar), isCube);
     return fmix(near, far, float((near + PZERO) <= 0.0f));
 }
 
@@ -433,51 +430,32 @@ BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn,
     tFar += FVEC2_(PZERO.xx);
 
     // validate hit
-    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(tNear, FVEC2_(INFINITY-PZERO)));
+    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));
 
     // resolve hit
     const vec2 inf = vec2(INFINITY);
     near = mix(inf, vec2(tNear), isCube), far = mix(inf, vec2(tFar), isCube);
-    //return mix(near, far, lessThanEqual(near, vec2(-PZERO)));
     return isCube;
 }
 
 
-
+// BVH utility
 uint64_t bitfieldReverse64(in uint64_t a){uvec2 p = U2P(a);p=bitfieldReverse(p);return P2U(p.yx);}
-
-//int nlz(in uint64_t x) { int vl = lsb(bitfieldReverse64(x)); return vl >= 0 ? vl : 64; }
-//int nlz(in uint x) { int vl = lsb(bitfieldReverse(x)); return vl >= 0 ? vl : 32; }
-
 int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
 int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
 
-//int nlz(in uint64_t x) { return 64-(msb(x)+1); }
-//int nlz(in uint x) { return 32-(msb(x)+1); }
 
 
-const float HDR_GAMMA = 2.2f;
 
-vec4 fromLinear(in vec4 linearRGB) {
-    return pow(linearRGB, vec4(1.f/HDR_GAMMA));
-    //return mix(vec4(1.055)*pow(linearRGB, vec4(1.0/2.4)) - vec4(0.055), linearRGB * vec4(12.92), lessThan(linearRGB, vec4(0.0031308)));
+
+// reserved for future rasterizers
+// just for save
+vec3 barycentric2D(in vec3 p, in mat3x3 triangle) {
+    mat3x3 plc = transpose(mat3x3(triangle[2] - triangle[0], triangle[1] - triangle[0], triangle[0] - p));
+    vec3 u = cross(plc[0], plc[1]); // xy (2d) cross
+    if (abs(u.z) < 1.f) return vec3(-1.f,1.f,1.f); 
+    return vec3(u.z-(u.x+u.y), u.y, u.x)/u.z;
 }
-
-vec4 toLinear(in vec4 sRGB) {
-    return pow(sRGB, vec4(HDR_GAMMA));
-    //return mix(pow((sRGB + vec4(0.055))/vec4(1.055), vec4(2.4)), sRGB/vec4(12.92), lessThan(sRGB, vec4(0.04045)));
-}
-
-vec3 fromLinear(in vec3 linearRGB) {
-    return pow(linearRGB, vec3(1.f/HDR_GAMMA));
-    //return mix(vec3(1.055)*pow(linearRGB, vec3(1.0/2.4)) - vec3(0.055), linearRGB * vec3(12.92), lessThan(linearRGB, vec3(0.0031308)));
-}
-
-vec3 toLinear(in vec3 sRGB) {
-    return pow(sRGB, vec3(HDR_GAMMA));
-    //return mix(pow((sRGB + vec3(0.055))/vec3(1.055), vec3(2.4)), sRGB/vec3(12.92), lessThan(sRGB, vec3(0.04045)));
-}
-
 
 // also, create planar projection 
 mat3 make_stream_projection(in vec3 normal){

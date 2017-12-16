@@ -32,10 +32,10 @@ void unifyNodeBox(inout int idx){
     bvhBoxes[idx][0] = PACK_LANE_(min(lmn, rmn));
     bvhBoxes[idx][1] = PACK_LANE_(max(lmx, rmx));
 
-    bvhBoxes[sibid2+0][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.x, rmn.x, lmx.x, rmx.x));
-    bvhBoxes[sibid2+0][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.y, rmn.y, lmx.y, rmx.y));
-    bvhBoxes[sibid2+1][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.z, rmn.z, lmx.z, rmx.z));
-    bvhBoxes[sibid2+1][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.w, rmn.w, lmx.w, rmx.w));
+    bvhBoxes[sibid2+0][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.x, lmx.x, rmn.x, rmx.x));
+    bvhBoxes[sibid2+0][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.y, lmx.y, rmn.y, rmx.y));
+    bvhBoxes[sibid2+1][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.z, lmx.z, rmn.z, rmx.z));
+    bvhBoxes[sibid2+1][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.w, lmx.w, rmn.w, rmx.w));
 }
 
 

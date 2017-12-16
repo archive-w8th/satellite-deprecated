@@ -386,22 +386,32 @@ f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 // single float 32-bit box intersection
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // compatible with AMD radeon min3 and max3
-float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cubeMax, inout float near, inout float far) {
-    vec3 tMin = fma(cubeMin.xyz, dr, norig);
-    vec3 tMax = fma(cubeMax.xyz, dr, norig);
-    vec3 t1 = min(tMin, tMax);
-    vec3 t2 = max(tMin, tMax);
+BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in mat3x2 tMinMax, inout float near, inout float far) {
+    tMinMax = mat3x2(
+        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].yx, dr.xx, origin.xx),
+        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].yx, dr.yy, origin.yy),
+        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].yx, dr.zz, origin.zz)
+    );
+
+    float 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    float tNear = max3(t1.x, t1.y, t1.z);
-    float tFar  = min3(t2.x, t2.y, t2.z);
+    tFar  = min3(tMinMax[0].y, tMinMax[1].y, tMinMax[2].y),
+    tNear = max3(tMinMax[0].x, tMinMax[1].x, tMinMax[2].x);
 #else
-    float tNear = max(max(t1.x, t1.y), t1.z);
-    float tFar  = min(min(t2.x, t2.y), t2.z);
+    tFar  = min(min(tMinMax[0].y, tMinMax[1].y), tMinMax[2].y),
+    tNear = max(max(tMinMax[0].x, tMinMax[1].x), tMinMax[2].x);
 #endif
-    float isCube = float(greaterEqualF(tFar, tNear) & greaterEqualF(tFar, 0.0f));
-    const float inf = INFINITY;
-    near = fmix(inf, min(tNear, tFar), isCube), far = fmix(inf, max(tNear, tFar), isCube);
-    return fmix(near, far, float((near + PZERO) <= 0.0f));
+
+    // precise error correct
+    tFar += PZERO;
+
+    // validate hit
+    BOOL_ isCube = BOOL_(tFar>tNear) & BOOL_(tFar>0.f) & BOOL_(abs(tNear) <= INFINITY-PRECERR);
+
+    // resolve hit
+    const float inf = float(INFINITY);
+    near = mix(inf, tNear, isCube), far = mix(inf, tFar, isCube);
+    return isCube;
 }
 
 
@@ -412,18 +422,18 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
 // compatible with NVidia GPU too
 BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
-        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
-        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
-        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].zwxy, dr.zzzz, origin.zzzz)
+        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].yxwz, dr.xxxx, origin.xxxx),
+        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].yxwz, dr.yyyy, origin.yyyy),
+        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].yxwz, dr.zzzz, origin.zzzz)
     );
 
     FVEC2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
-    tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
+    tFar  = min3(tMinMax[0].yw, tMinMax[1].yw, tMinMax[2].yw),
+    tNear = max3(tMinMax[0].xz, tMinMax[1].xz, tMinMax[2].xz);
 #else
-    tFar  = min(min(tMinMax[0].zw, tMinMax[1].zw), tMinMax[2].zw),
-    tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
+    tFar  = min(min(tMinMax[0].yw, tMinMax[1].yw), tMinMax[2].yw),
+    tNear = max(max(tMinMax[0].xz, tMinMax[1].xz), tMinMax[2].xz);
 #endif
 
     // precise error correct

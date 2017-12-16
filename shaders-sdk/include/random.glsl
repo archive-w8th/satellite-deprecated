@@ -72,7 +72,7 @@ vec2 hammersley2d(in uint N) { return hammersley2d(N, rayStreams[0].superseed.x)
 
 // geometric random generators
 vec3 randomCosine(in vec3 normal, in int superseed) {
-    vec2 hmsm = hammersley2d(32, superseed);
+    vec2 hmsm = hammersley2d(1024, superseed);
     float up = sqrt(hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
     vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
@@ -81,7 +81,7 @@ vec3 randomCosine(in vec3 normal, in int superseed) {
 }
 
 vec3 randomDirectionInSphere() {
-    vec2 hmsm = hammersley2d(32);
+    vec2 hmsm = hammersley2d(1024);
     float up = fma(hmsm.x, 2.0f, -1.0f), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( up, cos(around) * over, sin(around) * over ));
 }

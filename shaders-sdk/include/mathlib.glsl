@@ -413,11 +413,11 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
 // made by DevIL research group
 // also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
 // compatible with NVidia GPU too
-BVEC2_ intersectCubeDual(in FVEC3_ origin, in FVEC3_ dr, in BVEC3_ sgn, in FMAT3X4_ cubeMinMax2, inout vec2 near, inout vec2 far) {
-    FMAT3X4_ tMinMax = FMAT3X4_(
-        fma(SSC(sgn.x) ? cubeMinMax2[0].xyzw : cubeMinMax2[0].zwxy, dr.xxxx, origin.xxxx),
-        fma(SSC(sgn.y) ? cubeMinMax2[1].xyzw : cubeMinMax2[1].zwxy, dr.yyyy, origin.yyyy),
-        fma(SSC(sgn.z) ? cubeMinMax2[2].xyzw : cubeMinMax2[2].zwxy, dr.zzzz, origin.zzzz)
+BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
+    tMinMax = FMAT3X4_(
+        fma(SSC(sgn.x) ? tMinMax[0].xyzw : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
+        fma(SSC(sgn.y) ? tMinMax[1].xyzw : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
+        fma(SSC(sgn.z) ? tMinMax[2].xyzw : tMinMax[2].zwxy, dr.zzzz, origin.zzzz)
     );
 
     FVEC2_ 

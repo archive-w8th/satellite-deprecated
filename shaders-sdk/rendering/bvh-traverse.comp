@@ -159,12 +159,12 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 #define _ADD(m,k) min(m++,BAKED_STACK_SIZE-1)
 
 // some optimize intersection and resolver
-void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
-    deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))) & isValid);
+void intersectLeafs2(in ivec2 tri) {
+    deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))));
 
     // interlane intersection may occur double-triangle issue (and transparency problems)
-    BVEC2_ primary = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
-    int interpL = interpolInvocation(primary.x), interpR = interpolInvocation(primary.y); // implant for unbusy lanes
+    //BVEC2_ primary = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
+    //int interpL = interpolInvocation(primary.x), interpR = interpolInvocation(primary.y); // implant for unbusy lanes
     //deftri += 1; // avoid invocation read error
     //deftri = mix(ivec2(readLane(deftri.x, interpL), readLane(deftri.y, interpR)), deftri, primary);
     //deftri -= 1; // avoid invocation read error
@@ -188,7 +188,7 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
         IF (lessF(predist, _nearhit)) { bstackCount = 0; }
 
         // include to cache
-        near &= primary & 
+        near &= //primary & 
             BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
             BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
         IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
@@ -203,66 +203,51 @@ void intersectLeafs2(in ivec2 tri, in BVEC2_ isValid) {
 // planned block optimized system
 void checkChildNodes() {
     IF (validBox) {
-        int found = -1, _cmp = 0;
+        int found = -1;
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
         bool leftNear = true;
 
+        // initial box intersection
         const vec2 inf2 = vec2(INFINITY);
         vec2 nears = inf2, fars = inf2;
 
         // calculate boxes intersections
-        ivec4 comp4 = (-1).xxxx;
-        IF (validBox) {
-            // fetch bvh metadata
-            comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
-            { // test boxes
-                _cmp = comp4.x >> 1;
-#ifdef FLATTEN_BOX
-                overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
-                    UNPACK_LANE_(bvhBoxes[_cmp][0]),
-                    UNPACK_LANE_(bvhBoxes[_cmp][1]),
-                    UNPACK_LANE_(bvhBoxes[_cmp][2])
-                ), nears, fars);
-#else
-                overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, transpose(FMAT4X3_(
-                    UNPACK_LANE_(bvhBoxes[_cmp][0]).xyz,
-                    UNPACK_LANE_(bvhBoxes[_cmp][1]).xyz,
-                    UNPACK_LANE_(bvhBoxes[_cmp][2]).xyz,
-                    UNPACK_LANE_(bvhBoxes[_cmp][3]).xyz
-                )), nears, fars);
-#endif
-                leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
-            }
+        ivec4 comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
+        
+        { // test boxes
+            int _cmp = comp4.x >> 1;
+
+            // do dual box intersection (claymore style)
+            overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
+                UNPACK_LANE_(bvhBoxes[_cmp][0]),
+                UNPACK_LANE_(bvhBoxes[_cmp][1]),
+                UNPACK_LANE_(bvhBoxes[_cmp][2])
+            ), nears, fars);
             
+            // correct near dist and mark order by distances
+            leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
+
             // validate intersection
-            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR)));// & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
+            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR)));
         }
-
-        // if test is valid, extract BVH meta data
-        ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
-
-        // reorder nodes 
-        bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
-        if (!leftOrder) { overlapsGeneral.xy = overlapsGeneral.yx, nodepdata.xy = nodepdata.yx, nears.xy = nears.yx; }
-
+        
         // culled intersection of leaf nodes
         ivec2 trig = ivec2(-1); ivec4 sibs = ivec4(-1);
-        IF (validBox & any(overlapsGeneral)) {
+        IF (any(overlapsGeneral)) {
             vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
             if (comp4.x > 0) {sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);}
+            trig = mix((-1).xx, trig.xy, overlapsGeneral); // clip triangles
         }
 
-        // intersect triangles
-        IF (validBox) {
-            intersectLeafs2(mix(trig.yx, trig.xy, leftOrder.xx), overlapsGeneral);
-            BVEC2_ vrt = BVEC2_(notEqual(sibs.xy, sibs.zw));
-            overlapsGeneral &= mix(vrt.yx, vrt.xy, leftOrder.xx) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
+        { // intersect triangles, and cull box intersections
+            intersectLeafs2(trig.x >= 0 ? trig.xy : trig.yx);
+            overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
         }
 
         // choice child nodes by nears
         IF (any(overlapsGeneral)) {
-            leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
-            nodepdata = mix((-1).xx, nodepdata.xy, overlapsGeneral);
+            bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
+            ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
             nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
             IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
                 storeStack(min(deferredPtr++, STACK_SIZE_SM-1), nodepdata.y);
@@ -394,7 +379,7 @@ void includeChain(inout vec4 intersection) {
 }
 
 void choiceBaked() {
-    mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1), BVEC2_(FALSE_)); // intersect rest triangles
+    mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1)); // intersect rest triangles
     if (bstackCount > 0) {
         reorderTriangles();
         for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }

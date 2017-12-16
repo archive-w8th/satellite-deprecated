@@ -415,9 +415,9 @@ float intersectCubeSingle(in vec3 norig, in vec3 dr, in vec4 cubeMin, in vec4 cu
 // compatible with NVidia GPU too
 BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
-        fma(SSC(sgn.x) ? tMinMax[0].xyzw : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
-        fma(SSC(sgn.y) ? tMinMax[1].xyzw : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
-        fma(SSC(sgn.z) ? tMinMax[2].xyzw : tMinMax[2].zwxy, dr.zzzz, origin.zzzz)
+        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
+        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
+        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].zwxy, dr.zzzz, origin.zzzz)
     );
 
     FVEC2_ 

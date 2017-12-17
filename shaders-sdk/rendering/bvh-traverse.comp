@@ -421,7 +421,7 @@ void main() {
         for (int iteration=0;iteration<64;iteration++) {
             IF (not(validBox)) break;
             for (int lt=0;lt<64;lt++) {
-                if (!(bool(validBox) && !awaitFlag)) break;
+                if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
                 checkChildNodes(); // traverse BVH
             }
             doIntersection(); // do intersection (WARP optimized)

@@ -238,7 +238,7 @@ void checkChildNodes() {
             leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
 
             // validate intersection
-            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR)));
+            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
         }
         
         // culled intersection of leaf nodes
@@ -247,12 +247,12 @@ void checkChildNodes() {
             vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
             if (comp4.x > 0) {sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);}
             trig = mix((-1).xx, trig.xy, overlapsGeneral); // clip triangles
+            overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw));
         }
 
         { // intersect triangles, and cull box intersections
             deferTriangles(trig.x >= 0 ? trig.xy : ivec2(trig.y,-1));
             if (deftri.x >= 0) awaitFlag = true;
-            overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
         }
 
         // choice child nodes by nears

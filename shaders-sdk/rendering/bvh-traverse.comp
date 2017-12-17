@@ -65,8 +65,8 @@ int axis = 2; mat3 M;
 FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
 BVEC3_ bsgn = FALSE_.xxx; BOOL_ validBox = FALSE_;
 float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
-ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1), deftri = ivec2(-1);
-int idx = 0, bstackCount = 0, deferredPtr = 0;
+ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
+int deftri = int(-1), idx = 0, bstackCount = 0, deferredPtr = 0;
 bool mergeRestCmd = false, awaitFlag = false;
 #define validBoxIn validBox
 
@@ -149,7 +149,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
     ));
 
-    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0, awaitFlag = false;
+    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = int(-1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0, awaitFlag = false;
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
 }
@@ -158,38 +158,12 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 //#define _ADD(m,k) add(m,k)
 #define _ADD(m,k) min(m++,BAKED_STACK_SIZE-1)
 
-void deferTriangles(in ivec2 tri) {
+void deferTriangles(in int tri) {
     deftri = tri;
+    if (deftri.x >= 0) awaitFlag = true;
 }
 
 void doIntersection() {
-    BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
-
-    // planned packed math
-    vec4 uv2 = vec4(0.0f);
-    vec2 _d2 = vec2(
-        intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x, predist),
-        intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y, predist)
-    );
-
-    float _nearhit = predist;
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    predist = min3(predist, _d2.x, _d2.y);
-#else
-    predist = min(min(predist, _d2.x), _d2.y);
-#endif
-    IF (lessF(predist, _nearhit)) { bstackCount = 0; }
-
-    // include to cache
-    near &= //primary & 
-        BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
-        BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
-    IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
-    IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(deftri.y));
-
-    deftri.x = -1, deftri.y = -1, awaitFlag = false;
-
-/*
     BOOL_ near = BOOL_(deftri.x >= 0);
     vec2 uv = vec2(0.f.xx);
     float d = intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv.xy, near.x, predist);
@@ -201,10 +175,7 @@ void doIntersection() {
     near &= lessF(d, INFINITY) & lessEqualF(d, predist);
     IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv.xy, d.x, intBitsToFloat(deftri.x));
 
-    // conveyor triangle defer
-    deftri.x = deftri.y, deftri.y = -1;
-    if (deftri.x < 0) awaitFlag = false;
-*/
+    awaitFlag = false, deftri.x = -1;
 }
 
 // planned block optimized system
@@ -212,7 +183,6 @@ void checkChildNodes() {
     if ( bool(validBox) && !awaitFlag ) { // traverse BVH, but don't traverse when deferred triangles
     //IF (validBox) {
         int found = -1;
-        deftri = ivec2(-1,-1);
 
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
         bool leftNear = true;
@@ -223,8 +193,7 @@ void checkChildNodes() {
 
         // calculate boxes intersections
         ivec4 comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
-        
-        { // test boxes
+        if (comp4.x != comp4.y) { // test boxes (if not leafs)
             int _cmp = comp4.x >> 1;
 
             // do dual box intersection (claymore style)
@@ -239,20 +208,13 @@ void checkChildNodes() {
 
             // validate intersection
             overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
-        }
-        
-        // culled intersection of leaf nodes
-        ivec2 trig = ivec2(-1); ivec4 sibs = ivec4(-1);
-        IF (any(overlapsGeneral)) {
-            vec2 lw = bvhGatherifyStorage(bvhLinear2D(comp4.x));
-            if (comp4.x > 0) {sibs = ivec4(SGATHER(bvhStorage, lw, 0).wx, SGATHER(bvhStorage, lw, 1).wx), trig = ivec2(SGATHER(bvhStorage, lw, 3).wx);}
-            trig = mix((-1).xx, trig.xy, overlapsGeneral); // clip triangles
-            overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw));
-        }
+        } else 
 
-        { // intersect triangles, and cull box intersections
-            deferTriangles(trig.x >= 0 ? trig.xy : ivec2(trig.y,-1));
-            if (deftri.x >= 0) awaitFlag = true;
+        // if is leaf, defer intersection
+        //if (comp4.x == comp4.y) 
+        {
+            deferTriangles(comp4.w);
+            overlapsGeneral &= FALSE_.xx;
         }
 
         // choice child nodes by nears

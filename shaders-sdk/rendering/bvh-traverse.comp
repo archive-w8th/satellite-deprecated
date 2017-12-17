@@ -149,7 +149,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
     ));
 
-    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0, mergeRestCmd = false;
+    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = ivec2(-1, -1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = 0, awaitFlag = false;
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
 }
@@ -158,52 +158,62 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 //#define _ADD(m,k) add(m,k)
 #define _ADD(m,k) min(m++,BAKED_STACK_SIZE-1)
 
-// some optimize intersection and resolver
-void intersectLeafs2(in ivec2 tri) {
-    deftri = mix(deftri, tri, BVEC2_(greaterThanEqual(tri, ivec2(0))));
+void deferTriangles(in ivec2 tri) {
+    deftri = tri;
+}
 
-    // interlane intersection may occur double-triangle issue (and transparency problems)
-    //BVEC2_ primary = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
-    //int interpL = interpolInvocation(primary.x), interpR = interpolInvocation(primary.y); // implant for unbusy lanes
-    //deftri += 1; // avoid invocation read error
-    //deftri = mix(ivec2(readLane(deftri.x, interpL), readLane(deftri.y, interpR)), deftri, primary);
-    //deftri -= 1; // avoid invocation read error
-    {
-        //mergeRestCmd = false;
-        BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
+void doIntersection() {
+    BVEC2_ near = BVEC2_(greaterThanEqual(deftri, ivec2(0)));
 
-        // planned packed math
-        vec4 uv2 = vec4(0.0f);
-        vec2 _d2 = vec2(
-            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x, predist),
-            intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y, predist)
-        );
+    // planned packed math
+    vec4 uv2 = vec4(0.0f);
+    vec2 _d2 = vec2(
+        intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv2.xy, near.x, predist),
+        intersectTriangle(currentRay.origin.xyz, M, axis, deftri.y, uv2.zw, near.y, predist)
+    );
 
-        float _nearhit = predist;
+    float _nearhit = predist;
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-        predist = min3(predist, _d2.x, _d2.y);
+    predist = min3(predist, _d2.x, _d2.y);
 #else
-        predist = min(min(predist, _d2.x), _d2.y);
+    predist = min(min(predist, _d2.x), _d2.y);
 #endif
-        IF (lessF(predist, _nearhit)) { bstackCount = 0; }
+    IF (lessF(predist, _nearhit)) { bstackCount = 0; }
 
-        // include to cache
-        near &= //primary & 
-            BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
-            BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
-        IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
-        IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(deftri.y));
+    // include to cache
+    near &= //primary & 
+        BVEC2_(lessF(_d2.x, INFINITY), lessF(_d2.y, INFINITY)) & 
+        BVEC2_(lessEqualF(_d2.x, predist), lessEqualF(_d2.y, predist));
+    IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.xy, _d2.x, intBitsToFloat(deftri.x));
+    IF (near.y) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv2.zw, _d2.y, intBitsToFloat(deftri.y));
 
-        deftri.x = -1, deftri.y = -1, awaitFlag = false;
-    } //else {
-        //awaitFlag = true;
-    //}
+    deftri.x = -1, deftri.y = -1, awaitFlag = false;
+
+/*
+    BOOL_ near = BOOL_(deftri.x >= 0);
+    vec2 uv = vec2(0.f.xx);
+    float d = intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv.xy, near.x, predist);
+
+    float _nearhit = predist;
+    predist = min(predist, d);
+    IF (lessF(predist, _nearhit)) { bstackCount = 0; }
+
+    near &= lessF(d, INFINITY) & lessEqualF(d, predist);
+    IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv.xy, d.x, intBitsToFloat(deftri.x));
+
+    // conveyor triangle defer
+    deftri.x = deftri.y, deftri.y = -1;
+    if (deftri.x < 0) awaitFlag = false;
+*/
 }
 
 // planned block optimized system
 void checkChildNodes() {
-    IF (validBox) {
+    if ( bool(validBox) && !awaitFlag ) { // traverse BVH, but don't traverse when deferred triangles
+    //IF (validBox) {
         int found = -1;
+        deftri = ivec2(-1,-1);
+
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
         bool leftNear = true;
 
@@ -240,7 +250,8 @@ void checkChildNodes() {
         }
 
         { // intersect triangles, and cull box intersections
-            intersectLeafs2(trig.x >= 0 ? trig.xy : trig.yx);
+            deferTriangles(trig.x >= 0 ? trig.xy : ivec2(trig.y,-1));
+            if (deftri.x >= 0) awaitFlag = true;
             overlapsGeneral &= BVEC2_(notEqual(sibs.xy, sibs.zw)) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
         }
 
@@ -258,7 +269,7 @@ void checkChildNodes() {
         { // unified child/parent/another switcher
             bool _ssc = found >= 0;
             int ptr = (deferredPtr -= _ssc ? 0 : 1); deferredPtr = max(deferredPtr, 0);
-            esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
+            esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x && ptr >= 0), idx = mix(-1, idx, validBox);
         }
     }
 }
@@ -379,7 +390,7 @@ void includeChain(inout vec4 intersection) {
 }
 
 void choiceBaked() {
-    mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1)); // intersect rest triangles
+    //mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1)); // intersect rest triangles
     if (bstackCount > 0) {
         reorderTriangles();
         for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }
@@ -407,9 +418,13 @@ void main() {
         
         // global traversing
         beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
-        for (int iteration=0;iteration<2048;iteration++) {
-            IFALL(not(validBox) | overflow | BOOL_(idx < 0)) break;
-            checkChildNodes(); // traverse BVH
+        for (int iteration=0;iteration<64;iteration++) {
+            IF (not(validBox) | overflow | BOOL_(idx < 0)) break;
+            for (int lt=0;lt<64;lt++) {
+                if (!(bool(validBox) && !awaitFlag)) break;
+                checkChildNodes(); // traverse BVH
+            }
+            doIntersection(); // do intersection (WARP optimized)
         }
         choiceBaked(); // sort of intersections
 

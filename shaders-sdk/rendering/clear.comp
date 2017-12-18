@@ -12,12 +12,12 @@ LOCAL_SIZE_LINEAR_LAYOUT;
 
 void main()
 {
-    vec2 wh = vec2(imageSize(sampleflags).xy);
-    int wsize = int(ceil(wh.x * wh.y));
+    vec2 whs = vec2(imageSize(sampleflags).xy); whs.y *= 0.5f; // divide height
+    int wsize = int(ceil(whs.x * whs.y));
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 800000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        imageStore(sampleflags, ivec2(it % int(wh.x), it / int(wh.x)), ivec4(1));
+        imageStore(sampleflags, ivec2(it % int(whs.x), it / int(whs.x)), ivec4(1));
     }
 }

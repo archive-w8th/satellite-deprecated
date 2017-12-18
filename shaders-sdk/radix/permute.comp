@@ -14,7 +14,7 @@ shared UVEC64_WARP _data[WARP_SIZE];
 shared UVEC_WARP _dataValue[WARP_SIZE];
 #define dataValue _dataValue[LANE_IDX]
 
-initNonAtomicIncFunctionDynamic(localHistogram, countOffset, uint)
+initNonAtomicIncFunctionTarget(localHistogram[WHERE], countOffset, uint)
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;
@@ -27,7 +27,7 @@ void main() {
     uint bcount = min(blocks.count, 16384);
 
     // barrier-less, WARP-optimized histogram calculation
-    for (uint rk=0;rk<RADICES;rk+=WORK_SIZE_RT) {
+    for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         uint addr = blocks.offset + LANE_IDX;
         uint radice = rk + LC_IDX;
         if (radice >= RADICES) break; 
@@ -53,7 +53,7 @@ void main() {
             // compressive putting
             BVEC_WARP vld = k == radice && validAddress;
             if (vld) {
-                UVEC_WARP offset = countOffset(radice, vld);
+                UVEC_WARP offset = countOffset(radice, BOOL_(vld));
                 KeyIn[offset] = KEYTYPE(data);
                 ValueIn[offset] = dataValue;
             }

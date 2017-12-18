@@ -3,7 +3,7 @@
 
 #include "./includes.glsl"
 
-//layout (local_size_x = WARP_SIZE, local_size_y = WORK_SIZE) in;
+//layout (local_size_x = WARP_SIZE, local_size_y = WRK_SIZE) in;
 layout (local_size_x = BLOCK_SIZE) in;
 
 shared uint localHistogram[RADICES];
@@ -12,7 +12,7 @@ shared uint localHistogram[RADICES];
 shared UVEC64_WARP _data[WARP_SIZE];
 #define data _data[LANE_IDX]
 
-initNonAtomicIncFunctionDynamic(localHistogram, countHistogram, uint)
+initNonAtomicIncFunctionTarget(localHistogram[WHERE], countHistogram, uint)
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;
@@ -26,7 +26,7 @@ void main() {
     uint addr = blocks.offset + LT_IDX;
 
     // barrier-less, WARP-optimized histogram calculation
-    for (uint rk=0;rk<RADICES;rk+=WORK_SIZE_RT) {
+    for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         uint radice = rk + LC_IDX;
         addr = blocks.offset + LANE_IDX;
         if (radice >= RADICES) break; 
@@ -47,7 +47,7 @@ void main() {
             UVEC_WARP k = UVEC_WARP(BFE(data, int(Shift*BITS_PER_PASS), BITS_PER_PASS));
 
             BVEC_WARP vld = k == radice && validAddress;
-            countHistogram(radice, vld);
+            countHistogram(radice, BOOL_(vld));
             addr += WARP_SIZE_RT;
         }
 

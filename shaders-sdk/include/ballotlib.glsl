@@ -14,6 +14,10 @@
 #endif
 #endif
 
+//#define WARP_SIZE_RT ITYPE(gl_SubGroupSizeARB)
+  #define WARP_SIZE_RT ITYPE(WARP_SIZE)
+
+
 
 // planned dynamic support
 #if (WARP_SIZE == 64)
@@ -28,16 +32,12 @@
 #define ITYPE int
 #endif
 
-//#define WARP_SIZE_RT ITYPE(gl_SubGroupSizeARB)
-#define WARP_SIZE_RT ITYPE(WARP_SIZE)
-#define   LT_IDX ITYPE(gl_LocalInvocationIndex)
-//#define   LC_IDX ITYPE(gl_LocalInvocationID.x / WARP_SIZE_RT)
-//#define LANE_IDX ITYPE(gl_LocalInvocationID.x % WARP_SIZE_RT)
-//#define   LC_IDX ITYPE(gl_LocalInvocationID.x >> WARP_FILTER_SHIFT)
-//#define LANE_IDX ITYPE(gl_LocalInvocationID.x & WARP_FILTER_MASK)
-//#define   LANE_IDX ITYPE(gl_SubGroupInvocationARB)
-#define   LANE_IDX (LT_IDX%WARP_SIZE_RT)
-#define   LC_IDX   (LT_IDX/WARP_SIZE_RT)
+// customizable
+#ifndef CUSTOMIZE_IDC
+  #define LT_IDX ITYPE(gl_LocalInvocationIndex)
+  #define LANE_IDX (LT_IDX%WARP_SIZE_RT)
+  #define LC_IDX   (LT_IDX/WARP_SIZE_RT)
+#endif 
 
 #define UVEC_BALLOT_WARP uvec2
 
@@ -294,7 +294,7 @@ T fname(in BOOL_ value) { \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, mix(0, sumInOrder, LANE_IDX == activeLane));\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, mix(T(0), sumInOrder, LANE_IDX == activeLane));\
     return readLane(gadd, activeLane) + idxInOrder; \
 }
 
@@ -305,7 +305,7 @@ T fname(in uint WHERE, in BOOL_ value) { \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, mix(0, sumInOrder, LANE_IDX == activeLane));\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, mix(T(0), sumInOrder, LANE_IDX == activeLane));\
     return readLane(gadd, activeLane) + idxInOrder; \
 }
 

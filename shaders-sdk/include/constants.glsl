@@ -3,8 +3,6 @@
 
 // hardware or driver options
 #define INT64_MORTON
-//#define ENABLE_NVIDIA_INSTRUCTION_SET
-//#define ENABLE_AMD_INSTRUCTION_SET
 
 #ifdef INT64_MORTON
 #define MORTONTYPE uint64_t
@@ -30,7 +28,6 @@
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #extension GL_AMD_gcn_shader : enable
 #extension GL_AMD_gpu_shader_half_float : enable
-//#extension GL_AMD_gpu_shader_half_float2 : enable
 #extension GL_AMD_gpu_shader_int16 : enable
 #extension GL_AMD_shader_trinary_minmax : enable
 #extension GL_AMD_texture_gather_bias_lod : enable
@@ -47,16 +44,6 @@
 #extension GL_ARB_shader_ballot : require
 #extension GL_ARB_shader_group_vote : enable
 #extension GL_EXT_shader_image_load_formatted : enable
-
-/*
-#ifdef USE_ARB_CLOCK
-#extension GL_ARB_shader_clock : enable
-#endif
-
-#ifdef USE_ARB_PRECISION
-#extension GL_ARB_shader_precision : enable
-#endif
-*/
 
 // System Constants
 #define PZERO 0.0001f

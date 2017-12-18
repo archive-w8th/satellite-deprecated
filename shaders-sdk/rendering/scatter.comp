@@ -20,7 +20,7 @@ void main() {
     vec2 scl = ceil(aspect);
 
     int wsize = int(ceil(whs.x * whs.y));
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 100000);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 800000);
     
     const mat4 vProj = transpose(inverse(transpose(RAY_BLOCK cameraUniform.projInv)));
     const mat4 camProj = transpose(inverse(transpose(RAY_BLOCK cameraUniform.prevCamInv)));

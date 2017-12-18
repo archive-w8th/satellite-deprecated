@@ -14,7 +14,7 @@ void main()
 {
     vec2 wh = vec2(imageSize(sampleflags).xy);
     int wsize = int(ceil(wh.x * wh.y));
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 100000);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 800000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);

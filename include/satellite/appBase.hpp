@@ -202,6 +202,15 @@ namespace NSM {
                 allocatorInfo.physicalDevice = deviceQueuePtr->physical;
                 allocatorInfo.device = deviceQueuePtr->logical;
                 vmaCreateAllocator(&allocatorInfo, &deviceQueuePtr->allocator);
+
+                // pool sizes, and create descriptor pool 
+                std::vector<vk::DescriptorPoolSize> psizes = {
+                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 24),
+                    vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 16),
+                    vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 128),
+                    vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 16)
+                };
+                deviceQueuePtr->descriptorPool = deviceQueuePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
             }
 
             return std::move(deviceQueuePtr);

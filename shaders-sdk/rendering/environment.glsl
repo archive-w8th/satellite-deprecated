@@ -12,7 +12,7 @@
 #define phaseMie(a) (.0348151 / pow(1.5625 - 1.5*a,1.5))
 #define absorb(a) (1. - pow(atmosphereColor, vec3(1./(a))))
 
-layout ( binding = 5, set = 1 ) uniform sampler2D skybox[1];
+layout ( binding = 0, set = 1 ) uniform sampler2D skybox[1];
 
 vec4 readEnv(in vec3 r) {
     vec3 nr = normalize(r);

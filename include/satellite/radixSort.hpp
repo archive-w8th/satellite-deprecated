@@ -15,7 +15,6 @@ namespace NSM {
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
             std::vector<vk::DescriptorSet> descriptorSets;
-            vk::DescriptorPool descriptorPool;
             vk::PipelineCache pipelineCache;
             vk::PipelineLayout pipelineLayout;
 

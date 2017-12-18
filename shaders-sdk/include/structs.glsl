@@ -107,27 +107,6 @@ struct bbox {
 #define TRANSPOSEF_(m)PACK_BOX_(transpose(UNPACK_BOX_(m)))
 
 
-
-/*
-// 128-bit bandwidth
-struct bboxf16 {
-#ifdef AMD_F16_BVH
-    f16vec4 mn;
-    f16vec4 mx;
-#else
-    uvec2 mn;
-    uvec2 mx;
-#endif
-};
-
-// 256-bit bandwidth
-struct bboxf32 {
-    uvec4 mn;
-    uvec4 mx;
-};
-*/
-
-
 // ray bitfield spec
 // {0     }[1] - actived or not
 // {1 ..2 }[2] - ray type (for example diffuse, specular, shadow)
@@ -314,34 +293,44 @@ struct ColorChain {
 };
 
 struct MeshUniformStruct {
-     int vertexAccessor;
-     int normalAccessor;
-     int texcoordAccessor;
-     int modifierAccessor;
+    int vertexAccessor;
+    int normalAccessor;
+    int texcoordAccessor;
+    int modifierAccessor;
+    int materialAccessor;
+    int indiceAccessor;
+    int r0, r1;
 
-     mat4 transform;
-     mat4 transformInv;
+    mat4 transform;
+    mat4 transformInv;
 
-     int materialID;
-     int isIndexed;
-     int nodeCount;
-     int primitiveType;
+    int materialID;
+    int isIndexed;
+    int nodeCount;
+    int primitiveType;
 
-     int loadingOffset;
-     int storingOffset;
-     int _reserved0;
-     int _reserved1;
+    //int loadingOffset;
+    //int storingOffset;
 };
 
+// subdata structuring in buffer region
 struct VirtualBufferView {
-     int offset4;
-     int stride4;
+    int byteOffset;
+    int byteStride;
 };
 
-struct VirtualAccessor {
-     int offset4;
-     uint bitfield;
-     int bufferView;
+// structuring swizzle
+struct VirtualDataAccess {
+    int bufferView; // buffer-view structure
+    int byteOffset; // in structure offset
+    uint bitfield;
+};
+
+// structure accessors 
+struct VirtualBufferBinding {
+    int bufferID; // buffer region PTR 
+    int dataAccess; // structure accessor
+    int indexOffset; // structure index offset (where should be counting), so offset calculates as   (bv.byteOffset + indexOffset*bv.byteStride + ac.byteOffset)
 };
 
 const ivec2 COMPONENTS = ivec2(0, 2);

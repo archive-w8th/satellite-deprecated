@@ -124,13 +124,22 @@ namespace NSM {
 
 
 
+        // low level buffer region, that means just "buffer"
+        struct BufferRegion {
+            uint32_t byteOffset;
+            uint32_t byteSize;
+        };
 
 
+        
         struct MeshUniformStruct {
             int vertexAccessor = -1;
             int normalAccessor = -1;
             int texcoordAccessor = -1;
             int modifierAccessor = -1;
+            int materialAccessor = -1;
+            int indiceAccessor = -1;
+            int r0 = -1, r1 = -1;
 
             glm::mat4 transform = glm::mat4(1.f);
             glm::mat4 transformInv = glm::mat4(1.f);
@@ -139,23 +148,26 @@ namespace NSM {
             int isIndexed = 0;
             int nodeCount = 1;
             int primitiveType = 0;
-
-            int loadingOffset = 0;
-            int storingOffset = 0;
-            int _reserved0 = 1;
-            int _reserved1 = 2;
         };
 
-
+        // subdata structuring in buffer region
         struct VirtualBufferView {
-            int offset4 = 0;
-            int stride4 = 1;
+            int byteOffset = 0;
+            int byteStride = 1;
         };
 
-        struct VirtualAccessor {
-            int offset4 = 0;
+        // structuring swizzle
+        struct VirtualDataAccess {
+            int bufferView = -1; // buffer-view structure
+            int byteOffset = 0; // in structure offset
             int components : 2, type : 4, normalized : 1;
-            int bufferView = -1;
+        };
+
+        // structure accessors 
+        struct VirtualBufferBinding {
+            int bufferID = 0; // buffer region PTR 
+            int dataAccess = -1; // structure accessor 
+            int indexOffset = 0; // structure index offset (where should be counting), so offset calculates as   (bv.byteOffset + indexOffset*bv.byteStride + ac.byteOffset)
         };
 
 

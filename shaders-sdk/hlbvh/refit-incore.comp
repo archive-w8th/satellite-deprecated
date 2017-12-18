@@ -40,7 +40,7 @@ void unifyNodeBox(inout int idx){
 
 
 void main() {
-    int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
+    int n = bvhBlock.creatorUniform.leafCount;
     int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {

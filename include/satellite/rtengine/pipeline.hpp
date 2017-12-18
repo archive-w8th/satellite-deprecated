@@ -64,10 +64,10 @@ namespace NSM {
             std::vector<RayStream> rayStreamsData;
             UniformBuffer rayStreamsUniform;
 
-            vk::DescriptorPool descriptorPool;
+            //vk::DescriptorPool descriptorPool;
 
             std::vector<vk::DescriptorSet> 
-                rayShadingDescriptors, rayTracingDescriptors, rayTraverseDescriptors, samplingDescriptors, surfaceDescriptors;
+                rayShadingDescriptors, rayTracingDescriptors, samplingDescriptors, surfaceDescriptors;
 
             std::vector<vk::DescriptorSetLayout> 
                 rayShadingDescriptorsLayout, rayTracingDescriptorsLayout, rayTraverseDescriptorsLayout, samplingDescriptorsLayout, surfaceDescriptorsLayout;

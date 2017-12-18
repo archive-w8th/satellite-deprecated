@@ -91,7 +91,7 @@ layout ( std430, binding = 7, set = 0 ) coherent buffer BlockBins { BlockBin blo
 layout ( std430, binding = 9, set = 0 ) coherent buffer HitsSSBO { HitRework hits[]; }; // 96byte per node
 
 // for faster BVH traverse
-layout ( std430, binding = 11, set = 0 ) coherent buffer UnorderedSSBO { int unorderedRays[]; };
+layout ( std430, binding = 10, set = 0 ) coherent buffer UnorderedSSBO { int unorderedRays[]; };
 
 
 // block states (per lanes)

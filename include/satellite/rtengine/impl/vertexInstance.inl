@@ -20,40 +20,46 @@ namespace NSM {
         VertexInstance::VertexInstance(VertexInstance&& another) {
             device = std::move(another.device);
             bufferViewSet = std::move(another.bufferViewSet);
-            accessorSet = std::move(another.accessorSet);
+            dataBindingSet = std::move(another.dataBindingSet);
             meshUniformData = std::move(another.meshUniformData);
-            meshUniformStager = std::move(another.meshUniformStager);
-            meshUniformBuffer = std::move(another.meshUniformBuffer);
-            dataBuffer = std::move(another.dataBuffer);
-            materialBuffer = std::move(another.materialBuffer);
-            indicesBuffer = std::move(another.indicesBuffer);
         }
 
         VertexInstance::VertexInstance(VertexInstance& another) {
             device = another.device;
             bufferViewSet = another.bufferViewSet;
-            accessorSet = another.accessorSet;
+            dataBindingSet = another.dataBindingSet;
             meshUniformData = another.meshUniformData;
-            meshUniformStager = another.meshUniformStager;
-            meshUniformBuffer = another.meshUniformBuffer;
-            dataBuffer = another.dataBuffer;
-            materialBuffer = another.materialBuffer;
-            indicesBuffer = another.indicesBuffer;
         }
 
 
+        void VertexInstance::useIndex16bit(bool b16) {
+            index16bit = b16;
+        }
+
+        void VertexInstance::setBufferSpace(BufferSpace &buf) {
+            bufferSpace = std::make_shared<BufferSpace>(buf);
+        };
+
+
+        void VertexInstance::setAccessorSet(std::shared_ptr<DataBindingSet>& accessorSet) {
+            this->dataBindingSet = accessorSet;
+        }
+
+        void VertexInstance::setBufferViewSet(std::shared_ptr<BufferViewSet>& bufferViewSet) {
+            this->bufferViewSet = bufferViewSet;
+        }
+
+
+
+
+
+
         void VertexInstance::setNodeCount(size_t tcount) {
-            uint32_t tiledWork = tiled(tcount, 128);
-            //glNamedBufferSubData(indirect_dispatch_buffer, 0, sizeof(uint32_t), &tiledWork);
             meshUniformData[0].nodeCount = tcount;
         }
 
         void VertexInstance::setMaterialOffset(int32_t id) {
             meshUniformData[0].materialID = id;
-        }
-
-        void VertexInstance::useIndex16bit(bool b16) {
-            index16bit = b16;
         }
 
         void VertexInstance::setTransform(glm::mat4 t) {
@@ -69,75 +75,41 @@ namespace NSM {
             meshUniformData[0].isIndexed = b;
         }
 
-        void VertexInstance::setDataBuffer(const BufferType &buf) {
-            dataBuffer = buf;
-        };
-
-        void VertexInstance::setIndicesBuffer(const BufferType &buf) {
-            indicesBuffer = buf;
-        };
-
         size_t VertexInstance::getNodeCount() {
             return meshUniformData[0].nodeCount;
         }
 
-
-        // getting buffer
-        BufferType& VertexInstance::getDataBuffer() {
-            return dataBuffer;
-        };
-
-        BufferType& VertexInstance::getIndicesBuffer() {
-            return indicesBuffer;
-        };
-
-        BufferType& VertexInstance::getUniformBuffer() {
-            syncUniform();
-            return meshUniformBuffer;
-        }
-
-
-        BufferType& VertexInstance::getAccessorsBuffer() {
-            return this->accessorSet->getBuffer();
-        }
-
-        BufferType& VertexInstance::getBufferViewsBuffer() {
-            return this->bufferViewSet->getBuffer();
-        }
-
-        BufferType& VertexInstance::getMaterialIndicesBuffer() {
-            return this->materialBuffer;
-        }
-
-
-        void VertexInstance::setLoadingOffset(const int32_t &off) {
-            meshUniformData[0].loadingOffset = off;
-        };
+        // obsolete, indice or vertex index should be defined in buffer bindings 
+        //void VertexInstance::setLoadingOffset(const int32_t &off) {
+            //meshUniformData[0].loadingOffset = off;
+        //};
 
         // setting of accessors
-        void VertexInstance::setVertexAccessor(int32_t accessorID) {
+        void VertexInstance::setVertexBinding(int32_t accessorID) {
             meshUniformData[0].vertexAccessor = accessorID;
         }
 
-        void VertexInstance::setNormalAccessor(int32_t accessorID) {
+        void VertexInstance::setIndiceBinding(int32_t accessorID) {
+            meshUniformData[0].indiceAccessor = accessorID;
+        }
+
+        void VertexInstance::setMaterialBinding(int32_t accessorID) {
+            meshUniformData[0].materialAccessor = accessorID;
+        }
+
+        void VertexInstance::setNormalBinding(int32_t accessorID) {
             meshUniformData[0].normalAccessor = accessorID;
         }
 
-        void VertexInstance::setTexcoordAccessor(int32_t accessorID) {
+        void VertexInstance::setTexcoordBinding(int32_t accessorID) {
             meshUniformData[0].texcoordAccessor = accessorID;
         }
 
-        void VertexInstance::setModifierAccessor(int32_t accessorID) {
+        void VertexInstance::setModifierBinding(int32_t accessorID) {
             meshUniformData[0].modifierAccessor = accessorID;
         }
 
-        void VertexInstance::setAccessorSet(std::shared_ptr<AccessorSet>& accessorSet) {
-            this->accessorSet = accessorSet;
-        }
-
-        void VertexInstance::setBufferViewSet(std::shared_ptr<BufferViewSet>& bufferViewSet) {
-            this->bufferViewSet = bufferViewSet;
-        }
+        
 
     }
 }

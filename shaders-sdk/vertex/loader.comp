@@ -23,18 +23,20 @@ layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters {
 };
 
 // input data
-layout ( std430, binding = 1, set = 0 ) readonly buffer InputVertexSSBO {float iverts[]; };
-layout ( std430, binding = 2, set = 0 ) readonly buffer InputVertexIndicesSSBO {INDICE_T vindics[]; };
-//layout ( std430, binding = 3, set = 0 ) readonly buffer InputMaterialsSSBO {int imats[]; };
-
-// mesh attributes and accessors
+layout ( std430, binding = 1, set = 0 ) readonly buffer BufferSpace {uint bufferSpace[]; };
+layout ( std430, binding = 2, set = 0 ) readonly buffer BufferRegions {uvec2 bufferRegions[]; };
+layout ( std430, binding = 3, set = 0 ) readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };
+layout ( std430, binding = 4, set = 0 ) readonly buffer DataFormat {VirtualDataFormat dataFormats[]; };
+layout ( std430, binding = 5, set = 0 ) readonly buffer AccessBinding {VirtualBufferBinding dataBindings[]; };
 layout ( std430, binding = 6, set = 0 ) readonly buffer IMeshUniform {MeshUniformStruct meshUniform; };
-layout ( std430, binding = 8, set = 0 ) readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };
-layout ( std430, binding = 7, set = 0 ) readonly buffer IMeshAccessors {VirtualAccessor meshAccessors[]; };
 
-// output geometry and counters
-//layout ( std430, binding = 0, set = 0 ) restrict buffer TCounterSSBO {int tcounter[]; };
 
+////////////////////////
+// UNDER CONSTRUCTION //
+////////////////////////
+
+
+/*  
 // tools
 vec4 readByAccessor(in uint accessorID, in uint idx) {
     VirtualAccessor accessors = meshAccessors[accessorID];
@@ -167,3 +169,4 @@ void main()
         }
     }
 }
+*/

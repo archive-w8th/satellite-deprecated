@@ -38,6 +38,11 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer BuildCounters {
     int aabbcount[1];
 };
 
+
+layout ( std430, binding = 10, set = 0 ) readonly buffer BVHCreatorBlockUniform { BVHCreatorUniformStruct creatorUniform;} bvhBlock;
+
+
+
 bbox calcTriBox(in mat3x4 triverts) {
     bbox result;
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))

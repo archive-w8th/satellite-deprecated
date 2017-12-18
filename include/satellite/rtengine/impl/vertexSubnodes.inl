@@ -28,6 +28,7 @@ namespace NSM {
             stager = createBuffer(device, strided<STRUCTURE>(64), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
         }
 
+
         template<int BINDING, class STRUCTURE>
         int32_t BufferComposer<BINDING,STRUCTURE>::addElement(STRUCTURE accessorDesc) {
             int32_t ptr = data.size();
@@ -40,6 +41,69 @@ namespace NSM {
             bufferSubData(stager, data, 0);
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) }, true);
             return cache;
+        }
+
+
+
+        
+
+        BufferSpace::BufferSpace(DeviceQueueType& device, const size_t spaceSize) {
+            this->device = device;
+
+            regionsBuffer = createBuffer(device, strided<BufferRegion>(64), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            regionsStage = createBuffer(device, strided<BufferRegion>(64), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+            dataBuffer = createBuffer(device, strided<uint32_t>(spaceSize), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            dataStage = createBuffer(device, strided<uint32_t>(spaceSize), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        }
+
+
+        intptr_t BufferSpace::getLastKnownOffset() {
+            return lastKnownOffset;
+        }
+
+        BufferType BufferSpace::getDataBuffer() {
+            return dataBuffer;
+        }
+
+        BufferType BufferSpace::getRegionsBuffer() {
+            bufferSubData(regionsStage, regions, 0);
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, regionsStage, regionsBuffer, { 0, 0, strided<BufferRegion>(regions.size()) }, true);
+            return regionsBuffer;
+        }
+
+
+        intptr_t BufferSpace::copyGPUBuffer( BufferType external, const size_t size, const intptr_t offset) {
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, external, dataBuffer, { 0, offset, size }, true);
+            return offset;
+        }
+
+        intptr_t BufferSpace::copyGPUBuffer( BufferType external, const size_t size) {
+            const intptr_t offset = lastKnownOffset; lastKnownOffset += size;
+            return copyGPUBuffer(external, size, offset);
+        }
+
+
+        intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size, const intptr_t offset) {
+            bufferSubData(dataStage, external, size, 0);
+            return copyGPUBuffer(dataStage, offset, size);
+        }
+
+        intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size) {
+            const intptr_t offset = lastKnownOffset; lastKnownOffset += size;
+            return copyHostBuffer(external, size, offset);
+        }
+
+        template<class T>
+        intptr_t BufferSpace::copyHostBuffer(const std::vector<T> external, const intptr_t offset) {
+            return copyHostBuffer((const uint8_t *)external.data(), external.size()*sizeof(T), offset);
+        }
+
+
+        int32_t BufferSpace::addRegionDesc(BufferRegion region) {
+            int32_t ptr = regions.size();
+            regions.push_back(region);
+            return ptr;
         }
 
     }

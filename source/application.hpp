@@ -419,11 +419,6 @@ namespace SatelliteExample {
             // init or prerender data
             this->init(deviceQueue, argc, argv); // init ray tracers virtually
 
-            // define descriptor pool sizes
-            std::vector<vk::DescriptorPoolSize> descriptorPoolSizes = {
-                vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1)
-            };
-
             // descriptor set bindings
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, nullptr)
@@ -434,18 +429,10 @@ namespace SatelliteExample {
                 deviceQueue->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(1))
             };
 
-            // create descriptor sets and pool
-            auto descriptorPool = deviceQueue->logical.createDescriptorPool(
-                vk::DescriptorPoolCreateInfo()
-                .setPPoolSizes(descriptorPoolSizes.data())
-                .setPoolSizeCount(descriptorPoolSizes.size())
-                .setMaxSets(1)
-            );
-
             // descriptor sets (where will writing binding)
             auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(
                 vk::DescriptorSetAllocateInfo()
-                .setDescriptorPool(descriptorPool)
+                .setDescriptorPool(deviceQueue->descriptorPool)
                 .setDescriptorSetCount(descriptorSetLayouts.size())
                 .setPSetLayouts(descriptorSetLayouts.data())
             );
@@ -577,7 +564,7 @@ namespace SatelliteExample {
                 // create graphics context
                 context->device = deviceQueue;
                 context->pipeline = trianglePipeline;
-                context->descriptorPool = descriptorPool;
+                context->descriptorPool = deviceQueue->descriptorPool;
                 context->descriptorSets = descriptorSets;
                 context->pipelineLayout = pipelineLayout;
 

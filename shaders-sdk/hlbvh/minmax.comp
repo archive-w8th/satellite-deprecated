@@ -25,9 +25,9 @@ bbox getMinMaxPrimitive(in uint idx) {
         fetchMosaic(vertex_texture, msc, 2)
     );
 
-    triverts[0] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[0]);
-    triverts[1] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[1]);
-    triverts[2] = mult4(GEOMETRY_BLOCK geometryUniform.transform, triverts[2]);
+    triverts[0] = mult4(bvhBlock.creatorUniform.transform, triverts[0]);
+    triverts[1] = mult4(bvhBlock.creatorUniform.transform, triverts[1]);
+    triverts[2] = mult4(bvhBlock.creatorUniform.transform, triverts[2]);
     return calcTriBox(triverts);
 }
 

@@ -23,16 +23,12 @@ namespace NSM {
                 vk::DescriptorSetLayoutBinding(28, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
             };
 
-            descriptorPool = device->logical.createDescriptorPool(
-                vk::DescriptorPoolCreateInfo().setPPoolSizes(descriptorPoolSizes.data()).setPoolSizeCount(descriptorPoolSizes.size()).setMaxSets(1)
-            );
-
             descriptorSetLayouts = {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size()))
             };
 
             descriptorSets = device->logical.allocateDescriptorSets(
-                vk::DescriptorSetAllocateInfo().setDescriptorPool(descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayouts.data())
+                vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(descriptorSetLayouts.data())
             );
 
             // layout and cache
@@ -78,7 +74,6 @@ namespace NSM {
             VarStaging = another.VarStaging;
             descriptorSetLayouts = another.descriptorSetLayouts;
             descriptorSets = another.descriptorSets;
-            descriptorPool = another.descriptorPool;
             pipelineCache = another.pipelineCache;
             pipelineLayout = another.pipelineLayout;
         }
@@ -99,7 +94,6 @@ namespace NSM {
             VarStaging = std::move(another.VarStaging);
             descriptorSetLayouts = std::move(another.descriptorSetLayouts);
             descriptorSets = std::move(another.descriptorSets);
-            descriptorPool = std::move(another.descriptorPool);
             pipelineCache = std::move(another.pipelineCache);
             pipelineLayout = std::move(another.pipelineLayout);
         }

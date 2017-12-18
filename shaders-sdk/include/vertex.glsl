@@ -4,17 +4,21 @@
 #include "../include/mathlib.glsl"
 
 #ifdef VERTEX_FILLING
-layout ( std430, binding = 10, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
-layout ( binding = 0, rgba32f, set = 1 ) uniform image2D vertex_texture_out;
-layout ( binding = 1, rgba32f, set = 1 ) uniform image2D normal_texture_out;
-layout ( binding = 2, rgba32f, set = 1 ) uniform image2D texcoords_texture_out;
-layout ( binding = 3, rgba32f, set = 1 ) uniform image2D modifiers_texture_out;
+layout ( std430, binding = 7, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
+layout ( std430, binding = 8, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
+layout ( binding = 10, rgba32f, set = 0 ) uniform image2D vertex_texture_out;
+layout ( binding = 11, rgba32f, set = 0 ) uniform image2D normal_texture_out;
+layout ( binding = 12, rgba32f, set = 0 ) uniform image2D texcoords_texture_out;
+layout ( binding = 13, rgba32f, set = 0 ) uniform image2D modifiers_texture_out;
 #else
-layout ( std430, binding = 10, set = 0 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
-layout ( binding = 0, set = 1 ) uniform sampler2D vertex_texture;
-layout ( binding = 1, set = 1 ) uniform sampler2D normal_texture;
-layout ( binding = 2, set = 1 ) uniform sampler2D texcoords_texture;
-layout ( binding = 3, set = 1 ) uniform sampler2D modifiers_texture;
+layout ( binding = 10, set = 1 ) uniform sampler2D vertex_texture;
+layout ( binding = 11, set = 1 ) uniform sampler2D normal_texture;
+layout ( binding = 12, set = 1 ) uniform sampler2D texcoords_texture;
+layout ( binding = 13, set = 1 ) uniform sampler2D modifiers_texture;
+layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBlock { UBLANEF_ bvhBoxes[][4]; };
+layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
+layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
+layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
 #endif
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -94,18 +98,6 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
 }
 #endif
 
-//==============================
-// Current layout 
-/* 
-      mn  mn  mn  mn  mx  mx  mx  mx
-    +===============================+
- L  | x | y | z | w | x | y | z | w | 128-bit (8x16-bit elements)
-    +===============================+
- R  | x | y | z | w | x | y | z | w | 128-bit (8x16-bit elements)
-    +===============================+
-    
-*///============================
-
 
 //==============================
 //BVH data future transcoding (each by 32-bit only)
@@ -121,14 +113,11 @@ R   | x || y || z || w |
 *///============================
 
 
-
 // bvh transcoded storage
 #ifdef BVH_CREATION
-layout ( binding = 5, rgba32i, set = 1 ) uniform iimage2D bvhStorage;
-//layout ( binding = 6, rgba32ui, set = 1 ) uniform uimage2D bvhBoxes;
+layout ( binding = 11, rgba32i, set = 0 ) uniform iimage2D bvhStorage;
 #else
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
-//layout ( binding = 6, set = 1 ) uniform usampler2D bvhBoxes;
 #endif
 
 

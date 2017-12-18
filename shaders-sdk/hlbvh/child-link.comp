@@ -15,8 +15,8 @@
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    //int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
-    #define wsize (GEOMETRY_BLOCK geometryUniform.triangleCount)
+    //int wsize = bvhBlock.creatorUniform.leafCount;
+    #define wsize (bvhBlock.creatorUniform.leafCount)
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {

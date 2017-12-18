@@ -27,7 +27,7 @@ namespace NSM {
 
             // worktable buffers
             BufferType bvhBoxBuffer, bvhNodesBuffer, leafsBuffer, countersBuffer, mortonCodesBuffer, leafsIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
-            TextureType bvhMetaStorage, bvhBoxStorage;
+            TextureType bvhMetaStorage;
 
             // where will upload/loading data
             BufferType generalStagingBuffer, generalLoadingBuffer;
@@ -41,11 +41,11 @@ namespace NSM {
             BufferType materialIndicesWorking;
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
-            std::vector<vk::DescriptorSet> descriptorSets, loaderDescriptorSets;
+            std::vector<vk::DescriptorSet> descriptorSets, clientDescriptorSets, loaderDescriptorSets;
 
             vk::PipelineCache pipelineCache;
-            vk::DescriptorPool descriptorPool, loaderDescriptorPool;
             vk::PipelineLayout pipelineLayout, loaderPipelineLayout;
+            
 
             size_t triangleCount = 1;
             size_t maxTriangles = 128 * 1024;
@@ -59,7 +59,6 @@ namespace NSM {
             void init(DeviceQueueType& _device);
 
         public:
-            std::vector<vk::WriteDescriptorSet> getVertexImageDescriptors(vk::DescriptorSet& dsc);
             void allocate(size_t maxt);
             void clearTribuffer();
             void loadGeometry(std::shared_ptr<VertexInstance>& vertexInstance, bool use16bitIndexing = false);
@@ -67,6 +66,7 @@ namespace NSM {
             void markDirty();
             void buildBVH();
 
+            vk::DescriptorSet getClientDescriptorSet();
             BufferType& getMaterialBuffer();
             BufferType& getBVHBuffer();
             UniformBuffer getUniformBlockBuffer();

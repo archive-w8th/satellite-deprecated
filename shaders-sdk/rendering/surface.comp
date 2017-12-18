@@ -41,11 +41,13 @@ struct Material {
 };
 
 const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 32;
-layout ( std430, binding = 17, set = 0 ) readonly buffer MaterialsSSBO {Material submats[]; };
 
+// material set (in main descriptor set)
+layout ( std430, binding = 11, set = 0 ) readonly buffer MaterialsSSBO {Material submats[]; };
 
-layout ( binding = 6, set = 1 ) uniform texture2D textures[MAX_TEXTURES];
-layout ( binding = 7, set = 1 ) uniform sampler samplers[MAX_SAMPLERS];
+// textrue/sampler set
+layout ( binding = 0, set = 1 ) uniform texture2D textures[MAX_TEXTURES];
+layout ( binding = 1, set = 1 ) uniform sampler samplers[MAX_SAMPLERS];
 
 
 

@@ -14,15 +14,12 @@ namespace NSM {
             void init(DeviceQueueType& device);
             void syncUniform();
 
-            std::shared_ptr<BufferViewSet> bufferViewSet;
-            std::shared_ptr<AccessorSet> accessorSet;
+            std::shared_ptr<BufferSpace> bufferSpace;
+            std::shared_ptr<BufferViewSet> bufferViewSet; // pointer to buffer view
+            std::shared_ptr<DataAccessSet> dataFormatSet;
+            std::shared_ptr<DataBindingSet> dataBindingSet;
             std::vector<MeshUniformStruct> meshUniformData;
-
-            BufferType meshUniformStager;
-            BufferType meshUniformBuffer;
-            BufferType dataBuffer;
-            BufferType materialBuffer;
-            BufferType indicesBuffer;
+            BufferType meshUniformStager, meshUniformBuffer;
 
         public:
             bool index16bit = false;
@@ -38,26 +35,40 @@ namespace NSM {
             void setTransform(glm::mat4 t);
             void setTransform(glm::dmat4 t);
             void setIndexed(const int32_t b);
-            void setDataBuffer(const BufferType &buf);
-            void setIndicesBuffer(const BufferType &buf);
-            void setLoadingOffset(const int32_t &off);
+            void setBufferSpace(BufferSpace &buf);
+            //void setLoadingOffset(const int32_t &off);
             size_t getNodeCount();
 
-            // getting buffer
-            BufferType& getDataBuffer();
-            BufferType& getIndicesBuffer();
-            BufferType& getUniformBuffer();
-            BufferType& getAccessorsBuffer();
-            BufferType& getBufferViewsBuffer();
-            BufferType& getMaterialIndicesBuffer();
 
             // accessors
-            void setVertexAccessor(int32_t accessorID);
-            void setNormalAccessor(int32_t accessorID);
-            void setTexcoordAccessor(int32_t accessorID);
-            void setModifierAccessor(int32_t accessorID);
-            void setAccessorSet(std::shared_ptr<AccessorSet>& accessorSet);
+            void setMaterialBinding(int32_t accessorID);
+            void setIndiceBinding(int32_t accessorID);
+            void setVertexBinding(int32_t accessorID);
+            void setNormalBinding(int32_t accessorID);
+            void setTexcoordBinding(int32_t accessorID);
+            void setModifierBinding(int32_t accessorID);
+            void setAccessorSet(std::shared_ptr<DataBindingSet>& accessorSet);
             void setBufferViewSet(std::shared_ptr<BufferViewSet>& bufferViewSet);
+
+
+            BufferType getBufferSpaceBuffer() { 
+                return bufferSpace->getDataBuffer();
+            };
+            BufferType getBufferSpaceRegions() { 
+                return bufferSpace->getRegionsBuffer();
+            };
+            BufferType getBufferViewsBuffer() { 
+                return bufferViewSet->getBuffer();
+            };
+            BufferType getDataFormatBuffer() { 
+                return dataFormatSet->getBuffer();
+            };
+            BufferType getBufferBindingBuffer() { 
+                return dataBindingSet->getBuffer();
+            };
+            BufferType getUniformBuffer() {
+                return meshUniformBuffer;
+            };
         };
     }
 }

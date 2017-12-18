@@ -70,11 +70,7 @@ layout ( std430, binding = 13, set = 0 ) readonly buffer RayBlockUniform {
     MaterialUniformStruct materialUniform;
 } rayBlock; 
 
-layout ( std430, binding = 14, set = 0 ) readonly buffer GeometryBlockUniform {
-    GeometryUniformStruct geometryUniform;
-} geometryBlock;
-
-layout ( std430, binding = 15, set = 0 ) readonly buffer StreamsBlockUniform {
+layout ( std430, binding = 14, set = 0 ) readonly buffer StreamsBlockUniform {
     RayStream rayStreams[];
 };
 

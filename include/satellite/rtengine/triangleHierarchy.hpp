@@ -20,25 +20,25 @@ namespace NSM {
             DeviceQueueType device;
 
             // compute pipelines
-            ComputeContext buildBVHPpl, aabbCalculate, refitBVH, boundPrimitives, childLink, geometryLoader, geometryLoader16bit;
+            ComputeContext buildBVHPpl, aabbCalculate, refitBVH, boundPrimitives, childLink, geometryLoader;
 
             // static buffers for resets
             BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
 
-            // worktable buffers
-            BufferType bvhBoxBuffer, bvhNodesBuffer, leafsBuffer, countersBuffer, mortonCodesBuffer, leafsIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
-            TextureType bvhMetaStorage;
+            // worktable buffers 
+            BufferType bvhBoxStorage, bvhBoxWorking, leafsBuffer, countersBuffer, mortonCodesBuffer, leafsIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
+            TextureType bvhMetaStorage, bvhMetaWorking;
 
             // where will upload/loading data
             BufferType generalStagingBuffer, generalLoadingBuffer;
 
             // texel storage of geometry
             TextureType vertexTexelStorage, texcoordTexelStorage, normalsTexelStorage, modsTexelStorage;
-            BufferType  materialIndicesStorage;
+            BufferType  materialIndicesStorage, orderIndicesStorage;
 
             // where will loading geometry data
             TextureType vertexTexelWorking, texcoordTexelWorking, normalsTexelWorking, modsTexelWorking;
-            BufferType materialIndicesWorking;
+            BufferType materialIndicesWorking, orderIndicesWorking;
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
             std::vector<vk::DescriptorSet> descriptorSets, clientDescriptorSets, loaderDescriptorSets;
@@ -49,12 +49,15 @@ namespace NSM {
 
             size_t triangleCount = 1;
             size_t maxTriangles = 128 * 1024;
-            size_t workingTriangleCount = 1;
+            //size_t workingTriangleCount = 1;
             bool isDirty = false;
             std::string shadersPathPrefix = "shaders-spv";
 
             std::vector<GeometryBlockUniform> geometryBlockData;
             UniformBuffer geometryBlockUniform; // buffer of uniforms
+
+            std::vector<BVHBlockUniform> bvhBlockData;
+            UniformBuffer bvhBlockUniform; // buffer of uniforms
 
             void init(DeviceQueueType& _device);
 
@@ -67,9 +70,6 @@ namespace NSM {
             void buildBVH();
 
             vk::DescriptorSet getClientDescriptorSet();
-            BufferType& getMaterialBuffer();
-            BufferType& getBVHBuffer();
-            UniformBuffer getUniformBlockBuffer();
 
         public:
             TriangleHierarchy() {}

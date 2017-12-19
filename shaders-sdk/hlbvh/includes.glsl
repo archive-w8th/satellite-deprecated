@@ -39,6 +39,15 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer BuildCounters {
 };
 
 
+
+
+
+struct BVHCreatorUniformStruct {
+    mat4 transform;
+    mat4 transformInv;
+    int leafCount;
+};
+
 layout ( std430, binding = 10, set = 0 ) readonly buffer BVHCreatorBlockUniform { BVHCreatorUniformStruct creatorUniform;} bvhBlock;
 
 

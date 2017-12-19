@@ -8,7 +8,7 @@ namespace NSM {
         void TriangleHierarchy::init(DeviceQueueType& _device) {
             this->device = _device;
 
-            // create radix sort (planned decicated sorter)
+            // create radix sort (planned dedicated sorter)
             radixSort = std::shared_ptr<RadixSort>(new RadixSort(device, shadersPathPrefix));
 
 
@@ -100,8 +100,10 @@ namespace NSM {
             boundPrimitives.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/minmax.comp.spv", pipelineLayout, pipelineCache);
             childLink.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/child-link.comp.spv", pipelineLayout, pipelineCache);
             aabbCalculate.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/aabbmaker.comp.spv", pipelineLayout, pipelineCache);
+            
+            // vertex loader
             geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader.comp.spv", loaderPipelineLayout, pipelineCache);
-            geometryLoader16bit.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader-int16.comp.spv", loaderPipelineLayout, pipelineCache);
+            //geometryLoader16bit.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader-int16.comp.spv", loaderPipelineLayout, pipelineCache);
 
 
 
@@ -146,7 +148,7 @@ namespace NSM {
                 auto commandBuffer = getCommandBuffer(device, true);
                 commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { descriptorSets[0], clientDescriptorSets[0] }, nullptr);
                 commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, aabbCalculate.pipeline);
-                commandBuffer.dispatch(tiled(triangleCount, WORK_SIZE), 1, 1);
+                commandBuffer.dispatch(INTENSIVITY, 1, 1);
                 flushCommandBuffer(device, commandBuffer, true);
             };
 
@@ -155,15 +157,7 @@ namespace NSM {
                 auto commandBuffer = getCommandBuffer(device, true);
                 commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, loaderPipelineLayout, 0, loaderDescriptorSets, nullptr);
                 commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader.pipeline);
-                commandBuffer.dispatch(tiled(workingTriangleCount, WORK_SIZE), 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
-            };
-
-            geometryLoader16bit.dispatch = [&]() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, loaderPipelineLayout, 0, loaderDescriptorSets, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader16bit.pipeline);
-                commandBuffer.dispatch(tiled(workingTriangleCount, WORK_SIZE), 1, 1);
+                commandBuffer.dispatch(INTENSIVITY, 1, 1);
                 flushCommandBuffer(device, commandBuffer, true);
             };
 
@@ -209,6 +203,11 @@ namespace NSM {
             geometryBlockUniform.buffer = createBuffer(device, strided<GeometryBlockUniform>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             geometryBlockUniform.staging = createBuffer(device, strided<GeometryBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
+            // create bvh uniform 
+            bvhBlockData = std::vector<BVHBlockUniform>(1);
+            bvhBlockUniform.buffer = createBuffer(device, strided<BVHBlockUniform>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhBlockUniform.staging = createBuffer(device, strided<BVHBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
             // descriptor templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             auto ldesc0Tmpl = vk::WriteDescriptorSet(desc0Tmpl).setDstSet(loaderDescriptorSets[0]).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -232,9 +231,7 @@ namespace NSM {
         void TriangleHierarchy::allocate(size_t maxt) {
             maxTriangles = maxt;
 
-            // allocate these buffers
-            //bvhNodesBuffer = createBuffer(device, strided<HlbvhNode>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            bvhNodesBuffer = createBuffer(device, strided<HlbvhNode>(2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            // allocate these buffers 
             leafsBuffer = createBuffer(device, strided<HlbvhNode>(maxTriangles * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             
             // buffer for working with
@@ -253,6 +250,7 @@ namespace NSM {
             normalsTexelStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
             texcoordTexelStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
             materialIndicesStorage = createBuffer(device, strided<uint32_t>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            orderIndicesStorage = createBuffer(device, strided<uint32_t>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // sideloader
             modsTexelWorking = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat);
@@ -260,12 +258,16 @@ namespace NSM {
             normalsTexelWorking = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat);
             texcoordTexelWorking = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat);
             materialIndicesWorking = createBuffer(device, strided<uint32_t>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-
+            orderIndicesWorking = createBuffer(device, strided<uint32_t>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // bvh storage (32-bits elements)
             _MAX_HEIGHT = std::min(maxTriangles > 0 ? (maxTriangles - 1) / _BVH_WIDTH + 1 : 0, _BVH_WIDTH) + 1;
             bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
-            bvhBoxBuffer = createBuffer(device, strided<glm::mat4>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhBoxStorage = createBuffer(device, strided<glm::mat4>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+            // planned working dedicated buffers
+            bvhMetaWorking = bvhMetaStorage;
+            bvhBoxWorking = bvhBoxStorage;
 
             // create sampler
             vk::SamplerCreateInfo samplerInfo;
@@ -286,25 +288,25 @@ namespace NSM {
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&mortonCodesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&leafsIndicesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&leafsBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&bvhBoxBuffer->descriptorInfo), // planned divide to box working 
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&bvhBoxWorking->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&bvhNodesFlags->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(6).setPBufferInfo(&workingBVHNodesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
-                // planned BVH uniform block
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler))  // planned divide to meta working 
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo.setSampler(sampler))
             }, nullptr);
 
             // write to client descriptors 
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(10).setPImageInfo(&vertexTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&normalsTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(12).setPImageInfo(&texcoordTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(13).setPImageInfo(&modsTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhBoxBuffer->descriptorInfo), // planned divide to box storage 
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(10).setPImageInfo(&vertexTexelStorage->descriptorInfo.setSampler(sampler)),
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(11).setPImageInfo(&normalsTexelStorage->descriptorInfo.setSampler(sampler)),
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(12).setPImageInfo(&texcoordTexelStorage->descriptorInfo.setSampler(sampler)),
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(13).setPImageInfo(&modsTexelStorage->descriptorInfo.setSampler(sampler)),
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhBoxStorage->descriptorInfo),
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesStorage->descriptorInfo),
-                // planned order indexing buffer read
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo),
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler)), // planned divide to meta storage 
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler)),
             }, nullptr);
 
             // write buffers to loader descriptors
@@ -313,8 +315,8 @@ namespace NSM {
                 vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&normalsTexelWorking->descriptorInfo),
                 vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(12).setPImageInfo(&texcoordTexelWorking->descriptorInfo),
                 vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(13).setPImageInfo(&modsTexelWorking->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo)
-                // planned order indexing buffer write
+                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
+                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&orderIndicesWorking->descriptorInfo)
             }, nullptr);
         }
 
@@ -342,17 +344,15 @@ namespace NSM {
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&meshUniformBuffer->descriptorInfo),
             }, nullptr);
 
-            workingTriangleCount = vertexInstance->getNodeCount(); // not ready
-            (use16bitIndexing ? geometryLoader16bit : geometryLoader).dispatch(); // dispatch loading
-
+            geometryLoader.dispatch(); // dispatch loading
             isDirty = true;
         }
 
         void TriangleHierarchy::syncUniforms() {
-            bufferSubData(geometryBlockUniform.staging, geometryBlockData, 0);
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, geometryBlockUniform.staging, geometryBlockUniform.buffer, { 0, 0, strided<GeometryBlockUniform>(1) }, true);
-
-            // TODO bvh uniform 
+            //bufferSubData(geometryBlockUniform.staging, geometryBlockData, 0);
+            bufferSubData(bvhBlockUniform.staging, bvhBlockData, 0);
+            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, geometryBlockUniform.staging, geometryBlockUniform.buffer, { 0, 0, strided<GeometryBlockUniform>(1) }, true);
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) }, true);
         }
 
         void TriangleHierarchy::markDirty() {
@@ -363,14 +363,13 @@ namespace NSM {
             // no need to build BVH
             if (!isDirty) return;
 
-            // copy to staging
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(7), 0, strided<uint32_t>(1) }, false);
+            // because we not setting triangle count in uniform when loading that geometry, we should update this value manually on device
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, geometryBlockUniform.buffer, { strided<uint32_t>(7), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }, true); // 
 
-            // get triangle count from staging
+            // get triangle count from staging 
             std::vector<uint32_t> triangleCount(1);
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(7), 0, strided<uint32_t>(1) }, false); // copy to staging
             getBufferSubData(generalLoadingBuffer, triangleCount, 0);
-
-            this->triangleCount = triangleCount[0]; // use by 
             if (triangleCount[0] <= 0) return; // no need to build BVH
 
             // bvh potentially builded
@@ -395,20 +394,25 @@ namespace NSM {
             memoryCopyCmd(command, normalsTexelWorking, normalsTexelStorage, copyDesc);
             memoryCopyCmd(command, texcoordTexelWorking, texcoordTexelStorage, copyDesc);
             memoryCopyCmd(command, materialIndicesWorking, materialIndicesStorage, { 0, 0, strided<uint32_t>(triangleCount[0]) });
+            memoryCopyCmd(command, orderIndicesWorking, orderIndicesStorage, { 0, 0, strided<uint32_t>(triangleCount[0]) });
             flushCommandBuffer(device, command, true);
 
             // use use initial matrix
             {
                 glm::dmat4 mat(1.0);
                 //mat *= glm::inverse(glm::dmat4(optimization));
-                geometryBlockData[0].geometryUniform.transform = glm::transpose(glm::mat4(mat));
-                geometryBlockData[0].geometryUniform.transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
-                geometryBlockData[0].geometryUniform.triangleCount = triangleCount[0];
+                bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
+                bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
             }
-
-            // calculate boundary
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(64) }, true);
             syncUniforms();
+
+            // calculate boundary 
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { 
+                offsetof(BVHBlockUniform, transform) + offsetof(GeometryUniformStruct, transform), 
+                offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, transform), 
+                strided<glm::mat4>(2) 
+            }, true); // 
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(64) }, true);
             boundPrimitives.dispatch();
 
             // get boundary
@@ -428,31 +432,30 @@ namespace NSM {
             glm::vec3 offset = bound.mn.xyz();
             {
                 glm::dmat4 mat(1.0);
-                mat *= glm::inverse(glm::translate(glm::dvec3(0.5)) * glm::scale(glm::dvec3(0.5)));
+                mat *= glm::inverse(glm::translate(glm::dvec3(0.5,0.5,0.5)) * glm::scale(glm::dvec3(0.5)));
                 mat *= glm::inverse(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale)));
                 //mat *= glm::inverse(glm::dmat4(optimization));
-                geometryBlockData[0].geometryUniform.transform = glm::transpose(glm::mat4(mat));
-                geometryBlockData[0].geometryUniform.transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
+                bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
+                bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
+                syncUniforms();
             }
 
-            // reset BVH leafs counters
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) }, true);
-
             // calculate leafs and boundings of members
-            syncUniforms();
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) }, true); // reset BVH leafs counters
+            
             aabbCalculate.dispatch();
 
-            // copy to staging
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }, false);
-
-            // get triangle count from staging
+            // get leaf count from staging
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }, false); // copy to staging
             getBufferSubData(generalLoadingBuffer, triangleCount, 0);
-            geometryBlockData[0].geometryUniform.triangleCount = triangleCount[0];
+            bvhBlockData[0].leafCount = triangleCount[0];
             if (triangleCount[0] <= 0) return;
-            syncUniforms();
+
+            // need update geometry uniform optimization matrices
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }, true);
 
             // sort under construction
-            radixSort->sort(mortonCodesBuffer, leafsIndicesBuffer, triangleCount[0]); // incomplete function
+            radixSort->sort(mortonCodesBuffer, leafsIndicesBuffer, triangleCount[0]); // incomplete function 
 
             // debug code
             {
@@ -464,7 +467,7 @@ namespace NSM {
                 //getBufferSubData(generalLoadingBuffer, mortons, 0);
             }
 
-            // reset BVH counters
+            // reset BVH counters (and copy to uniform)
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(6) }, true);
 
             auto copyCounterCommand = getCommandBuffer(device, true);
@@ -482,32 +485,24 @@ namespace NSM {
             memoryCopyCmd(stagingCounterCommand, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
             stagingCounterCommand.end();
 
-            vk::PipelineStageFlags stageMasks = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader;
             std::vector<vk::SubmitInfo> buildSubmitInfos;
-
             for (int j = 0; j < 8; j++) {
-
-                // build level command
                 buildSubmitInfos.push_back(vk::SubmitInfo()
                     .setWaitSemaphoreCount(0)
                     .setCommandBufferCount(1)
                     .setPCommandBuffers(&buildCommand)
-                );
-
-                // copying commands
+                );  // build level command
                 buildSubmitInfos.push_back(vk::SubmitInfo()
                     .setWaitSemaphoreCount(0)
                     .setCommandBufferCount(1)
                     .setPCommandBuffers(&copyCounterCommand)
-                );
+                ); // copying commands
             }
-
-            // getting to stage buffer command
             buildSubmitInfos.push_back(vk::SubmitInfo()
                 .setWaitSemaphoreCount(0)
                 .setCommandBufferCount(1)
                 .setPCommandBuffers(&stagingCounterCommand)
-            );
+            ); // getting to stage buffer command
 
             // create fence
             vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
@@ -527,6 +522,7 @@ namespace NSM {
                 if (nodeCount <= 0) break;
             }
 
+            // because already awaited, but clear command buffers and fence (planned saving/cache commands)
             device->logical.destroyFence(fence);
             device->logical.freeCommandBuffers(device->commandPool, 1, &buildCommand);
             device->logical.freeCommandBuffers(device->commandPool, 1, &copyCounterCommand);
@@ -536,27 +532,14 @@ namespace NSM {
             childLink.dispatch();
             refitBVH.dispatch();
 
-            // restore state
-            geometryBlockData[0].geometryUniform.triangleCount = this->triangleCount;
+            // restore state (no need anymore)
+            //geometryBlockData[0].geometryUniform.triangleCount = this->triangleCount;
             syncUniforms();
-        }
-
-        BufferType& TriangleHierarchy::getMaterialBuffer() {
-            return materialIndicesStorage;
-        }
-
-        BufferType& TriangleHierarchy::getBVHBuffer() {
-            return bvhBoxBuffer;
-        }
-
-        UniformBuffer TriangleHierarchy::getUniformBlockBuffer() {
-            return geometryBlockUniform;
         }
 
         vk::DescriptorSet TriangleHierarchy::getClientDescriptorSet() {
             return clientDescriptorSets[0];
         }
-
 
     }
 }

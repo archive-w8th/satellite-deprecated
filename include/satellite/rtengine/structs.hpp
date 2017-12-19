@@ -50,12 +50,12 @@ namespace NSM {
             glm::ivec4 pdata;
         };
 
-        struct VboDataStride {
-            glm::vec4 vertex;
-            glm::vec4  normal;
-            glm::vec4  texcoord;
-            glm::vec4  color;
-            glm::vec4  modifiers;
+
+
+        struct BVHBlockUniform {
+            glm::mat4 transform;
+            glm::mat4 transformInv;
+            int leafCount;
         };
 
         struct MaterialUniformStruct {
@@ -145,7 +145,7 @@ namespace NSM {
             glm::mat4 transformInv = glm::mat4(1.f);
 
             int materialID = 0;
-            int isIndexed = 0;
+            int int16bit = 0;
             int nodeCount = 1;
             int primitiveType = 0;
         };

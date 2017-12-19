@@ -33,11 +33,11 @@ namespace NSM {
 
 
         void VertexInstance::useIndex16bit(bool b16) {
-            index16bit = b16;
+            meshUniformData[0].int16bit = int(b16);
         }
 
-        void VertexInstance::setBufferSpace(BufferSpace &buf) {
-            bufferSpace = std::make_shared<BufferSpace>(buf);
+        void VertexInstance::setBufferSpace(std::shared_ptr<BufferSpace>& buf) {
+            this->bufferSpace = buf;
         };
 
 
@@ -50,16 +50,40 @@ namespace NSM {
         }
 
 
-
-
-
-
-        void VertexInstance::setNodeCount(size_t tcount) {
-            meshUniformData[0].nodeCount = tcount;
+        size_t VertexInstance::getNodeCount() {
+            return meshUniformData[0].nodeCount;
         }
 
-        void VertexInstance::setMaterialOffset(int32_t id) {
-            meshUniformData[0].materialID = id;
+        // deprecated, indice or vertex index should be defined in buffer bindings 
+        //void VertexInstance::setLoadingOffset(const int32_t &off) {
+            //meshUniformData[0].loadingOffset = off;
+        //};
+
+
+
+        // setting of accessors
+        void VertexInstance::setVertexBinding(int32_t bindingID) {
+            meshUniformData[0].vertexAccessor = bindingID;
+        }
+
+        void VertexInstance::setIndiceBinding(int32_t bindingID) {
+            meshUniformData[0].indiceAccessor = bindingID;
+        }
+
+        void VertexInstance::setMaterialBinding(int32_t bindingID) {
+            meshUniformData[0].materialAccessor = bindingID;
+        }
+
+        void VertexInstance::setNormalBinding(int32_t bindingID) {
+            meshUniformData[0].normalAccessor = bindingID;
+        }
+
+        void VertexInstance::setTexcoordBinding(int32_t bindingID) {
+            meshUniformData[0].texcoordAccessor = bindingID;
+        }
+
+        void VertexInstance::setModifierBinding(int32_t bindingID) {
+            meshUniformData[0].modifierAccessor = bindingID;
         }
 
         void VertexInstance::setTransform(glm::mat4 t) {
@@ -71,45 +95,15 @@ namespace NSM {
             this->setTransform(glm::mat4(t));
         }
 
-        void VertexInstance::setIndexed(const int32_t b) {
-            meshUniformData[0].isIndexed = b;
+
+        // getting of user defined 
+        void VertexInstance::setNodeCount(size_t tcount) {
+            meshUniformData[0].nodeCount = tcount;
         }
 
-        size_t VertexInstance::getNodeCount() {
-            return meshUniformData[0].nodeCount;
+        void VertexInstance::setMaterialOffset(int32_t id) {
+            meshUniformData[0].materialID = id;
         }
-
-        // obsolete, indice or vertex index should be defined in buffer bindings 
-        //void VertexInstance::setLoadingOffset(const int32_t &off) {
-            //meshUniformData[0].loadingOffset = off;
-        //};
-
-        // setting of accessors
-        void VertexInstance::setVertexBinding(int32_t accessorID) {
-            meshUniformData[0].vertexAccessor = accessorID;
-        }
-
-        void VertexInstance::setIndiceBinding(int32_t accessorID) {
-            meshUniformData[0].indiceAccessor = accessorID;
-        }
-
-        void VertexInstance::setMaterialBinding(int32_t accessorID) {
-            meshUniformData[0].materialAccessor = accessorID;
-        }
-
-        void VertexInstance::setNormalBinding(int32_t accessorID) {
-            meshUniformData[0].normalAccessor = accessorID;
-        }
-
-        void VertexInstance::setTexcoordBinding(int32_t accessorID) {
-            meshUniformData[0].texcoordAccessor = accessorID;
-        }
-
-        void VertexInstance::setModifierBinding(int32_t accessorID) {
-            meshUniformData[0].modifierAccessor = accessorID;
-        }
-
-        
 
     }
 }

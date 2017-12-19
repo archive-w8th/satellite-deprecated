@@ -12,51 +12,54 @@
 
 initAtomicIncFunction(aabbcount[0], atomicIncAABB, int)
 
-//LOCAL_SIZE_LAYOUT;
-LOCAL_SIZE_LINEAR_LAYOUT;
+LOCAL_SIZE_LAYOUT;
+//LOCAL_SIZE_LINEAR_LAYOUT;
 
 void main() {
-    int t = int(gl_GlobalInvocationID.x);
-    if (t < GEOMETRY_BLOCK geometryUniform.triangleCount) {
-        vec4 mn = vec4(INFINITY);
-        vec4 mx = vec4(-INFINITY);
+    int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
+    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
+    int wgs = int(gl_NumWorkGroups);
+    for (int w=0;w<wcount;w+=wgs) {
+        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;
+        if (globalID < n && globalID >= 0) {
+            vec4 mn = vec4(INFINITY), mx = vec4(-INFINITY);
 
-        uint tri = clamp(t, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
-        ivec2 msc = gatherMosaic(getUniformCoord(tri));
-        mat3x4 triverts = mat3x4(
-            fetchMosaic(vertex_texture, msc, 0), 
-            fetchMosaic(vertex_texture, msc, 1), 
-            fetchMosaic(vertex_texture, msc, 2)
-        );
+            uint tri = clamp(globalID, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
+            ivec2 msc = gatherMosaic(getUniformCoord(tri));
+            mat3x4 triverts = mat3x4(
+                fetchMosaic(vertex_texture, msc, 0), 
+                fetchMosaic(vertex_texture, msc, 1), 
+                fetchMosaic(vertex_texture, msc, 2)
+            );
 
-        triverts[0] = mult4(bvhBlock.creatorUniform.transform, triverts[0]);
-        triverts[1] = mult4(bvhBlock.creatorUniform.transform, triverts[1]);
-        triverts[2] = mult4(bvhBlock.creatorUniform.transform, triverts[2]);
+            triverts[0] = mult4(bvhBlock.creatorUniform.transform, triverts[0]);
+            triverts[1] = mult4(bvhBlock.creatorUniform.transform, triverts[1]);
+            triverts[2] = mult4(bvhBlock.creatorUniform.transform, triverts[2]);
 
-        vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
-        if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
-            bbox bounding = calcTriBox(triverts);
-            vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.333333333f;
-
-            {
-                int to = atomicIncAABB(TRUE_);
-                MortoncodesIndices[to] = int(to);
-#ifdef INT64_MORTON
-                Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
-                    uvec3(floor(clamp(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx), vec3(0.0f), vec3(0.99999f)) * 2097152.0f)), 
-                    uvec3(0), uvec3(0x1FFFFF))));
-#else
-                Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
-                    uvec3(floor(clamp(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx), vec3(0.0f), vec3(0.99999f)) * 1024.0f)), 
-                    uvec3(0), uvec3(0x3FF))));
-#endif
-                
-                HlbvhNode outLeaf = Leafs[to];
-                UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.001f), mx = UBLANEF_UNPACKED_(bounding.mx+0.001f);
-                outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
-                outLeaf.pdata.xy = ivec2(to);
-                outLeaf.pdata.zw = ivec2(-1, t);
-                Leafs[to] = outLeaf;
+            vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
+            if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
+                bbox bounding = calcTriBox(triverts);
+                vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.333333333f;
+                {
+                    int to = atomicIncAABB(TRUE_);
+                    MortoncodesIndices[to] = int(to);
+    #ifdef INT64_MORTON
+                    Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
+                        uvec3(floor(clamp(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx), vec3(0.0f), vec3(0.99999f)) * 2097152.0f)), 
+                        uvec3(0), uvec3(0x1FFFFF))));
+    #else
+                    Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
+                        uvec3(floor(clamp(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx), vec3(0.0f), vec3(0.99999f)) * 1024.0f)), 
+                        uvec3(0), uvec3(0x3FF))));
+    #endif
+                    
+                    HlbvhNode outLeaf = Leafs[to];
+                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.001f), mx = UBLANEF_UNPACKED_(bounding.mx+0.001f);
+                    outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
+                    outLeaf.pdata.xy = ivec2(to);
+                    outLeaf.pdata.zw = ivec2(-1, t);
+                    Leafs[to] = outLeaf;
+                }
             }
         }
     }

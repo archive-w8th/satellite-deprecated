@@ -22,8 +22,6 @@ namespace NSM {
             BufferType meshUniformStager, meshUniformBuffer;
 
         public:
-            bool index16bit = false;
-
             VertexInstance() {}
             VertexInstance(DeviceQueueType& device) { init(device); }
             VertexInstance(VertexInstance&& another);
@@ -34,23 +32,22 @@ namespace NSM {
             void useIndex16bit(bool b16);
             void setTransform(glm::mat4 t);
             void setTransform(glm::dmat4 t);
-            void setIndexed(const int32_t b);
-            void setBufferSpace(BufferSpace &buf);
-            //void setLoadingOffset(const int32_t &off);
+            void setBufferSpace(std::shared_ptr<BufferSpace>& buf);
             size_t getNodeCount();
 
 
-            // accessors
-            void setMaterialBinding(int32_t accessorID);
-            void setIndiceBinding(int32_t accessorID);
-            void setVertexBinding(int32_t accessorID);
-            void setNormalBinding(int32_t accessorID);
-            void setTexcoordBinding(int32_t accessorID);
-            void setModifierBinding(int32_t accessorID);
+            // data access setters 
+            void setMaterialBinding(int32_t bindingID);
+            void setIndiceBinding(int32_t bindingID);
+            void setVertexBinding(int32_t bindingID);
+            void setNormalBinding(int32_t bindingID);
+            void setTexcoordBinding(int32_t bindingID);
+            void setModifierBinding(int32_t bindingID);
             void setAccessorSet(std::shared_ptr<DataBindingSet>& accessorSet);
             void setBufferViewSet(std::shared_ptr<BufferViewSet>& bufferViewSet);
 
 
+            // getters of buffers
             BufferType getBufferSpaceBuffer() { 
                 return bufferSpace->getDataBuffer();
             };
@@ -67,7 +64,7 @@ namespace NSM {
                 return dataBindingSet->getBuffer();
             };
             BufferType getUniformBuffer() {
-                return meshUniformBuffer;
+                syncUniform(); return meshUniformBuffer;
             };
         };
     }

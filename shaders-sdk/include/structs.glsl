@@ -279,74 +279,13 @@ struct HlbvhNode {
 };
 
 
-struct VboDataStride {
-     vec4 vertex;
-     vec4 normal;
-     vec4 texcoord;
-     vec4 color;
-     vec4 modifiers;
-};
-
 struct ColorChain {
      vec4 color;
      ivec4 cdata;
 };
 
-struct MeshUniformStruct {
-    int vertexAccessor;
-    int normalAccessor;
-    int texcoordAccessor;
-    int modifierAccessor;
-    int materialAccessor;
-    int indiceAccessor;
-    int r0, r1;
 
-    mat4 transform;
-    mat4 transformInv;
 
-    int materialID;
-    int isIndexed;
-    int nodeCount;
-    int primitiveType;
 
-    //int loadingOffset;
-    //int storingOffset;
-};
-
-// subdata structuring in buffer region
-struct VirtualBufferView {
-    int byteOffset;
-    int byteStride;
-};
-
-// structuring swizzle
-struct VirtualDataAccess {
-    int bufferView; // buffer-view structure
-    int byteOffset; // in structure offset
-    uint bitfield;
-};
-
-// structure accessors 
-struct VirtualBufferBinding {
-    int bufferID; // buffer region PTR 
-    int dataAccess; // structure accessor
-    int indexOffset; // structure index offset (where should be counting), so offset calculates as   (bv.byteOffset + indexOffset*bv.byteStride + ac.byteOffset)
-};
-
-const ivec2 COMPONENTS = ivec2(0, 2);
-const ivec2 ATYPE = ivec2(2, 4);
-const ivec2 NORMALIZED = ivec2(6, 1);
-
-int aComponents(inout VirtualAccessor vac) {
-    return parameteri(COMPONENTS, vac.bitfield);
-}
-
-int aType(inout VirtualAccessor vac) {
-    return parameteri(ATYPE, vac.bitfield);
-}
-
-int aNormalized(inout VirtualAccessor vac) {
-    return parameteri(NORMALIZED, vac.bitfield);
-}
 
 #endif

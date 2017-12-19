@@ -154,6 +154,7 @@ namespace NSM {
         struct VirtualBufferView {
             int byteOffset = 0;
             int byteStride = 1;
+            int bufferID = -1; // buffer region PTR 
         };
 
         // structuring swizzle
@@ -165,7 +166,7 @@ namespace NSM {
 
         // structure accessors 
         struct VirtualBufferBinding {
-            int bufferID = 0; // buffer region PTR 
+            int bufferID = -1; // buffer region PTR, override
             int dataAccess = -1; // structure accessor 
             int indexOffset = 0; // structure index offset (where should be counting), so offset calculates as   (bv.byteOffset + indexOffset*bv.byteStride + ac.byteOffset)
         };

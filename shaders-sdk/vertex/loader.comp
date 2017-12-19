@@ -36,6 +36,7 @@ struct MeshUniformStruct {
 struct VirtualBufferView {
     int byteOffset;
     int byteStride;
+    int bufferID;
 };
 
 // structuring swizzle
@@ -47,7 +48,7 @@ struct VirtualDataAccess {
 
 // structure accessors 
 struct VirtualBufferBinding {
-    int bufferID; // buffer region PTR 
+    int bufferID; // buffer region PTR, override
     int dataAccess; // structure accessor
     int indexOffset; // structure index offset (where should be counting), so offset calculates as   (bv.byteOffset + indexOffset*bv.byteStride + ac.byteOffset)
 };
@@ -94,23 +95,20 @@ layout ( std430, binding = 6, set = 0 ) readonly buffer IMeshUniform {MeshUnifor
 
 
 uint calculateByteOffset(in int binding, in int index){
-    int bufferID = dataBindings[binding].bufferID;
+    int bufferID = dataBindings[binding].bufferID, dataAccess = dataBindings[binding].dataAccess;
+    if (bufferID < 0) bufferID = bufferViews[dataFormats[dataAccess].bufferView].bufferID;
 
     // based on regions byte offset
     uint offseT = bufferRegions[bufferID].x;
 
     // calculate buffer view byte offset 
-    offseT += bufferViews[dataFormats[bufferID].bufferView].byteOffset;
+    offseT += bufferViews[dataFormats[dataFormats[dataAccess].bufferView].byteOffset;
 
     // calculate in structure offset
     offseT += dataFormats[bufferID].byteOffset;
 
     // calculate structure indexed offset
     offseT += (dataBindings[binding].indexOffset + index) * bufferViews[dataFormats[bufferID].bufferView].byteStride;
-
-    // because supported only 32-bit type, do just divide by 4 bytes
-    // planned hacky support of lower bit formats
-    //offseT >>= 2;
 
     return offseT;
 }

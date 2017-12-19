@@ -19,7 +19,7 @@ namespace SatelliteExample {
         return mapped.count("index") > 0 ? mapped["index"] : -1;
     }
 
-    uint32_t _byType(int &type) {
+    uint32_t _byType(const int &type) {
         switch (type) {
         case TINYGLTF_TYPE_VEC4:
             return 4;
@@ -62,6 +62,7 @@ namespace SatelliteExample {
         std::vector<std::vector<std::shared_ptr<ste::rt::VertexInstance>>> meshVec = std::vector<std::vector<std::shared_ptr<ste::rt::VertexInstance>>>();
         std::vector<BufferType> glBuffers = std::vector<BufferType>();
         std::vector<uint32_t> rtTextures = std::vector<uint32_t>();
+        std::shared_ptr<rt::BufferSpace> vtbSpace;
 #endif
 
 
@@ -197,39 +198,68 @@ namespace SatelliteExample {
             materialManager->addMaterial(submat);
         }
 
+        // calculate minimal buffer space size
+        size_t gsize = 0;
+        for (int i = 0; i < gltfModel.buffers.size(); i++) { gsize += gltfModel.buffers[i].data.size(); }
+
+        // allocate buffer space (with some spacing)
+        vtbSpace = std::shared_ptr<ste::rt::BufferSpace>(new ste::rt::BufferSpace(device, gsize*1.25));
+
         // make raw mesh buffers
-        glBuffers.resize(gltfModel.buffers.size());
+        //glBuffers.resize(gltfModel.buffers.size());
         for (int i = 0; i < gltfModel.buffers.size(); i++) {
 
             // staging vertex and indice buffer
-            auto staging = createBuffer(device, gltfModel.buffers[i].data.size(), vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            bufferSubData(staging, gltfModel.buffers[i].data, 0);
+            //auto staging = createBuffer(device, gltfModel.buffers[i].data.size(), vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            //bufferSubData(staging, gltfModel.buffers[i].data, 0);
 
             // create vertex and indice buffer
-            glBuffers[i] = createBuffer(device, gltfModel.buffers[i].data.size(), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, staging, glBuffers[i], { 0, 0, gltfModel.buffers[i].data.size() }, true);
+            //glBuffers[i] = createBuffer(device, gltfModel.buffers[i].data.size(), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
+            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, staging, glBuffers[i], { 0, 0, gltfModel.buffers[i].data.size() }, true);
+
+            // load to unified buffer space
+            intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data, gltfModel.buffers[i].data.size());
+            vtbSpace->addRegionDesc(rt::BufferRegion{ offset, gltfModel.buffers[i].data.size() });
         }
 
         // make buffer views
         std::shared_ptr<ste::rt::BufferViewSet> bfvi = std::shared_ptr<ste::rt::BufferViewSet>(new ste::rt::BufferViewSet(device));
+        std::shared_ptr<ste::rt::DataAccessSet> acs = std::shared_ptr<ste::rt::DataAccessSet>(new ste::rt::DataAccessSet(device));
+        std::shared_ptr<ste::rt::DataBindingSet> bnds = std::shared_ptr<ste::rt::DataBindingSet>(new ste::rt::DataBindingSet(device));
+
+        // buffer views
         for (auto const &bv : gltfModel.bufferViews) {
             ste::rt::VirtualBufferView bfv;
-            bfv.offset4 = bv.byteOffset / 4;
-            bfv.stride4 = bv.byteStride / 4;
+            bfv.byteOffset = bv.byteOffset;
+            bfv.byteStride = bv.byteStride;
+            bfv.bufferID = bv.buffer;
             bfvi->addElement(bfv);
+        }
+
+        // accessors 
+        for (auto const &it : gltfModel.accessors) {
+            ste::rt::VirtualDataAccess dst;
+            dst.bufferView = it.bufferView;
+            dst.byteOffset = it.byteOffset;
+            dst.components = _byType(it.componentType)-1;
+            acs->addElement(dst);
         }
 
         // load mesh templates (better view objectivity)
         for (int m = 0; m < gltfModel.meshes.size(); m++) {
             std::vector<std::shared_ptr<ste::rt::VertexInstance>> primitiveVec = std::vector<std::shared_ptr<ste::rt::VertexInstance>>();
 
+            // load instances
             tinygltf::Mesh &glMesh = gltfModel.meshes[m];
             for (int i = 0; i < glMesh.primitives.size(); i++) {
                 tinygltf::Primitive & prim = glMesh.primitives[i];
                 std::shared_ptr<ste::rt::VertexInstance> geom = std::shared_ptr<ste::rt::VertexInstance>(new ste::rt::VertexInstance(device));
-                std::shared_ptr<ste::rt::AccessorSet> acs = std::shared_ptr<ste::rt::AccessorSet>(new ste::rt::AccessorSet(device));
-                geom->setAccessorSet(acs);
+
+                // set accessing buffers 
+                geom->setBufferSpace(vtbSpace);
+                geom->setDataAccessSet(acs);
                 geom->setBufferViewSet(bfvi);
+                geom->setBindingSet(bnds);
 
                 // make attributes
                 std::map<std::string, int>::const_iterator it(prim.attributes.begin());
@@ -238,60 +268,50 @@ namespace SatelliteExample {
                 // load modern mode
                 for (auto const &it : prim.attributes) {
                     tinygltf::Accessor &accessor = gltfModel.accessors[it.second];
-                    auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
+                    //auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
 
-                    // virtual accessor template
-                    ste::rt::VirtualAccessor vattr;
-                    vattr.offset4 = accessor.byteOffset / 4;
-                    vattr.bufferView = accessor.bufferView;
+                    // binding 
+                    ste::rt::VirtualBufferBinding vattr;
+                    vattr.dataAccess = it.second;
 
                     // vertex
                     if (it.first.compare("POSITION") == 0) { // vertices
-                        vattr.components = 3 - 1;
-                        geom->setDataBuffer(glBuffers[bufferView.buffer]);
-                        geom->setVertexAccessor(acs->addElement(vattr));
+                        geom->setVertexBinding(bnds->addElement(vattr));
                     }
                     else
 
-                        // normal
-                        if (it.first.compare("NORMAL") == 0) {
-                            vattr.components = 3 - 1;
-                            geom->setNormalAccessor(acs->addElement(vattr));
-                        }
-                        else
+                    // normal
+                    if (it.first.compare("NORMAL") == 0) {
+                        geom->setNormalBinding(bnds->addElement(vattr));
+                    }
+                    else
 
-                            // texcoord
-                            if (it.first.compare("TEXCOORD_0") == 0) {
-                                vattr.components = 2 - 1;
-                                geom->setTexcoordAccessor(acs->addElement(vattr));
-                            }
+                    // texcoord
+                    if (it.first.compare("TEXCOORD_0") == 0) {
+                        geom->setTexcoordBinding(bnds->addElement(vattr));
+                    }
                 }
 
                 // indices
-                // planned of support accessors there
                 if (prim.indices >= 0) {
                     tinygltf::Accessor &idcAccessor = gltfModel.accessors[prim.indices];
-                    auto& bufferView = gltfModel.bufferViews[idcAccessor.bufferView];
+                    //auto& bufferView = gltfModel.bufferViews[idcAccessor.bufferView];
                     geom->setNodeCount(idcAccessor.count / 3);
-                    geom->setIndicesBuffer(glBuffers[bufferView.buffer]);
 
-                    bool isInt16 = idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_SHORT || idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
-
-                    int32_t loadingOffset = (bufferView.byteOffset + idcAccessor.byteOffset) / (isInt16 ? 2 : 4);
-                    geom->setLoadingOffset(loadingOffset);
-                    geom->setIndexed(true);
+                    ste::rt::VirtualBufferBinding vattr;
+                    vattr.dataAccess = prim.indices;
+                    geom->setIndiceBinding(bnds->addElement(vattr));
 
                     // is 16-bit indices?
+                    bool isInt16 = idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_SHORT || idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
                     geom->useIndex16bit(isInt16);
                 }
 
-                // use material
+                // use constant material for instance 
                 geom->setMaterialOffset(prim.material);
 
                 // if triangles, then load mesh
-                if (prim.mode == TINYGLTF_MODE_TRIANGLES) {
-                    primitiveVec.push_back(geom);
-                }
+                if (prim.mode == TINYGLTF_MODE_TRIANGLES) { primitiveVec.push_back(geom); }
             }
 
             meshVec.push_back(primitiveVec);
@@ -305,11 +325,9 @@ namespace SatelliteExample {
         // init timing state
         time = glfwGetTime() * 1000.f, diff = 0;
         
+        // matrix with scaling
         glm::dmat4 matrix(1.0);
-        matrix *= glm::scale(glm::dvec3(mscale));
-        matrix *= glm::scale(glm::dvec3(1.f, 1.f, 1.f));
-
-
+        matrix *= glm::scale(glm::dvec3(mscale))*glm::scale(glm::dvec3(1.f, 1.f, 1.f));
 
         // loading/setup meshes 
         intersector->clearTribuffer();
@@ -329,7 +347,7 @@ namespace SatelliteExample {
                 for (int p = 0; p < mesh.size(); p++) { // load every primitive
                     std::shared_ptr<ste::rt::VertexInstance>& geom = mesh[p];
                     geom->setTransform(transform); // here is bottleneck with host-GPU exchange
-                    intersector->loadGeometry(geom, geom->index16bit);
+                    intersector->loadGeometry(geom);
                 }
             }
             else

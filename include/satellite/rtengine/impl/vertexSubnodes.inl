@@ -80,6 +80,7 @@ namespace NSM {
 
         intptr_t BufferSpace::copyGPUBuffer( BufferType external, const size_t size) {
             const intptr_t offset = lastKnownOffset; lastKnownOffset += size;
+            lastKnownOffset = tiled(lastKnownOffset, 4) * 4; // correct by hardware 32-bit (for avoid errors in shaders) 
             return copyGPUBuffer(external, size, offset);
         }
 
@@ -91,6 +92,7 @@ namespace NSM {
 
         intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size) {
             const intptr_t offset = lastKnownOffset; lastKnownOffset += size;
+            lastKnownOffset = tiled(lastKnownOffset, 4) * 4; // correct by hardware 32-bit (for avoid errors in shaders) 
             return copyHostBuffer(external, size, offset);
         }
 

@@ -41,12 +41,16 @@ namespace NSM {
         };
 
 
-        void VertexInstance::setAccessorSet(std::shared_ptr<DataBindingSet>& accessorSet) {
-            this->dataBindingSet = accessorSet;
+        void VertexInstance::setBindingSet(std::shared_ptr<DataBindingSet>& bindingSet) {
+            this->dataBindingSet = bindingSet;
         }
 
         void VertexInstance::setBufferViewSet(std::shared_ptr<BufferViewSet>& bufferViewSet) {
             this->bufferViewSet = bufferViewSet;
+        }
+
+        void VertexInstance::setDataAccessSet(std::shared_ptr<DataAccessSet>& accessDataSet) {
+            this->dataFormatSet = accessDataSet;
         }
 
 

@@ -43,9 +43,9 @@ namespace NSM {
             void setNormalBinding(int32_t bindingID);
             void setTexcoordBinding(int32_t bindingID);
             void setModifierBinding(int32_t bindingID);
-            void setAccessorSet(std::shared_ptr<DataBindingSet>& accessorSet);
+            void setBindingSet(std::shared_ptr<DataBindingSet>& bindingSet);
             void setBufferViewSet(std::shared_ptr<BufferViewSet>& bufferViewSet);
-
+            void setDataAccessSet(std::shared_ptr<DataAccessSet>& accessDataSet);
 
             // getters of buffers
             BufferType getBufferSpaceBuffer() { 

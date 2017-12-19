@@ -50,9 +50,9 @@ namespace NSM {
 
         // instance layers
         std::vector<const char*> wantedLayers = {
-            //"VK_LAYER_LUNARG_standard_validation",
-            //"VK_LAYER_LUNARG_parameter_validation",
-            //"VK_LAYER_LUNARG_core_validation",
+            "VK_LAYER_LUNARG_standard_validation",
+            "VK_LAYER_LUNARG_parameter_validation",
+            "VK_LAYER_LUNARG_core_validation",
             "VK_LAYER_AMD_switchable_graphics",
             "VK_LAYER_GOOGLE_threading",
             "VK_LAYER_NV_optimus"
@@ -205,7 +205,8 @@ namespace NSM {
 
                 // pool sizes, and create descriptor pool 
                 std::vector<vk::DescriptorPoolSize> psizes = {
-                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 24),
+                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 64),
+                    vk::DescriptorPoolSize(vk::DescriptorType::eStorageImage, 16),
                     vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 16),
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 128),
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 16)

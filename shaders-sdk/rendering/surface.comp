@@ -40,7 +40,7 @@ struct Material {
      ivec4 iModifiers0;
 };
 
-const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 32;
+const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 16;
 
 // material set (in main descriptor set)
 layout ( std430, binding = 11, set = 0 ) readonly buffer MaterialsSSBO {Material submats[]; };

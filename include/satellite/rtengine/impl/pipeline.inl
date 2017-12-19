@@ -294,9 +294,9 @@ namespace NSM {
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet> {
                     vk::WriteDescriptorSet()
                         .setDstSet(rayShadingDescriptors[1])
-                        .setDstBinding(1)
+                        .setDstBinding(0)
                         .setDstArrayElement(0)
-                        .setDescriptorCount(0)
+                        .setDescriptorCount(1)
                         .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
                         .setPImageInfo(&imageDesc)
                 }, nullptr);
@@ -368,7 +368,7 @@ namespace NSM {
 
                 // write with same images
                 std::vector<vk::DescriptorImageInfo> samplerDescs;
-                for (int i = 0; i < 32; i++) {
+                for (int i = 0; i < 16; i++) {
                     samplerDescs.push_back(samplerDesc);
                 }
 

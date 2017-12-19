@@ -72,7 +72,6 @@ namespace NSM {
                 vk::DescriptorSetLayoutBinding(14, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // reserved (may colors)
             };
 
-
             // layouts of descriptor sets 
             descriptorSetLayouts = {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
@@ -80,18 +79,14 @@ namespace NSM {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(loaderDescriptorSetBindings.data()).setBindingCount(loaderDescriptorSetBindings.size())),
             };
 
-
             // descriptor sets for BVH builders
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(&descriptorSetLayouts[0]).setSetLayoutCount(2));
-            
+            descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(2).setPSetLayouts(&descriptorSetLayouts[0]));
+            clientDescriptorSets.push_back(descriptorSets[1]);
+
             // pipeline layout for vertex loader
             loaderPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(&descriptorSetLayouts[2]).setSetLayoutCount(1));
-
-            // descriptor sets
-            descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&descriptorSetLayouts[0]));
-            clientDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&descriptorSetLayouts[2]));
-            loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&descriptorSetLayouts[1]));
-            
+            loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&descriptorSetLayouts[2]));
 
             // pipelines
             pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
@@ -261,7 +256,7 @@ namespace NSM {
 
             // bvh storage (32-bits elements)
             _MAX_HEIGHT = std::min(maxTriangles > 0 ? (maxTriangles - 1) / _BVH_WIDTH + 1 : 0, _BVH_WIDTH) + 1;
-            bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
+            bvhMetaStorage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
             bvhBoxStorage = createBuffer(device, strided<glm::mat4>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // planned working dedicated buffers
@@ -427,7 +422,7 @@ namespace NSM {
             glm::vec3 offset = bound.mn.xyz();
             {
                 glm::dmat4 mat(1.0);
-                mat *= glm::inverse(glm::translate(glm::dvec3(0.5,0.5,0.5)) * glm::scale(glm::dvec3(0.5)));
+                mat *= glm::inverse(glm::translate(glm::dvec3(0.5,0.5,0.5)) * glm::scale(glm::dvec3(0.5,0.5,0.5)));
                 mat *= glm::inverse(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale)));
                 //mat *= glm::inverse(glm::dmat4(optimization));
                 bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));

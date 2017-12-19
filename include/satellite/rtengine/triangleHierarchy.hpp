@@ -64,7 +64,7 @@ namespace NSM {
         public:
             void allocate(size_t maxt);
             void clearTribuffer();
-            void loadGeometry(std::shared_ptr<VertexInstance>& vertexInstance, bool use16bitIndexing = false);
+            void loadGeometry(std::shared_ptr<VertexInstance>& vertexInstance);
             void syncUniforms();
             void markDirty();
             void buildBVH();

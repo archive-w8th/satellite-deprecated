@@ -14,18 +14,18 @@ namespace NSM {
 
             // descriptor set bindings
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
-                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), 
-                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // refit flags 
-                vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // morton codes (64-bit)
+                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // morton indices (for sort)
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // (been) BVH nodes, should be here metadata
+                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // leafs
+                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // BVH boxes
+                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // refit flags
+                vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // in work actives
+                vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // leafs indices in BVH
+                vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // counters
                 vk::DescriptorSetLayoutBinding(9, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // minmax buffer
-                vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // BVH creator uniform (TODO)
-                vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr)
+                vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // uniform buffer
+                vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr) // bvh metadata
             };
 
 
@@ -210,18 +210,17 @@ namespace NSM {
 
             // descriptor templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            auto desc1Tmpl = vk::WriteDescriptorSet(desc0Tmpl).setDstSet(descriptorSets[1]).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
             auto ldesc0Tmpl = vk::WriteDescriptorSet(desc0Tmpl).setDstSet(loaderDescriptorSets[0]).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             auto bvhCounters = vk::DescriptorBufferInfo(countersBuffer->buffer, 0, strided<uint32_t>(8));
 
             // write buffers to main descriptors
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&bvhCounters),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(9).setPBufferInfo(&boundaryBuffer->descriptorInfo),
-            }, nullptr);
-
-            // write buffers to loader descriptors
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDstBinding(0).setPBufferInfo(&bvhCounters)
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&bvhCounters),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&boundaryBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhCounters)
             }, nullptr);
 
             // clear for fix issues
@@ -293,11 +292,11 @@ namespace NSM {
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(6).setPBufferInfo(&workingBVHNodesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo.setSampler(sampler))
-            }, nullptr);
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo.setSampler(sampler)),
+            //}, nullptr);
 
             // write to client descriptors 
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+            //device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(10).setPImageInfo(&vertexTexelStorage->descriptorInfo.setSampler(sampler)),
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(11).setPImageInfo(&normalsTexelStorage->descriptorInfo.setSampler(sampler)),
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(12).setPImageInfo(&texcoordTexelStorage->descriptorInfo.setSampler(sampler)),
@@ -307,10 +306,10 @@ namespace NSM {
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo),
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler)),
-            }, nullptr);
+            //}, nullptr);
 
             // write buffers to loader descriptors
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+            //device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(10).setPImageInfo(&vertexTexelWorking->descriptorInfo),
                 vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&normalsTexelWorking->descriptorInfo),
                 vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(12).setPImageInfo(&texcoordTexelWorking->descriptorInfo),
@@ -325,36 +324,32 @@ namespace NSM {
             isDirty = false;
         }
 
-        void TriangleHierarchy::loadGeometry(std::shared_ptr<VertexInstance>& vertexInstance, bool use16bitIndexing) {
-            BufferType bufferSpace = vertexInstance->getBufferSpaceBuffer();
-            BufferType bufferRegions = vertexInstance->getBufferSpaceRegions();
-            BufferType bufferViewsBuffer = vertexInstance->getBufferViewsBuffer();
-            BufferType dataFormatBuffer = vertexInstance->getDataFormatBuffer();
-            BufferType dataBindingBuffer = vertexInstance->getBufferBindingBuffer();
-            BufferType meshUniformBuffer = vertexInstance->getUniformBuffer();
-            
+        void TriangleHierarchy::loadGeometry(std::shared_ptr<VertexInstance>& vertexInstance) {
             // write mesh buffers to loaders descriptors
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&bufferSpace->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&bufferRegions->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&bufferViewsBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&dataFormatBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&dataBindingBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&meshUniformBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&vertexInstance->getBufferSpaceBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&vertexInstance->getBufferSpaceRegions()->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&vertexInstance->getBufferViewsBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&vertexInstance->getDataFormatBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&vertexInstance->getBufferBindingBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&vertexInstance->getUniformBuffer()->descriptorInfo),
             }, nullptr);
 
-            geometryLoader.dispatch(); // dispatch loading
-            isDirty = true;
+            // dispatch loading
+            geometryLoader.dispatch();
+            markDirty();
         }
 
         void TriangleHierarchy::syncUniforms() {
-            //bufferSubData(geometryBlockUniform.staging, geometryBlockData, 0);
             bufferSubData(bvhBlockUniform.staging, bvhBlockData, 0);
-            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, geometryBlockUniform.staging, geometryBlockUniform.buffer, { 0, 0, strided<GeometryBlockUniform>(1) }, true);
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) }, true);
+
+            //bufferSubData(geometryBlockUniform.staging, geometryBlockData, 0);
+            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, geometryBlockUniform.staging, geometryBlockUniform.buffer, { 0, 0, strided<GeometryBlockUniform>(1) }, true);
         }
 
+        // very hacky function, preferly don't use
         void TriangleHierarchy::markDirty() {
             isDirty = true;
         }
@@ -442,7 +437,6 @@ namespace NSM {
 
             // calculate leafs and boundings of members
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) }, true); // reset BVH leafs counters
-            
             aabbCalculate.dispatch();
 
             // get leaf count from staging
@@ -451,11 +445,9 @@ namespace NSM {
             bvhBlockData[0].leafCount = triangleCount[0];
             if (triangleCount[0] <= 0) return;
 
-            // need update geometry uniform optimization matrices
+            // need update geometry uniform optimization matrices, and sort morton codes
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }, true);
-
-            // sort under construction
-            radixSort->sort(mortonCodesBuffer, leafsIndicesBuffer, triangleCount[0]); // incomplete function 
+            radixSort->sort(mortonCodesBuffer, leafsIndicesBuffer, triangleCount[0]); // do radix sort
 
             // debug code
             {
@@ -531,9 +523,6 @@ namespace NSM {
             // refit BVH with linking leafs
             childLink.dispatch();
             refitBVH.dispatch();
-
-            // restore state (no need anymore)
-            //geometryBlockData[0].geometryUniform.triangleCount = this->triangleCount;
             syncUniforms();
         }
 

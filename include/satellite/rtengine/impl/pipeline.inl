@@ -21,7 +21,7 @@ namespace NSM {
         void Pipeline::initDescriptorSets() {
 
             // descriptor set connectors for externals
-            std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutConnectBindings = {
+            std::vector<vk::DescriptorSetLayoutBinding> clientDescriptorSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // vertex
                 vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // normal
                 vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // texcoord
@@ -37,9 +37,7 @@ namespace NSM {
                 vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // reserved 
             };
 
-
-
-            // ray tracing unified descriptors (planned reduce )
+            // ray tracing unified descriptors
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
                 // raytracing binding set
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // ray block nodes
@@ -92,7 +90,7 @@ namespace NSM {
             // prepare pools and sets
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
-                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutConnectBindings.data()).setBindingCount(descriptorSetLayoutConnectBindings.size())),
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(surfaceImgSetLayoutBindings.data()).setBindingCount(surfaceImgSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(shadingDescSetLayoutBindings.data()).setBindingCount(shadingDescSetLayoutBindings.size()))
@@ -137,8 +135,6 @@ namespace NSM {
             clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/clear.comp.spv", samplingPipelineLayout, pipelineCache);
             binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayShadingPipelineLayout, pipelineCache);
 
-
-            
             /*
             { // AMD ONLY - save assembly file of traverser
                 PFN_vkGetShaderInfoAMD pfnGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)vkGetDeviceProcAddr(device->logical, "vkGetShaderInfoAMD");
@@ -165,16 +161,12 @@ namespace NSM {
                 }
             }
             */
-
-
-
         }
 
         void Pipeline::initLights() {
             lightUniformData.resize(6);
             for (int i = 0; i < 6; i++) {
                 lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 400.f, 40.0f);
-                //lightUniformData[i].lightColor = glm::vec4((glm::vec3(255.f, 250.f, 244.f) / 255.f) * 3600.f, 10.0f);
                 lightUniformData[i].lightVector = glm::vec4(0.3f, 1.0f, 0.1f, 400.0f);
                 lightUniformData[i].lightOffset = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
                 lightUniformData[i].lightAmbient = glm::vec4(0.0f);
@@ -401,14 +393,13 @@ namespace NSM {
         void Pipeline::init(DeviceQueueType& device) {
             this->device = device;
             rayBlockData.resize(1);
+            starttime = milliseconds();
 
             initDescriptorSets();
             initPipelines();
             initBuffers();
             initLights();
             syncUniforms();
-
-            starttime = milliseconds();
         }
 
 
@@ -456,7 +447,6 @@ namespace NSM {
 
             //const size_t BLOCK_WIDTH = 16, BLOCK_HEIGHT = 16;
             const size_t BLOCK_WIDTH = 32, BLOCK_HEIGHT = 32;
-            
             const size_t BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
             const size_t BLOCK_NODES_SIZE = 64 * BLOCK_SIZE;
             const size_t BLOCK_INDICES_SIZE = 8 * BLOCK_SIZE + 64;
@@ -581,10 +571,9 @@ namespace NSM {
             auto fft = offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, iterationCount); // choice update target offset
             //auto rft = offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, time); // choice update target offset
 
-            // copy commands
+            // copy commands 
             auto copyCommandBuffer = getCommandBuffer(device, true);
             memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) }); // don't touch criticals
-            //memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { rft, rft, sizeof(uint32_t) }); // don't touch criticals
             memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
 
             // shade commands

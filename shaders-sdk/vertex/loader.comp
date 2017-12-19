@@ -99,7 +99,6 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
         dataAccess = dataBindings[binding].dataAccess, 
         bufferView = dataFormats[dataAccess].bufferView;
 
-/*
     // if no direct buffer binding, pick from buffer view
     if (bufferID < 0) bufferID = bufferViews[bufferView].bufferID;
 
@@ -114,25 +113,9 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
 
     // calculate structure indexed offset
     offseT += (dataBindings[binding].indexOffset + index) * stride;
-*/
-
-    // if no direct buffer binding, pick from buffer view
-    if (bufferID < 0) bufferID = bufferViews[bufferView].bufferID;
-
-    // based on regions byte offset
-    uint offseT = bufferRegions[bufferID].x >> bytecorrect;
-
-    // calculate byte offset 
-    offseT += (bufferViews[bufferView].byteOffset >> bytecorrect) + (dataFormats[dataAccess].byteOffset >> bytecorrect);
-
-    // get true stride 
-    uint stride = max(bufferViews[bufferView].byteStride >> bytecorrect, aComponents(dataFormats[dataAccess])+1);
-
-    // calculate structure indexed offset
-    offseT += (dataBindings[binding].indexOffset + index) * stride;
 
     // 
-    return offseT;//((offseT >> bytecorrect) << bytecorrect) + bufferRegions[bufferID].x;
+    return offseT >> bytecorrect;
 }
 
 

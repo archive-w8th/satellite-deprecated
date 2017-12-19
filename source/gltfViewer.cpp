@@ -279,6 +279,7 @@ namespace SatelliteExample {
                 }
 
                 // indices
+                geom->useIndex16bit(false);
                 geom->setIndiceBinding(-1);
 
                 if (prim.indices >= 0) {

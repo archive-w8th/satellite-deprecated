@@ -239,6 +239,8 @@ namespace SatelliteExample {
             tinygltf::Mesh &glMesh = gltfModel.meshes[m];
             for (int i = 0; i < glMesh.primitives.size(); i++) {
                 tinygltf::Primitive & prim = glMesh.primitives[i];
+
+                // create vertex instance
                 std::shared_ptr<ste::rt::VertexInstance> geom = std::shared_ptr<ste::rt::VertexInstance>(new ste::rt::VertexInstance(device));
 
                 // set accessing buffers 
@@ -352,7 +354,7 @@ namespace SatelliteExample {
         if (gltfModel.scenes.size() > 0) {
             for (int n = 0; n < gltfModel.scenes[sceneID].nodes.size(); n++) {
                 tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
-                traverse(node, glm::dmat4(matrix), 10);
+                traverse(node, glm::dmat4(matrix), 16);
             }
         }
 #endif

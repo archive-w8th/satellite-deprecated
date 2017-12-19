@@ -241,7 +241,7 @@ namespace SatelliteExample {
             ste::rt::VirtualDataAccess dst;
             dst.bufferView = it.bufferView;
             dst.byteOffset = it.byteOffset;
-            dst.components = _byType(it.componentType)-1;
+            dst.components = _byType(it.type)-1;
             acs->addElement(dst);
         }
 
@@ -293,6 +293,8 @@ namespace SatelliteExample {
                 }
 
                 // indices
+                geom->setIndiceBinding(-1);
+
                 if (prim.indices >= 0) {
                     tinygltf::Accessor &idcAccessor = gltfModel.accessors[prim.indices];
                     //auto& bufferView = gltfModel.bufferViews[idcAccessor.bufferView];

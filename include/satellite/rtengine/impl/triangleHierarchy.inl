@@ -393,15 +393,9 @@ namespace NSM {
                 //mat *= glm::inverse(glm::dmat4(optimization));
                 bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
+                syncUniforms();
             }
-            syncUniforms();
 
-            // calculate boundary 
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { 
-                offsetof(BVHBlockUniform, transform) + offsetof(GeometryUniformStruct, transform), 
-                offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, transform), 
-                strided<glm::mat4>(2) 
-            }, true); // 
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(64) }, true);
             boundPrimitives.dispatch();
 
@@ -409,12 +403,12 @@ namespace NSM {
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(64) }, false);
 
             // receive boundary
-            std::vector<bbox> bounds(32);
+            std::vector<glm::vec4> bounds(64);
             getBufferSubData(generalLoadingBuffer, bounds, 0);
-            bbox bound = bounds[0];
+            bbox bound = { bounds[0], bounds[1] };
             for (int i = 1; i < 32; i++) {
-                bound.mn = glm::min(bounds[i].mn, bound.mn);
-                bound.mx = glm::max(bounds[i].mx, bound.mx);
+                bound.mn = glm::min(bounds[i*2+0], bound.mn);
+                bound.mx = glm::max(bounds[i*2+1], bound.mx);
             }
 
             // get optimizations
@@ -429,6 +423,13 @@ namespace NSM {
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
                 syncUniforms();
             }
+
+            // calculate boundary 
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, {
+                offsetof(GeometryUniformStruct, transform),
+                offsetof(BVHBlockUniform, transform),
+                strided<glm::mat4>(2)
+            }, true);
 
             // calculate leafs and boundings of members
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) }, true); // reset BVH leafs counters

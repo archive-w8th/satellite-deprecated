@@ -32,9 +32,7 @@ namespace NSM {
         }
 
 
-        void VertexInstance::useIndex16bit(bool b16) {
-            meshUniformData[0].int16bit = int(b16);
-        }
+        
 
         void VertexInstance::setBufferSpace(std::shared_ptr<BufferSpace>& buf) {
             this->bufferSpace = buf;
@@ -66,6 +64,10 @@ namespace NSM {
 
 
         // setting of accessors
+        void VertexInstance::useIndex16bit(bool b16) {
+            meshUniformData[0].int16bit = int(b16);
+        }
+
         void VertexInstance::setVertexBinding(int32_t bindingID) {
             meshUniformData[0].vertexAccessor = bindingID;
         }

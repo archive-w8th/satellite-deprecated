@@ -99,6 +99,7 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
         dataAccess = dataBindings[binding].dataAccess, 
         bufferView = dataFormats[dataAccess].bufferView;
 
+/*
     // if no direct buffer binding, pick from buffer view
     if (bufferID < 0) bufferID = bufferViews[bufferView].bufferID;
 
@@ -113,6 +114,22 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
 
     // calculate structure indexed offset
     offseT += (dataBindings[binding].indexOffset + index) * stride;
+*/
+
+    // if no direct buffer binding, pick from buffer view
+    if (bufferID < 0) bufferID = bufferViews[bufferView].bufferID;
+
+    // based on regions byte offset
+    uint offseT = bufferRegions[bufferID].x >> bytecorrect;
+
+    // calculate byte offset 
+    offseT += (bufferViews[bufferView].byteOffset >> bytecorrect) + (dataFormats[dataAccess].byteOffset >> bytecorrect);
+
+    // get true stride 
+    uint stride = max(bufferViews[bufferView].byteStride >> bytecorrect, aComponents(dataFormats[dataAccess])+1);
+
+    // calculate structure indexed offset
+    offseT += (dataBindings[binding].indexOffset + index) * stride;
 
     // 
     return offseT;//((offseT >> bytecorrect) << bytecorrect) + bufferRegions[bufferID].x;
@@ -123,7 +140,7 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
 
 void readByAccessor(in int binding, in uint index, inout vec4 outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index, 2) >> 2;
+        uint T = calculateByteOffset(binding, index, 2);
         uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
         if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
         if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
@@ -134,7 +151,7 @@ void readByAccessor(in int binding, in uint index, inout vec4 outp) {
 
 void readByAccessor(in int binding, in uint index, inout vec3 outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index, 2) >> 2;
+        uint T = calculateByteOffset(binding, index, 2);
         uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
         if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
         if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
@@ -144,7 +161,7 @@ void readByAccessor(in int binding, in uint index, inout vec3 outp) {
 
 void readByAccessor(in int binding, in uint index, inout vec2 outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index, 2) >> 2;
+        uint T = calculateByteOffset(binding, index, 2);
         uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
         if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
         if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
@@ -153,14 +170,14 @@ void readByAccessor(in int binding, in uint index, inout vec2 outp) {
 
 void readByAccessor(in int binding, in uint index, inout float outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index, 2) >> 2;
+        uint T = calculateByteOffset(binding, index, 2);
         outp = uintBitsToFloat(bufferSpace[T]);
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout int outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index, 2) >> 2;
+        uint T = calculateByteOffset(binding, index, 2);
         outp = int(bufferSpace[T]);
     }
 }
@@ -168,9 +185,8 @@ void readByAccessor(in int binding, in uint index, inout int outp) {
 // planned read type directly from accessor
 void readByAccessorIndice(in int binding, in uint index, inout uint outp) {
     if (binding >= 0) {
-        bool U16 = meshUniform.int16bit > 0;
+        const bool U16 = meshUniform.int16bit > 0;
         uint T = calculateByteOffset(binding, index, U16 ? 1 : 2);
-        T >>= U16 ? 1 : 2;
         if (U16) {
             outp = MF16(bufferSpace, T);
         } else {

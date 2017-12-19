@@ -94,12 +94,12 @@ layout ( std430, binding = 6, set = 0 ) readonly buffer IMeshUniform {MeshUnifor
 
 
 
-uint calculateByteOffset(in int binding, in uint index){
+uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
     int bufferID = dataBindings[binding].bufferID, dataAccess = dataBindings[binding].dataAccess;
     if (bufferID < 0) bufferID = bufferViews[dataFormats[dataAccess].bufferView].bufferID;
 
     // based on regions byte offset
-    uint offseT = bufferRegions[bufferID].x;
+    uint offseT = 0;//bufferRegions[bufferID].x;
 
     // calculate buffer view byte offset 
     offseT += bufferViews[dataFormats[dataAccess].bufferView].byteOffset;
@@ -110,6 +110,9 @@ uint calculateByteOffset(in int binding, in uint index){
     // calculate structure indexed offset
     offseT += (dataBindings[binding].indexOffset + index) * bufferViews[dataFormats[bufferID].bufferView].byteStride;
 
+    // correct striding by bit, and add region offset
+    offseT = ((offseT >> bytecorrect) << bytecorrect) + bufferRegions[bufferID].x;
+
     return offseT;
 }
 
@@ -118,42 +121,43 @@ uint calculateByteOffset(in int binding, in uint index){
 
 void readByAccessor(in int binding, in uint index, inout vec4 outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index) >> 2;
+        uint T = calculateByteOffset(binding, index, 2) >> 2;
         outp = vec4(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]),uintBitsToFloat(bufferSpace[T+2]),uintBitsToFloat(bufferSpace[T+3]));
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout vec3 outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index) >> 2;
+        uint T = calculateByteOffset(binding, index, 2) >> 2;
         outp = vec3(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]),uintBitsToFloat(bufferSpace[T+2]));
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout vec2 outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index) >> 2;
+        uint T = calculateByteOffset(binding, index, 2) >> 2;
         outp = vec2(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]));
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout float outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index) >> 2;
+        uint T = calculateByteOffset(binding, index, 2) >> 2;
         outp = uintBitsToFloat(bufferSpace[T]);
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout int outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index) >> 2;
+        uint T = calculateByteOffset(binding, index, 2) >> 2;
         outp = int(bufferSpace[T]);
     }
 }
 
+// planned read type directly from accessor
 void readByAccessorIndice(in int binding, in uint index, inout uint outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index);
+        uint T = calculateByteOffset(binding, index, meshUniform.int16bit > 0 ? 1 : 2);
         if (meshUniform.int16bit > 0) {
             outp = MF16(bufferSpace, T >> 1);
         } else {

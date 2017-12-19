@@ -15,7 +15,9 @@ layout ( binding = 10, set = 1 ) uniform sampler2D vertex_texture;
 layout ( binding = 11, set = 1 ) uniform sampler2D normal_texture;
 layout ( binding = 12, set = 1 ) uniform sampler2D texcoords_texture;
 layout ( binding = 13, set = 1 ) uniform sampler2D modifiers_texture;
-layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBlock { UBLANEF_ bvhBoxes[][4]; };
+#ifndef BVH_CREATION
+layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { UBLANEF_ bvhBoxes[][4]; };
+#endif
 layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
 layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
 layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;

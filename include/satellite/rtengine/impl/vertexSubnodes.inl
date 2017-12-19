@@ -37,7 +37,7 @@ namespace NSM {
         };
 
         template<int BINDING, class STRUCTURE>
-        BufferType& BufferComposer<BINDING,STRUCTURE>::getBuffer() {
+        BufferType BufferComposer<BINDING,STRUCTURE>::getBuffer() {
             bufferSubData(stager, data, 0);
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) }, true);
             return cache;
@@ -74,7 +74,7 @@ namespace NSM {
 
 
         intptr_t BufferSpace::copyGPUBuffer( BufferType external, const size_t size, const intptr_t offset) {
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, external, dataBuffer, { 0, offset, size }, true);
+            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }, true);
             return offset;
         }
 

@@ -1,6 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#define BVH_CREATION
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -57,7 +58,7 @@ void main() {
                     UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.001f), mx = UBLANEF_UNPACKED_(bounding.mx+0.001f);
                     outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
                     outLeaf.pdata.xy = ivec2(to);
-                    outLeaf.pdata.zw = ivec2(-1, t);
+                    outLeaf.pdata.zw = ivec2(-1, globalID);
                     Leafs[to] = outLeaf;
                 }
             }

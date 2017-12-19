@@ -59,15 +59,15 @@ const ivec2 COMPONENTS = ivec2(0, 2);
 const ivec2 ATYPE = ivec2(2, 4);
 const ivec2 NORMALIZED = ivec2(6, 1);
 
-int aComponents(inout VirtualAccessor vac) {
+int aComponents(inout VirtualDataAccess vac) {
     return parameteri(COMPONENTS, vac.bitfield);
 }
 
-int aType(inout VirtualAccessor vac) {
+int aType(inout VirtualDataAccess vac) {
     return parameteri(ATYPE, vac.bitfield);
 }
 
-int aNormalized(inout VirtualAccessor vac) {
+int aNormalized(inout VirtualDataAccess vac) {
     return parameteri(NORMALIZED, vac.bitfield);
 }
 
@@ -94,7 +94,7 @@ layout ( std430, binding = 6, set = 0 ) readonly buffer IMeshUniform {MeshUnifor
 
 
 
-uint calculateByteOffset(in int binding, in int index){
+uint calculateByteOffset(in int binding, in uint index){
     int bufferID = dataBindings[binding].bufferID, dataAccess = dataBindings[binding].dataAccess;
     if (bufferID < 0) bufferID = bufferViews[dataFormats[dataAccess].bufferView].bufferID;
 
@@ -102,7 +102,7 @@ uint calculateByteOffset(in int binding, in int index){
     uint offseT = bufferRegions[bufferID].x;
 
     // calculate buffer view byte offset 
-    offseT += bufferViews[dataFormats[dataFormats[dataAccess].bufferView].byteOffset;
+    offseT += bufferViews[dataFormats[dataAccess].bufferView].byteOffset;
 
     // calculate in structure offset
     offseT += dataFormats[bufferID].byteOffset;
@@ -119,7 +119,7 @@ uint calculateByteOffset(in int binding, in int index){
 void readByAccessor(in int binding, in uint index, inout vec4 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index) >> 2;
-        outp = vec4(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]),uintBitsToFloat(bufferSpace[T+2]),uintBitsToFloat(bufferSpace[T+3])));
+        outp = vec4(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]),uintBitsToFloat(bufferSpace[T+2]),uintBitsToFloat(bufferSpace[T+3]));
     }
 }
 
@@ -192,7 +192,8 @@ void main(){
 
             const int mode = meshUniform.primitiveType, trp = mode == 1 ? 4 : 3;
             for (int i=0;i<trp;i++) {
-                uint indiceID = readByAccessorIndice(indiceAccessor, globalID * trp + i);
+                uint indiceID = 0;
+                readByAccessorIndice(meshUniform.indiceAccessor, globalID * trp + i, indiceID);
 
                 { // vertex accessor are required
                     readByAccessor(meshUniform.vertexAccessor, indiceID, vertice[i]);
@@ -216,8 +217,8 @@ void main(){
 
             // adapt quads to triangles
             const ivec2 isize = ivec2(imageSize(vertex_texture_out)); const int istride = mode == 1 ? 2 : 1;
-            int ordr = globalID*istride, tidc = tcounterInc(TRUE_, istride);
-            vec3 offsetnormal = normalize(cross(vertice[1] - vertice[0], vertice[2] - vertice[0]));
+            int ordr = int(globalID*istride), tidc = tcounterInc(TRUE_, istride);
+            vec3 offsetnormal = normalize(cross(vertice[1].xyz - vertice[0].xyz, vertice[2].xyz - vertice[0].xyz));
 
             {
                 vorders[tidc] = ordr;
@@ -231,7 +232,7 @@ void main(){
                     } else {
                         ISTORE(normal_texture_out, mosaicCoord, vec4(normalize(offsetnormal.xyz), 1.0f));
                     }
-                    ISTORE(vertex_texture_out, mosaicCoord, vec4(vertice[i], 1.0f));
+                    ISTORE(vertex_texture_out, mosaicCoord, vec4(vertice[i]));
                     ISTORE(texcoords_texture_out, mosaicCoord, vec4(texcoord[i]));
                     ISTORE(modifiers_texture_out, mosaicCoord, vec4(mods[i]));
                 }

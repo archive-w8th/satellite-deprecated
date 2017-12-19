@@ -13,7 +13,7 @@ layout ( std430, binding = 3, set = 0 ) coherent buffer LeafBlock {
 };
 
 // BVH nodes
-layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBlock {
+layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBoxBlock {
     UBLANEF_ bvhBoxes[][2];
 };
 

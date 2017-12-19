@@ -219,7 +219,7 @@ namespace SatelliteExample {
 
             // load to unified buffer space
             intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data, gltfModel.buffers[i].data.size());
-            vtbSpace->addRegionDesc(rt::BufferRegion{ offset, gltfModel.buffers[i].data.size() });
+            vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(gltfModel.buffers[i].data.size()) });
         }
 
         // make buffer views

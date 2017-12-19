@@ -7,7 +7,7 @@ namespace NSM {
 
         void VertexInstance::init(DeviceQueueType& device) {
             this->device = device;
-            meshUniformData = std::vector<MeshUniformStruct>(1);
+            meshUniformData = std::vector<MeshUniformStruct>{ MeshUniformStruct() };
             meshUniformBuffer = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             meshUniformStager = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
         }

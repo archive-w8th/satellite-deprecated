@@ -53,8 +53,8 @@ namespace NSM {
             regionsBuffer = createBuffer(device, strided<BufferRegion>(64), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             regionsStage = createBuffer(device, strided<BufferRegion>(64), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-            dataBuffer = createBuffer(device, strided<uint32_t>(spaceSize), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            dataStage = createBuffer(device, strided<uint32_t>(spaceSize), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            dataBuffer = createBuffer(device, strided<uint8_t>(tiled(spaceSize, 4) * 4), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            dataStage = createBuffer(device, strided<uint8_t>(tiled(spaceSize, 4) * 4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
         }
 
 
@@ -87,7 +87,7 @@ namespace NSM {
 
         intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size, const intptr_t offset) {
             bufferSubData(dataStage, external, size, 0);
-            return copyGPUBuffer(dataStage, offset, size);
+            return copyGPUBuffer(dataStage, size, offset);
         }
 
         intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size) {

@@ -60,7 +60,6 @@ namespace SatelliteExample {
 #ifdef EXPERIMENTAL_GLTF
         tinygltf::Model gltfModel;
         std::vector<std::vector<std::shared_ptr<ste::rt::VertexInstance>>> meshVec = std::vector<std::vector<std::shared_ptr<ste::rt::VertexInstance>>>();
-        std::vector<BufferType> glBuffers = std::vector<BufferType>();
         std::vector<uint32_t> rtTextures = std::vector<uint32_t>();
         std::shared_ptr<rt::BufferSpace> vtbSpace;
 #endif
@@ -200,26 +199,13 @@ namespace SatelliteExample {
 
         // calculate minimal buffer space size
         size_t gsize = 0;
-        for (int i = 0; i < gltfModel.buffers.size(); i++) { gsize += gltfModel.buffers[i].data.size(); }
+        for (int i = 0; i < gltfModel.buffers.size(); i++) { gsize += tiled(gltfModel.buffers[i].data.size(), 4) * 4; }
 
-        // allocate buffer space (with some spacing)
-        vtbSpace = std::shared_ptr<ste::rt::BufferSpace>(new ste::rt::BufferSpace(device, gsize*1.25));
-
-        // make raw mesh buffers
-        //glBuffers.resize(gltfModel.buffers.size());
+        // unify buffers
+        vtbSpace = std::shared_ptr<ste::rt::BufferSpace>(new ste::rt::BufferSpace(device, gsize)); // allocate buffer space (with some spacing)
         for (int i = 0; i < gltfModel.buffers.size(); i++) {
-
-            // staging vertex and indice buffer
-            //auto staging = createBuffer(device, gltfModel.buffers[i].data.size(), vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            //bufferSubData(staging, gltfModel.buffers[i].data, 0);
-
-            // create vertex and indice buffer
-            //glBuffers[i] = createBuffer(device, gltfModel.buffers[i].data.size(), vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
-            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, staging, glBuffers[i], { 0, 0, gltfModel.buffers[i].data.size() }, true);
-
-            // load to unified buffer space
-            intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data, gltfModel.buffers[i].data.size());
-            vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(gltfModel.buffers[i].data.size()) });
+            intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data.data(), tiled(gltfModel.buffers[i].data.size(),4)*4);
+            vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(tiled(gltfModel.buffers[i].data.size(),4) * 4) });
         }
 
         // make buffer views
@@ -241,7 +227,7 @@ namespace SatelliteExample {
             ste::rt::VirtualDataAccess dst;
             dst.bufferView = it.bufferView;
             dst.byteOffset = it.byteOffset;
-            dst.components = _byType(it.type)-1;
+            dst.components = it.type - 1;//_byType(it.type)-1;
             acs->addElement(dst);
         }
 
@@ -365,7 +351,7 @@ namespace SatelliteExample {
         if (gltfModel.scenes.size() > 0) {
             for (int n = 0; n < gltfModel.scenes[sceneID].nodes.size(); n++) {
                 tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
-                traverse(node, glm::dmat4(matrix), 8);
+                traverse(node, glm::dmat4(matrix), 10);
             }
         }
 #endif

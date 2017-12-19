@@ -154,14 +154,14 @@ namespace NSM {
         struct VirtualBufferView {
             int byteOffset = 0;
             int byteStride = 1;
-            int bufferID = -1; // buffer region PTR 
+            int bufferID = 0;
         };
 
         // structuring swizzle
         struct VirtualDataAccess {
             int bufferView = -1; // buffer-view structure
             int byteOffset = 0; // in structure offset
-            int components : 2, type : 4, normalized : 1;
+            uint32_t components : 2, type : 4, normalized : 1;
         };
 
         // structure accessors 

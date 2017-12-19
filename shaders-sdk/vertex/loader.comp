@@ -95,29 +95,27 @@ layout ( std430, binding = 6, set = 0 ) readonly buffer IMeshUniform {MeshUnifor
 
 
 uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
-    int bufferID = dataBindings[binding].bufferID, dataAccess = dataBindings[binding].dataAccess;
-    if (bufferID < 0) bufferID = bufferViews[dataFormats[dataAccess].bufferView].bufferID;
+    int bufferID = dataBindings[binding].bufferID, 
+        dataAccess = dataBindings[binding].dataAccess, 
+        bufferView = dataFormats[dataAccess].bufferView;
+
+    // if no direct buffer binding, pick from buffer view
+    if (bufferID < 0) bufferID = bufferViews[bufferView].bufferID;
 
     // based on regions byte offset
-    uint offseT = 0;//bufferRegions[bufferID].x;
+    uint offseT = bufferRegions[bufferID].x;
 
-    // calculate buffer view byte offset 
-    offseT += bufferViews[dataFormats[dataAccess].bufferView].byteOffset;
-
-    // calculate in structure offset
-    offseT += dataFormats[bufferID].byteOffset;
+    // calculate byte offset 
+    offseT += bufferViews[bufferView].byteOffset + dataFormats[dataAccess].byteOffset;
 
     // get true stride 
-    uint stride = bufferViews[dataFormats[bufferID].bufferView].byteStride;
-    if (stride <= 0) stride = (aComponents(dataFormats[dataAccess])+1) << bytecorrect; // if none of stride
+    uint stride = max(bufferViews[bufferView].byteStride, (aComponents(dataFormats[dataAccess])+1) << bytecorrect);
 
     // calculate structure indexed offset
     offseT += (dataBindings[binding].indexOffset + index) * stride;
 
-    // correct striding by bit, and add region offset
-    offseT = ((offseT >> bytecorrect) << bytecorrect) + bufferRegions[bufferID].x;
-
-    return offseT;
+    // 
+    return offseT;//((offseT >> bytecorrect) << bytecorrect) + bufferRegions[bufferID].x;
 }
 
 
@@ -126,21 +124,30 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
 void readByAccessor(in int binding, in uint index, inout vec4 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2) >> 2;
-        outp = vec4(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]),uintBitsToFloat(bufferSpace[T+2]),uintBitsToFloat(bufferSpace[T+3]));
+        uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
+        if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
+        if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
+        if (C >= 3) outp.z = uintBitsToFloat(bufferSpace[T+2]);
+        if (C >= 4) outp.w = uintBitsToFloat(bufferSpace[T+3]);
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout vec3 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2) >> 2;
-        outp = vec3(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]),uintBitsToFloat(bufferSpace[T+2]));
+        uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
+        if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
+        if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
+        if (C >= 3) outp.z = uintBitsToFloat(bufferSpace[T+2]);
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout vec2 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2) >> 2;
-        outp = vec2(uintBitsToFloat(bufferSpace[T]),uintBitsToFloat(bufferSpace[T+1]));
+        uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
+        if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
+        if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
     }
 }
 
@@ -161,9 +168,10 @@ void readByAccessor(in int binding, in uint index, inout int outp) {
 // planned read type directly from accessor
 void readByAccessorIndice(in int binding, in uint index, inout uint outp) {
     if (binding >= 0) {
-        uint T = calculateByteOffset(binding, index, meshUniform.int16bit > 0 ? 1 : 2);
-        T >>= meshUniform.int16bit > 0 ? 1 : 2;
-        if (meshUniform.int16bit > 0) {
+        bool U16 = meshUniform.int16bit > 0;
+        uint T = calculateByteOffset(binding, index, U16 ? 1 : 2);
+        T >>= U16 ? 1 : 2;
+        if (U16) {
             outp = MF16(bufferSpace, T);
         } else {
             outp = bufferSpace[T];

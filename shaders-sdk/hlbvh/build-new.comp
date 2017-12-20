@@ -13,16 +13,18 @@
 
 LOCAL_SIZE_LAYOUT;
 
+int cdelta( in int a, in int b ){
+    MORTONTYPE acode = Mortoncodes[a], bcode = Mortoncodes[b];
+    int pfx = nlz(acode^bcode);
+    return pfx < 64 ? pfx : pfx+nlz(a^b);
+}
 
 int findSplit( in int first, in int last) {
-    MORTONTYPE firstCode = Mortoncodes[first], lastCode = Mortoncodes[last];
-    int commonPrefix = nlz(firstCode ^ lastCode), split = commonPrefix == 0 ? ((first + last) >> 1) : first, nstep = last - first;
-    for (int i=0;(i<8192 && nstep>1 && commonPrefix != 0);i++) {
+    int commonPrefix = cdelta(first, last), split = first, nstep = last - first;
+    for (int i=0;(i<8192 && nstep>1 && commonPrefix >= 0 && split < last && split >= first);i++) {
         nstep = (nstep + 1) >> 1;
-        int newSplit = split + nstep;
-        int code = nlz(firstCode ^ Mortoncodes[newSplit]);
-        if (code < 0) code = 64 + nlz(first^newSplit); // fast calculation code
-        split = newSplit < last && code > commonPrefix ? newSplit : split;
+        int newSplit = split + nstep, code = cdelta(first, newSplit);
+        split = code > commonPrefix ? newSplit : split;
     }
     return clamp(split, first, last-1);
 }

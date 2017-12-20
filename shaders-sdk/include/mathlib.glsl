@@ -451,10 +451,10 @@ BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn,
 
 // BVH utility
 uint64_t bitfieldReverse64(in uint64_t a){uvec2 p = U2P(a);p=bitfieldReverse(p);return P2U(p.yx);}
-//int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
-//int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
-int nlz(in uint64_t x) { return lsb(bitfieldReverse64(x)); }
-int nlz(in uint x) { return lsb(bitfieldReverse(x)); }
+int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
+int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
+//int nlz(in uint64_t x) { return lsb(bitfieldReverse64(x)); }
+//int nlz(in uint x) { return lsb(bitfieldReverse(x)); }
 int nlz(in int x) { return nlz(uint(x)); }
 
 

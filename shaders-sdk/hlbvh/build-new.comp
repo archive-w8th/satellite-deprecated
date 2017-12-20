@@ -20,7 +20,9 @@ int findSplit( in int first, in int last) {
     for (int i=0;(i<8192 && nstep>1 && commonPrefix != 0);i++) {
         nstep = (nstep + 1) >> 1;
         int newSplit = split + nstep;
-        split = newSplit < last && nlz(firstCode ^ Mortoncodes[newSplit]) > commonPrefix ? newSplit : split;
+        int code = nlz(firstCode ^ Mortoncodes[newSplit]);
+        if (code < 0) code = 64 + nlz(first^newSplit); // fast calculation code
+        split = newSplit < last && code > commonPrefix ? newSplit : split;
     }
     return clamp(split, first, last-1);
 }

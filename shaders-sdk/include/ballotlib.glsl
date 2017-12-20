@@ -224,11 +224,11 @@ int countInvocs(in BOOL_ val){
 
 
 int firstActive() {
-    return msb(ballotHW(TRUE_));
+    return lsb(ballotHW(TRUE_));
 }
 
 int interpolInvocation(in BOOL_ value){
-    return msb(ballotHW(value) & genGeMask());
+    return lsb(ballotHW(value) & genGeMask());
 }
 
 

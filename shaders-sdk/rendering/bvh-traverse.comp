@@ -160,7 +160,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 
 void deferTriangles(in int tri) {
     deftri = tri;
-    if (deftri.x >= 0) awaitFlag = true;
+    //if (deftri.x >= 0) awaitFlag = true; // deferred-lock instead soft-lock
 }
 
 void doIntersection() {
@@ -233,6 +233,13 @@ void checkChildNodes() {
             int ptr = (deferredPtr -= _ssc ? 0 : 1); deferredPtr = max(deferredPtr, 0);
             esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x && ptr >= 0), idx = mix(-1, idx, validBox);
         }
+
+        // make sure that next node is not leaf, is leaf, do soft-lock
+        if (deftri.x >= 0) {
+            comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
+            if (comp4.x == comp4.y && comp4.w >= 0) awaitFlag = true;
+        }
+
     }
 }
 
@@ -383,7 +390,8 @@ void main() {
         for (int iteration=0;iteration<64;iteration++) {
             IF (not(validBox)) break;
             for (int lt=0;lt<64;lt++) {
-                if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
+                //if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
+                if (!anyInvoc(bool(validBox) && deftri.x < 0)) break; // don't sure by await flag
                 checkChildNodes(); // traverse BVH
             }
             doIntersection(); // do intersection (WARP optimized)

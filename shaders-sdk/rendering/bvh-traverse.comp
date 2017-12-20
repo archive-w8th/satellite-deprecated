@@ -387,9 +387,9 @@ void main() {
         
         // global traversing
         beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
-        for (int iteration=0;iteration<64;iteration++) {
+        for (int iteration=0;iteration<128;iteration++) {
             IF (not(validBox)) break;
-            for (int lt=0;lt<64;lt++) {
+            for (int lt=0;lt<128;lt++) {
                 //if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
                 if (!anyInvoc(bool(validBox) && deftri.x < 0)) break; // don't sure by await flag
                 checkChildNodes(); // traverse BVH

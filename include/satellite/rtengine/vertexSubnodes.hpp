@@ -15,9 +15,11 @@ namespace NSM {
         public:
             BufferComposer(BufferComposer<BINDING, STRUCTURE>& another);
             BufferComposer(BufferComposer<BINDING, STRUCTURE>&& another);
-            BufferComposer(DeviceQueueType& device);
+            BufferComposer(DeviceQueueType& device, const size_t bsize = 1024 * 128);
             int32_t addElement(STRUCTURE accessorDesc);
             BufferType getBuffer(); 
+
+            void resetStack() { data.resize(0); }
 
         protected:
             BufferType cache;
@@ -45,6 +47,9 @@ namespace NSM {
             intptr_t copyHostBuffer(const std::vector<T> external, const intptr_t offset);
 
             intptr_t getLastKnownOffset();
+
+            void resetRegionStack() { regions.resize(0); }
+            void resetOffsetCounter() { lastKnownOffset = 0; }
 
         protected:
             std::vector<BufferRegion> regions;

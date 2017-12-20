@@ -47,10 +47,10 @@ namespace SatelliteExample {
         std::string model_input = "";
         std::string directory = ".";
         std::string bgTexName = "background.jpg";
-        std::shared_ptr<ste::rt::TriangleHierarchy> intersector;
+        std::shared_ptr<rt::TriangleHierarchy> intersector;
         std::shared_ptr<CameraController> cam;
-        std::shared_ptr<ste::rt::MaterialSet> materialManager;
-        std::shared_ptr<ste::rt::TextureSet> textureManager;
+        std::shared_ptr<rt::MaterialSet> materialManager;
+        std::shared_ptr<rt::TextureSet> textureManager;
 
         // experimental GUI
         bool show_test_window = true, show_another_window = false;
@@ -59,9 +59,12 @@ namespace SatelliteExample {
         double mscale = 1.0f;
 #ifdef EXPERIMENTAL_GLTF
         tinygltf::Model gltfModel;
-        std::vector<std::vector<std::shared_ptr<ste::rt::VertexInstance>>> meshVec = std::vector<std::vector<std::shared_ptr<ste::rt::VertexInstance>>>();
+        std::vector<std::vector<std::shared_ptr<rt::VertexInstance>>> meshVec = std::vector<std::vector<std::shared_ptr<rt::VertexInstance>>>();
         std::vector<uint32_t> rtTextures = std::vector<uint32_t>();
         std::shared_ptr<rt::BufferSpace> vtbSpace;
+        std::shared_ptr<rt::BufferViewSet> bfvi;
+        std::shared_ptr<rt::DataAccessSet> acs;
+        std::shared_ptr<rt::DataBindingSet> bnds;
 #endif
 
 
@@ -121,8 +124,8 @@ namespace SatelliteExample {
 
     void GltfViewer::init(DeviceQueueType& device, const int32_t& argc, const char ** argv) {
         // init material system
-        materialManager = std::shared_ptr<ste::rt::MaterialSet>(new ste::rt::MaterialSet(device));
-        textureManager = std::shared_ptr<ste::rt::TextureSet>(new ste::rt::TextureSet(device));
+        materialManager = std::shared_ptr<rt::MaterialSet>(new rt::MaterialSet(device));
+        textureManager = std::shared_ptr<rt::TextureSet>(new rt::TextureSet(device));
 
         // load env map 
         auto cbmap = loadCubemap(bgTexName, device);
@@ -150,7 +153,7 @@ namespace SatelliteExample {
         //materialManager->clearSubmats();
         for (int i = 0; i < gltfModel.materials.size(); i++) {
             tinygltf::Material & material = gltfModel.materials[i];
-            ste::rt::VirtualMaterial submat;
+            rt::VirtualMaterial submat;
 
             // diffuse?
 
@@ -197,25 +200,31 @@ namespace SatelliteExample {
             materialManager->addMaterial(submat);
         }
 
+
+
+
+
+
+
         // calculate minimal buffer space size
         size_t gsize = 0;
         for (int i = 0; i < gltfModel.buffers.size(); i++) { gsize += tiled(gltfModel.buffers[i].data.size(), 4) * 4; }
 
+        // create binding buffers
+        vtbSpace = std::shared_ptr<rt::BufferSpace>(new rt::BufferSpace(device, gsize)); // allocate buffer space (with some spacing)
+        bfvi = std::shared_ptr<rt::BufferViewSet>(new rt::BufferViewSet(device));
+        acs = std::shared_ptr<rt::DataAccessSet>(new rt::DataAccessSet(device));
+        bnds = std::shared_ptr<rt::DataBindingSet>(new rt::DataBindingSet(device));
+
         // unify buffers
-        vtbSpace = std::shared_ptr<ste::rt::BufferSpace>(new ste::rt::BufferSpace(device, gsize)); // allocate buffer space (with some spacing)
         for (int i = 0; i < gltfModel.buffers.size(); i++) {
             intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data.data(), tiled(gltfModel.buffers[i].data.size(),4)*4);
             vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(tiled(gltfModel.buffers[i].data.size(),4) * 4) });
         }
 
-        // make buffer views
-        std::shared_ptr<ste::rt::BufferViewSet> bfvi = std::shared_ptr<ste::rt::BufferViewSet>(new ste::rt::BufferViewSet(device));
-        std::shared_ptr<ste::rt::DataAccessSet> acs = std::shared_ptr<ste::rt::DataAccessSet>(new ste::rt::DataAccessSet(device));
-        std::shared_ptr<ste::rt::DataBindingSet> bnds = std::shared_ptr<ste::rt::DataBindingSet>(new ste::rt::DataBindingSet(device));
-
         // buffer views
         for (auto const &bv : gltfModel.bufferViews) {
-            ste::rt::VirtualBufferView bfv;
+            rt::VirtualBufferView bfv;
             bfv.byteOffset = bv.byteOffset;
             bfv.byteStride = bv.byteStride;
             bfv.bufferID = bv.buffer;
@@ -224,7 +233,7 @@ namespace SatelliteExample {
 
         // accessors 
         for (auto const &it : gltfModel.accessors) {
-            ste::rt::VirtualDataAccess dst;
+            rt::VirtualDataAccess dst;
             dst.bufferView = it.bufferView;
             dst.byteOffset = it.byteOffset;
             dst.components = it.type - 1;//_byType(it.type)-1;
@@ -233,7 +242,7 @@ namespace SatelliteExample {
 
         // load mesh templates (better view objectivity)
         for (int m = 0; m < gltfModel.meshes.size(); m++) {
-            std::vector<std::shared_ptr<ste::rt::VertexInstance>> primitiveVec = std::vector<std::shared_ptr<ste::rt::VertexInstance>>();
+            std::vector<std::shared_ptr<rt::VertexInstance>> primitiveVec = std::vector<std::shared_ptr<rt::VertexInstance>>();
 
             // load instances
             tinygltf::Mesh &glMesh = gltfModel.meshes[m];
@@ -241,9 +250,7 @@ namespace SatelliteExample {
                 tinygltf::Primitive & prim = glMesh.primitives[i];
 
                 // create vertex instance
-                std::shared_ptr<ste::rt::VertexInstance> geom = std::shared_ptr<ste::rt::VertexInstance>(new ste::rt::VertexInstance(device));
-
-                // set accessing buffers 
+                std::shared_ptr<rt::VertexInstance> geom = std::shared_ptr<rt::VertexInstance>(new rt::VertexInstance(device));
                 geom->setBufferSpace(vtbSpace);
                 geom->setDataAccessSet(acs);
                 geom->setBufferViewSet(bfvi);
@@ -259,7 +266,7 @@ namespace SatelliteExample {
                     //auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
 
                     // binding 
-                    ste::rt::VirtualBufferBinding vattr;
+                    rt::VirtualBufferBinding vattr;
                     vattr.dataAccess = it.second;
 
                     // vertex
@@ -282,24 +289,23 @@ namespace SatelliteExample {
 
                 // indices
                 geom->useIndex16bit(false);
-                geom->setIndiceBinding(-1);
-
+                bool isInt16 = false;
                 if (prim.indices >= 0) {
                     tinygltf::Accessor &idcAccessor = gltfModel.accessors[prim.indices];
-                    //auto& bufferView = gltfModel.bufferViews[idcAccessor.bufferView];
                     geom->setNodeCount(idcAccessor.count / 3);
 
-                    ste::rt::VirtualBufferBinding vattr;
+                    // access binding  
+                    rt::VirtualBufferBinding vattr;
                     vattr.dataAccess = prim.indices;
                     geom->setIndiceBinding(bnds->addElement(vattr));
 
                     // is 16-bit indices?
-                    bool isInt16 = idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_SHORT || idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
-                    geom->useIndex16bit(isInt16);
+                    isInt16 = idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_SHORT || idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
                 }
 
                 // use constant material for instance 
                 geom->setMaterialOffset(prim.material);
+                geom->useIndex16bit(isInt16);
 
                 // if triangles, then load mesh
                 if (prim.mode == TINYGLTF_MODE_TRIANGLES) { primitiveVec.push_back(geom); }
@@ -310,7 +316,7 @@ namespace SatelliteExample {
 #endif
 
         // create geometry intersector
-        intersector = std::shared_ptr<ste::rt::TriangleHierarchy>(new ste::rt::TriangleHierarchy(device, shaderPack));
+        intersector = std::shared_ptr<rt::TriangleHierarchy>(new rt::TriangleHierarchy(device, shaderPack));
         intersector->allocate(1024 * 2048);
 
         // init timing state
@@ -334,9 +340,9 @@ namespace SatelliteExample {
 
             glm::dmat4 transform = inTransform * localTransform;
             if (node.mesh >= 0) {
-                std::vector<std::shared_ptr<ste::rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
+                std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
                 for (int p = 0; p < mesh.size(); p++) { // load every primitive
-                    std::shared_ptr<ste::rt::VertexInstance>& geom = mesh[p];
+                    std::shared_ptr<rt::VertexInstance>& geom = mesh[p];
                     geom->setTransform(transform); // here is bottleneck with host-GPU exchange
                     intersector->loadGeometry(geom);
                 }

@@ -29,9 +29,9 @@ namespace NSM {
         }
 
         void TextureSet::clearTextures() {
-            for (int i = 1; i <= textures.size(); i++) {
-                this->freeTexture(i);
-            }
+            //for (int i = 1; i <= textures.size(); i++) { this->freeTexture(i); }
+            freedomTextures.resize(0);
+            textures.resize(0);
         }
 
         void TextureSet::setTexture(uint32_t location, const TextureType& texture) {

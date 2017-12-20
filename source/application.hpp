@@ -128,7 +128,7 @@ namespace SatelliteExample {
         glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f);
         glm::dvec3 view = glm::dvec3(0.0f, 2.0f, 0.0f);
         glm::dvec2 mposition;
-        std::shared_ptr<ste::rt::Pipeline> raysp;
+        std::shared_ptr<rt::Pipeline> raysp;
 
         glm::dmat4 project() {
 #ifdef USE_CAD_SYSTEM
@@ -140,7 +140,7 @@ namespace SatelliteExample {
 #endif
         }
 
-        void setRays(std::shared_ptr<ste::rt::Pipeline>& r) {
+        void setRays(std::shared_ptr<rt::Pipeline>& r) {
             raysp = r;
         }
 
@@ -274,7 +274,7 @@ namespace SatelliteExample {
 
         uint32_t gpuID = 0;
         std::string shaderPack = "shaders-spv";
-        std::shared_ptr<ste::rt::Pipeline> rays;
+        std::shared_ptr<rt::Pipeline> rays;
         
 
         double time = 0, diff = 0;
@@ -381,7 +381,7 @@ namespace SatelliteExample {
             grengine = std::shared_ptr<GuiRenderEngine>(new GuiRenderEngine(deviceQueue, renderpass, shaderPack));
 
             // init ray tracer
-            rays = std::shared_ptr<ste::rt::Pipeline>(new ste::rt::Pipeline(deviceQueue, shaderPack));
+            rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(deviceQueue, shaderPack));
 
             // resize buffers and canvas
             this->resizeBuffers(baseWidth * superSampling, baseHeight * superSampling);

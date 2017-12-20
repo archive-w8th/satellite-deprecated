@@ -310,7 +310,7 @@ namespace NSM {
         }
 
 
-        void renderOn(ste::Framebuffer& framebuffer, vk::Extent2D surfaceSize, ImDrawData* imData) {
+        void renderOn(Framebuffer& framebuffer, vk::Extent2D surfaceSize, ImDrawData* imData) {
             ImGuiIO& io = ImGui::GetIO();
             imData->ScaleClipRects(io.DisplayFramebufferScale);
 

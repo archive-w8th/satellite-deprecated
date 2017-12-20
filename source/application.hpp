@@ -618,7 +618,7 @@ namespace SatelliteExample {
 
                         vk::Fence fence = currentContext->device->logical.createFence(vk::FenceCreateInfo());
                         currentContext->device->queue.submit(1, &kernel, fence);
-                        std::async([&]() { // async await for destruction command buffers
+                        std::async([=]() { // async await for destruction command buffers
                             currentContext->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                             currentContext->device->logical.destroyFence(fence);
                             currentContext->device->logical.freeCommandBuffers(currentContext->device->commandPool, 1, &commandBuffer);

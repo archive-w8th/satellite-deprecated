@@ -190,7 +190,7 @@ namespace NSM {
             device->queue.submit(buildSubmitInfos, fence);
 
             // asynchronous await for cleans
-            std::async([&]() {
+            std::async([=]() {
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 device->logical.destroyFence(fence);
                 device->logical.freeCommandBuffers(device->commandPool, copyBuffers);

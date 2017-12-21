@@ -75,11 +75,11 @@ namespace NSM {
         deviceQueue->queue.submit(submitInfos, fence);
 
         if (async) {
-            std::async([=]() { // async await for destruction command buffers
+            //std::async([=]() { // async await for destruction command buffers
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            });
+            //});
         }
         else {
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
@@ -120,12 +120,12 @@ namespace NSM {
         vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
         deviceQueue->queue.submit(submitInfos, fence);
 
-        std::async([=]() { // async await for destruction command buffers
+        //std::async([=]() { // async await for destruction command buffers
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             deviceQueue->logical.destroyFence(fence);
             deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             asyncCallback();
-        });
+        //});
     };
 
     // transition texture layout

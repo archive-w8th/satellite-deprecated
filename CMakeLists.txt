@@ -25,10 +25,6 @@ set(SOURCES_LIST
     "./include/satellite/*/*.inl"
     "./include/satellite/*/*/*.hpp"
     "./include/satellite/*/*/*.inl"
-    "./ShadersSDK/include/*.*"
-    "./ShadersSDK/render/*.*"
-    "./ShadersSDK/hlbvh/*.*"
-    "./ShadersSDK/tools/*.*"
     "./source/*.hpp"
 )
 

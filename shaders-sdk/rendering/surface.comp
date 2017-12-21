@@ -221,7 +221,7 @@ void main() {
             mat3 tbn = mat3(tangent, normalize(cross(normal, tangent)), normal);
             
             vec4 diffuse = textured.diffuse;
-            vec4 emission = textured.emissive;
+            vec4 emission = textured.emissive*1.25f;
             vec4 spc = clamp01(textured.specular);
 
             emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));

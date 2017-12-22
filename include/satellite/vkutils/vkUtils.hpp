@@ -46,47 +46,37 @@ namespace NSM {
 
 
 
-    // finish temporary command buffer function
+    // finish temporary command buffer function 
     auto flushCommandBuffer(DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, bool async = false) {
         commandBuffer.end();
 
-        std::vector<vk::SubmitInfo> submitInfos;
-        vk::PipelineStageFlags stageMasks = vk::PipelineStageFlagBits::eAllCommands;
-        if (!deviceQueue->executed || !deviceQueue->currentSemaphore) {
-            deviceQueue->currentSemaphore = deviceQueue->logical.createSemaphore(vk::SemaphoreCreateInfo());
-            submitInfos = {
-                vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0) // not need wait previous semaphore
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&commandBuffer)
-                    //.setSignalSemaphoreCount(1).setPSignalSemaphores(&deviceQueue->currentSemaphore)
-            };
-            deviceQueue->executed = true;
-        }
-        else {
-            submitInfos = {
-                vk::SubmitInfo()
-                    //.setWaitSemaphoreCount(1).setPWaitSemaphores(&deviceQueue->currentSemaphore).setPWaitDstStageMask(&stageMasks) // wait current execution semaphore
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&commandBuffer)
-                    //.setSignalSemaphoreCount(1).setPSignalSemaphores(&deviceQueue->currentSemaphore)
-            };
-        }
+        std::vector<vk::SubmitInfo> submitInfos = {
+            vk::SubmitInfo()
+            .setWaitSemaphoreCount(0)
+            .setCommandBufferCount(1)
+            .setPCommandBuffers(&commandBuffer)
+        };
 
-        vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->queue.submit(submitInfos, fence);
+        //vk::PipelineStageFlags stageMasks = vk::PipelineStageFlagBits::eAllCommands;
+        //if (!deviceQueue->executed || !deviceQueue->currentSemaphore) {
+        //    deviceQueue->currentSemaphore = deviceQueue->logical.createSemaphore(vk::SemaphoreCreateInfo());
+        //    deviceQueue->executed = true;
+        //}
 
         if (async) {
-            std::async([=]() { // async await for destruction command buffers
+            std::async([=]() { // async submit and await for destruction command buffers
+                vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
+                deviceQueue->queue.submit(submitInfos, fence);
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
         }
         else {
+            auto fence = deviceQueue->fence;
+            deviceQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            deviceQueue->logical.destroyFence(fence);
+            deviceQueue->logical.resetFences(1, &fence);
             deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
         }
     };
@@ -95,36 +85,26 @@ namespace NSM {
     auto flushCommandBuffer(DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, const std::function<void()>& asyncCallback) {
         commandBuffer.end();
 
-        std::vector<vk::SubmitInfo> submitInfos;
-        vk::PipelineStageFlags stageMasks = vk::PipelineStageFlagBits::eAllCommands;
-        if (!deviceQueue->executed || !deviceQueue->currentSemaphore) {
-            deviceQueue->currentSemaphore = deviceQueue->logical.createSemaphore(vk::SemaphoreCreateInfo());
-            submitInfos = {
-                vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0) // not need wait previous semaphore
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&commandBuffer)
-            };
-            deviceQueue->executed = true;
-        }
-        else {
-            submitInfos = {
-                vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&commandBuffer)
-            };
-        }
-        
+        std::vector<vk::SubmitInfo> submitInfos = {
+            vk::SubmitInfo()
+            .setWaitSemaphoreCount(0)
+            .setCommandBufferCount(1)
+            .setPCommandBuffers(&commandBuffer)
+        };
 
-        vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->queue.submit(submitInfos, fence);
+        //vk::PipelineStageFlags stageMasks = vk::PipelineStageFlagBits::eAllCommands;
+        //if (!deviceQueue->executed || !deviceQueue->currentSemaphore) {
+        //    deviceQueue->currentSemaphore = deviceQueue->logical.createSemaphore(vk::SemaphoreCreateInfo());
+        //    deviceQueue->executed = true;
+        //}
 
-        std::async([=]() { // async await for destruction command buffers
+        std::async([=]() { // async submit and await for destruction command buffers
+            vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
+            deviceQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            asyncCallback();
             deviceQueue->logical.destroyFence(fence);
             deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            asyncCallback();
         });
     };
 
@@ -337,7 +317,7 @@ namespace NSM {
 
 
     template<class ...T>
-    void copyMemoryProxy(DeviceQueueType& deviceQueue, T... args, bool async = false) {
+    void copyMemoryProxy(DeviceQueueType& deviceQueue, T... args, bool async = true) {
         // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...);

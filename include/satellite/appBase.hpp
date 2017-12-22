@@ -195,6 +195,7 @@ namespace NSM {
                 // create semaphores
                 deviceQueuePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
                 deviceQueuePtr->commandPool = createCommandPool(deviceQueuePtr);
+                
 
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
@@ -211,6 +212,7 @@ namespace NSM {
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 16)
                 };
                 deviceQueuePtr->descriptorPool = deviceQueuePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
+                deviceQueuePtr->fence = createFence(deviceQueuePtr, false);
             }
 
             return std::move(deviceQueuePtr);

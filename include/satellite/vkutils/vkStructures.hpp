@@ -21,6 +21,7 @@ namespace NSM {
         vk::CommandPool commandPool;
         vk::Semaphore currentSemaphore = nullptr;
         vk::DescriptorPool descriptorPool;
+        vk::Fence fence;
         VmaAllocator allocator;
     };
 

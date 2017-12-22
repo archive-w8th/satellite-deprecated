@@ -568,30 +568,29 @@ namespace SatelliteExample {
                 context->renderpass = renderpass;
                 context->swapchain = createSwapchain(deviceQueue, applicationWindow.surface, applicationWindow.surfaceFormat);
                 context->framebuffers = createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass, applicationWindow.surfaceFormat);
-                for (int i = 0; i < context->framebuffers.size(); i++) {
-                    context->framebuffers[i].waitFence = createFence(deviceQueue);
-                    auto commandBuffer = getCommandBuffer(context->device, true); commandBuffer.end();
-                    context->framebuffers[i].commandBuffer = commandBuffer;
-                }
+                //for (int i = 0; i < context->framebuffers.size(); i++) {
+                //    auto commandBuffer = getCommandBuffer(context->device, true); commandBuffer.end();
+                //    context->framebuffers[i].commandBuffer = commandBuffer;
+                //}
 
                 auto app = this;
                 auto& window = this->applicationWindow;
                 auto& cb = this->currentBuffer;
 
-                int32_t curr_semaphore = -1;
-                context->draw = [context, &cb, &window, &curr_semaphore, app]() {
-                    auto currentContext = context;
+                std::shared_ptr<int32_t> curr_semaphore = std::make_shared<int32_t>(-1); // use locked ptr () 
+                context->draw = [context, curr_semaphore, &cb, &window,  app]() {
+                    auto& currentContext = context;
                     auto& currentBuffer = cb;
 
-                    int32_t n_semaphore = curr_semaphore;
-                    int32_t c_semaphore = (curr_semaphore + 1) % context->framebuffers.size();
-                    curr_semaphore = c_semaphore;
+                    int32_t n_semaphore = *curr_semaphore;
+                    int32_t c_semaphore = (*curr_semaphore + 1) % context->framebuffers.size();
+                    *curr_semaphore = c_semaphore;
 
                     // update swapchain (if need)
                     app->updateSwapchains();
 
                     // acquire next image where will rendered (and get semaphore when will presented finally)
-                    currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[ (n_semaphore >= 0 ? n_semaphore : context->framebuffers.size() - 1) ].semaphore, nullptr, &currentBuffer);
+                    currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[ (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1)) ].semaphore, nullptr, &currentBuffer);
 
                     // submit rendering (and wait presentation in device)
                     {
@@ -603,19 +602,14 @@ namespace SatelliteExample {
                         if (n_semaphore >= 0) {
                             // wait previously render/presentation 
                             currentContext->device->logical.waitForFences(1, &currentContext->framebuffers[n_semaphore].waitFence, true, std::numeric_limits<uint64_t>::max()); // wait when will ready rendering
-                            currentContext->device->logical.resetFences(1, &currentContext->framebuffers[n_semaphore].waitFence); // reset fence (reuse)
-
-                            // clear outdated command buffer
-                            if (currentContext->framebuffers[n_semaphore].commandBuffer) {
-                                currentContext->device->logical.freeCommandBuffers(currentContext->device->commandPool, 1, &currentContext->framebuffers[n_semaphore].commandBuffer);
-                            }
+                            currentContext->device->logical.freeCommandBuffers(currentContext->device->commandPool, 1, &currentContext->framebuffers[n_semaphore].commandBuffer);
                         }
                         else {
                             n_semaphore = context->framebuffers.size() - 1;
                         }
 
                         // bind with framebuffer 
-                        currentContext->framebuffers[c_semaphore].commandBuffer = getCommandBuffer(currentContext->device, true);
+                        currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->device, true);
 
                         // create command buffer (with rewrite)
                         auto& commandBuffer = currentContext->framebuffers[n_semaphore].commandBuffer; // do reference of cmd buffer
@@ -638,6 +632,7 @@ namespace SatelliteExample {
                             .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size());
 
                         // submit next render
+                        currentContext->device->logical.resetFences(1, &currentContext->framebuffers[n_semaphore].waitFence); // reset fence (reuse)
                         currentContext->device->queue.submit(1, &kernel, currentContext->framebuffers[n_semaphore].waitFence);
                     }
 

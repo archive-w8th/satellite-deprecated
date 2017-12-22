@@ -34,7 +34,10 @@ namespace NSM {
     auto getCommandBuffer(DeviceQueueType& deviceQueue, bool begin = true) {
         vk::CommandBuffer cmdBuffer = deviceQueue->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
         if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
-        cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, {}, nullptr, nullptr, nullptr);
+        cmdBuffer.pipelineBarrier(
+            vk::PipelineStageFlagBits::eBottomOfPipe | vk::PipelineStageFlagBits::eTransfer, 
+            vk::PipelineStageFlagBits::eTopOfPipe | vk::PipelineStageFlagBits::eTransfer, 
+            {}, nullptr, nullptr, nullptr);
         return cmdBuffer;
     };
 
@@ -75,11 +78,11 @@ namespace NSM {
         deviceQueue->queue.submit(submitInfos, fence);
 
         if (async) {
-            //std::async([=]() { // async await for destruction command buffers
+            std::async([=]() { // async await for destruction command buffers
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            //});
+            });
         }
         else {
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
@@ -101,18 +104,15 @@ namespace NSM {
                     .setWaitSemaphoreCount(0) // not need wait previous semaphore
                     .setCommandBufferCount(1)
                     .setPCommandBuffers(&commandBuffer)
-                    //.setSignalSemaphoreCount(1).setPSignalSemaphores(&deviceQueue->currentSemaphore)
             };
             deviceQueue->executed = true;
         }
         else {
             submitInfos = {
                 vk::SubmitInfo()
-                    //.setWaitSemaphoreCount(1).setPWaitSemaphores(&deviceQueue->currentSemaphore).setPWaitDstStageMask(&stageMasks) // wait current execution semaphore
                     .setWaitSemaphoreCount(0)
                     .setCommandBufferCount(1)
                     .setPCommandBuffers(&commandBuffer)
-                    //.setSignalSemaphoreCount(1).setPSignalSemaphores(&deviceQueue->currentSemaphore)
             };
         }
         
@@ -120,12 +120,12 @@ namespace NSM {
         vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
         deviceQueue->queue.submit(submitInfos, fence);
 
-        //std::async([=]() { // async await for destruction command buffers
+        std::async([=]() { // async await for destruction command buffers
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             deviceQueue->logical.destroyFence(fence);
             deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             asyncCallback();
-        //});
+        });
     };
 
     // transition texture layout

@@ -448,6 +448,7 @@ namespace NSM {
 
                 // create semaphore
                 swapchainBuffers[i].semaphore = device->logical.createSemaphore(vk::SemaphoreCreateInfo());
+                swapchainBuffers[i].waitFence = device->logical.createFence(vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled));
             }
 
             return swapchainBuffers;

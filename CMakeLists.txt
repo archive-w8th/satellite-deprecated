@@ -68,7 +68,7 @@ set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_EXTENSIONS ON)
 
 if(MSVC)
-set (CMAKE_CXX_FLAGS "-Wall /EHsc /MD /std:c++latest /arch:AVX2 /permissive- /DAVX2 /DGLM_FORCE_AVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /DMSVC /debug:fastlink")
+set (CMAKE_CXX_FLAGS "/EHsc /MD /std:c++latest /arch:AVX2 /permissive- /DAVX2 /DGLM_FORCE_AVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /DMSVC /debug:fastlink")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -O9")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O9")
 set (CMAKE_C_FLAGS "/EHsc /std:c11 /debug:fastlink")

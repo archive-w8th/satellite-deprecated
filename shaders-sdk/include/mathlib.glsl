@@ -383,14 +383,65 @@ f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 #endif
 
 
+
+
+
+
+
+// hacky pack for 64-bit uint and two 32-bit float
+uint64_t packFloat2x32(in vec2 f32x2){
+    return P2U(floatBitsToUint(f32x2));
+}
+
+vec2 unpackFloat2x32(in uint64_t b64){
+    return uintBitsToFloat(U2P(b64));
+}
+
+
+// swap of 16-bits by funnel shifts and mapping 
+const uint vrt16[2] = {16u, 0u};
+uint fast16swap(in uint b32, in BOOL_ nswp){
+    return (b32 << vrt16[uint(nswp)]) | (b32 >> (32-vrt16[uint(nswp)]));
+}
+
+const uint64_t vrt32[2] = {32ul, 0ul};
+uint64_t fast32swap(in uint64_t b64, in BOOL_ nswp){
+    return (b64 << vrt32[uint(nswp)]) | (b64 >> (64-vrt32[uint(nswp)]));
+}
+
+// swap x and y swizzle by funnel shift (AMD half float)
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+f16vec2 fast16swap(in f16vec2 b32, in BOOL_ nswp) { 
+    //return unpackFloat2x16(fast16swap(packFloat2x16(b32), nswp));
+    //return SSC(nswp) ? b32 : b32.yx;
+    return mix(b32.yx, b32, nswp.xx);
+}
+#endif
+
+// swap x and y swizzle by funnel shift
+vec2 fast32swap(in vec2 b64, in BOOL_ nswp) { 
+    //return unpackFloat2x32(fast32swap(packFloat2x32(b64), nswp));
+    //return SSC(nswp) ? b64 : b64.yx;
+    return mix(b64.yx, b64, nswp.xx);
+}
+
+#ifdef AMD_F16_BVH
+#define FSWP fast16swap
+#else
+#define FSWP fast32swap
+#endif
+
+
+
+
 // single float 32-bit box intersection
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // compatible with AMD radeon min3 and max3
 BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in mat3x2 tMinMax, inout float near, inout float far) {
     tMinMax = mat3x2(
-        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].yx, dr.xx, origin.xx),
-        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].yx, dr.yy, origin.yy),
-        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].yx, dr.zz, origin.zz)
+        fma(fast32swap(tMinMax[0].xy, sgn.x), dr.xx, origin.xx),
+        fma(fast32swap(tMinMax[1].xy, sgn.y), dr.yy, origin.yy),
+        fma(fast32swap(tMinMax[2].xy, sgn.z), dr.zz, origin.zz)
     );
 
     float 
@@ -422,9 +473,9 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 // compatible with NVidia GPU too
 BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
-        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].yxwz, dr.xxxx, origin.xxxx),
-        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].yxwz, dr.yyyy, origin.yyyy),
-        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].yxwz, dr.zzzz, origin.zzzz)
+        fma(FVEC4_(FSWP(tMinMax[0].xy, sgn.x), FSWP(tMinMax[0].zw, sgn.x)), dr.xxxx, origin.xxxx),
+        fma(FVEC4_(FSWP(tMinMax[1].xy, sgn.y), FSWP(tMinMax[1].zw, sgn.y)), dr.yyyy, origin.yyyy),
+        fma(FVEC4_(FSWP(tMinMax[2].xy, sgn.z), FSWP(tMinMax[2].zw, sgn.z)), dr.zzzz, origin.zzzz)
     );
 
     FVEC2_ 
@@ -482,7 +533,6 @@ mat3 make_stream_projection(in vec3 normal){
     r[2].z = 1.f - normal.z * normal.z;
     return r;
 }
-
 
 
 #endif

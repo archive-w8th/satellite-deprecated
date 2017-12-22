@@ -713,7 +713,7 @@ namespace SatelliteExample {
             io.DeltaTime = tDiff / 1000.0;
 
             // show results
-            ImGui::NewFrame();
+            //ImGui::NewFrame();
             handleGUI();
             currentContext->draw();
 

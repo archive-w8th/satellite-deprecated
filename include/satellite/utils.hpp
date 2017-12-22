@@ -29,6 +29,7 @@
 #include "CImg.h"
 #endif
 
+#include <half.hpp>
 #include "./vkutils/vkStructures.hpp"
 #include "./vkutils/vkUtils.hpp"
 

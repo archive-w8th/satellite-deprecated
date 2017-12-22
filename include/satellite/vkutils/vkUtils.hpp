@@ -4,6 +4,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 
+#include <half.hpp> // force include half's
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>

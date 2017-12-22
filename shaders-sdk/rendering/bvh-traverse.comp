@@ -213,7 +213,7 @@ void checkChildNodes() {
             leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
 
             // validate intersection
-            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist+PRECERR)));
+            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist)));
         } else 
 
         // if is leaf, defer intersection

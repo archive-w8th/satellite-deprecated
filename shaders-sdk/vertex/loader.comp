@@ -85,7 +85,7 @@ layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters {
 };
 
 // input data
-layout ( std430, binding = 1, set = 0 ) readonly buffer BufferSpace {uint bufferSpace[]; };
+layout ( std430, binding = 1, set = 0 ) readonly buffer BufferSpace {INDEX16 bufferSpace[]; };
 layout ( std430, binding = 2, set = 0 ) readonly buffer BufferRegions {uvec2 bufferRegions[]; };
 layout ( std430, binding = 3, set = 0 ) readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };
 layout ( std430, binding = 4, set = 0 ) readonly buffer DataFormat {VirtualDataAccess dataFormats[]; };
@@ -119,16 +119,16 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
 }
 
 
-#define MF16(m, i) (BFE_HW(m[(i)>>1], int(16*((i)&1)), 16))
+//#define MF16(m, i) (BFE_HW(m[(i)>>1], int(16*((i)&1)), 16))
 
 void readByAccessor(in int binding, in uint index, inout vec4 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2);
         uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
-        if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
-        if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
-        if (C >= 3) outp.z = uintBitsToFloat(bufferSpace[T+2]);
-        if (C >= 4) outp.w = uintBitsToFloat(bufferSpace[T+3]);
+        if (C >= 1) outp.x = uintBitsToFloat(M32(bufferSpace,T+0));
+        if (C >= 2) outp.y = uintBitsToFloat(M32(bufferSpace,T+1));
+        if (C >= 3) outp.z = uintBitsToFloat(M32(bufferSpace,T+2));
+        if (C >= 4) outp.w = uintBitsToFloat(M32(bufferSpace,T+3));
     }
 }
 
@@ -136,9 +136,9 @@ void readByAccessor(in int binding, in uint index, inout vec3 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2);
         uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
-        if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
-        if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
-        if (C >= 3) outp.z = uintBitsToFloat(bufferSpace[T+2]);
+        if (C >= 1) outp.x = uintBitsToFloat(M32(bufferSpace,T+0));
+        if (C >= 2) outp.y = uintBitsToFloat(M32(bufferSpace,T+1));
+        if (C >= 3) outp.z = uintBitsToFloat(M32(bufferSpace,T+2));
     }
 }
 
@@ -146,22 +146,22 @@ void readByAccessor(in int binding, in uint index, inout vec2 outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2);
         uint C = aComponents(dataFormats[dataBindings[binding].dataAccess])+1;
-        if (C >= 1) outp.x = uintBitsToFloat(bufferSpace[T]);
-        if (C >= 2) outp.y = uintBitsToFloat(bufferSpace[T+1]);
+        if (C >= 1) outp.x = uintBitsToFloat(M32(bufferSpace,T+0));
+        if (C >= 2) outp.y = uintBitsToFloat(M32(bufferSpace,T+1));
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout float outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2);
-        outp = uintBitsToFloat(bufferSpace[T]);
+        outp = uintBitsToFloat(M32(bufferSpace,T+0));
     }
 }
 
 void readByAccessor(in int binding, in uint index, inout int outp) {
     if (binding >= 0) {
         uint T = calculateByteOffset(binding, index, 2);
-        outp = int(bufferSpace[T]);
+        outp = int(M32(bufferSpace,T+0));
     }
 }
 
@@ -170,11 +170,7 @@ void readByAccessorIndice(in int binding, in uint index, inout uint outp) {
     if (binding >= 0) {
         const bool U16 = meshUniform.int16bit > 0;
         uint T = calculateByteOffset(binding, index, U16 ? 1 : 2);
-        if (U16) {
-            outp = MF16(bufferSpace, T);
-        } else {
-            outp = bufferSpace[T];
-        }
+        if (U16) { outp = M16(bufferSpace,T+0); } else { outp = M32(bufferSpace,T+0); }
     }
 }
 

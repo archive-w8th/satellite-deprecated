@@ -42,9 +42,11 @@
 #if defined(ENABLE_AMD_INSTRUCTION_SET) || defined(ENABLE_NVIDIA_INSTRUCTION_SET)
 #define INDEX16 uint16_t
 #define M16(m, i) (m[i])
+#define M32(m, i) (packUint2x16(u16vec2(m[(i)<<1],m[((i)<<1)|1])))
 #else
 #define INDEX16 uint
 #define M16(m, i) (BFE_HW(m[(i)>>1], int(16*((i)&1)), 16))
+#define M32(m, i) (m[i])
 #endif
 
 #ifdef ENABLE_INT16_LOADING

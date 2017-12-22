@@ -51,7 +51,7 @@ ivec2 gatherMosaic(in ivec2 uniformCoord) {
 
 vec4 fetchMosaic(in sampler2D vertices, in ivec2 mosaicCoord, in uint idc) {
     //return texelFetch(vertices, mosaicCoord + mit[idc], 0);
-    return textureLod(vertices, (vec2(mosaicCoord + mit[idc]) + 0.49999f) / textureSize(vertices, 0), 0);
+    return textureLod(vertices, (vec2(mosaicCoord + mit[idc]) + 0.49999f) / textureSize(vertices, 0), 0); // supper native warping
 }
 
 ivec2 getUniformCoord(in int indice) {
@@ -62,14 +62,6 @@ ivec2 getUniformCoord(in uint indice) {
     return ivec2(indice % WARPED_WIDTH, indice / WARPED_WIDTH);
 }
 
-
-
-vec2 dot2(in mat3x2 a, in mat3x2 b) {
-    return fma(a[0],b[0], fma(a[1],b[1], a[2]*b[2]));
-    //mat2x3 at = transpose(a);
-    //mat2x3 bt = transpose(b);
-    //return vec2(dot(at[0], bt[0]), dot(at[1], bt[1]));
-}
 
 #ifndef VERTEX_FILLING
 float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
@@ -123,20 +115,6 @@ layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
 #endif
 
 
-#ifdef USE_F32_BVH // planned full support
-#define UNPACK_TX_(m)unpackHalf(m)
-#define PACK_TX_(m)packHalf2(m)
-#else 
-#ifdef AMD_F16_BVH
-#define UNPACK_TX_(m)unpackHalf2(m)
-#define PACK_TX_(m)packHalf2(m)
-#else
-#define UNPACK_TX_(m)unpackHalf(m)
-#define PACK_TX_(m)packHalf2(m)
-#endif
-#endif
-
-
 const int _BVH_WIDTH = 2048;
 
 ivec2 bvhLinear2D(in int linear) {
@@ -149,7 +127,6 @@ vec2 bvhGatherifyStorage(in ivec2 ipt){
     const vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
     return fma(vec2(ipt), sz, hs);
 }
-
 #endif
 
 

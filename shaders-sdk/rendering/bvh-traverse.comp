@@ -125,9 +125,15 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         // use such function for economy registers
         float near = float(INFINITY), far = float(INFINITY);
         vldbx &= intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(
+#ifdef USE_F32_BVH
+            vec2(-1.0001f,1.0001f),
+            vec2(-1.0001f,1.0001f),
+            vec2(-1.0001f,1.0001f)
+#else
             vec2(-1.001f,1.001f),
             vec2(-1.001f,1.001f),
             vec2(-1.001f,1.001f)
+#endif
         ), near, far).x;
         toffset = max(near.x, 0.f), predist = min(predist, far.x * dirlenInv), vldbx &= lessF(near.x * dirlenInv, INFINITY), origined -= FVEC3_(toffset.xxx);
     }
@@ -387,9 +393,9 @@ void main() {
         
         // global traversing
         beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
-        for (int iteration=0;iteration<128;iteration++) {
+        for (int iteration=0;iteration<512;iteration++) {
             IF (not(validBox)) break;
-            for (int lt=0;lt<128;lt++) {
+            for (int lt=0;lt<512;lt++) {
                 //if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
                 if (!anyInvoc(bool(validBox) && deftri.x < 0)) break; // don't sure by await flag
                 checkChildNodes(); // traverse BVH

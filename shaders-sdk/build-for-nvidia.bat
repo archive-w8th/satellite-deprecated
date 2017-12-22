@@ -1,8 +1,7 @@
 :: It is helper for compilation shaders to SPIR-V
 
 cd %~dp0
-::set CFLAGS= -x glsl -Werror --target-env=vulkan -DUSE_F32_BVH 
-  set CFLAGSV= -V120 --target-env vulkan1.0 -t -r -DFLATTEN_BOX
+  set CFLAGSV= -V120 --target-env vulkan1.0 -t -r -DUSE_F32_BVH 
   
 set INDIR=.\
 ::set OUTDIR=..\Build\shaders-spv\

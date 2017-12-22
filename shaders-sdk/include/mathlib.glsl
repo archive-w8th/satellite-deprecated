@@ -442,11 +442,20 @@ vec2 fast32swap(in vec2 b64, in BOOL_ nswp) {
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // compatible with AMD radeon min3 and max3
 BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in mat3x2 tMinMax, inout float near, inout float far) {
+    //tMinMax = mat3x2(
+    //    fma(fast32swap(tMinMax[0].xy, sgn.x), dr.xx, origin.xx),
+    //    fma(fast32swap(tMinMax[1].xy, sgn.y), dr.yy, origin.yy),
+    //    fma(fast32swap(tMinMax[2].xy, sgn.z), dr.zz, origin.zz)
+    //);
+
     tMinMax = mat3x2(
-        fma(fast32swap(tMinMax[0].xy, sgn.x), dr.xx, origin.xx),
-        fma(fast32swap(tMinMax[1].xy, sgn.y), dr.yy, origin.yy),
-        fma(fast32swap(tMinMax[2].xy, sgn.z), dr.zz, origin.zz)
+        fma(tMinMax[0], dr.xx, origin.xx),
+        fma(tMinMax[1], dr.yy, origin.yy),
+        fma(tMinMax[2], dr.zz, origin.zz)
     );
+    tMinMax[0] = vec2(min(tMinMax[0].x, tMinMax[0].y), max(tMinMax[0].x, tMinMax[0].y));
+    tMinMax[1] = vec2(min(tMinMax[1].x, tMinMax[1].y), max(tMinMax[1].x, tMinMax[1].y));
+    tMinMax[2] = vec2(min(tMinMax[2].x, tMinMax[2].y), max(tMinMax[2].x, tMinMax[2].y));
 
     float 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
@@ -477,10 +486,18 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 // compatible with NVidia GPU too
 BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
-        fma(FVEC4_(FSWP(tMinMax[0].xy, sgn.x), FSWP(tMinMax[0].zw, sgn.x)), dr.xxxx, origin.xxxx),
-        fma(FVEC4_(FSWP(tMinMax[1].xy, sgn.y), FSWP(tMinMax[1].zw, sgn.y)), dr.yyyy, origin.yyyy),
-        fma(FVEC4_(FSWP(tMinMax[2].xy, sgn.z), FSWP(tMinMax[2].zw, sgn.z)), dr.zzzz, origin.zzzz)
+        //fma(FVEC4_(FSWP(tMinMax[0].xy, sgn.x), FSWP(tMinMax[0].zw, sgn.x)), dr.xxxx, origin.xxxx),
+        //fma(FVEC4_(FSWP(tMinMax[1].xy, sgn.y), FSWP(tMinMax[1].zw, sgn.y)), dr.yyyy, origin.yyyy),
+        //fma(FVEC4_(FSWP(tMinMax[2].xy, sgn.z), FSWP(tMinMax[2].zw, sgn.z)), dr.zzzz, origin.zzzz)
+        fma(tMinMax[0], dr.xxxx, origin.xxxx),
+        fma(tMinMax[1], dr.yyyy, origin.yyyy),
+        fma(tMinMax[2], dr.zzzz, origin.zzzz)
     );
+
+    /*
+    tMinMax[0] = FVEC4_(min(tMinMax[0].xz, tMinMax[0].yw), max(tMinMax[0].xz, tMinMax[0].yw)).xzyw;
+    tMinMax[1] = FVEC4_(min(tMinMax[1].xz, tMinMax[1].yw), max(tMinMax[1].xz, tMinMax[1].yw)).xzyw;
+    tMinMax[2] = FVEC4_(min(tMinMax[2].xz, tMinMax[2].yw), max(tMinMax[2].xz, tMinMax[2].yw)).xzyw;
 
     FVEC2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
@@ -490,6 +507,22 @@ BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn,
     tFar  = min(min(tMinMax[0].yw, tMinMax[1].yw), tMinMax[2].yw),
     tNear = max(max(tMinMax[0].xz, tMinMax[1].xz), tMinMax[2].xz);
 #endif
+    */
+
+
+    tMinMax[0] = FVEC4_(min(tMinMax[0].xz, tMinMax[0].yw), max(tMinMax[0].xz, tMinMax[0].yw));
+    tMinMax[1] = FVEC4_(min(tMinMax[1].xz, tMinMax[1].yw), max(tMinMax[1].xz, tMinMax[1].yw));
+    tMinMax[2] = FVEC4_(min(tMinMax[2].xz, tMinMax[2].yw), max(tMinMax[2].xz, tMinMax[2].yw));
+
+    FVEC2_ 
+#if (defined(ENABLE_AMD_INSTRUCTION_SET))
+    tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
+    tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
+#else
+    tFar  = min(min(tMinMax[0].zw, tMinMax[1].zw), tMinMax[2].zw),
+    tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
+#endif
+
 
     // precise error correct
     tFar += FVEC2_(PZERO.xx);

@@ -59,12 +59,14 @@
 
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
+#define BVEC4_ i16vec4
 #define BVEC3_ i16vec3
 #define BVEC2_ i16vec2
 #define BOOL_ int16_t
 #define TRUE_ 1s
 #define FALSE_ 0s
 #else
+#define BVEC4_ ivec4
 #define BVEC3_ ivec3
 #define BVEC2_ ivec2
 #define BOOL_ int
@@ -347,12 +349,15 @@ BVEC2_ not(in BVEC2_ b){return TRUE2_^b;}
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 bool SSC(in BOOL_ b){return (b&TRUE_)==TRUE_;}
 bvec2 SSC(in BVEC2_ b){return equal(b&TRUE2_,TRUE2_);}
+bvec4 SSC(in BVEC4_ b){return equal(b&TRUE_.xxxx,TRUE_.xxxx);}
 #else
 bool SSC(in BOOL_ b){return bool(b);}
 bvec2 SSC(in BVEC2_ b){return bvec2(b);}
+bvec4 SSC(in BVEC4_ b){return bvec4(b);}
 #endif
 bool SSC(in bool b){return b;}
 bvec2 SSC(in bvec2 b){return b;}
+bvec4 SSC(in bvec4 b){return b;}
 
 #define IF(b)if(SSC(b))
 
@@ -375,6 +380,7 @@ float mix(in float a, in float b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 ivec2 mix(in ivec2 a, in ivec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 uvec2 mix(in uvec2 a, in uvec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 vec2 mix(in vec2 a, in vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
+vec4 mix(in vec4 a, in vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 int16_t mix(in int16_t a, in int16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 uint16_t mix(in uint16_t a, in uint16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
@@ -382,6 +388,7 @@ float16_t mix(in float16_t a, in float16_t b, in BOOL_ c) { return mix(a,b,SSC(c
 i16vec2 mix(in i16vec2 a, in i16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 u16vec2 mix(in u16vec2 a, in u16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
+f16vec4 mix(in f16vec4 a, in f16vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
 #endif
 
 
@@ -442,20 +449,11 @@ vec2 fast32swap(in vec2 b64, in BOOL_ nswp) {
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // compatible with AMD radeon min3 and max3
 BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in mat3x2 tMinMax, inout float near, inout float far) {
-    //tMinMax = mat3x2(
-    //    fma(fast32swap(tMinMax[0].xy, sgn.x), dr.xx, origin.xx),
-    //    fma(fast32swap(tMinMax[1].xy, sgn.y), dr.yy, origin.yy),
-    //    fma(fast32swap(tMinMax[2].xy, sgn.z), dr.zz, origin.zz)
-    //);
-
     tMinMax = mat3x2(
-        fma(tMinMax[0], dr.xx, origin.xx),
-        fma(tMinMax[1], dr.yy, origin.yy),
-        fma(tMinMax[2], dr.zz, origin.zz)
+        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].yx, dr.xx, origin.xx),
+        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].yx, dr.yy, origin.yy),
+        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].yx, dr.zz, origin.zz)
     );
-    tMinMax[0] = vec2(min(tMinMax[0].x, tMinMax[0].y), max(tMinMax[0].x, tMinMax[0].y));
-    tMinMax[1] = vec2(min(tMinMax[1].x, tMinMax[1].y), max(tMinMax[1].x, tMinMax[1].y));
-    tMinMax[2] = vec2(min(tMinMax[2].x, tMinMax[2].y), max(tMinMax[2].x, tMinMax[2].y));
 
     float 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
@@ -485,35 +483,12 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 // made by DevIL research group
 // also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
 // compatible with NVidia GPU too
-BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
+BVEC2_ intersectCubeDual(inout vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
-        //fma(FVEC4_(FSWP(tMinMax[0].xy, sgn.x), FSWP(tMinMax[0].zw, sgn.x)), dr.xxxx, origin.xxxx),
-        //fma(FVEC4_(FSWP(tMinMax[1].xy, sgn.y), FSWP(tMinMax[1].zw, sgn.y)), dr.yyyy, origin.yyyy),
-        //fma(FVEC4_(FSWP(tMinMax[2].xy, sgn.z), FSWP(tMinMax[2].zw, sgn.z)), dr.zzzz, origin.zzzz)
-        fma(tMinMax[0], dr.xxxx, origin.xxxx),
-        fma(tMinMax[1], dr.yyyy, origin.yyyy),
-        fma(tMinMax[2], dr.zzzz, origin.zzzz)
+        fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
+        fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
+        fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].zwxy, dr.zzzz, origin.zzzz)
     );
-
-    /*
-    tMinMax[0] = FVEC4_(min(tMinMax[0].xz, tMinMax[0].yw), max(tMinMax[0].xz, tMinMax[0].yw)).xzyw;
-    tMinMax[1] = FVEC4_(min(tMinMax[1].xz, tMinMax[1].yw), max(tMinMax[1].xz, tMinMax[1].yw)).xzyw;
-    tMinMax[2] = FVEC4_(min(tMinMax[2].xz, tMinMax[2].yw), max(tMinMax[2].xz, tMinMax[2].yw)).xzyw;
-
-    FVEC2_ 
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tMinMax[0].yw, tMinMax[1].yw, tMinMax[2].yw),
-    tNear = max3(tMinMax[0].xz, tMinMax[1].xz, tMinMax[2].xz);
-#else
-    tFar  = min(min(tMinMax[0].yw, tMinMax[1].yw), tMinMax[2].yw),
-    tNear = max(max(tMinMax[0].xz, tMinMax[1].xz), tMinMax[2].xz);
-#endif
-    */
-
-
-    tMinMax[0] = FVEC4_(min(tMinMax[0].xz, tMinMax[0].yw), max(tMinMax[0].xz, tMinMax[0].yw));
-    tMinMax[1] = FVEC4_(min(tMinMax[1].xz, tMinMax[1].yw), max(tMinMax[1].xz, tMinMax[1].yw));
-    tMinMax[2] = FVEC4_(min(tMinMax[2].xz, tMinMax[2].yw), max(tMinMax[2].xz, tMinMax[2].yw));
 
     FVEC2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))

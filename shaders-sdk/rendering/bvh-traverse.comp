@@ -62,7 +62,7 @@ int rayID = 0;
 int axis = 2; mat3 M; 
 
 // offload cache
-FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
+vec3 origined = float(0.f).xxx, divident = float(0.f).xxx;
 BVEC3_ bsgn = FALSE_.xxx; BOOL_ validBox = FALSE_;
 float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
 ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
@@ -115,7 +115,7 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     // limitation of distance
     predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
     { // calculate box projected rays
-        divident = FVEC3_(dirproj), origined = FVEC3_(torig*dirproj);
+        divident = vec3(dirproj), origined = vec3(torig*dirproj);
         bsgn = (BVEC3_(sign(divident)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
     }
 
@@ -130,9 +130,9 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
             vec2(-1.0001f,1.0001f),
             vec2(-1.0001f,1.0001f)
 #else
-            vec2(-1.001f,1.001f),
-            vec2(-1.001f,1.001f),
-            vec2(-1.001f,1.001f)
+            vec2(-1.0015f,1.0015f),
+            vec2(-1.0015f,1.0015f),
+            vec2(-1.0015f,1.0015f)
 #endif
         ), near, far).x;
         toffset = max(near.x, 0.f), predist = min(predist, far.x * dirlenInv), vldbx &= lessF(near.x * dirlenInv, INFINITY), origined -= FVEC3_(toffset.xxx);

@@ -399,30 +399,32 @@ vec2 unpackFloat2x32(in uint64_t b64){
 
 
 // swap of 16-bits by funnel shifts and mapping 
-const uint vrt16[2] = {16u, 0u};
-uint fast16swap(in uint b32, in BOOL_ nswp){
-    return (b32 << vrt16[uint(nswp)]) | (b32 >> (32-vrt16[uint(nswp)]));
+//const uint vrt16[2] = {16u, 0u};
+uint fast16swap(in uint b32, const BOOL_ nswp){
+    const uint vrc = 16u - uint(nswp) * 16u;
+    return (b32 << (vrc)) | (b32 >> (32u-vrc));
 }
 
-const uint64_t vrt32[2] = {32ul, 0ul};
-uint64_t fast32swap(in uint64_t b64, in BOOL_ nswp){
-    return (b64 << vrt32[uint(nswp)]) | (b64 >> (64-vrt32[uint(nswp)]));
+//const uint64_t vrt32[2] = {32ul, 0ul};
+uint64_t fast32swap(in uint64_t b64, const BOOL_ nswp){
+    const uint64_t vrc = 32ul - uint64_t(nswp) * 32ul;
+    return (b64 << (vrc)) | (b64 >> (64ul-vrc));
 }
 
 // swap x and y swizzle by funnel shift (AMD half float)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 f16vec2 fast16swap(in f16vec2 b32, in BOOL_ nswp) { 
-    //return unpackFloat2x16(fast16swap(packFloat2x16(b32), nswp));
+    //return unpackFloat2x16(fast16swap(packFloat2x16(b32), nswp)); // use rotate shift version (when possible)
     //return SSC(nswp) ? b32 : b32.yx;
-    return mix(b32.yx, b32, nswp.xx);
+    return mix(b32.yx, b32, nswp.xx); // use swizzle version (some device can be slower)
 }
 #endif
 
 // swap x and y swizzle by funnel shift
 vec2 fast32swap(in vec2 b64, in BOOL_ nswp) { 
-    //return unpackFloat2x32(fast32swap(packFloat2x32(b64), nswp));
+    //return unpackFloat2x32(fast32swap(packFloat2x32(b64), nswp)); // use rotate shift version (when possible)
     //return SSC(nswp) ? b64 : b64.yx;
-    return mix(b64.yx, b64, nswp.xx);
+    return mix(b64.yx, b64, nswp.xx); // use swizzle version (some device can be slower)
 }
 
 #ifdef AMD_F16_BVH

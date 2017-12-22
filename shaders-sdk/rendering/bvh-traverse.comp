@@ -126,13 +126,13 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
         float near = float(INFINITY), far = float(INFINITY);
         vldbx &= intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(
 #ifdef USE_F32_BVH
-            vec2(-1.00015f,1.00015f),
-            vec2(-1.00015f,1.00015f),
-            vec2(-1.00015f,1.00015f)
+            vec2(-1.0001f,1.0001f),
+            vec2(-1.0001f,1.0001f),
+            vec2(-1.0001f,1.0001f)
 #else
-            vec2(-1.0015f,1.0015f),
-            vec2(-1.0015f,1.0015f),
-            vec2(-1.0015f,1.0015f)
+            vec2(-1.001f,1.001f),
+            vec2(-1.001f,1.001f),
+            vec2(-1.001f,1.001f)
 #endif
         ), near, far).x;
         toffset = max(near.x, 0.f), predist = min(predist, far.x * dirlenInv), vldbx &= lessF(near.x * dirlenInv, INFINITY), origined -= FVEC3_(toffset.xxx);

@@ -467,7 +467,8 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 #endif
 
     // precise error correct
-    tFar += PZERO;
+    //tFar += PZERO;
+    tNear -= PZERO;
 
     // validate hit
     BOOL_ isCube = BOOL_(tFar>tNear) & BOOL_(tFar>0.f) & BOOL_(abs(tNear) <= INFINITY-PRECERR);
@@ -523,9 +524,9 @@ BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn,
     tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
 #endif
 
-
     // precise error correct
-    tFar += FVEC2_(PZERO.xx);
+    //tFar += FVEC2_(PZERO.xx);
+    tNear -= FVEC2_(PZERO.xx);
 
     // validate hit
     BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));

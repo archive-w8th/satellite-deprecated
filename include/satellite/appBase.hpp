@@ -193,8 +193,7 @@ namespace NSM {
                 devices.push_back(deviceQueuePtr);
 
                 // create semaphores
-                deviceQueuePtr->presentCompleteSemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
-                deviceQueuePtr->renderCompleteSemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
+                deviceQueuePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
                 deviceQueuePtr->commandPool = createCommandPool(deviceQueuePtr);
 
                 // create allocator
@@ -348,7 +347,54 @@ namespace NSM {
             ));
         }
 
-        // create swapchain framebuffer
+        // update swapchain framebuffer
+        virtual void updateSwapchainFramebuffer(DeviceQueueType& device, vk::SwapchainKHR& swapchain, vk::RenderPass &renderpass, SurfaceFormat& formats, std::vector<Framebuffer>& swapchainBuffers) {
+            // The swapchain handles allocating frame images.
+            auto swapchainImages = device->logical.getSwapchainImagesKHR(swapchain);
+            auto gpuMemoryProps = device->physical.getMemoryProperties();
+
+            // create depth image
+            auto imageInfo = vk::ImageCreateInfo(
+                vk::ImageCreateFlags(), vk::ImageType::e2D,
+                formats.depthFormat, vk::Extent3D(applicationWindow.surfaceSize.width, applicationWindow.surfaceSize.height, 1), 1, 1, vk::SampleCountFlagBits::e1,
+                vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::SharingMode::eExclusive,
+                1, &device->familyIndex,
+                vk::ImageLayout::eUndefined
+            );
+
+            VmaAllocationCreateInfo allocCreateInfo = {};
+            allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+            VmaAllocation _allocation;
+            VkImage _image;
+            vmaCreateImage(device->allocator, &(VkImageCreateInfo)imageInfo, &allocCreateInfo, &_image, &_allocation, nullptr); // allocators planned structs
+            auto depthImage = vk::Image(_image);
+
+            // create image viewer
+            auto depthImageView = device->logical.createImageView(vk::ImageViewCreateInfo(
+                vk::ImageViewCreateFlags(), depthImage,
+                vk::ImageViewType::e2D, formats.depthFormat, vk::ComponentMapping(),
+                vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil, 0, 1, 0, 1)
+            ));
+
+            // create framebuffers
+            for (int i = 0; i < swapchainImages.size(); i++) {
+                vk::Image& image = swapchainImages[i]; // prelink images
+                std::array<vk::ImageView, 2> views; // predeclare views
+                views[1] = depthImageView;
+
+                // color view
+                views[0] = device->logical.createImageView(vk::ImageViewCreateInfo(
+                    vk::ImageViewCreateFlags(), image, vk::ImageViewType::e2D, formats.colorFormat, vk::ComponentMapping(), vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1)
+                ));
+
+                // create framebuffers
+                swapchainBuffers[i].frameBuffer = device->logical.createFramebuffer(vk::FramebufferCreateInfo(
+                    vk::FramebufferCreateFlags(), renderpass, views.size(), views.data(), applicationWindow.surfaceSize.width, applicationWindow.surfaceSize.height, 1
+                ));
+            }
+        }
+
         virtual std::vector<Framebuffer> createSwapchainFramebuffer(DeviceQueueType& device, vk::SwapchainKHR& swapchain, vk::RenderPass &renderpass, SurfaceFormat& formats) {
             // The swapchain handles allocating frame images.
             auto swapchainImages = device->logical.getSwapchainImagesKHR(swapchain);
@@ -399,6 +445,9 @@ namespace NSM {
                 swapchainBuffers[i].frameBuffer = device->logical.createFramebuffer(vk::FramebufferCreateInfo(
                     vk::FramebufferCreateFlags(), renderpass, views.size(), views.data(), applicationWindow.surfaceSize.width, applicationWindow.surfaceSize.height, 1
                 ));
+
+                // create semaphore
+                swapchainBuffers[i].semaphore = device->logical.createSemaphore(vk::SemaphoreCreateInfo());
             }
 
             return swapchainBuffers;
@@ -422,13 +471,10 @@ namespace NSM {
                 }
             }
 
-            // assert if not enough image count
-            //assert(surfaceCapabilities.maxImageCount >= 3);
-
             // swapchain info
             auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR();
             swapchainCreateInfo.surface = surface;
-            swapchainCreateInfo.minImageCount = surfaceCapabilities.maxImageCount;
+            swapchainCreateInfo.minImageCount = std::min(surfaceCapabilities.maxImageCount, 3u);
             swapchainCreateInfo.imageFormat = formats.colorFormat;
             swapchainCreateInfo.imageColorSpace = formats.colorSpace;
             swapchainCreateInfo.imageExtent = applicationWindow.surfaceSize;

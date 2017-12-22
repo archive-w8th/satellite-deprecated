@@ -17,8 +17,7 @@ namespace NSM {
         vk::PhysicalDevice physical;
         vk::Queue queue;
         uint32_t familyIndex = 0;
-        vk::Semaphore presentCompleteSemaphore;
-        vk::Semaphore renderCompleteSemaphore;
+        vk::Semaphore wsemaphore;
         vk::CommandPool commandPool;
         vk::Semaphore currentSemaphore = nullptr;
         vk::DescriptorPool descriptorPool;
@@ -42,6 +41,7 @@ namespace NSM {
         vk::Framebuffer frameBuffer;
         vk::CommandBuffer commandBuffer; // terminal command (barrier)
         vk::Fence waitFence;
+        vk::Semaphore semaphore;
     };
 
     // buffer with memory

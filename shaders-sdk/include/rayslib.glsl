@@ -1,6 +1,11 @@
 #ifndef _RAYS_H
 #define _RAYS_H
 
+
+#ifdef ENABLE_AMD_INSTRUCTION_SET // don't use shared memory for AMD devices
+#define DISCARD_SHARED_CACHING
+#endif
+
 // include
 #include "../include/mathlib.glsl"
 #include "../include/morton.glsl"

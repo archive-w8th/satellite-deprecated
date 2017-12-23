@@ -4,7 +4,7 @@
 //#define FLATTEN_BOX
 
 #define SIMPLIFIED_RAY_MANAGMENT
-//#define DISCARD_SHARED_CACHING // store rays in registers if possible
+#define DISCARD_SHARED_CACHING // store rays in registers if possible
 //#define STACKLESS_BVH
 
 #include "../include/constants.glsl"

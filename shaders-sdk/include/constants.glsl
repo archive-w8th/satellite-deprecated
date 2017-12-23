@@ -49,10 +49,12 @@
 #define PZERO 0.0001f
 
 // Platform-oriented compute
+#ifndef WORK_SIZE
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define WORK_SIZE 128
 #else
 #define WORK_SIZE 128
+#endif
 #endif
 #define LOCAL_SIZE_LAYOUT layout ( local_size_x = WORK_SIZE ) in
 

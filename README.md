@@ -13,8 +13,10 @@
 
 ### Videos
 
-* https://www.youtube.com/watch?v=K0WAnRPR8ME
-* https://www.youtube.com/watch?v=Uw9stHcFcHw (with reprojection support)
+* https://youtu.be/gp-gP986Iqo
+* https://youtu.be/YCNa-6IJLtg
+* https://youtu.be/jUKz-P0nssQ
+
 
 ### Contacts 
 

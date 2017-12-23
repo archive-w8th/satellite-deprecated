@@ -68,7 +68,7 @@ set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_EXTENSIONS ON)
 
 if(MSVC)
-set (CMAKE_CXX_FLAGS "/EHsc /MD /std:c++latest /arch:AVX2 /tune:skylake /permissive- /DAVX2 /DGLM_FORCE_AVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /DMSVC /DEBUG:FASTLINK")
+set (CMAKE_CXX_FLAGS "/EHsc /MD /std:c++latest /arch:AVX2 /tune:skylake /permissive- /DAVX2 /DGLM_FORCE_AVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /DMSVC")
 set (CMAKE_C_FLAGS "/EHsc /std:c11 /debug:fastlink")
 else()
 set (CMAKE_CXX_FLAGS "-Wall -Wextra -std=c++2a -march=skylake -mtune=skylake -DGLM_FORCE_AVX2")

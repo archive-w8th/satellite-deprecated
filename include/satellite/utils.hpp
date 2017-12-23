@@ -48,6 +48,14 @@ namespace NSM {
         return std::uniform_int_distribution<int>(0, max)(dvc);
     }
 
+
+    auto randf() {
+        auto dvc = std::mt19937(std::random_device()());
+        return std::uniform_real_distribution<float>(0.f, 1.f)(dvc);
+    }
+
+
+
     template<typename T> auto sgn(T val) {
         return (T(0) < val) - (val < T(0));
     }

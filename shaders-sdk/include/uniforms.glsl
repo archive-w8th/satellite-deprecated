@@ -57,6 +57,7 @@ struct CameraUniformStruct {
 struct RayStream {
     vec4 diffuseStream;
     ivec4 superseed;
+    vec4 frand4;
 };
 
 

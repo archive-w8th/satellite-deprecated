@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 
 #include "../../utils.hpp"
 #include "../pipeline.hpp"
@@ -598,6 +598,7 @@ namespace NSM {
             for (int i = 0; i < rayStreamsData.size();i++) {
                 rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
                 rayStreamsData[i].superseed = glm::ivec4(sequenceId+i, sequenceId+i + num_seeds*1, sequenceId+i + num_seeds*2, sequenceId+i + num_seeds*3);
+                rayStreamsData[i].frand4 = glm::vec4(randf(), randf(), randf(), randf());
             }
             sequenceId = (sequenceId+1) % 2147483647;
 

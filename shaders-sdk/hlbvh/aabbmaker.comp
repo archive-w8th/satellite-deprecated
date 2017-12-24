@@ -44,23 +44,24 @@ void main() {
                 {
                     int to = atomicIncAABB(TRUE_);
                     MortoncodesIndices[to] = int(to);
-    #ifdef INT64_MORTON
+#ifdef INT64_MORTON
                     Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
                         uvec3(floor(clamp(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx), vec3(0.0f), vec3(0.99999f)) * 2097152.0f)), 
                         uvec3(0), uvec3(0x1FFFFF))));
-    #else
+#else
                     Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(
                         uvec3(floor(clamp(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx), vec3(0.0f), vec3(0.99999f)) * 1024.0f)), 
                         uvec3(0), uvec3(0x3FF))));
-    #endif
-                    
-                    HlbvhNode outLeaf = Leafs[to];
-
-#ifdef USE_F32_BVH
-                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.0001f), mx = UBLANEF_UNPACKED_(bounding.mx+0.0001f);
-#else
-                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-0.0015f), mx = UBLANEF_UNPACKED_(bounding.mx+0.0015f);
 #endif
+
+#ifdef AMD_F16_BVH
+#define PRECB 0.0005f
+#else
+#define PRECB 0.0001f
+#endif
+                    
+                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-PRECB), mx = UBLANEF_UNPACKED_(bounding.mx+PRECB);
+                    HlbvhNode outLeaf = Leafs[to];
                     outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
                     outLeaf.pdata.xy = ivec2(to);
                     outLeaf.pdata.zw = ivec2(-1, globalID);

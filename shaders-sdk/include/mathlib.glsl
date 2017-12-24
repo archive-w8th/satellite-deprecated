@@ -466,7 +466,7 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 
     // precise error correct
     //tFar += PZERO;
-    tNear -= PZERO;
+    tNear -= 0.0001f;
 
     // validate hit
     BOOL_ isCube = BOOL_(tFar>tNear) & BOOL_(tFar>0.f) & BOOL_(abs(tNear) <= INFINITY-PRECERR);
@@ -483,7 +483,7 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 // made by DevIL research group
 // also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
 // compatible with NVidia GPU too
-BVEC2_ intersectCubeDual(inout vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
+BVEC2_ intersectCubeDual(inout FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
         fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
         fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
@@ -500,8 +500,11 @@ BVEC2_ intersectCubeDual(inout vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in 
 #endif
 
     // precise error correct
-    //tFar += FVEC2_(PZERO.xx);
-    tNear -= FVEC2_(PZERO.xx);
+#ifdef AMD_F16_BVH
+    tNear -= 0.001hf.xx;
+#else
+    tNear -= 0.0001f.xx;
+#endif
 
     // validate hit
     BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));

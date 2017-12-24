@@ -18,7 +18,8 @@ initNonAtomicIncFunctionTarget(localHistogram[WHERE], countOffset, uint)
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;
-    LC_IDX = (gl_LocalInvocationID.x / WARP_SIZE_RT);
+    LF_IDX = gl_LocalInvocationID.x / WARP_SIZE_RT;
+    LC_IDX = gl_WorkGroupID.y + LF_IDX * gl_WorkGroupSize.y;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
     uint WSZ = WARP_SIZE_RT;
 
@@ -42,7 +43,7 @@ void main() {
             IFALL(!validAddress) break;
 
             memoryBarrier(); barrier();
-            if (LC_IDX == 0) {
+            if (LF_IDX == 0) {
                 data = validAddress ? UVEC64_WARP(KeyTmp[addr]) : 0xFFFFFFFFFFFFFFFFul;
                 dataValue = validAddress ? ValueTmp[addr] : 0u;
             }

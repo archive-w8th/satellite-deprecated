@@ -134,7 +134,7 @@ namespace NSM {
             memoryCopyCmd(histogramCommand, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
             histogramCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
             histogramCommand.bindPipeline(vk::PipelineBindPoint::eCompute, histogram.pipeline);
-            histogramCommand.dispatch(32, 1, 1); // dispatch few counts
+            histogramCommand.dispatch(WG_COUNT, RADICE_AFFINE, 1); // dispatch few counts
             histogramCommand.end();
 
             // work prefix command
@@ -148,7 +148,7 @@ namespace NSM {
             auto permuteCommand = getCommandBuffer(device, true);
             permuteCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
             permuteCommand.bindPipeline(vk::PipelineBindPoint::eCompute, permute.pipeline);
-            permuteCommand.dispatch(32, 1, 1); // dispatch few counts
+            permuteCommand.dispatch(WG_COUNT, RADICE_AFFINE, 1); // dispatch few counts
             permuteCommand.end();
 
 

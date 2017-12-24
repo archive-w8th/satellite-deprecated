@@ -5,6 +5,7 @@
 uint LC_IDX = 0;
 uint LANE_IDX = 0;
 uint LT_IDX = 0;
+uint LF_IDX = 0;
 
 #include "../include/ballotlib.glsl"
 
@@ -12,9 +13,10 @@ uint LT_IDX = 0;
 #define BITS_PER_PASS 4
 #define RADICES 16
 #define RADICES_MASK 0xf
+#define AFFINITION 2
 
 // general work groups
-#define BLOCK_SIZE (WARP_SIZE * RADICES) // how bigger block size, then more priority going to radices (i.e. BLOCK_SIZE / WARP_SIZE)
+#define BLOCK_SIZE (WARP_SIZE * RADICES / AFFINITION) // how bigger block size, then more priority going to radices (i.e. BLOCK_SIZE / WARP_SIZE)
 #define BLOCK_SIZE_RT (gl_WorkGroupSize.x)
 
 #define WRK_SIZE (BLOCK_SIZE/WARP_SIZE)

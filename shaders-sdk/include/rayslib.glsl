@@ -1,8 +1,8 @@
 #ifndef _RAYS_H
 #define _RAYS_H
 
-
-#ifdef ENABLE_AMD_INSTRUCTION_SET // don't use shared memory for AMD devices
+// don't use shared memory for rays (need 32-byte aligment per rays)
+#ifndef EXTENDED_SHARED_CACHE_SUPPORT
 #define DISCARD_SHARED_CACHING
 #endif
 

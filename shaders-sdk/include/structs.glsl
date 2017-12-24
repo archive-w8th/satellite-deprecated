@@ -115,7 +115,9 @@ struct bbox {
 // {8 ..11}[4] - bounce index
 // {11..15}[5] - stream directional order (up to 31 streams)
 
-// should be compacted to 64 byte, for storing on 64kb blocks, fast HBM fetching and 1024 lanes dispatch
+
+// 64-byte aligned (optimal for HBM2 read/write, but unoptimal for GDDR6)
+// really recommended 32-byte aligment, but at now no possible to do that
 struct RayRework {
      //vec3 origin; int hit; // index of hit chain
      //vec3 direct; uint bitfield; // up to 32-bits

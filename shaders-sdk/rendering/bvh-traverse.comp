@@ -15,15 +15,14 @@
 #include "../include/mathlib.glsl"
 #include "../include/vertex.glsl"
 
-
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#ifndef EXTENDED_SHARED_CACHE_SUPPORT
 const int STACK_SIZE = 8;
-#else
-const int STACK_SIZE = 12;
+const int EXT_STACK_SIZE = 24;
+#else // extended shared cache
+const int STACK_SIZE = 16;
+const int EXT_STACK_SIZE = 16;
 #endif
 
-
-const int EXT_STACK_SIZE = 32;
 const int BAKED_STACK_SIZE = 1;
 const int ESTIMATE_BATCH = WARP_SIZE;
 const int STACK_SIZE_SM = EXT_STACK_SIZE + STACK_SIZE;

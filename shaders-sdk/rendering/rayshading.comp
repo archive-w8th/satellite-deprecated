@@ -261,7 +261,7 @@ void main() {
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
 #ifdef USE_SIMPLIFIED_MODE
-                    refly = 0.f; // performance debug
+                    //refly = 0.f; // performance debug
 #endif
 
                     // diffuse and specular colors (based on priorities)

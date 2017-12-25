@@ -1,7 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-//#define USE_SIMPLIFIED_MODE
+#define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 8
@@ -260,7 +260,9 @@ void main() {
                     float prom = clamp01(1.f - diffcolor.a); // transmission power
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
-                    //spca = 1.f; // performance debug
+#ifdef USE_SIMPLIFIED_MODE
+                    refly = 0.f; // performance debug
+#endif
 
                     // diffuse and specular colors (based on priorities)
                     vec3 _specular = clamp01(speccolor.xyz / spca);
@@ -274,9 +276,13 @@ void main() {
                     // binarize/quantize 
                     //bool tprior = prom >= spca;
                     //float qprom = RayType(currentRay) == 3 ? prom : (random() < prom ? 1.f : 0.f);
+#ifdef USE_SIMPLIFIED_MODE
                     float qprom = random() < prom ? 1.f : 0.f;
-                    //float qspca = RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f); // only primary rays can division (because stupid user/gamer can't seen noise effects after reflections)
+                    float qspca = spca;//RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f); // only primary rays can division (because stupid user/gamer can't seen noise effects after reflections)
+#else
+                    float qprom = random() < prom ? 1.f : 0.f;
                     float qspca = random() < spca ? 1.f : 0.f;
+#endif
 
                     // transparent rays
                     RayRework rayTemplate = promised(currentRay, normal); 
@@ -291,6 +297,27 @@ void main() {
                         texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId-1].texels[currentBlockNode]-1].p3d = vec4(currentRay.origin.xyz, 1.f);
                     }
 
+#ifdef USE_SIMPLIFIED_MODE
+                    {
+                        vec3 _fake_diffuse = diffcolor.xyz * (1.f - qspca) * (1.f - qprom);
+                        _fake_diffuse *= mix(vec3(0.1f), vec3(2.f), max(dot(normal.xyz, normalize(lightCenter(0).xyz-currentRay.origin.xyz)), 0.f));
+
+                        // reflection rays
+                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
+                        if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
+                        invalidateRay(rayTemplate, overflow);
+                        createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
+                        storeRay(overwriteBlock = confirmed || reflectionBlock >= 0 ? reflectionBlock : overwriteBlock, rayTemplate);
+                        confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
+
+                        // emissions
+                        rayTemplate = emissive(currentRay, _emission + _fake_diffuse, normal);
+                        if (overflow || RayType(currentRay) == 2) rayTemplate.final = vec4(0.f);
+                        invalidateRay(rayTemplate, true);
+                        createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
+                        storeRay(emissionBlock, rayTemplate);
+                    }
+#else
                     {
                         rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
                         if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
@@ -324,6 +351,8 @@ void main() {
                         createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
                     }
+#endif
+
                 }
             }
 

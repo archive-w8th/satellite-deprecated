@@ -3,6 +3,7 @@
 
 //#define FLATTEN_BOX
 
+#define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
 #define DISCARD_SHARED_CACHING // store rays in registers if possible
 //#define STACKLESS_BVH

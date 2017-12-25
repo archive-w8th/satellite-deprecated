@@ -149,16 +149,25 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer CounterBlock {
     int iT; // ???
 } arcounter;
 
-
-// incremental counters
+// incremental counters (and optimized version)
+#ifdef USE_SINGLE_THREAD_RAY_MANAGMENT
+#define atomicIncBT(cnd) (SSC(cnd)?atomicAdd(arcounter.bT,1):0)
+#define atomicIncAT(cnd) (SSC(cnd)?atomicAdd(arcounter.aT,1):0)
+#define atomicIncPT(cnd) (SSC(cnd)?atomicAdd(arcounter.pT,1):0)
+#define atomicIncIT(cnd) (SSC(cnd)?atomicAdd(arcounter.iT,1):0)
+#define atomicDecMT(cnd) (SSC(cnd)?atomicAdd(arcounter.mT,-1):0)
+#define atomicIncRT(cnd) (SSC(cnd)?atomicAdd(arcounter.rT,1):0)
+#else
 initAtomicIncFunction(arcounter.bT, atomicIncBT, int)
 initAtomicIncFunction(arcounter.aT, atomicIncAT, int)
 initAtomicIncFunction(arcounter.pT, atomicIncPT, int)
-initAtomicIncFunction(arcounter.tT, atomicIncTT, int)
-initAtomicIncFunction(arcounter.hT, atomicIncHT, int)
 initAtomicIncFunction(arcounter.iT, atomicIncIT, int)
 initAtomicDecFunction(arcounter.mT, atomicDecMT, int)
 initAtomicIncFunction(arcounter.rT, atomicIncRT, int)
+#endif
+
+initAtomicIncFunction(arcounter.tT, atomicIncTT, int)
+initAtomicIncFunction(arcounter.hT, atomicIncHT, int)
 initNonAtomicIncFunctionTarget(rayBlocks[WHERE].info.indiceCount, atomicIncCM, int)
 
 // copy node indices

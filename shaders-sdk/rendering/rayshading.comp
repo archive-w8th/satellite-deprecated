@@ -9,9 +9,7 @@
 
 #include "../include/constants.glsl"
 
-#ifdef USE_BINDLESS
-#extension GL_ARB_bindless_texture : enable
-#endif
+#define USE_SINGLE_THREAD_RAY_MANAGMENT
 
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"

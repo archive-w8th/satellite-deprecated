@@ -1,6 +1,8 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#define USE_SINGLE_THREAD_RAY_MANAGMENT
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"

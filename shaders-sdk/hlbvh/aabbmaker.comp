@@ -54,10 +54,10 @@ void main() {
                         uvec3(0), uvec3(0x3FF))));
 #endif
 
-#ifdef AMD_F16_BVH
-#define PRECB 0.0005f
+#ifdef USE_F32_BVH
+#define PRECB 0.00005f
 #else
-#define PRECB 0.0001f
+#define PRECB 0.0005f
 #endif
                     
                     UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-PRECB), mx = UBLANEF_UNPACKED_(bounding.mx+PRECB);

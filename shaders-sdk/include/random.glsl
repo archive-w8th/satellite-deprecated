@@ -55,6 +55,15 @@ float random( in int superseed ) {
 }
 
 
+// 1D random generators from superseed
+float randomQnt( in int superseed ) {
+    uint hclk = ++randomClocks; randomClocks <<= 1;
+    uint plan = 0;
+    uint gseq = uint(superseed);
+    return hrand(uvec3(hclk, plan, gseq));
+}
+
+
 // 2D random generators from superseed
 vec2 hammersley2d( in uint N, in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
@@ -75,9 +84,20 @@ vec2 randf2x( in int superseed ) {
 }
 
 
+// another 2D random generator
+vec2 randf2q( in int superseed ) {
+    uint hclk = ++randomClocks; randomClocks <<= 1;
+    uint plan = 0;//(globalInvocationSMP << 10) ^ subHash;
+    uint gseq = uint(superseed);
+    uint comb = hash(uvec3(hclk, plan, gseq));
+    return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
+}
+
+
 
 // static aggregated randoms
 float random() { return random(rayStreams[0].superseed.x); }
+float randomQnt() { return randomQnt(rayStreams[0].superseed.x); }
 vec2 hammersley2d(in uint N) { return hammersley2d(N, rayStreams[0].superseed.x); }
 vec2 randf2x() { return randf2x(rayStreams[0].superseed.x); }
 
@@ -91,6 +111,17 @@ vec3 randomCosine(in vec3 normal, in int superseed) {
     vec3 perpendicular2 = normalize(cross(normal, perpendicular1));
     return normalize(fma(normal, up.xxx, fma(perpendicular1, cos(around).xxx * over, perpendicular2* sin(around).xxx * over)));
 }
+
+
+vec3 randomCosineQnt(in vec3 normal, in int superseed) {
+    vec2 hmsm = randf2q(superseed);
+    float up = sqrt(hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
+    vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
+    vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
+    vec3 perpendicular2 = normalize(cross(normal, perpendicular1));
+    return normalize(fma(normal, up.xxx, fma(perpendicular1, cos(around).xxx * over, perpendicular2* sin(around).xxx * over)));
+}
+
 
 vec3 randomDirectionInSphere() {
     vec2 hmsm = randf2x();

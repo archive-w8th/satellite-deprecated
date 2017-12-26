@@ -235,12 +235,13 @@ void confirmBlock(in int mt){
 void flushBlock(in int bid, in int _mt, in bool illuminated){
     int prev = -1;
     if (bid >= 0 && _mt >= 0 && illuminated) {
-        prev = atomicExchange(blockBins[bid].info.header, _mt+1);
+        prev = atomicExchange(blockBins[bid].info.previous, _mt+1)-1;
+        if (prev < 0) atomicCompSwap(blockBins[bid].info.header, -1, _mt+1); // avoid wrong condition
         atomicAdd(blockBins[bid].info.count, 1); // counting
     }
-    if (_mt >= 0) {
-        rayBlocks[_mt].info.indiceCount = 0; // zerify indice count
-        rayBlocks[_mt].info.next = (prev > 0 ? prev : -1);
+    if (prev >= 0) {
+        rayBlocks[prev].info.indiceCount = 0; // zerify indice count
+        rayBlocks[prev].info.next = _mt+1;
         preparingBlocks[atomicIncPT(TRUE_)] = _mt+1;
     }
 }

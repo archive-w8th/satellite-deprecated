@@ -46,6 +46,10 @@ void main()
             if (LANE_IDX == 0) blockID = createBlock(binID);
             blockID = readLane(blockID, 0);
 
+            // bind with root block
+            //blockBins[binID].info.header = blockID;
+            //blockBins[binID].info.previous = blockID;
+
             // accquire
             accquirePlainBlock(blockID); 
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 

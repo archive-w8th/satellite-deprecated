@@ -1,7 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-//#define USE_SIMPLIFIED_MODE
+#define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 8
@@ -301,7 +301,7 @@ void main() {
 #ifdef USE_SIMPLIFIED_MODE
                     {
                         vec3 _fake_diffuse = diffcolor.xyz * (1.f - qspca) * (1.f - qprom);
-                        _fake_diffuse *= mix(vec3(0.1f), vec3(2.f), max(dot(normal.xyz, normalize(lightCenter(0).xyz-currentRay.origin.xyz)), 0.f));
+                        _fake_diffuse *= mix(vec3(1.0f, 0.9f, 0.7f) * 0.1f, vec3(1.0f, 0.9f, 0.7f) * 2.0f, max(dot(normal.xyz, normalize(lightCenter(0).xyz-currentRay.origin.xyz)), 0.f));
 
                         // reflection rays
                         rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);

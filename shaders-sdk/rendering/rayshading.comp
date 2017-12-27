@@ -4,7 +4,7 @@
 #define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
-#define MAX_DEPTH 8
+#define MAX_DEPTH 16
 #endif
 
 #include "../include/constants.glsl"

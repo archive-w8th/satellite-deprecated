@@ -26,6 +26,13 @@ vec4 filtered(in vec2 tx) {
     return textureLod(samples, tx, 0);
 }
 
+
+float rcp(in float a) { return 1.f/a; }
+vec3 Tonemap(in vec3 c) { return c * rcp(mlength(c.xyz) + 1.0); }
+vec3 TonemapWithWeight(in vec3 c, in float w) { return c * (w * rcp(mlength(c.xyz) + 1.0)); }
+vec3 TonemapInvert(in vec3 c) { return c * rcp(1.0 - mlength(c.xyz)); }
+
+
 void main() {
     vec2 ctx = texcoord * vec2(1.f,0.5f);
     outFragColor = vec4(fromLinear(filtered(ctx).xyz), 1.0f);

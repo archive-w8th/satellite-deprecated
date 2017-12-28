@@ -46,10 +46,6 @@ void main()
             if (LANE_IDX == 0) blockID = createBlock(binID);
             blockID = readLane(blockID, 0);
 
-            // bind with root block
-            //blockBins[binID].info.header = blockID;
-            //blockBins[binID].info.previous = blockID;
-
             // accquire
             accquirePlainBlock(blockID); 
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
@@ -82,6 +78,7 @@ void main()
                 blockBins[binID].texels[nid] = vbn ? idx+1 : -1;
 
                 IFALL(overflow) break;
+                
                 if (vbn) {
                     vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed.x);
                     vec2 coord = (vec2(xy) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
@@ -147,7 +144,7 @@ void main()
                         if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) RayActived(currentRay, FALSE_);
                     }
                 }
-
+                
                 confirmNode(blockID, RayActived(currentRay) == TRUE_);
                 storeRay(blockID, currentRay);
             }
@@ -160,5 +157,4 @@ void main()
             //if (LANE_IDX == 0) flushBlock(blockID);
         }
     }
-    
 }

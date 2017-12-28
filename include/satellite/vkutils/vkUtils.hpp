@@ -429,11 +429,19 @@ namespace NSM {
 
 
     // create compute pipeline
-    vk::Pipeline createCompute(DeviceQueueType& device, std::string path, vk::PipelineLayout& layout, vk::PipelineCache& cache) {
+    auto createCompute(DeviceQueueType& device, std::string path, vk::PipelineLayout& layout, vk::PipelineCache& cache) {
         vk::ComputePipelineCreateInfo cmpi;
         cmpi.setStage(vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(device, path)).setPName("main").setStage(vk::ShaderStageFlagBits::eCompute));;
         cmpi.setLayout(layout);
-        return device->logical.createComputePipeline(cache, cmpi);
+
+        vk::Pipeline pipeline;
+        try {
+            pipeline = device->logical.createComputePipeline(cache, cmpi);
+        }
+        catch (std::exception const &e) {
+            std::cerr << e.what() << std::endl;
+        }
+        return pipeline;
     }
 
 

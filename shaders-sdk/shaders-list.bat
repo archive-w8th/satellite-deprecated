@@ -97,26 +97,26 @@ set OPTFLAGS= ^
 --eliminate-common-uniform ^
 --eliminate-insert-extract 
 
-call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader.comp.spv         -o %OUTDIR%%VRTX%loader.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader-int16.comp.spv   -o %OUTDIR%%VRTX%loader-int16.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader.comp.spv         -o %OUTDIR%%VRTX%loader.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%loader-int16.comp.spv   -o %OUTDIR%%VRTX%loader-int16.comp.spv
 
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bin-collect.comp.spv    -o %OUTDIR%%RNDR%bin-collect.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bvh-traverse.comp.spv   -o %OUTDIR%%RNDR%bvh-traverse.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bin-collect.comp.spv    -o %OUTDIR%%RNDR%bin-collect.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bvh-traverse.comp.spv   -o %OUTDIR%%RNDR%bvh-traverse.comp.spv
 
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%rayshading.comp.spv     -o %OUTDIR%%RNDR%rayshading.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%generation.comp.spv     -o %OUTDIR%%RNDR%generation.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%scatter.comp.spv        -o %OUTDIR%%RNDR%scatter.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%clear.comp.spv          -o %OUTDIR%%RNDR%clear.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%rayshading.comp.spv     -o %OUTDIR%%RNDR%rayshading.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%generation.comp.spv     -o %OUTDIR%%RNDR%generation.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%scatter.comp.spv        -o %OUTDIR%%RNDR%scatter.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%clear.comp.spv          -o %OUTDIR%%RNDR%clear.comp.spv
 
-call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%aabbmaker.comp.spv      -o %OUTDIR%%HLBV%aabbmaker.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%build-new.comp.spv      -o %OUTDIR%%HLBV%build-new.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%minmax.comp.spv         -o %OUTDIR%%HLBV%minmax.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%refit.comp.spv          -o %OUTDIR%%HLBV%refit.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%child-link.comp.spv     -o %OUTDIR%%HLBV%child-link.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%aabbmaker.comp.spv      -o %OUTDIR%%HLBV%aabbmaker.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%build-new.comp.spv      -o %OUTDIR%%HLBV%build-new.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%minmax.comp.spv         -o %OUTDIR%%HLBV%minmax.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%refit.comp.spv          -o %OUTDIR%%HLBV%refit.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%child-link.comp.spv     -o %OUTDIR%%HLBV%child-link.comp.spv
 
-call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv      -o %OUTDIR%%RDXI%histogram.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv        -o %OUTDIR%%RDXI%permute.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv       -o %OUTDIR%%RDXI%pfx-work.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv      -o %OUTDIR%%RDXI%histogram.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv        -o %OUTDIR%%RDXI%permute.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv       -o %OUTDIR%%RDXI%pfx-work.comp.spv
 
 :: optimized surface shader brokes application work
 ::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%surface.comp.spv        -o %OUTDIR%%RNDR%surface.comp.spv 

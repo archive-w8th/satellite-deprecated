@@ -210,7 +210,9 @@ bool readLane(in bool val, in int lane) {
 
 
 uvec2 ballotHW(in BOOL_ val) {
-    return U2P(ballotARB(SSC(val))) & filterBallot();
+    uint64_t plc = 0xFFFFFFFFFFFFFFFFul;
+    plc = ballotARB(bool(val));
+    return U2P(plc) & filterBallot();
 }
 
 int countInvocs(in BOOL_ val){

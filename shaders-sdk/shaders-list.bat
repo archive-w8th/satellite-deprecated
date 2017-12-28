@@ -59,6 +59,7 @@ call glslangValidator %CFLAGSV% %INDIR%%RNDR%generation.comp    -o %OUTDIR%%RNDR
 call glslangValidator %CFLAGSV% %INDIR%%RNDR%bvh-traverse.comp  -o %OUTDIR%%RNDR%bvh-traverse.comp.spv
 call glslangValidator %CFLAGSV% %INDIR%%RNDR%surface.comp       -o %OUTDIR%%RNDR%surface.comp.spv
 call glslangValidator %CFLAGSV% %INDIR%%RNDR%rayshading.comp    -o %OUTDIR%%RNDR%rayshading.comp.spv
+call glslangValidator %CFLAGSV% %INDIR%%RNDR%vertex-interp.comp -o %OUTDIR%%RNDR%vertex-interp.comp.spv
 
 call glslangValidator %CFLAGSV% %INDIR%%HLBV%build-new.comp     -o %OUTDIR%%HLBV%build-new.comp.spv
 call glslangValidator %CFLAGSV% %INDIR%%HLBV%aabbmaker.comp     -o %OUTDIR%%HLBV%aabbmaker.comp.spv

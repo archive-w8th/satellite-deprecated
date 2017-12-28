@@ -134,6 +134,7 @@ namespace NSM {
             sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/scatter.comp.spv", samplingPipelineLayout, pipelineCache);
             clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/clear.comp.spv", samplingPipelineLayout, pipelineCache);
             binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayShadingPipelineLayout, pipelineCache);
+            vertexInterp.pipeline = createCompute(device, shadersPathPrefix + "/rendering/vertex-interp.comp.spv", rayTraversePipelineLayout, pipelineCache);
 
             /*
             { // AMD ONLY - save assembly file of traverser
@@ -694,12 +695,24 @@ namespace NSM {
         }
 
         void Pipeline::traverse(std::shared_ptr<TriangleHierarchy>& hierarchy) {
+            auto vdescs = hierarchy->getClientDescriptorSet();
+
             // traverse BVH
             auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], hierarchy->getClientDescriptorSet() }, nullptr);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], vdescs }, nullptr);
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
             commandBuffer.dispatch(INTENSIVITY, 1, 1);
+            
+            // interpolate vertex
+            auto interpCommandBuffer = getCommandBuffer(device, true);
+            interpCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], vdescs }, nullptr);
+            interpCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, vertexInterp.pipeline);
+            interpCommandBuffer.dispatch(INTENSIVITY, 1, 1);
+
+            // push commands
             flushCommandBuffer(device, commandBuffer, true);
+            flushCommandBuffer(device, interpCommandBuffer, true);
+
             hitCountGot = false;
         }
 

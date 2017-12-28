@@ -24,7 +24,7 @@ namespace NSM {
             DeviceQueueType device;
 
             // compute pipelines
-            ComputeContext rayGeneration, sampleCollection, surfaceShadingPpl, clearSamples, bvhTraverse, rayShadePipeline, binCollect;
+            ComputeContext rayGeneration, sampleCollection, surfaceShadingPpl, clearSamples, bvhTraverse, vertexInterp, rayShadePipeline, binCollect;
 
             // swap PTR's (now no swapping)
             BufferType indicesSwap[2];

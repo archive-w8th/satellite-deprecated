@@ -20,7 +20,7 @@
 HitRework interpolateMeshData(inout HitRework res) {
     int tri = floatBitsToInt(res.uvt.w);
     BOOL_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & BOOL_(tri != LONGEST);
-    IF (validInterpolant) {
+    IFANY (validInterpolant) {
         ivec2 triv = gatherMosaic(getUniformCoord(tri));
 
         // transposed

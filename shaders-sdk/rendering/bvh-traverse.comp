@@ -166,6 +166,7 @@ void deferTriangles(in int tri) {
     //if (deftri.x >= 0) awaitFlag = true; // deferred-lock instead soft-lock
 }
 
+// intersection stage per traverse phase
 void doIntersection() {
     BOOL_ near = BOOL_(deftri.x >= 0);
     vec2 uv = vec2(0.f.xx);
@@ -352,7 +353,7 @@ void main() {
         // global traversing
         beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
         for (int iteration=0;iteration<512;iteration++) {
-            IF (not(validBox)) break;
+            if (!anyInvoc(bool(validBox))) break; // if all invocs expiried, don't traverse next
             for (int lt=0;lt<512;lt++) {
                 //if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
                 if (!anyInvoc(bool(validBox) && deftri.x < 0)) break; // don't sure by await flag

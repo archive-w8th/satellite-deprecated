@@ -1,15 +1,16 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#ifdef WORK_SIZE
+#undef WORK_SIZE
+#endif
+#define WORK_SIZE 512
+
+
 #define SIMPLIFIED_RAY_MANAGMENT
 #define DISCARD_SHARED_CACHING
 
 #include "../include/constants.glsl"
-
-#ifdef USE_BINDLESS
-#extension GL_ARB_bindless_texture : enable
-#endif
-
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/rayslib.glsl"

@@ -23,6 +23,8 @@ void main() {
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
     uint WSZ = WARP_SIZE_RT;
 
+    if (gl_WorkGroupSize.y >= AFFINITION) return;
+
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
     uint bcount = min(blocks.count, 16384);
@@ -62,6 +64,4 @@ void main() {
             addr += WARP_SIZE_RT;
         }
     }
-
-    
 }

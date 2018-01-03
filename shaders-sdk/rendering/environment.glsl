@@ -16,9 +16,8 @@ layout ( binding = 0, set = 1 ) uniform sampler2D skybox[1];
 
 vec4 readEnv(in vec3 r) {
     vec3 nr = normalize(r);
-    return texture(skybox[0], vec2(fma(vec2(atan(nr.z, nr.x), asin(nr.y) * 2.0) / PI, vec2(0.5), vec2(0.5))));
+    return texture(skybox[0], vec2(fma(vec2(atan(nr.z, nr.x), asin(-nr.y) * 2.0) / PI, vec2(0.5), vec2(0.5))));
 }
-
 
 float js_getThickness(in vec3 rd) {
      float sr = earthRadius+atmosphereHeight;

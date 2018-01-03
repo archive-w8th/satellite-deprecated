@@ -57,7 +57,7 @@ namespace SatelliteExample {
         cil::CImg<float> image(bgTexName.c_str());
         uint32_t width = image.width(), height = image.height();
         image.channels(0, 3);
-        image.mirror("y");
+        //image.mirror("y");
         //image.cut(0.f, 1.f);
         image.permute_axes("cxyz");
         

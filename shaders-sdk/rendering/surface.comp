@@ -119,12 +119,12 @@ vec3 getNormalMapping(in int binding, vec2 texcoordi) {
     vec3 tc = fetchTexture(binding, texcoordi).xyz;
     vec3 normal = vec3(0.0f, 0.0f, 1.0f);
     IF (equalF(tc.x, tc.y) & equalF(tc.x, tc.z)) {
-        const ivec3 off = ivec3(0,0,1);
+        const ivec2 off = ivec2(0,1);
         const float size = 1.0f;
         const float pike = 2.0f;
-        vec3 p00 = vec3(0.0f, 0.0f, fetchTexture(binding, texcoordi, off.yy).x * pike);
-        vec3 p01 = vec3(size, 0.0f, fetchTexture(binding, texcoordi, off.zy).x * pike);
-        vec3 p10 = vec3(0.0f, size, fetchTexture(binding, texcoordi, off.yz).x * pike);
+        vec3 p00 = vec3(0.0f, 0.0f, fetchTexture(binding, texcoordi, off.xx).x * pike);
+        vec3 p01 = vec3(size, 0.0f, fetchTexture(binding, texcoordi, off.yx).x * pike);
+        vec3 p10 = vec3(0.0f, size, fetchTexture(binding, texcoordi, off.xy).x * pike);
         normal = normalize(cross(p01 - p00, p10 - p00));
     } else {
         normal = normalize(fmix(vec3(0.0f, 0.0f, 1.0f), fma(tc, vec3(2.0f), vec3(-1.0f)), vec3(1.0f)));
@@ -219,8 +219,8 @@ void main() {
 
             vec3 normal = normalize(hit.normalHeight.xyz);
             vec3 tangent = normalize(hit.tangent.xyz);
-            mat3 tbn = mat3(tangent, normalize(cross(normal, tangent)), normal);
-            
+            mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
+
             vec4 diffuse = textured.diffuse;
             vec4 emission = textured.emissive*1.25f;
             vec4 spc = clamp01(textured.specular);
@@ -229,7 +229,7 @@ void main() {
             diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
             //diffuse = vec4(1.f.xxxx);
 
-            hit.normalHeight.xyzw = vec4(normalize(tbn * normalize(textured.bump.xyz)), 1.f).xyzw;
+            hit.normalHeight.xyzw = vec4(normalize(tbn*textured.bump.xyz), 1.f).xyzw;
             hit.emission.xy = packHalf2(emission.xyzw).xy;
             hit.albedo.xy = packHalf2(diffuse.xyzw).xy;
             hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;

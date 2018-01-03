@@ -73,7 +73,7 @@ namespace NSM {
             uint32_t width = image.width(), height = image.height(), spectrum = image.spectrum();
             image.channels(0, 3);
             if (spectrum == 3) image.get_shared_channel(3).fill(255); // if RGB, will alpha channel
-            image.mirror("y");
+            //image.mirror("y");
             image.permute_axes("cxyz");
             
 

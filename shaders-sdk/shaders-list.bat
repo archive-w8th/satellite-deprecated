@@ -42,8 +42,8 @@ mkdir %OUTDIR%%HLBV%next-gen-sort
 ::call glslc %CFLAGS% %VRTPROF% %INDIR%%GENG%vertex.vert        -o %OUTDIR%%GENG%vertex16i.vert.spv -DENABLE_INT16_LOADING
 
 
-call glslangValidator %CFLAGSV% %INDIR%%VRTX%loader.comp        -o %OUTDIR%%VRTX%loader.comp.spv -DINVERT_TX_Y
-call glslangValidator %CFLAGSV% %INDIR%%VRTX%loader.comp        -o %OUTDIR%%VRTX%loader-int16.comp.spv -DINVERT_TX_Y -DENABLE_INT16_LOADING
+call glslangValidator %CFLAGSV% %INDIR%%VRTX%loader.comp        -o %OUTDIR%%VRTX%loader.comp.spv
+call glslangValidator %CFLAGSV% %INDIR%%VRTX%loader.comp        -o %OUTDIR%%VRTX%loader-int16.comp.spv -DENABLE_INT16_LOADING
 
 call glslangValidator %CFLAGSV% %INDIR%%OUTP%render.frag        -o %OUTDIR%%OUTP%render.frag.spv
 call glslangValidator %CFLAGSV% %INDIR%%OUTP%render.vert        -o %OUTDIR%%OUTP%render.vert.spv

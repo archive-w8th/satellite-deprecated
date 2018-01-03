@@ -34,8 +34,9 @@ void prefixScan() {
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;
-    LC_IDX = gl_WorkGroupID.y + (gl_LocalInvocationID.x / WARP_SIZE_RT) * gl_WorkGroupSize.y;
+    LC_IDX = gl_LocalInvocationID.x / WARP_SIZE_RT;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
+    IFALL (gl_WorkGroupID.y >= AFFINITION) return;
 
     // prefix scans of workers for every radice
     uint prv = LT_IDX;

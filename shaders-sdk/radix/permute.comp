@@ -23,7 +23,7 @@ void main() {
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
     uint WSZ = WARP_SIZE_RT;
 
-    if (gl_WorkGroupSize.y >= AFFINITION) return;
+    IFALL (gl_WorkGroupSize.y >= AFFINITION) return;
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
@@ -40,7 +40,7 @@ void main() {
 
         // use SIMD lanes for calculate histograms
         for ( uint wk = 0; wk < bcount; wk++ ) {
-            BVEC_WARP validAddress = addr < NumKeys;
+            BVEC_WARP validAddress = addr < NumKeys && gl_WorkGroupSize.y < AFFINITION;
             //if (!validAddress) break; // no need more 
             IFALL(!validAddress) break;
 

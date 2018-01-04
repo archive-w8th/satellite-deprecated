@@ -56,7 +56,7 @@ void main() {
             // compressive putting
             BVEC_WARP vld = k == radice && validAddress;
             if (vld) {
-                UVEC_WARP offset = countOffset(radice, BOOL_(vld));
+                UVEC_WARP offset = countOffset(radice, TRUE_);
                 KeyIn[offset] = KEYTYPE(data);
                 ValueIn[offset] = dataValue;
             }

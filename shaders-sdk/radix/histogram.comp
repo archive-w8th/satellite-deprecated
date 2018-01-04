@@ -50,7 +50,7 @@ void main() {
             UVEC_WARP k = UVEC_WARP(BFE(data, int(Shift*BITS_PER_PASS), BITS_PER_PASS));
 
             BVEC_WARP vld = k == radice && validAddress;
-            countHistogram(radice, BOOL_(vld));
+            if (vld) countHistogram(radice, TRUE_);
             addr += WARP_SIZE_RT;
         }
 

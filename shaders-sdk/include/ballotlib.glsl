@@ -225,9 +225,7 @@ int countInvocs(in BOOL_ val){
 
 
 
-int firstActive() {
-    return lsb(ballotHW(TRUE_));
-}
+int firstActive() {return lsb(ballotHW(TRUE_));}
 
 int interpolInvocation(in BOOL_ value){
     return lsb(ballotHW(value) & genGeMask());
@@ -243,11 +241,11 @@ int mcount64(in UVEC_BALLOT_WARP bits){
 }
 
 
-
 #define initAtomicIncFunction(mem, fname, T)\
-T fname(in BOOL_ value) { \
-    int activeLane = firstActive();\
-    UVEC_BALLOT_WARP bits = ballotHW(value);\
+T fname(in BOOL_ _value) { \
+    const BOOL_ value = TRUE_;\
+    UVEC_BALLOT_WARP bits = ballotHW(value); \
+    int activeLane = lsb(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
@@ -256,9 +254,10 @@ T fname(in BOOL_ value) { \
 }
 
 #define initAtomicDecFunction(mem, fname, T)\
-T fname(in BOOL_ value) { \
-    int activeLane = firstActive();\
-    UVEC_BALLOT_WARP bits = ballotHW(value);\
+T fname(in BOOL_ _value) { \
+    const BOOL_ value = TRUE_;\
+    UVEC_BALLOT_WARP bits = ballotHW(value); \
+    int activeLane = lsb(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
@@ -268,9 +267,10 @@ T fname(in BOOL_ value) { \
 
 // with multiplier support
 #define initAtomicIncByFunction(mem, fname, T)\
-T fname(in BOOL_ value, const int by) { \
-    int activeLane = firstActive();\
-    UVEC_BALLOT_WARP bits = ballotHW(value);\
+T fname(in BOOL_ _value, const int by) { \
+    const BOOL_ value = TRUE_;\
+    UVEC_BALLOT_WARP bits = ballotHW(value); \
+    int activeLane = lsb(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
@@ -279,9 +279,10 @@ T fname(in BOOL_ value, const int by) { \
 }
 
 #define initAtomicIncFunctionTarget(mem, fname, T)\
-T fname(in uint WHERE, in BOOL_ value) { \
-    int activeLane = firstActive();\
-    UVEC_BALLOT_WARP bits = ballotHW(value);\
+T fname(in uint WHERE, in BOOL_ _value) { \
+    const BOOL_ value = TRUE_;\
+    UVEC_BALLOT_WARP bits = ballotHW(value); \
+    int activeLane = lsb(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
@@ -290,9 +291,10 @@ T fname(in uint WHERE, in BOOL_ value) { \
 }
 
 #define initNonAtomicIncFunction(mem, fname, T)\
-T fname(in BOOL_ value) { \
-    int activeLane = firstActive();\
-    UVEC_BALLOT_WARP bits = ballotHW(value);\
+T fname(in BOOL_ _value) { \
+    const BOOL_ value = TRUE_;\
+    UVEC_BALLOT_WARP bits = ballotHW(value); \
+    int activeLane = lsb(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
@@ -301,9 +303,10 @@ T fname(in BOOL_ value) { \
 }
 
 #define initNonAtomicIncFunctionTarget(mem, fname, T)\
-T fname(in uint WHERE, in BOOL_ value) { \
-    int activeLane = firstActive();\
-    UVEC_BALLOT_WARP bits = ballotHW(value);\
+T fname(in uint WHERE, in BOOL_ _value) { \
+    const BOOL_ value = TRUE_;\
+    UVEC_BALLOT_WARP bits = ballotHW(value); \
+    int activeLane = lsb(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\

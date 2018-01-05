@@ -177,16 +177,20 @@ float16_t readLane(in float16_t val, in int lane){
     return unpackFloat2x16(readInvocationARB(packFloat2x16(f16vec2(val, 0.hf)), lane)).x;
 }
 
+f16vec2 readLane(in f16vec2 val, in int lane){
+    return unpackFloat2x16(readInvocationARB(packFloat2x16(val), lane));
+}
+#endif
+
+
+
+#ifdef ENABLE_AMD_INT16
 int16_t readLane(in int16_t val, in int lane){
     return unpackInt2x16(readInvocationARB(packInt2x16(i16vec2(val, 0s)), lane)).x;
 }
 
 uint16_t readLane(in uint16_t val, in int lane){
     return unpackUint2x16(readInvocationARB(packUint2x16(u16vec2(val, 0us)), lane)).x;
-}
-
-f16vec2 readLane(in f16vec2 val, in int lane){
-    return unpackFloat2x16(readInvocationARB(packFloat2x16(val), lane));
 }
 
 i16vec2 readLane(in i16vec2 val, in int lane){
@@ -197,6 +201,7 @@ u16vec2 readLane(in u16vec2 val, in int lane){
     return unpackUint2x16(readInvocationARB(packUint2x16(val), lane));
 }
 #endif
+
 
 
 

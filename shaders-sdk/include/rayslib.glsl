@@ -34,7 +34,7 @@ struct BlockInfo {
 
 // tile indexing typing
 // for ditributed computing highly recommended unified types
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#ifdef ENABLE_AMD_INT16
 #define IDCTYPE int16_t
 #else
 #define IDCTYPE int

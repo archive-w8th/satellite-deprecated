@@ -39,7 +39,7 @@
     #endif
 #endif
 
-#if defined(ENABLE_AMD_INSTRUCTION_SET) || defined(ENABLE_NVIDIA_INSTRUCTION_SET)
+#if defined(ENABLE_AMD_INT16)
 #define INDEX16 uint16_t
 #define M16(m, i) m[i]
 #define M32(m, i) packUint2x16(u16vec2(m[(i)<<1],m[((i)<<1)|1]))
@@ -58,7 +58,7 @@
 #endif
 
 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#if (defined(ENABLE_AMD_INT16_CONDITION) && defined(ENABLE_AMD_INT16))
 #define BVEC4_ i16vec4
 #define BVEC3_ i16vec3
 #define BVEC2_ i16vec2
@@ -157,19 +157,19 @@ int btc(in uint64_t lh) { return bitCount64(U2P(lh)); }
 
 // bit measure utils
 int lsb(in uint64_t vlc) {
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return findLSB(vlc); 
-#else
+//#ifdef ENABLE_AMD_INSTRUCTION_SET
+//    return findLSB(vlc); 
+//#else
     uvec2 pair = U2P(vlc); int lv = lsb(pair.x), hi = lsb(pair.y); return (lv >= 0) ? lv : (32 + hi);
-#endif
+//#endif
 }
 
 int msb(in uint64_t vlc) {
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return findMSB(vlc); 
-#else
+//#ifdef ENABLE_AMD_INSTRUCTION_SET
+//    return findMSB(vlc); 
+//#else
     uvec2 pair = U2P(vlc); int lv = msb(pair.x), hi = msb(pair.y); return (hi >= 0) ? (32 + hi) : lv;
-#endif
+//#endif
 }
 
 int msb(in uvec2 pair) { return msb(P2U(pair)); }
@@ -381,17 +381,18 @@ ivec2 mix(in ivec2 a, in ivec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 uvec2 mix(in uvec2 a, in uvec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 vec2 mix(in vec2 a, in vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 vec4 mix(in vec4 a, in vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#ifdef ENABLE_AMD_INT16
 int16_t mix(in int16_t a, in int16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 uint16_t mix(in uint16_t a, in uint16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-float16_t mix(in float16_t a, in float16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 i16vec2 mix(in i16vec2 a, in i16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 u16vec2 mix(in u16vec2 a, in u16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
+#endif
+
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+float16_t mix(in float16_t a, in float16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
 f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 f16vec4 mix(in f16vec4 a, in f16vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
 #endif
-
-
 
 
 

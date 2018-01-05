@@ -356,9 +356,11 @@ void main() {
         
         // global traversing
         beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
-        for (int iteration=0;iteration<512;iteration++) {
+
+#define L_MAX_ITERATION 8192
+        for (int iteration=0;iteration<L_MAX_ITERATION;iteration++) {
             if (!anyInvoc(bool(validBox))) break; // if all invocs expiried, don't traverse next
-            for (int lt=0;lt<512;lt++) {
+            for (;iteration<L_MAX_ITERATION;iteration++) {
                 //if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
                 if (!anyInvoc(bool(validBox) && deftri.x < 0)) break; // don't sure by await flag
                 checkChildNodes(); // traverse BVH

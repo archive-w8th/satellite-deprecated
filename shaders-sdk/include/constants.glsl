@@ -28,12 +28,28 @@
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #extension GL_AMD_gcn_shader : enable
 #extension GL_AMD_gpu_shader_half_float : enable
-#extension GL_AMD_gpu_shader_int16 : enable
 #extension GL_AMD_shader_trinary_minmax : enable
 #extension GL_AMD_texture_gather_bias_lod : enable
 #extension GL_AMD_shader_ballot : enable
 #extension GL_AMD_shader_image_load_store_lod : enable
+
+// by default enable
+#define ENABLE_AMD_INT16
+#define ENABLE_AMD_INT16_CONDITION
 #endif
+
+#ifndef ENABLE_AMD_INSTRUCTION_SET
+#undef ENABLE_AMD_INT16 // not supported combination
+#endif
+
+#ifndef ENABLE_AMD_INT16
+#undef ENABLE_AMD_INT16_CONDITION // required i16
+#endif
+
+#ifdef ENABLE_AMD_INT16 
+#extension GL_AMD_gpu_shader_int16 : enable 
+#endif
+
 
 #ifdef ENABLE_NVIDIA_INSTRUCTION_SET
 #extension GL_NV_gpu_shader5 : enable // not supported by SPIRV

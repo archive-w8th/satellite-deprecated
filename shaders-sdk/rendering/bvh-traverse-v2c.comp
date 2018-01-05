@@ -16,6 +16,7 @@
 #include "../include/mathlib.glsl"
 #include "../include/vertex.glsl"
 
+/*
 #ifndef EXTENDED_SHARED_CACHE_SUPPORT
 const int STACK_SIZE = 8;
 const int EXT_STACK_SIZE = 24;
@@ -23,6 +24,7 @@ const int EXT_STACK_SIZE = 24;
 const int STACK_SIZE = 16;
 const int EXT_STACK_SIZE = 16;
 #endif
+*/
 
 const int BAKED_STACK_SIZE = 1;
 const int ESTIMATE_BATCH = WARP_SIZE;
@@ -78,11 +80,13 @@ bool mergeRestCmd = false, awaitFlag = false;
 #define validBoxIn validBox
 
 
-
+/*
 #ifndef STACKLESS_BVH
 shared int indeferredStack[WORK_SIZE][STACK_SIZE];
 #define deferredStackExt nodeCache[rayID].indeferredStackExt
 #define deferredStack indeferredStack[LT_IDX]
+
+
 
 int loadStack(in int STI) {
     int VALUE = int(-1);
@@ -104,6 +108,55 @@ void storeStack(in int STI, in int VALUE) {
     }
 }
 #endif
+*/
+
+
+#define ISF uint
+
+shared ISF prevNext[WORK_SIZE/WARP_SIZE][511];
+shared int deferStk[WORK_SIZE/WARP_SIZE][511];
+shared int stCounter[WORK_SIZE/WARP_SIZE];
+int lrcounter = 0;
+
+initNonAtomicIncFunction(stCounter[LC_IDX], stCountInc, int)
+
+
+int nPrev(in int idx) { return int(BFE_HW(prevNext[LC_IDX][idx], 0, 16))-1; }
+int nNext(in int idx) { return int(BFE_HW(prevNext[LC_IDX][idx], 16, 16))-1; }
+void nPrev(in int idx, in int vlc) { prevNext[LC_IDX][idx] = BFI_HW(prevNext[LC_IDX][idx], uint(vlc+1), 0, 16); }
+void nNext(in int idx, in int vlc) { prevNext[LC_IDX][idx] = BFI_HW(prevNext[LC_IDX][idx], uint(vlc+1), 16, 16); }
+
+
+
+int loadStack(){
+    int ret = -1;
+    if (lrcounter > 0) {
+        lrcounter--;
+        if (deferredPtr >= 0) {
+            ret = deferStk[LC_IDX][deferredPtr]; deferStk[LC_IDX][deferredPtr] = -1;
+            deferredPtr = nPrev(deferredPtr);
+        }
+    }
+    return ret;
+}
+
+int storeStack(in int value){
+    if (lrcounter < 16) {
+        lrcounter++;
+
+        int nxt = nNext(deferredPtr); nxt = nxt >= 0 ? nxt : stCountInc();
+        if (nxt >= 511) nxt = -1; // overflow?
+
+        nNext(deferredPtr, nxt);
+        if (nxt >= 0) {
+            deferStk[LC_IDX][nxt] = value;
+            nPrev(nxt, deferredPtr);
+            deferredPtr = nxt;
+        }
+    }
+}
+
+
 
 
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
@@ -159,6 +212,9 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
     idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = int(-1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = -1, awaitFlag = false;
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
+
+    // reset stack counter
+    stCounter[LC_IDX] = 0;
 }
 
 //#define _ADD(m,k) atomicAdd(m,k)
@@ -231,15 +287,13 @@ void checkChildNodes() {
             ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
             nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
             IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
-                storeStack(min(++deferredPtr, STACK_SIZE_SM-1), nodepdata.y);
+                storeStack(nodepdata.y);
             }
-            deferredPtr = min(deferredPtr, STACK_SIZE_SM-1);
         }
 
         { // unified child/parent/another switcher
             bool _ssc = found >= 0;
-            int ptr = deferredPtr; deferredPtr = max(deferredPtr-(_ssc ? 0 : 1), -1);
-            esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
+            esc.x = idx, idx = _ssc ? found : loadStack(), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
         }
 
         // make sure that next node is not leaf, is leaf, do soft-lock

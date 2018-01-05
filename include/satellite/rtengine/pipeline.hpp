@@ -81,6 +81,11 @@ namespace NSM {
             std::string shadersPathPrefix = "shaders-spv";
             bool hitCountGot = false, doCleanSamples = false;
 
+
+
+            std::shared_ptr<MaterialSet> boundMaterialSet;
+
+
         protected:
             void syncUniforms();
             void initDescriptorSets();
@@ -99,9 +104,8 @@ namespace NSM {
             void collectSamples();
             void rayShading();
             void generate(const glm::mat4 &persp, const glm::mat4 &frontSide);
-            void surfaceShading(std::shared_ptr<MaterialSet>& materialSet);
             void setTextureSet(std::shared_ptr<TextureSet>& textureSet);
-            void surfaceShading(std::shared_ptr<MaterialSet>& materialSet, std::shared_ptr<TextureSet>& textureSet);
+            void setMaterialSet(std::shared_ptr<MaterialSet>& materialSet);
             void traverse(std::shared_ptr<TriangleHierarchy>& hierarchy);
 
             uint32_t getCanvasWidth();

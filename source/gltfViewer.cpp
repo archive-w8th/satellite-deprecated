@@ -389,10 +389,13 @@ namespace SatelliteExample {
         glm::mat4 perspective = glm::perspective(glm::radians(60.f), float(canvasWidth) / float(canvasHeight), 0.0001f, 10000.f);
         glm::mat4 lookAt = glm::lookAt(glm::vec3(cam->eye), glm::vec3(cam->view), glm::vec3(0.f, 1.f, 0.f));
         rays->generate(perspective, lookAt);
+
+        rays->setMaterialSet(materialManager);
+        rays->setTextureSet(textureManager);
+
         for (int32_t j = 0; j < depth; j++) {
             if (rays->getRayCount() <= 0) break;
             rays->traverse(intersector);
-            rays->surfaceShading(materialManager, textureManager); // low level function for getting surface materials (may have few materials)
             rays->rayShading(); // low level function for change rays
         }
         rays->collectSamples();

@@ -53,7 +53,7 @@ namespace NSM {
                 vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // unordered indexing
 
                 // surface binding set 
-                vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // surface material set
+                //vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // surface material set
 
                 // uniform set
                 vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // LightUniform
@@ -79,6 +79,7 @@ namespace NSM {
             std::vector<vk::DescriptorSetLayoutBinding> surfaceImgSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, MAX_SURFACE_IMAGES, vk::ShaderStageFlagBits::eCompute, nullptr), // textures 
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eSampler, 16, vk::ShaderStageFlagBits::eCompute, nullptr), // samplers for textures
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr)
             };
 
             // ray shading environment 
@@ -101,15 +102,15 @@ namespace NSM {
             rayTracingDescriptorsLayout = { descriptorSetLayouts[0] };
             rayTraverseDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[1] };
             samplingDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[2] };
-            surfaceDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[3] };
+            surfaceDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[1], descriptorSetLayouts[3] };
             rayShadingDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[4] };
 
             // descriptors
             rayTracingDescriptors = { descriptorSets[0] };
             //rayTraverseDescriptors = { descriptorSets[0], descriptorSets[1] };
-            samplingDescriptors = { descriptorSets[0] , descriptorSets[2] };
-            surfaceDescriptors = { descriptorSets[0] , descriptorSets[3] };
-            rayShadingDescriptors = { descriptorSets[0] , descriptorSets[4] };
+            samplingDescriptors = { descriptorSets[0], descriptorSets[2] };
+            surfaceDescriptors = { descriptorSets[0], nullptr, descriptorSets[3] };
+            rayShadingDescriptors = { descriptorSets[0], descriptorSets[4] };
 
             // create staging buffer
             generalStagingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -343,7 +344,7 @@ namespace NSM {
                 // update descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet()
-                        .setDstSet(surfaceDescriptors[1])
+                        .setDstSet(surfaceDescriptors[2])
                         .setDstBinding(0)
                         .setDstArrayElement(0)
                         .setDescriptorCount(imageDescs.size())
@@ -376,7 +377,7 @@ namespace NSM {
                 // update descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet()
-                        .setDstSet(surfaceDescriptors[1])
+                        .setDstSet(surfaceDescriptors[2])
                         .setDstBinding(1)
                         .setDstArrayElement(0)
                         .setDescriptorCount(samplerDescs.size())
@@ -630,38 +631,20 @@ namespace NSM {
             reloadQueuedRays();
         }
 
-        void Pipeline::surfaceShading(std::shared_ptr<MaterialSet>& materialSet) {
+        void Pipeline::setMaterialSet(std::shared_ptr<MaterialSet>& materialSet) {
             if (!materialSet->haveMaterials()) return;
+            boundMaterialSet = materialSet;
 
-            // material array loading
             auto materialBuffer = materialSet->getMaterialBuffer();
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[0])
-                    .setDstBinding(11)
+                    .setDstSet(surfaceDescriptors[2])
+                    .setDstBinding(2)
                     .setDstArrayElement(0)
                     .setDescriptorCount(1)
                     .setDescriptorType(vk::DescriptorType::eStorageBuffer)
                     .setPBufferInfo(&materialBuffer->descriptorInfo)
             }, nullptr);
-
-            // copy to surfaces
-            auto copyCommand = getCommandBuffer(device, true);
-            memoryCopyCmd(copyCommand, materialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-            if (!hitCountGot) {
-                memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
-                memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
-            }
-            hitCountGot = true;
-
-            // surface shading command
-            auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, surfaceDescriptors, nullptr);
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, surfaceShadingPpl.pipeline);
-            commandBuffer.dispatch(INTENSIVITY, 1, 1);
-
-            flushCommandBuffer(device, copyCommand, true);
-            flushCommandBuffer(device, commandBuffer, true);
         }
 
         void Pipeline::setTextureSet(std::shared_ptr<TextureSet>& textureSet) {
@@ -677,21 +660,16 @@ namespace NSM {
                 images.push_back(textures[i]->descriptorInfo);
             }
 
-            // update descriptors
+            // update descriptors 
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[1])
+                    .setDstSet(surfaceDescriptors[2])
                     .setDstBinding(0)
                     .setDstArrayElement(0)
                     .setDescriptorCount(images.size())
                     .setDescriptorType(vk::DescriptorType::eSampledImage)
                     .setPImageInfo(images.data())
             }, nullptr);
-        }
-
-        void Pipeline::surfaceShading(std::shared_ptr<MaterialSet>& materialSet, std::shared_ptr<TextureSet>& textureSet) {
-            setTextureSet(textureSet);
-            surfaceShading(materialSet);
         }
 
         void Pipeline::traverse(std::shared_ptr<TriangleHierarchy>& hierarchy) {
@@ -702,18 +680,25 @@ namespace NSM {
             commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], vdescs }, nullptr);
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
             commandBuffer.dispatch(INTENSIVITY, 1, 1);
-            
-            // interpolate vertex
-            auto interpCommandBuffer = getCommandBuffer(device, true);
-            interpCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], vdescs }, nullptr);
-            interpCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, vertexInterp.pipeline);
-            interpCommandBuffer.dispatch(INTENSIVITY, 1, 1);
+
+            // copy to surfaces
+            auto copyCommand = getCommandBuffer(device, true);
+            memoryCopyCmd(copyCommand, this->boundMaterialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
+            if (!hitCountGot) {
+                memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
+                memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
+            }
+
+            // surface shading command 
+            auto srfCommandBuffer = getCommandBuffer(device, true);
+            srfCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, { surfaceDescriptors[0], vdescs, surfaceDescriptors[2] }, nullptr);
+            srfCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, surfaceShadingPpl.pipeline);
+            srfCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 
             // push commands
             flushCommandBuffer(device, commandBuffer, true);
-            flushCommandBuffer(device, interpCommandBuffer, true);
-
-            hitCountGot = false;
+            flushCommandBuffer(device, copyCommand, true);
+            flushCommandBuffer(device, srfCommandBuffer, true);
         }
 
         uint32_t Pipeline::getCanvasWidth() { return canvasWidth; }

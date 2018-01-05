@@ -211,7 +211,8 @@ bool readLane(in bool val, in int lane) {
 
 uvec2 ballotHW(in BOOL_ val) {
     uint64_t plc = 0xFFFFFFFFFFFFFFFFul;
-    plc = ballotARB(bool(val));
+    //plc = ballotARB(bool(val));
+    plc = ballotARB(true); // fix support for Intel, etc.
     return U2P(plc) & filterBallot();
 }
 

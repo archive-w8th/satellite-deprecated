@@ -254,10 +254,7 @@ void flushBlock(in int mt, in bool illuminated){
 // create/allocate block 
 int createBlock(in int blockBinId){
     // write block where possible
-    int activeLane = firstActive(); // performance obscure
-    if (LANE_IDX == activeLane) atomicMax(arcounter.mT, 0); // performance obscure
     int mt = atomicDecMT(TRUE_)-1;
-    if (LANE_IDX == activeLane) atomicMax(arcounter.mT, 0); // performance obscure
     if (mt >= 0) mt = exchange(availableBlocks[mt], -1)-1; 
     if (mt <  0) mt = atomicIncBT(TRUE_);
     if (mt >= 0) {

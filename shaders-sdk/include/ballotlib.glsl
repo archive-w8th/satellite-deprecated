@@ -261,7 +261,8 @@ T fname(in BOOL_ _value) { \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, -mix(0, sumInOrder, LANE_IDX == activeLane));\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) { \
+    atomicMax(mem, 0); gadd = atomicAdd(mem, -mix(0, sumInOrder, LANE_IDX == activeLane)); atomicMax(mem, 0); } \
     return readLane(gadd, activeLane) - idxInOrder; \
 }
 

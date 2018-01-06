@@ -135,7 +135,7 @@ namespace NSM {
             sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/scatter.comp.spv", samplingPipelineLayout, pipelineCache);
             clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/clear.comp.spv", samplingPipelineLayout, pipelineCache);
             binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayShadingPipelineLayout, pipelineCache);
-            vertexInterp.pipeline = createCompute(device, shadersPathPrefix + "/rendering/vertex-interp.comp.spv", rayTraversePipelineLayout, pipelineCache);
+            //vertexInterp.pipeline = createCompute(device, shadersPathPrefix + "/rendering/vertex-interp.comp.spv", rayTraversePipelineLayout, pipelineCache);
 
             /*
             { // AMD ONLY - save assembly file of traverser

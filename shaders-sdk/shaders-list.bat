@@ -73,4 +73,4 @@ set OPTFLAGS= ^
 --local-redundancy-elimination ^
 --cfg-cleanup 
 
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bvh-traverse.comp.spv   -o %OUTDIR%%RNDR%bvh-traverse.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bvh-traverse.comp.spv   -o %OUTDIR%%RNDR%bvh-traverse.comp.spv

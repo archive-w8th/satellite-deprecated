@@ -79,7 +79,7 @@ namespace SatelliteExample {
 
 
     void GltfViewer::parseArguments(const int32_t& argc, const char ** argv) {
-        args::ArgumentParser parser("This is a test rendering program.", "Frik edition, YOBA! XYU tebe, Tereshin, a ne Bazuki!");
+        args::ArgumentParser parser("This is a test rendering program.", "We don't care about your guarantees. -_-");
         args::HelpFlag help(parser, "help", "Available flags", { 'h', "help" });
         args::ValueFlag<int> computeflag(parser, "compute-device-id", "Vulkan compute device (UNDER CONSIDERATION)", { 'c' });
         args::ValueFlag<int> deviceflag(parser, "graphics-device-id", "Vulkan graphics device to use (also should support compute)", { 'g' });

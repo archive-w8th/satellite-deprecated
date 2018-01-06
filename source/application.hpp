@@ -256,7 +256,7 @@ namespace SatelliteExample {
         ControlMap kmap;
         
         // current context of application
-        std::shared_ptr<GuiRenderEngine> grengine;
+        //std::shared_ptr<GuiRenderEngine> grengine;
         std::shared_ptr<GraphicsContext> currentContext;
 
         // application window title
@@ -374,7 +374,7 @@ namespace SatelliteExample {
             auto renderpass = createRenderpass(deviceQueue, applicationWindow.surfaceFormat);
 
             // create GUI rendering engine 
-            grengine = std::shared_ptr<GuiRenderEngine>(new GuiRenderEngine(deviceQueue, renderpass, shaderPack));
+            //grengine = std::shared_ptr<GuiRenderEngine>(new GuiRenderEngine(deviceQueue, renderpass, shaderPack));
 
             // init ray tracer
             rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(deviceQueue, shaderPack));
@@ -385,7 +385,7 @@ namespace SatelliteExample {
 
             {
                 auto app = this;
-                auto geg = this->grengine;
+                //auto geg = this->grengine;
                 auto& cb = this->currentBuffer;
                 auto& sfz = this->applicationWindow.surfaceSize;
 
@@ -407,9 +407,9 @@ namespace SatelliteExample {
                     if (app) app->mouseMove(x, y);
                 });
 
-                ambientIO::addGuiDrawListCallback([geg, app, &cb, &sfz](ImDrawData* imData) {
-                    if (geg && app) geg->renderOn(app->getFramebuffers()[cb], sfz, imData);
-                });
+                //ambientIO::addGuiDrawListCallback([geg, app, &cb, &sfz](ImDrawData* imData) {
+                //    if (geg && app) geg->renderOn(app->getFramebuffers()[cb], sfz, imData);
+                //});
             }
 
             // init or prerender data

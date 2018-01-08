@@ -157,19 +157,19 @@ int btc(in uint64_t lh) { return bitCount64(U2P(lh)); }
 
 // bit measure utils
 int lsb(in uint64_t vlc) {
-//#ifdef ENABLE_AMD_INSTRUCTION_SET
-//    return findLSB(vlc); 
-//#else
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return findLSB(vlc); 
+#else
     uvec2 pair = U2P(vlc); int lv = lsb(pair.x), hi = lsb(pair.y); return (lv >= 0) ? lv : (32 + hi);
-//#endif
+#endif
 }
 
 int msb(in uint64_t vlc) {
-//#ifdef ENABLE_AMD_INSTRUCTION_SET
-//    return findMSB(vlc); 
-//#else
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return findMSB(vlc); 
+#else
     uvec2 pair = U2P(vlc); int lv = msb(pair.x), hi = msb(pair.y); return (hi >= 0) ? (32 + hi) : lv;
-//#endif
+#endif
 }
 
 int msb(in uvec2 pair) { return msb(P2U(pair)); }

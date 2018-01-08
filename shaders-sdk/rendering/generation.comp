@@ -138,7 +138,8 @@ void main()
                     RayDL(currentRay, FALSE_);
 
                     RayType(currentRay, 3); // primary rays
-                    RayBounce(currentRay, 4);
+                    RayBounce(currentRay, 3);
+                    RayDiffBounce(currentRay, 2);
 
                     if (RAY_BLOCK cameraUniform.interlace == 1) {
                         if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) RayActived(currentRay, FALSE_);

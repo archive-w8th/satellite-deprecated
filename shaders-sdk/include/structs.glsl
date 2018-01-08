@@ -112,9 +112,9 @@ struct bbox {
 // {1 ..2 }[2] - ray type (for example diffuse, specular, shadow)
 // {3     }[1] - applyable direct light (can intersect with light data or not)
 // {4 ..7 }[4] - target light index (for shadow type)
-// {8 ..11}[4] - bounce index
+// {8 ..10}[4] - bounce index, 3-bit (reflection, refraction)
 // {11..15}[5] - stream directional order (up to 31 streams)
-
+// {16..18}[6] - bounce index, 3-bit (diffuse)
 
 // 64-byte aligned (optimal for HBM2 read/write, but unoptimal for GDDR6)
 // really recommended 32-byte aligment, but at now no possible to do that
@@ -151,9 +151,9 @@ const ivec2 ACTIVED = ivec2(0, 1);
 const ivec2 TYPE = ivec2(1, 2);
 const ivec2 DIRECT_LIGHT = ivec2(3, 1);
 const ivec2 TARGET_LIGHT = ivec2(4, 4);
-const ivec2 BOUNCE = ivec2(8, 4);
+const ivec2 BOUNCE = ivec2(8, 3);
 const ivec2 SDO = ivec2(11, 5);
-
+const ivec2 DBOUNCE = ivec2(16, 3);
 
 int parameteri(const ivec2 parameter, inout uint bitfield) {
     return int(BFE_HW(bitfield, parameter.x, parameter.y));
@@ -266,11 +266,20 @@ void RayTargetLight(inout RayRework ray, in int tl) {
 }
 
 int RayBounce(inout RayRework ray) {
-    return parameteri(BOUNCE, RAY_BITFIELD_);
+    return int(uint(parameteri(BOUNCE, RAY_BITFIELD_)));
 }
 
 void RayBounce(inout RayRework ray, in int bn) {
-    parameteri(BOUNCE, RAY_BITFIELD_, bn);
+    parameteri(BOUNCE, RAY_BITFIELD_, int(uint(bn)));
+}
+
+
+int RayDiffBounce(inout RayRework ray) {
+    return int(uint(parameteri(DBOUNCE, RAY_BITFIELD_)));
+}
+
+void RayDiffBounce(inout RayRework ray, in int bn) {
+    parameteri(DBOUNCE, RAY_BITFIELD_, int(uint(bn)));
 }
 
 

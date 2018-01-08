@@ -52,7 +52,8 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 n
     RayActived(directRay, RayType(directRay) == 2 ? FALSE_ : RayActived(directRay));
     RayDL(directRay, TRUE_);
     RayTargetLight(directRay, i);
-    RayBounce(directRay, min(1, max(RayBounce(directRay) - (RayType(directRay) == 0 ? 0 : 1), 0)));
+    RayDiffBounce(directRay, min(1, max(RayDiffBounce(directRay)-1,0)));
+    RayBounce(directRay, min(RayBounce(directRay), 1)); // incompatible with reflections and diffuses
     RayType(directRay, 2);
 
     vec3 lpath = sLight(i) - directRay.origin.xyz;
@@ -81,13 +82,13 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
 
     const int diffuse_reflections = 2;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
-    RayBounce(ray, min(diffuse_reflections, max(RayBounce(ray) - (RayType(ray) == 0 ? 0 : 1), 0)));
+    RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-1,0)));
 
     int streamID = int(floor(16.f * random()));
 
-    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
+    //vec3 sdr = rayStreams[RayDiffBounce(ray)].diffuseStream.xyz;
     //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
-    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    vec3 sdr = randomCosine(normal, rayStreams[RayDiffBounce(ray)].superseed.x);
     ray.direct.xyz = faceforward(sdr, sdr, -normal);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
     //ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;

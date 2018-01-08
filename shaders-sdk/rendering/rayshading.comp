@@ -105,7 +105,7 @@ void invokeSurface(inout bool overflow) {
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (RayBounce(rayTemplate) <= 0 || mlength(rayTemplate.color.xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
+    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(rayTemplate.color.xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
 }
 
 void cleanRay(inout RayRework rayTemplate){

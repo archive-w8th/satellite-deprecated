@@ -524,10 +524,8 @@ namespace NSM {
             copyDesc.dstOffset = { 0, int32_t(canvasHeight), 0 };
             copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight), 1 };
             
-
             // copy images command
             auto copyCommand = getCommandBuffer(device, true);
-
             copyDesc.srcSubresource = accumulationImage->subresourceLayers;
             copyDesc.dstSubresource = accumulationImage->subresourceLayers;
             memoryCopyCmd(copyCommand, accumulationImage, accumulationImage, copyDesc);
@@ -539,8 +537,6 @@ namespace NSM {
             copyDesc.srcSubresource = flagsImage->subresourceLayers;
             copyDesc.dstSubresource = flagsImage->subresourceLayers;
             memoryCopyCmd(copyCommand, flagsImage, flagsImage, copyDesc);
-
-            flushCommandBuffer(device, copyCommand, true);
 
             // clear command
             vk::CommandBuffer clearCommand;
@@ -560,6 +556,7 @@ namespace NSM {
             // execute commands
             if (doCleanSamples) flushCommandBuffer(device, clearCommand, true);
             flushCommandBuffer(device, commandBuffer, true);
+            flushCommandBuffer(device, copyCommand, true);
 
             // unflag
             doCleanSamples = false;

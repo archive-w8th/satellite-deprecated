@@ -34,6 +34,6 @@ vec3 TonemapInvert(in vec3 c) { return c * rcp(1.0 - mlength(c.xyz)); }
 
 
 void main() {
-    vec2 ctx = texcoord * vec2(1.f,0.5f);
+    vec2 ctx = texcoord * vec2(1.f,0.5f) + vec2(0.f,0.5f);
     outFragColor = vec4(fromLinear(filtered(ctx).xyz), 1.0f);
 }

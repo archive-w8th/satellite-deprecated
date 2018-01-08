@@ -380,6 +380,7 @@ namespace SatelliteExample {
             rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(deviceQueue, shaderPack));
 
             // resize buffers and canvas
+            glfwGetWindowContentScale(wind, &windowScale, nullptr);
             this->resizeBuffers(baseWidth * superSampling, baseHeight * superSampling);
             this->resize(canvasWidth, canvasHeight);
 

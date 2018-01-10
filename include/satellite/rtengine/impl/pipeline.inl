@@ -263,7 +263,7 @@ namespace NSM {
                 samplerInfo.magFilter = vk::Filter::eLinear;
                 samplerInfo.compareEnable = false;
                 auto sampler = device->logical.createSampler(samplerInfo);
-                auto texture = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
+                auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
                 auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
@@ -306,8 +306,8 @@ namespace NSM {
 
             // null texture define
             {
-                // create texture
-                auto texture = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
+                // create texture 
+                auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
                 auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
@@ -420,10 +420,10 @@ namespace NSM {
             destroyTexture(flagsImage);
             destroyTexture(depthImage);
 
-            accumulationImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-            filteredImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-            flagsImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
-            depthImage = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            accumulationImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            filteredImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            flagsImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
+            depthImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{

@@ -130,7 +130,7 @@ namespace NSM {
     }
 
     // create texture object
-    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageType imageType, vk::ImageViewType viewType, vk::ImageLayout layout, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageViewType imageViewType, vk::ImageLayout layout, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
         std::shared_ptr<Texture> texture(new Texture);
         
         // link device
@@ -140,6 +140,23 @@ namespace NSM {
         texture->layout = layout;
         texture->initialLayout = vk::ImageLayout::ePreinitialized;//vk::ImageLayout::eUndefined;
 
+
+
+
+		vk::ImageType imageType = vk::ImageType::e2D;
+		bool isCubemap = false;
+		switch (imageViewType) {
+			case vk::ImageViewType::e1D: imageType = vk::ImageType::e1D; break;
+			case vk::ImageViewType::e1DArray: imageType = vk::ImageType::e2D; break;
+			case vk::ImageViewType::e2D: imageType = vk::ImageType::e2D; break;
+			case vk::ImageViewType::e2DArray: imageType = vk::ImageType::e3D; break;
+			case vk::ImageViewType::e3D: imageType = vk::ImageType::e3D; break;
+			case vk::ImageViewType::eCube: imageType = vk::ImageType::e3D; isCubemap = true; break;
+			case vk::ImageViewType::eCubeArray: imageType = vk::ImageType::e3D; isCubemap = true; break;
+		};
+
+
+
         // create logical image
         auto imageInfo = vk::ImageCreateInfo();
         imageInfo.initialLayout = texture->initialLayout;
@@ -148,13 +165,18 @@ namespace NSM {
         imageInfo.arrayLayers = 1;
         imageInfo.tiling = vk::ImageTiling::eOptimal;
         //imageInfo.tiling = vk::ImageTiling::eLinear;
-        imageInfo.extent = {size.width, size.height, size.depth };
+        imageInfo.extent = {size.width, size.height, size.depth * (isCubemap ? 6 : 1) };
         imageInfo.format = format;
         imageInfo.mipLevels = mipLevels;
         imageInfo.pQueueFamilyIndices = &deviceQueue->familyIndex;
         imageInfo.queueFamilyIndexCount = 1;
         imageInfo.samples = vk::SampleCountFlagBits::e1;
         imageInfo.usage = usage;
+
+
+		
+
+
 
 
         VmaAllocationCreateInfo allocCreateInfo = {};
@@ -183,7 +205,7 @@ namespace NSM {
         // create image view
         auto imageViewInfo = vk::ImageViewCreateInfo();
         imageViewInfo.subresourceRange = texture->subresourceRange;
-        imageViewInfo.viewType = viewType;
+        imageViewInfo.viewType = imageViewType;
         imageViewInfo.components = vk::ComponentMapping();
         imageViewInfo.image = texture->image;
         imageViewInfo.format = format;
@@ -200,8 +222,8 @@ namespace NSM {
         return std::move(texture);
     }
 
-    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageType imageType, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
-        return createTexture(deviceQueue, imageType, viewType, vk::ImageLayout::eGeneral, size, usage, format, mipLevels, usageType);
+    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+        return createTexture(deviceQueue, viewType, vk::ImageLayout::eGeneral, size, usage, format, mipLevels, usageType);
     }
     
 

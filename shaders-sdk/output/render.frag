@@ -9,8 +9,8 @@
 #include "../include/uniforms.glsl"
 
 layout ( location = 0 ) out vec4 outFragColor;
-layout ( location = 0 ) in vec2 texcoord;
 layout ( binding = 0 ) uniform sampler2D samples;
+layout ( location = 0 ) in vec2 vcoord;
 
 #define NEIGHBOURS 8
 #define AXES 4
@@ -34,6 +34,6 @@ vec3 TonemapInvert(in vec3 c) { return c * rcp(1.0 - mlength(c.xyz)); }
 
 
 void main() {
-    vec2 ctx = texcoord * vec2(1.f,0.5f) + vec2(0.f,0.5f);
+    vec2 ctx = vcoord.xy * vec2(1.f,0.5f) + vec2(0.f,0.5f);
     outFragColor = vec4(fromLinear(filtered(ctx).xyz), 1.0f);
 }

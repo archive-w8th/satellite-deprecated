@@ -155,6 +155,7 @@ int btc(in uvec2 lh) { return bitCount64(lh); }
 int btc(in uint64_t lh) { return bitCount64(U2P(lh)); }
 
 
+/*
 // bit measure utils
 int lsb(in uint64_t vlc) {
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -174,7 +175,33 @@ int msb(in uint64_t vlc) {
 
 int msb(in uvec2 pair) { return msb(P2U(pair)); }
 int lsb(in uvec2 pair) { return lsb(P2U(pair)); }
+*/
 
+
+// bit measure utils
+int lsb(in uvec2 pair) {
+    int lv = lsb(pair.x), hi = lsb(pair.y); return (lv >= 0) ? lv : (32 + hi);
+}
+
+int msb(in uvec2 pair) {
+    int lv = msb(pair.x), hi = msb(pair.y); return (hi >= 0) ? (32 + hi) : lv;
+}
+
+int msb(in uint64_t vlc) { 
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return findMSB(vlc);
+#else
+    return msb(U2P(vlc));
+#endif
+}
+
+int lsb(in uint64_t vlc) { 
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return findLSB(vlc);
+#else
+    return lsb(U2P(vlc));
+#endif
+}
 
 
 

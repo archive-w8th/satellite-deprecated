@@ -230,7 +230,6 @@ int countInvocs(in BOOL_ val){
 }
 
 
-
 int firstActive() {return lsb(ballotHW(TRUE_));}
 
 int interpolInvocation(in BOOL_ value){

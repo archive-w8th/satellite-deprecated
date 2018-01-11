@@ -3,9 +3,9 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <functional>
-#include <vk_mem_alloc.h>
+#include <vulkan/vk_mem_alloc.h>
 #define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
+#include <vulkan/vk_mem_alloc.h>
 
 namespace NSM {
 
@@ -48,7 +48,7 @@ namespace NSM {
     // buffer with memory
     struct Buffer {
         bool initialized = false;
-        DeviceQueueType device;
+		DeviceQueueType device;
         //vk::DeviceMemory memory;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;

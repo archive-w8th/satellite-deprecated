@@ -11,6 +11,9 @@ set(SOURCES_LIST
     "./external/include/*/*.hpp"
     "./external/include/*/*.hh"
     "./external/include/*/*.h"
+    "./external/include/*/*/*.hpp"
+    "./external/include/*/*/*.hh"
+    "./external/include/*/*/*.h"
     "./external/include/*.hpp"
     "./external/include/*.hh"
     "./external/include/*.h"
@@ -44,18 +47,16 @@ set (DEFINES
 )
 
 set (DEP_DIR "${PROJECT_SOURCE_DIR}")
-set (LIB_DIR "${DEP_DIR}/external/lib"     "${DEP_DIR}/lib"     "${CMAKE_MODULE_PATH}/lib"                            )
-set (INC_DIR "${DEP_DIR}/external/include" "${DEP_DIR}/include" "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/external/imgui" "${PROJECT_SOURCE_DIR}")
+set (LIB_DIR "${CMAKE_MODULE_PATH}/lib"     "${DEP_DIR}/lib"     "${DEP_DIR}/external/lib"     "${DEP_DIR}/external/vk-sdk/lib"     "${DEP_DIR}/external/vk-sdk/bin")
+set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/external/include" "${DEP_DIR}/external/vk-sdk/include" "${DEP_DIR}/external/imgui" "${PROJECT_SOURCE_DIR}")
 
 set (CMAKE_MODULE_PATH 
     "${DEP_DIR}/modules" 
     "${CMAKE_MODULE_PATH}/modules" 
     "${PROJECT_SOURCE_DIR}/modules/" )
 
-find_package(Vulkan REQUIRED)
-
 set (LIBS 
-    ${Vulkan_LIBRARIES}
+    vulkan-1
     glfw3 
     libpng16_static
     jpeg

@@ -1,6 +1,23 @@
 #ifndef _CONSTANTS_H
 #define _CONSTANTS_H
 
+
+
+#extension GL_AMD_gcn_shader : enable
+#extension GL_AMD_gpu_shader_half_float : enable
+#extension GL_AMD_shader_trinary_minmax : enable
+#extension GL_AMD_texture_gather_bias_lod : enable
+#extension GL_AMD_shader_ballot : enable
+#extension GL_AMD_shader_image_load_store_lod : enable
+#extension GL_AMD_gpu_shader_int16 : enable 
+#extension GL_ARB_gpu_shader_int64 : enable
+#extension GL_ARB_shader_ballot : require
+#extension GL_ARB_shader_group_vote : enable
+#extension GL_EXT_shader_image_load_formatted : enable
+
+
+
+
 // hardware or driver options
 #define INT64_MORTON
 
@@ -24,16 +41,11 @@
 #define SAMPLES_LOCK 2048 // monte-carlo
 #endif
 
+
+
+
 // enable required GAPI extensions
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#extension GL_AMD_gcn_shader : enable
-#extension GL_AMD_gpu_shader_half_float : enable
-#extension GL_AMD_shader_trinary_minmax : enable
-#extension GL_AMD_texture_gather_bias_lod : enable
-#extension GL_AMD_shader_ballot : enable
-#extension GL_AMD_shader_image_load_store_lod : enable
-
-// by default enable
 #define ENABLE_AMD_INT16
 #define ENABLE_AMD_INT16_CONDITION
 #endif
@@ -46,20 +58,9 @@
 #undef ENABLE_AMD_INT16_CONDITION // required i16
 #endif
 
-#ifdef ENABLE_AMD_INT16 
-#extension GL_AMD_gpu_shader_int16 : enable 
-#endif
-
-
 #ifdef ENABLE_NVIDIA_INSTRUCTION_SET
 #extension GL_NV_gpu_shader5 : enable // not supported by SPIRV
 #endif
-
-// required extensions
-#extension GL_ARB_gpu_shader_int64 : enable
-#extension GL_ARB_shader_ballot : require
-#extension GL_ARB_shader_group_vote : enable
-#extension GL_EXT_shader_image_load_formatted : enable
 
 // System Constants
 #define PZERO 0.0001f

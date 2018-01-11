@@ -58,7 +58,7 @@
 #endif
 
 
-#if (defined(ENABLE_AMD_INT16_CONDITION) && defined(ENABLE_AMD_INT16))
+#if (defined(ENABLE_AMD_INSTRUCTION_SET) && defined(ENABLE_AMD_INT16_CONDITION) && defined(ENABLE_AMD_INT16))
 #define BVEC4_ i16vec4
 #define BVEC3_ i16vec3
 #define BVEC2_ i16vec2

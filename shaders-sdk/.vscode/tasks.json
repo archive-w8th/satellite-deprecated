@@ -1,0 +1,39 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [{
+        "label": "Build GLSL for AMD Radeon (Vega)",
+        "command": "glslangValidator",
+        "args": [ "-V120 --target-env vulkan1.0 -t -r --nsf -DUSE_F32_BVH -DENABLE_AMD_INSTRUCTION_SET", "${relativeFile}", "-o", "../build/amd/${relativeFile}.spv" ],
+        "problemMatcher": {
+            "owner": "glsl",
+            "fileLocation": ["relative", "${workspaceFolder}"],
+            "pattern": {
+                "regexp": "^(WARNING|ERROR):\\s+(.*):(\\d+):\\s+(.*)\\s+:\\s+(.*)$",
+                "file": 2,
+                "line": 3,
+                "severity": 1,
+                "message": 5,
+                "code": 4
+            }
+        }
+    },
+    {
+        "label": "Build GLSL for NVidia (GTX 1070+)",
+        "command": "glslangValidator",
+        "args": [ "-V120 --target-env vulkan1.0 -t -r --nsf -DUSE_F32_BVH", "${relativeFile}", "-o", "../build/nvidia/${relativeFile}.spv" ],
+        "problemMatcher": {
+            "owner": "glsl",
+            "fileLocation": ["relative", "${workspaceFolder}"],
+            "pattern": {
+                "regexp": "^(WARNING|ERROR):\\s+(.*):(\\d+):\\s+(.*)\\s+:\\s+(.*)$",
+                "file": 2,
+                "line": 3,
+                "severity": 1,
+                "message": 5,
+                "code": 4
+            }
+        }
+    }]
+}

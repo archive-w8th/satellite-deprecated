@@ -39,8 +39,10 @@ namespace NSM {
         template<int BINDING, class STRUCTURE>
         BufferType BufferComposer<BINDING,STRUCTURE>::getBuffer() {
             if (data.size() > 0) {
-                bufferSubData(stager, data, 0);
-                copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) }, true);
+				auto commandBuffer = getCommandBuffer(device, true);
+				bufferSubData(commandBuffer, stager, data, 0);
+				memoryCopyCmd(commandBuffer, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) });
+				flushCommandBuffer(device, commandBuffer, true);
             }
             return cache;
         }
@@ -69,8 +71,10 @@ namespace NSM {
 
         BufferType BufferSpace::getRegionsBuffer() {
             if (regions.size() > 0) {
-                bufferSubData(regionsStage, regions, 0);
-                copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, regionsStage, regionsBuffer, { 0, 0, strided<BufferRegion>(regions.size()) }, true);
+				auto commandBuffer = getCommandBuffer(device, true);
+                bufferSubData(commandBuffer, regionsStage, regions, 0);
+				memoryCopyCmd(commandBuffer, regionsStage, regionsBuffer, { 0, 0, strided<BufferRegion>(regions.size()) });
+				flushCommandBuffer(device, commandBuffer, true);
             }
             return regionsBuffer;
         }
@@ -92,9 +96,12 @@ namespace NSM {
 
         intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size, const intptr_t offset) {
             if (size > 0) {
-                bufferSubData(dataStage, external, size, 0);
+				auto commandBuffer = getCommandBuffer(device, true);
+				bufferSubData(commandBuffer, dataStage, external, size, 0);
+				memoryCopyCmd(commandBuffer, dataStage, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) });
+				flushCommandBuffer(device, commandBuffer, true);
             }
-            return copyGPUBuffer(dataStage, size, offset);
+            return offset;
         }
 
         intptr_t BufferSpace::copyHostBuffer(const uint8_t * external, const size_t size) {

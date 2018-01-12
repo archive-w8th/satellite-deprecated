@@ -36,39 +36,24 @@ namespace SatelliteExample {
 
         // create texture
         auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
-        auto tstage = createBuffer(device, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        auto tstage = createBuffer(device, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-        auto command = getCommandBuffer(device, true);
-        imageBarrier(command, texture);
-        flushCommandBuffer(device, command, true);
-
-        // purple-black square
-        bufferSubData(tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
-
-        {
-            auto bufferImageCopy = vk::BufferImageCopy()
-                .setImageExtent({ width, height, 1 })
-                .setImageOffset({ 0, 0, 0 })
-                .setBufferOffset(0)
-                .setBufferRowLength(width)
-                .setBufferImageHeight(height)
-                .setImageSubresource(texture->subresourceLayers);
-
-            copyMemoryProxy<BufferType&, TextureType&, vk::BufferImageCopy>(device, tstage, texture, bufferImageCopy, [&]() {
-                destroyBuffer(tstage);
-            });
-        }
+		{
+			auto command = getCommandBuffer(device, true);
+			imageBarrier(command, texture);
+			bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
+			memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
+				.setImageExtent({ width, height, 1 })
+				.setImageOffset({ 0, 0, 0 })
+				.setBufferOffset(0)
+				.setBufferRowLength(width)
+				.setBufferImageHeight(height)
+				.setImageSubresource(texture->subresourceLayers));
+			flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+		}
 
         // create sampler for combined
-        vk::SamplerCreateInfo samplerInfo;
-        samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-        samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-        samplerInfo.minFilter = vk::Filter::eLinear;
-        samplerInfo.magFilter = vk::Filter::eLinear;
-        samplerInfo.compareEnable = false;
-        auto sampler = device->logical.createSampler(samplerInfo);
-
-        texture->descriptorInfo.sampler = sampler;
+        texture->descriptorInfo.sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
         return texture;
     }
 

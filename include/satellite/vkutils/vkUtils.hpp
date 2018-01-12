@@ -254,7 +254,7 @@ namespace NSM {
 
 
 
-
+	/* deprecated
     // fill buffer function
     template<class T>
     void bufferSubData(BufferType& buffer, const std::vector<T>& hostdata, intptr_t offset = 0) {
@@ -282,7 +282,48 @@ namespace NSM {
         uint8_t * data = (uint8_t *)buffer->allocationInfo.pMappedData + offset;
         memcpy(hostdata, data, bufferSize);
     }
+	*/
 
+
+
+	// fill buffer function
+	template<class T>
+	void bufferSubData(vk::CommandBuffer& cmd, BufferType& buffer, const std::vector<T>& hostdata, intptr_t offset = 0) {
+		const size_t bufferSize = hostdata.size() * sizeof(T);
+		if (bufferSize > 0) {
+			//if (bufferSize <= 65536) {
+			//	cmd.updateBuffer(buffer->buffer, offset, bufferSize, hostdata.data());
+			//}
+			//else { // planned device side loader for buffer to buffer copy
+			{
+				memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata.data(), bufferSize);
+			}
+		}
+	}
+
+
+	void bufferSubData(vk::CommandBuffer& cmd, BufferType& buffer, const uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
+		if (bufferSize > 0) {
+			//if (bufferSize <= 65536) {
+			//	cmd.updateBuffer(buffer->buffer, offset, bufferSize, hostdata);
+			//}
+			//else { // planned device side loader for buffer to buffer copy
+			{
+				memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata, bufferSize);
+			}
+		}
+	}
+
+	// get buffer data function
+	template<class T>
+	void getBufferSubData( BufferType& buffer, std::vector<T>& hostdata, intptr_t offset = 0) {
+		memcpy(hostdata.data(), (const uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata.size() * sizeof(T));
+	}
+
+	// get buffer data function
+	void getBufferSubData( BufferType& buffer, uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
+		memcpy(hostdata, (const uint8_t *)buffer->allocationInfo.pMappedData + offset, bufferSize);
+	}
 
 
 

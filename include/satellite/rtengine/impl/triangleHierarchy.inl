@@ -183,15 +183,16 @@ namespace NSM {
             // zeros
             std::vector<uint32_t> zeros(1024);
             std::vector<uint32_t> ones(1024);
-            for (int i = 0; i < 1024; i++) {
-                zeros[i] = 0;
-                ones[i] = 1;
-            }
+            for (int i = 0; i < 1024; i++) { zeros[i] = 0, ones[i] = 1; }
+
 
             // make reference buffers
-            bufferSubData(boundaryBufferReference, minmaxes, 0); // make reference buffer of boundary
-            bufferSubData(zerosBufferReference, zeros, 0); // make reference of zeros
-            bufferSubData(debugOnes32BufferReference, ones, 0);
+			auto command = getCommandBuffer(device, true);
+            bufferSubData(command, boundaryBufferReference, minmaxes, 0); // make reference buffer of boundary
+            bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
+            bufferSubData(command, debugOnes32BufferReference, ones, 0);
+			flushCommandBuffer(device, command, true);
+
 
             // create client geometry uniform buffer
             geometryBlockData = std::vector<GeometryBlockUniform>(1);
@@ -331,8 +332,10 @@ namespace NSM {
         }
 
         void TriangleHierarchy::syncUniforms() {
-            bufferSubData(bvhBlockUniform.staging, bvhBlockData, 0);
-			copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) }, true);
+			auto command = getCommandBuffer(device, true);
+			bufferSubData(command, bvhBlockUniform.staging, bvhBlockData, 0);
+			memoryCopyCmd(command, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) });
+			flushCommandBuffer(device, command, true);
         }
 
         // very hacky function, preferly don't use

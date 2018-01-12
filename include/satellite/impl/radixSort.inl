@@ -116,7 +116,11 @@ namespace NSM {
             // create steps data
             std::vector<Consts> steps(stepCount);
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
-            bufferSubData(VarStaging, steps, 0);
+
+			// upload to buffer
+			auto commandBuffer = getCommandBuffer(device, true);
+			bufferSubData(commandBuffer, VarStaging, steps, 0);
+			flushCommandBuffer(device, commandBuffer, true);
 
 
             // copy headers buffer command

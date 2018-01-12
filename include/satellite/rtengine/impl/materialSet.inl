@@ -51,10 +51,11 @@ namespace NSM {
         void MaterialSet::loadToVGA() {
             if (!haveMaterials()) return;
 
-            std::vector<int32_t> offsetSize = { int32_t(loadOffset), int32_t(materials.size()) };
-            bufferSubData(countBuffer, offsetSize, 0);
-            bufferSubData(materialStaging, materials, 0);
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, materialStaging, materialBuffer, { 0, 0, strided<VirtualMaterial>(materials.size()) }, true);
+			auto commandBuffer = getCommandBuffer(device, true);
+			bufferSubData(commandBuffer, countBuffer, std::vector<int32_t>{ int32_t(loadOffset), int32_t(materials.size()) }, 0);
+			bufferSubData(commandBuffer, materialStaging, materials, 0);
+			memoryCopyCmd(commandBuffer, materialStaging, materialBuffer, { 0, 0, strided<VirtualMaterial>(materials.size()) });
+			flushCommandBuffer(device, commandBuffer, true);
         }
 
         size_t MaterialSet::getMaterialCount() {

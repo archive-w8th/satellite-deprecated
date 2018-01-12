@@ -140,9 +140,6 @@ namespace NSM {
         texture->layout = layout;
         texture->initialLayout = vk::ImageLayout::ePreinitialized;//vk::ImageLayout::eUndefined;
 
-
-
-
 		vk::ImageType imageType = vk::ImageType::e2D;
 		bool isCubemap = false;
 		switch (imageViewType) {
@@ -155,16 +152,13 @@ namespace NSM {
 			case vk::ImageViewType::eCubeArray: imageType = vk::ImageType::e3D; isCubemap = true; break;
 		};
 
-
-
-        // create logical image
+        // image memory descriptor 
         auto imageInfo = vk::ImageCreateInfo();
         imageInfo.initialLayout = texture->initialLayout;
         imageInfo.imageType = imageType;
         imageInfo.sharingMode = vk::SharingMode::eExclusive;
         imageInfo.arrayLayers = 1;
         imageInfo.tiling = vk::ImageTiling::eOptimal;
-        //imageInfo.tiling = vk::ImageTiling::eLinear;
         imageInfo.extent = {size.width, size.height, size.depth * (isCubemap ? 6 : 1) };
         imageInfo.format = format;
         imageInfo.mipLevels = mipLevels;
@@ -173,20 +167,12 @@ namespace NSM {
         imageInfo.samples = vk::SampleCountFlagBits::e1;
         imageInfo.usage = usage;
 
-
-		
-
-
-
-
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usageType;
         
         VkImage _image;
         vmaCreateImage(deviceQueue->allocator, &(VkImageCreateInfo)imageInfo, &allocCreateInfo, &_image, &texture->allocation, &texture->allocationInfo);
-        texture->image = _image;
-
-        texture->format = format;
+        texture->image = _image, texture->format = format;
 
         // subresource range
         texture->subresourceRange.levelCount = 1;
@@ -222,6 +208,7 @@ namespace NSM {
         return std::move(texture);
     }
 
+	// 
     auto createTexture(DeviceQueueType& deviceQueue, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
         return createTexture(deviceQueue, viewType, vk::ImageLayout::eGeneral, size, usage, format, mipLevels, usageType);
     }
@@ -234,7 +221,6 @@ namespace NSM {
 
     // create buffer function
     auto createBuffer(DeviceQueueType& deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType, vk::SharingMode sharingMode = vk::SharingMode::eExclusive) {
-        //Buffer buffer;
         std::shared_ptr<Buffer> buffer(new Buffer);
 
         // link with device
@@ -258,7 +244,6 @@ namespace NSM {
 
         // add state descriptor info
         buffer->descriptorInfo = vk::DescriptorBufferInfo(buffer->buffer, 0, bufferSize);
-
         buffer->initialized = true;
 
         return std::move(buffer);

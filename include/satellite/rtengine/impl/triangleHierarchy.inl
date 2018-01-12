@@ -264,13 +264,7 @@ namespace NSM {
             bvhBoxWorking = bvhBoxStorage;
 
             // create sampler
-            vk::SamplerCreateInfo samplerInfo;
-            samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-            samplerInfo.addressModeV = vk::SamplerAddressMode::eMirrorClampToEdge;
-            samplerInfo.minFilter = vk::Filter::eNearest;
-            samplerInfo.magFilter = vk::Filter::eNearest;
-            samplerInfo.compareEnable = false;
-            auto sampler = device->logical.createSampler(samplerInfo);
+            auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setMagFilter(vk::Filter::eNearest).setMinFilter(vk::Filter::eNearest).setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirrorClampToEdge).setCompareEnable(false));
 
             // descriptor templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -338,10 +332,7 @@ namespace NSM {
 
         void TriangleHierarchy::syncUniforms() {
             bufferSubData(bvhBlockUniform.staging, bvhBlockData, 0);
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) }, true);
-
-            //bufferSubData(geometryBlockUniform.staging, geometryBlockData, 0);
-            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, geometryBlockUniform.staging, geometryBlockUniform.buffer, { 0, 0, strided<GeometryBlockUniform>(1) }, true);
+			copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) }, true);
         }
 
         // very hacky function, preferly don't use

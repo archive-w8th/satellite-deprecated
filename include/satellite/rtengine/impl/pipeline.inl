@@ -255,14 +255,7 @@ namespace NSM {
 
             // null envmap
             {
-                // create sampler
-                vk::SamplerCreateInfo samplerInfo;
-                samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-                samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-                samplerInfo.minFilter = vk::Filter::eLinear;
-                samplerInfo.magFilter = vk::Filter::eLinear;
-                samplerInfo.compareEnable = false;
-                auto sampler = device->logical.createSampler(samplerInfo);
+				auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
                 auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
                 auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
@@ -271,26 +264,17 @@ namespace NSM {
                     glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f),
                     glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f)
                 }));
-
-                {
-                    auto bufferImageCopy = vk::BufferImageCopy()
-                        .setImageExtent({ 2, 2, 1 })
-                        .setImageOffset({ 0, 0, 0 })
-                        .setBufferOffset(0)
-                        .setBufferRowLength(2)
-                        .setBufferImageHeight(2)
-                        .setImageSubresource(texture->subresourceLayers);
-
-                    copyMemoryProxy<BufferType&, TextureType&, vk::BufferImageCopy>(device, tstage, texture, bufferImageCopy, [&]() {
-                        destroyBuffer(tstage);
-                    });
-                }
-
-                // desc texture texture
-                vk::DescriptorImageInfo imageDesc;
-                imageDesc.imageLayout = texture->layout;
-                imageDesc.imageView = texture->view;
-                imageDesc.sampler = sampler;
+                
+                copyMemoryProxy<BufferType&, TextureType&, vk::BufferImageCopy>(device, tstage, texture, vk::BufferImageCopy()
+					.setImageExtent({ 2, 2, 1 })
+					.setImageOffset({ 0, 0, 0 })
+					.setBufferOffset(0)
+					.setBufferRowLength(2)
+					.setBufferImageHeight(2)
+					.setImageSubresource(texture->subresourceLayers),
+				[&]() {
+                    destroyBuffer(tstage);
+                });
 
                 // update descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet> {
@@ -300,7 +284,7 @@ namespace NSM {
                         .setDstArrayElement(0)
                         .setDescriptorCount(1)
                         .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-                        .setPImageInfo(&imageDesc)
+                        .setPImageInfo(&vk::DescriptorImageInfo().setImageLayout(texture->layout).setImageView(texture->view).setSampler(sampler))
                 }, nullptr);
             }
 
@@ -356,22 +340,12 @@ namespace NSM {
             // null sampler define
             {
                 // create sampler
-                vk::SamplerCreateInfo samplerInfo;
-                samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-                samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-                samplerInfo.minFilter = vk::Filter::eLinear;
-                samplerInfo.magFilter = vk::Filter::eLinear;
-                samplerInfo.compareEnable = false;
-                auto sampler = device->logical.createSampler(samplerInfo);
-
-                // use sampler in description set
-                vk::DescriptorImageInfo samplerDesc;
-                samplerDesc.sampler = sampler;
+                auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eRepeat).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
 
                 // write with same images
                 std::vector<vk::DescriptorImageInfo> samplerDescs;
                 for (int i = 0; i < 16; i++) {
-                    samplerDescs.push_back(samplerDesc);
+                    samplerDescs.push_back(vk::DescriptorImageInfo().setSampler(sampler));
                 }
 
                 // update descriptors

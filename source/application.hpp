@@ -29,38 +29,10 @@ namespace SatelliteExample {
 
 
     TextureType loadCubemap(std::string bgTexName, DeviceQueueType& device) {
-
-        /*
-        FREE_IMAGE_FORMAT formato = FreeImage_GetFileType(bgTexName.c_str(), 0);
-        if (formato == FIF_UNKNOWN) {
-            return 0;
-        }
-        FIBITMAP* imagen = FreeImage_Load(formato, bgTexName.c_str());
-        if (!imagen) {
-            return 0;
-        }
-
-        FIBITMAP* temp = FreeImage_ConvertToRGBAF(imagen);
-        FreeImage_Unload(imagen);
-        imagen = temp;
-
-        uint32_t width = FreeImage_GetWidth(imagen);
-        uint32_t height = FreeImage_GetHeight(imagen);
-        uint8_t * pixelsPtr = FreeImage_GetBits(imagen);
-        
-        // create compatible imageData
-        std::vector<uint32_t> imageData(width*height * 4);
-        memcpy(imageData.data(), pixelsPtr, imageData.size() * sizeof(uint32_t));
-        */
-
-
         cil::CImg<float> image(bgTexName.c_str());
         uint32_t width = image.width(), height = image.height();
         image.channels(0, 3);
-        //image.mirror("y");
-        //image.cut(0.f, 1.f);
         image.permute_axes("cxyz");
-        
 
         // create texture
         auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
@@ -314,20 +286,8 @@ namespace SatelliteExample {
                 // write descriptors for showing texture
                 {
                     // create sampler
-                    vk::SamplerCreateInfo samplerInfo;
-                    samplerInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
-                    samplerInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
-                    samplerInfo.minFilter = vk::Filter::eLinear;
-                    samplerInfo.magFilter = vk::Filter::eLinear;
-                    samplerInfo.compareEnable = false;
-                    auto sampler = currentContext->device->logical.createSampler(samplerInfo);
+                    auto sampler = currentContext->device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eClampToEdge).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMagFilter(vk::Filter::eLinear).setMinFilter(vk::Filter::eLinear).setCompareEnable(false));
                     auto image = rays->getRawImage();
-
-                    // desc texture texture
-                    vk::DescriptorImageInfo imageDesc;
-                    imageDesc.imageLayout = image->layout;
-                    imageDesc.imageView = image->view;
-                    imageDesc.sampler = sampler;
 
                     // update descriptors
                     currentContext->device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
@@ -337,7 +297,7 @@ namespace SatelliteExample {
                             .setDstArrayElement(0)
                             .setDescriptorCount(1)
                             .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-                            .setPImageInfo(&imageDesc),
+                            .setPImageInfo(&vk::DescriptorImageInfo().setImageLayout(image->layout).setImageView(image->view).setSampler(sampler)),
                     }, nullptr);
                 }
             }
@@ -417,22 +377,13 @@ namespace SatelliteExample {
             this->init(deviceQueue, argc, argv); // init ray tracers virtually
 
             // descriptor set bindings
-            std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
-                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, nullptr)
-            };
+            std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = { vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, nullptr) };
 
             // layouts of descriptor sets 
-            std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
-                deviceQueue->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(1))
-            };
+            std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = { deviceQueue->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(1)) };
 
             // descriptor sets (where will writing binding)
-            auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(
-                vk::DescriptorSetAllocateInfo()
-                .setDescriptorPool(deviceQueue->descriptorPool)
-                .setDescriptorSetCount(descriptorSetLayouts.size())
-                .setPSetLayouts(descriptorSetLayouts.data())
-            );
+            auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(deviceQueue->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
 
             // pipeline layout and cache
             auto pipelineLayout = deviceQueue->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(descriptorSetLayouts.size()));
@@ -446,42 +397,6 @@ namespace SatelliteExample {
                     vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(deviceQueue, shaderPack + "/output/render.frag.spv")).setPName("main").setStage(vk::ShaderStageFlagBits::eFragment)
                 };
 
-                // vertex state
-                auto pvi = vk::PipelineVertexInputStateCreateInfo();
-
-                // tesselation state
-                auto pt = vk::PipelineTessellationStateCreateInfo();
-
-                // viewport and scissors state
-                auto pv = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setScissorCount(1);
-
-                // input assembly
-                auto pia = vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleStrip);
-
-                // rasterization state
-                auto pr = vk::PipelineRasterizationStateCreateInfo()
-                    .setDepthClampEnable(false)
-                    .setRasterizerDiscardEnable(false)
-                    .setPolygonMode(vk::PolygonMode::eFill)
-                    .setCullMode(vk::CullModeFlagBits::eNone)
-                    .setFrontFace(vk::FrontFace::eCounterClockwise)
-                    .setDepthBiasEnable(false)
-                    .setDepthBiasConstantFactor(0)
-                    .setDepthBiasClamp(0)
-                    .setDepthBiasSlopeFactor(0)
-                    .setLineWidth(1.f);
-
-                // multisampling
-                auto pm = vk::PipelineMultisampleStateCreateInfo().setRasterizationSamples(vk::SampleCountFlagBits::e1);
-
-                // depth stencil comparsion modes
-                auto pds = vk::PipelineDepthStencilStateCreateInfo()
-                    .setDepthTestEnable(false)
-                    .setDepthWriteEnable(false)
-                    .setDepthCompareOp(vk::CompareOp::eLessOrEqual)
-                    .setDepthBoundsTestEnable(false)
-                    .setStencilTestEnable(false);
-
                 // blend modes per framebuffer targets
                 std::vector<vk::PipelineColorBlendAttachmentState> colorBlendAttachments = {
                     vk::PipelineColorBlendAttachmentState()
@@ -491,36 +406,45 @@ namespace SatelliteExample {
                     .setColorWriteMask(vk::ColorComponentFlags(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA))
                 };
 
-                // blend state
-                auto pbs = vk::PipelineColorBlendStateCreateInfo()
-                    .setLogicOpEnable(false)
-                    .setLogicOp(vk::LogicOp::eClear)
-                    .setPAttachments(colorBlendAttachments.data())
-                    .setAttachmentCount(colorBlendAttachments.size());
-
                 // dynamic states
                 std::vector<vk::DynamicState> dynamicStates = { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
-
-                // dynamic states
-                auto pdy = vk::PipelineDynamicStateCreateInfo().setPDynamicStates(dynamicStates.data()).setDynamicStateCount(dynamicStates.size());
 
                 // create graphics pipeline
                 trianglePipeline = deviceQueue->logical.createGraphicsPipeline(pipelineCache,
                     vk::GraphicsPipelineCreateInfo()
-                    .setPStages(pipelineShaderStages.data()).setStageCount(pipelineShaderStages.size())
-                    //.setFlags(vk::PipelineCreateFlagBits::eDerivative)
-                    .setPVertexInputState(&pvi)
-                    .setPInputAssemblyState(&pia)
-                    .setPViewportState(&pv)
-                    .setPRasterizationState(&pr)
-                    .setPDepthStencilState(&pds)
-                    .setPColorBlendState(&pbs)
-                    .setLayout(pipelineLayout)
-                    .setRenderPass(renderpass)
-                    .setBasePipelineIndex(0)
-                    .setPMultisampleState(&pm)
-                    .setPDynamicState(&pdy)
-                    .setPTessellationState(&pt)
+						.setPStages(pipelineShaderStages.data()).setStageCount(pipelineShaderStages.size())
+						.setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives)
+						.setPVertexInputState(&vk::PipelineVertexInputStateCreateInfo())
+						.setPInputAssemblyState(&vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleStrip))
+						.setPViewportState(&vk::PipelineViewportStateCreateInfo().setViewportCount(1).setScissorCount(1))
+						.setPRasterizationState(&vk::PipelineRasterizationStateCreateInfo()
+							.setDepthClampEnable(false)
+							.setRasterizerDiscardEnable(false)
+							.setPolygonMode(vk::PolygonMode::eFill)
+							.setCullMode(vk::CullModeFlagBits::eNone)
+							.setFrontFace(vk::FrontFace::eCounterClockwise)
+							.setDepthBiasEnable(false)
+							.setDepthBiasConstantFactor(0)
+							.setDepthBiasClamp(0)
+							.setDepthBiasSlopeFactor(0)
+							.setLineWidth(1.f))
+						.setPDepthStencilState(&vk::PipelineDepthStencilStateCreateInfo()
+							.setDepthTestEnable(false)
+							.setDepthWriteEnable(false)
+							.setDepthCompareOp(vk::CompareOp::eLessOrEqual)
+							.setDepthBoundsTestEnable(false)
+							.setStencilTestEnable(false))
+						.setPColorBlendState(&vk::PipelineColorBlendStateCreateInfo()
+							.setLogicOpEnable(false)
+							.setLogicOp(vk::LogicOp::eClear)
+							.setPAttachments(colorBlendAttachments.data())
+							.setAttachmentCount(colorBlendAttachments.size()))
+						.setLayout(pipelineLayout)
+						.setRenderPass(renderpass)
+						.setBasePipelineIndex(0)
+						.setPMultisampleState(&vk::PipelineMultisampleStateCreateInfo().setRasterizationSamples(vk::SampleCountFlagBits::e1))
+						.setPDynamicState(&vk::PipelineDynamicStateCreateInfo().setPDynamicStates(dynamicStates.data()).setDynamicStateCount(dynamicStates.size()))
+						.setPTessellationState(&vk::PipelineTessellationStateCreateInfo())
                 );
             }
 

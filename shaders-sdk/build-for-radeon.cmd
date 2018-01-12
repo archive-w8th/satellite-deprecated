@@ -21,6 +21,6 @@ set FRGPROF=-fshader-stage=fragment
 set VRTPROF=-fshader-stage=vertex
 set GMTPROF=-fshader-stage=geometry
 
-call shaders-list.bat
+call shaders-list.cmd
 
 pause

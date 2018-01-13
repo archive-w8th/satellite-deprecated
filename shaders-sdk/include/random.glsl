@@ -107,12 +107,16 @@ vec2 randf2x() { return randf2x(rayStreams[0].superseed.x); }
 
 // geometric random generators
 vec3 randomCosine(in int superseed) {
-    vec2 hmsm = randf2x();
+    vec2 hmsm = randf2x(superseed);
     float up = sqrt(1.f-hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
 
+vec3 randomCosineQnt(in int superseed) {
+    vec2 hmsm = randf2q(superseed);
+    float up = sqrt(1.f-hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
+    return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
 

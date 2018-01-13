@@ -501,7 +501,8 @@ namespace SatelliteExample {
                     app->updateSwapchains();
 
                     // acquire next image where will rendered (and get semaphore when will presented finally)
-                    currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[ (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1)) ].semaphore, nullptr, &currentBuffer);
+					n_semaphore = (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1));
+                    currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
 
                     // submit rendering (and wait presentation in device)
                     {
@@ -509,15 +510,6 @@ namespace SatelliteExample {
                         std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
                         auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), window.surfaceSize);
                         auto viewport = vk::Viewport(0.0f, 0.0f, window.surfaceSize.width, window.surfaceSize.height, 0, 1.0f);
-
-                        if (n_semaphore >= 0) {
-                            // wait previously render/presentation 
-                            currentContext->device->logical.waitForFences(1, &currentContext->framebuffers[n_semaphore].waitFence, true, std::numeric_limits<uint64_t>::max()); // wait when will ready rendering
-                            currentContext->device->logical.freeCommandBuffers(currentContext->device->commandPool, 1, &currentContext->framebuffers[n_semaphore].commandBuffer);
-                        }
-                        else {
-                            n_semaphore = context->framebuffers.size() - 1;
-                        }
 
                         // bind with framebuffer 
                         currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->device, true);
@@ -531,20 +523,19 @@ namespace SatelliteExample {
                         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, currentContext->pipelineLayout, 0, currentContext->descriptorSets, nullptr);
                         commandBuffer.draw(4, 1, 0, 0);
                         commandBuffer.endRenderPass();
-                        commandBuffer.end();
-
+						
                         // create render submission 
                         std::vector<vk::Semaphore> waitSemaphores = { currentContext->framebuffers[n_semaphore].semaphore };
                         std::vector<vk::Semaphore> signalSemaphores = { currentContext->framebuffers[c_semaphore].semaphore };
                         std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eAllCommands };
-                        auto kernel = vk::SubmitInfo()
-                            .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
-                            .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
-                            .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size());
 
-                        // submit next render
-                        currentContext->device->logical.resetFences(1, &currentContext->framebuffers[n_semaphore].waitFence); // reset fence (reuse)
-                        currentContext->device->queue.submit(1, &kernel, currentContext->framebuffers[n_semaphore].waitFence);
+						flushCommandBuffer(currentContext->device, commandBuffer, vk::SubmitInfo()
+							.setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
+							.setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
+							.setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), 
+						[&]() {
+
+						});
                     }
 
                     // present for displaying of this image

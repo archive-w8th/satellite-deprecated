@@ -109,6 +109,27 @@ namespace NSM {
         });
     };
 
+
+
+
+	// flush command for rendering 
+	auto flushCommandBuffer(DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, vk::SubmitInfo kernel, const std::function<void()>& asyncCallback) {
+		commandBuffer.end();
+
+		kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
+		std::async([=]() { // async submit and await for destruction command buffers
+			vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
+			deviceQueue->queue.submit(1, &kernel, fence);
+			deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+			asyncCallback();
+			deviceQueue->logical.destroyFence(fence);
+			deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+		});
+	};
+
+
+
+
     // transition texture layout
     void imageBarrier(vk::CommandBuffer& cmd, TextureType& image, vk::ImageLayout oldLayout) {
         // image memory barrier transfer

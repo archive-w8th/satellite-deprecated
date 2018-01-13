@@ -251,7 +251,6 @@ void main() {
                     vec3 surfacenormal = compositedHit[currentLayer].normalHeight.xyz;
                     vec3 normal = faceforward(surfacenormal, currentRay.direct.xyz, surfacenormal);
                     vec3 tangent = normalize(compositedHit[currentLayer].tangent.xyz);
-                    tangent = faceforward(tangent, currentRay.direct.xyz, tangent);
                     mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
 
 

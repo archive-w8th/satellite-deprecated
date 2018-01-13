@@ -185,16 +185,13 @@ HitRework interpolateMeshData(inout HitRework res) {
 
         // gather 
 #define trinorms triverts
-        trinorms = mat3x3(SGATHER(normal_texture, trig, 0)._SWIZV, SGATHER(normal_texture, trig, 1)._SWIZV, SGATHER(normal_texture, trig, 2)._SWIZV);
-        normal = faceforward(vs * trinorms, -normal, normal); // mult matrix
-
         mat2x3 texcoords = mat2x3(SGATHER(texcoords_texture, trig, 0)._SWIZV, SGATHER(texcoords_texture, trig, 1)._SWIZV);
         mat3x2 txds = transpose(texcoords);
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
         // 
-        if (abs(dlts[0].x) < 0.00001f && abs(dlts[0].y) < 0.00001f) dlts[0].x = -1.f, dlts[0].y = 0.f; // correction txcoords delta x
-        if (abs(dlts[1].x) < 0.00001f && abs(dlts[1].y) < 0.00001f) dlts[1].x =  0.f, dlts[1].y = 1.f; // correction txcoords delta y
+        if (abs(dlts[0].x) < 0.00001f && abs(dlts[0].y) < 0.00001f) dlts[0].x = 0.f, dlts[0].y = -1.f; // correction txcoords delta x
+        if (abs(dlts[1].x) < 0.00001f && abs(dlts[1].y) < 0.00001f) dlts[1].x = 1.f, dlts[1].y =  0.f; // correction txcoords delta y
 
         // tangent determinant
         float det = determinant(dlts), f = 1.f / (max(abs(det), 0.00001f) * (det >= 0.f ? 1 : -1));
@@ -202,7 +199,7 @@ HitRework interpolateMeshData(inout HitRework res) {
         vec3 tang = fma(dlts[1].yyy, deltaPos1, -dlts[0].y * deltaPos2) * f;
 
         IF (validInterpolant) {
-            res.normalHeight = vec4(normal, 0.0f);
+            res.normalHeight = vec4(faceforward(vs * mat3x3(SGATHER(normal_texture, trig, 0)._SWIZV, SGATHER(normal_texture, trig, 1)._SWIZV, SGATHER(normal_texture, trig, 2)._SWIZV), -normal, normal), 0.0f);
             res.tangent = vec4(normalize(tang - normal * sign(dot(tang, normal))), 0.0f);
             res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];

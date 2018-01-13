@@ -23,6 +23,7 @@ struct SurfaceUnpacked {
      vec4 uvt; // UV, distance, triangle
      vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
      vec4 metallicRoughness;
+     vec4 tangent;
 
     // color parameters
      vec4 emission;
@@ -51,6 +52,7 @@ void invokeSurface(inout bool overflow) {
     compositedHit[0].albedo = vec4(0.f);
     compositedHit[0].normalHeight = vec4(0.f);
     compositedHit[0].metallicRoughness = vec4(0.f);
+    compositedHit[0].tangent = vec4(0.f);
 
     // if hit was had
     float hitIDbinary = currentRay.origin.w;
@@ -79,6 +81,7 @@ void invokeSurface(inout bool overflow) {
         compositedHit[0].emission = unpackHalf(firstHit.emission);
         compositedHit[0].metallicRoughness = unpackHalf(firstHit.metallicRoughness);
         compositedHit[0].normalHeight = firstHit.normalHeight;
+        compositedHit[0].tangent = firstHit.tangent;
     }
 
     // layers composition
@@ -96,6 +99,7 @@ void invokeSurface(inout bool overflow) {
         compositedHit[searchLayer].normalHeight = fmix(compositedHit[searchLayer].normalHeight, hit.normalHeight, albedo.wwww);
         compositedHit[searchLayer].metallicRoughness = fmix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), albedo.wwww);
         compositedHit[searchLayer].emission = fmix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), albedo.wwww);
+        compositedHit[searchLayer].tangent = fmix(compositedHit[searchLayer].tangent, hit.tangent, albedo.wwww);
 
         // already filled layer
         if (compositedHit[searchLayer].albedo.a > 0.99999f) break;
@@ -246,6 +250,10 @@ void main() {
                     // get normals
                     vec3 surfacenormal = compositedHit[currentLayer].normalHeight.xyz;
                     vec3 normal = faceforward(surfacenormal, currentRay.direct.xyz, surfacenormal);
+                    vec3 tangent = normalize(compositedHit[currentLayer].tangent.xyz);
+                    tangent = faceforward(tangent, currentRay.direct.xyz, tangent);
+                    mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
+
 
                     // get texture composition data
                     vec4 diffcolor = compositedHit[currentLayer].albedo;
@@ -286,7 +294,7 @@ void main() {
 #endif
 
                     // transparent rays
-                    RayRework rayTemplate = promised(currentRay, normal); 
+                    RayRework rayTemplate = promised(currentRay, tbn); 
                     rayTemplate.color.xyz *= RayType(currentRay) == 2 ? prom : qprom; // shadows dims 
                     invalidateRay(rayTemplate, overflow);
                     storeRay(overwriteBlock, rayTemplate);
@@ -304,7 +312,7 @@ void main() {
                         _fake_diffuse *= mix(vec3(1.0f, 0.9f, 0.7f) * 0.1f, vec3(1.0f, 0.9f, 0.7f) * 2.0f, max(dot(normal.xyz, normalize(lightCenter(0).xyz-currentRay.origin.xyz)), 0.f));
 
                         // reflection rays
-                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
+                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), tbn, refly);
                         if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
@@ -312,7 +320,7 @@ void main() {
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
                         // emissions
-                        rayTemplate = emissive(currentRay, _emission + _fake_diffuse, normal);
+                        rayTemplate = emissive(currentRay, _emission + _fake_diffuse, tbn);
                         if (overflow || RayType(currentRay) == 2) rayTemplate.final = vec4(0.f);
                         invalidateRay(rayTemplate, true);
                         createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
@@ -320,7 +328,7 @@ void main() {
                     }
 #else
                     {
-                        rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), normal);
+                        rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
                         if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(diffuseBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
@@ -329,7 +337,7 @@ void main() {
 
                         // reflection rays
                         //if (RayType(currentRay) == 3) confirmed = true; 
-                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), normal, refly);
+                        rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), tbn, refly);
                         if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(reflectionBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
@@ -338,7 +346,7 @@ void main() {
 
                         // shadow rays
                         confirmed = true; // no, you can't write shadows on...
-                        rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), normal);
+                        rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
                         if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);
                         createBlockOnce(shadowBlock, !overflow && RayActived(rayTemplate) == 1 && confirmed);
@@ -346,7 +354,7 @@ void main() {
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
                         // emissions
-                        rayTemplate = emissive(currentRay, _emission, normal);
+                        rayTemplate = emissive(currentRay, _emission, tbn);
                         if (overflow || RayType(currentRay) == 2) rayTemplate.final = vec4(0.f);
                         invalidateRay(rayTemplate, true);
                         createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);

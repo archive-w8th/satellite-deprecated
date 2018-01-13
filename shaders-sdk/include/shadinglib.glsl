@@ -48,7 +48,7 @@ float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist)
     return modularize(max(dot(ldir, ndir), 0.f) * pow(radius / dist, 2.f)) * 2.f;
 }
 
-RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 normal) {
+RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 tbn) {
     RayActived(directRay, RayType(directRay) == 2 ? FALSE_ : RayActived(directRay));
     RayDL(directRay, TRUE_);
     RayTargetLight(directRay, i);
@@ -59,14 +59,14 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 n
     vec3 lpath = sLight(i) - directRay.origin.xyz;
     vec3 ldirect = normalize(lpath);
     float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
-    float weight = samplingWeight(ldirect, normal, lightUniform.lightNode[i].lightColor.w, dist);
+    float weight = samplingWeight(ldirect, tbn[2], lightUniform.lightNode[i].lightColor.w, dist);
 
     directRay.direct.xyz = ldirect;
     directRay.color.xyz *= color * weight;
     directRay.final.xyz *= 0.f;
     directRay.origin.xyz = fma(directRay.direct.xyz, vec3(GAP), directRay.origin.xyz);
 
-    IF (lessF(dot(directRay.direct.xyz, normal), 0.f)) RayActived(directRay, FALSE_); // wrong direction, so invalid
+    IF (lessF(dot(directRay.direct.xyz, tbn[2]), 0.f)) RayActived(directRay, FALSE_); // wrong direction, so invalid
 
     // any trying will fail when flag not enabled
 #ifndef DIRECT_LIGHT_ENABLED
@@ -76,7 +76,7 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in vec3 n
     return directRay;
 }
 
-RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
+RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     ray.color.xyz *= color;
     ray.final.xyz *= 0.f;
 
@@ -88,10 +88,10 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
 
     //vec3 sdr = rayStreams[RayDiffBounce(ray)].diffuseStream.xyz;
     //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
-    vec3 sdr = randomCosine(normal, rayStreams[RayDiffBounce(ray)].superseed.x);
-    ray.direct.xyz = faceforward(sdr, sdr, -normal);
+    vec3 sdr = normalize(tbn * randomCosine(rayStreams[RayDiffBounce(ray)].superseed.x));
+    ray.direct.xyz = faceforward(sdr, sdr, -tbn[2]);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    //ray.color.xyz *= fmix(0.f, 1.f, max(dot(normal, ray.direct.xyz), 0.f)) * 2.f;
+    //ray.color.xyz *= fmix(0.f, 1.f, max(dot(tbn[2], ray.direct.xyz), 0.f)) * 2.f;
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED
@@ -102,12 +102,12 @@ RayRework diffuse(in RayRework ray, in vec3 color, in vec3 normal) {
     return ray;
 }
 
-RayRework promised(in RayRework ray, in vec3 normal) {
+RayRework promised(in RayRework ray, in mat3 tbn) {
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
     return ray;
 }
 
-RayRework emissive(in RayRework ray, in vec3 color, in vec3 normal) {
+RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
     ray.final.xyz = max(ray.color.xyz * color, vec3(0.0f));
     ray.final = RayType(ray) == 2 ? vec4(0.0f) : ray.final;
     ray.color.xyz *= 0.0f;
@@ -118,7 +118,7 @@ RayRework emissive(in RayRework ray, in vec3 color, in vec3 normal) {
     return ray;
 }
 
-RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float refly) {
+RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refly) {
     ray.color.xyz *= color;
     ray.final.xyz *= 0.f;
 
@@ -134,14 +134,14 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
 
     //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
     //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
-    vec3 sdr = randomCosine(normal, rayStreams[RayBounce(ray)].superseed.x);
+    vec3 sdr = normalize(tbn * randomCosine(rayStreams[RayBounce(ray)].superseed.x));
 
-    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
-    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, normal), faceforward(sdr, sdr, -normal), clamp(refly * random(), 0.0f, 1.0f)));
-    //sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
-    sdr = normalize(fmix(reflect(ray.direct.xyz, normal), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
-    //sdr = reflect(ray.direct.xyz, normal);
-    ray.direct.xyz = faceforward(sdr, sdr, -normal);
+    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), faceforward(sdr, sdr, -tbn[2]), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
+    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), faceforward(sdr, sdr, -tbn[2]), clamp(refly * random(), 0.0f, 1.0f)));
+    //sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
+    sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
+    //sdr = reflect(ray.direct.xyz, tbn[2]);
+    ray.direct.xyz = faceforward(sdr, sdr, -tbn[2]);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
 
 
@@ -150,8 +150,8 @@ RayRework reflection(in RayRework ray, in vec3 color, in vec3 normal, in float r
 }
 
 // for future purpose
-RayRework refraction(in RayRework ray, in vec3 color, in vec3 normal, in float inior, in float outior, in float glossiness) {
-    vec3 refrDir = normalize(  refract(ray.direct.xyz, normal, inior / outior)  );
+RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inior, in float outior, in float glossiness) {
+    vec3 refrDir = normalize(  refract(ray.direct.xyz, tbn[2], inior / outior)  );
     BOOL_ directDirc = equalF(inior, outior), isShadowed = BOOL_(RayType(ray) == 2);
 
 #ifdef REFRACTION_SKIP_SUN

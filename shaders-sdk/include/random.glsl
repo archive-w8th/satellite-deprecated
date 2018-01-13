@@ -40,10 +40,10 @@ uint hash( in uvec4 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z ^ hash(v.w))) )
 
 
 // aggregated randoms from seeds
-float hrand( in uint   x ) { return radicalInverse_VdC(hash(x)); }
-float hrand( in uvec2  v ) { return radicalInverse_VdC(hash(v)); }
-float hrand( in uvec3  v ) { return radicalInverse_VdC(hash(v)); }
-float hrand( in uvec4  v ) { return radicalInverse_VdC(hash(v)); }
+float hrand( in uint   x ) { return floatConstruct(hash(x)); }
+float hrand( in uvec2  v ) { return floatConstruct(hash(v)); }
+float hrand( in uvec3  v ) { return floatConstruct(hash(v)); }
+float hrand( in uvec4  v ) { return floatConstruct(hash(v)); }
 
 
 // 1D random generators from superseed
@@ -81,6 +81,8 @@ vec2 randf2x( in int superseed ) {
     uint gseq = uint(superseed);
     uint comb = hash(uvec3(hclk, plan, gseq));
     return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
+    
+    //return vec2(random(superseed), random(superseed));
 }
 
 
@@ -102,31 +104,22 @@ vec2 hammersley2d(in uint N) { return hammersley2d(N, rayStreams[0].superseed.x)
 vec2 randf2x() { return randf2x(rayStreams[0].superseed.x); }
 
 
+
 // geometric random generators
-vec3 randomCosine(in vec3 normal, in int superseed) {
-    vec2 hmsm = randf2x(superseed);
-    float up = sqrt(hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
-    vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
-    vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
-    vec3 perpendicular2 = normalize(cross(normal, perpendicular1));
-    return normalize(fma(normal, up.xxx, fma(perpendicular1, cos(around).xxx * over, perpendicular2* sin(around).xxx * over)));
+vec3 randomCosine(in int superseed) {
+    vec2 hmsm = randf2x();
+    float up = sqrt(1.f-hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
+    return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
 
-vec3 randomCosineQnt(in vec3 normal, in int superseed) {
-    vec2 hmsm = randf2q(superseed);
-    float up = sqrt(hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
-    vec3 perpendicular0 = abs(normal.x) < SQRT_OF_ONE_THIRD ? vec3(1, 0, 0) : (abs(normal.y) < SQRT_OF_ONE_THIRD ? vec3(0, 1, 0) : vec3(0, 0, 1));
-    vec3 perpendicular1 = normalize(cross(normal, perpendicular0));
-    vec3 perpendicular2 = normalize(cross(normal, perpendicular1));
-    return normalize(fma(normal, up.xxx, fma(perpendicular1, cos(around).xxx * over, perpendicular2* sin(around).xxx * over)));
 }
 
 
 vec3 randomDirectionInSphere() {
     vec2 hmsm = randf2x();
-    float up = fma(hmsm.x, 2.0f, -1.0f), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
-    return normalize(vec3( up, cos(around) * over, sin(around) * over ));
+    float up = (0.5f-hmsm.x)*2.f, over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
+    return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
 #endif

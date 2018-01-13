@@ -253,7 +253,6 @@ void main() {
                     vec3 tangent = normalize(compositedHit[currentLayer].tangent.xyz);
                     mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
 
-
                     // get texture composition data
                     vec4 diffcolor = compositedHit[currentLayer].albedo;
                     vec4 emiscolor = compositedHit[currentLayer].emission;

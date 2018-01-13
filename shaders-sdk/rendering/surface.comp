@@ -116,17 +116,24 @@ vec4 fetchNormal(in Material mat, in vec2 texcoord, in ivec2 offset) {
     return nmap;
 }
 
+
+vec3 getUVH(in int binding, in vec2 texcoord){
+    return vec3(texcoord, 1.f-fetchTexture(binding, texcoord).x);
+}
+
 vec3 getNormalMapping(in int binding, vec2 texcoordi) {
     vec3 tc = fetchTexture(binding, texcoordi).xyz;
     vec3 normal = vec3(0.0f, 0.0f, 1.0f);
     IF (equalF(tc.x, tc.y) & equalF(tc.x, tc.z)) {
-        const ivec2 off = ivec2(0,1);
-        const float size = 1.0f;
-        const float pike = 2.0f;
-        vec3 p00 = vec3(0.0f, 0.0f, fetchTexture(binding, texcoordi, off.xx).x * pike);
-        vec3 p01 = vec3(size, 0.0f, fetchTexture(binding, texcoordi, off.yx).x * pike);
-        vec3 p10 = vec3(0.0f, size, fetchTexture(binding, texcoordi, off.xy).x * pike);
-        normal = normalize(cross(p01 - p00, p10 - p00));
+        vec2 txs = 1.f/textureSize(sampler2D(textures[binding], samplers[0]), 0);
+        vec4 tx4 = vec4(-txs.xy, txs.xy)*0.5f;
+
+        const float hsize = 0.005f;
+        vec3 t00 = getUVH(binding, texcoordi + tx4.xy) * vec3(1.f,1.f,hsize);
+        vec3 t01 = getUVH(binding, texcoordi + tx4.xw) * vec3(1.f,1.f,hsize);
+        vec3 t10 = getUVH(binding, texcoordi + tx4.zy) * vec3(1.f,1.f,hsize);
+        vec3 bump = normalize(cross(t10 - t00, t01 - t00));
+        normal = faceforward(bump, normal, bump);
     } else {
         normal = normalize(fmix(vec3(0.0f, 0.0f, 1.0f), fma(tc, vec3(2.0f), vec3(-1.0f)), vec3(1.0f)));
     }
@@ -177,14 +184,15 @@ HitRework interpolateMeshData(inout HitRework res) {
         vec3 deltaPos1 = triverts[1] - triverts[0];
         vec3 deltaPos2 = triverts[2] - triverts[0];
         vec3 normal = normalize(cross(deltaPos1, deltaPos2));
+        
 
         // gather texcoord
         vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
         vec2 sz = 1.f / textureSize(vertex_texture, 0);
         vec2 trig = fma(vec2(triv), sz, sz * 0.9999f);
+        normal = faceforward(vs * mat3x3(SGATHER(normal_texture, trig, 0)._SWIZV, SGATHER(normal_texture, trig, 1)._SWIZV, SGATHER(normal_texture, trig, 2)._SWIZV), -normal, normal);
 
-        // gather 
-#define trinorms triverts
+        // gather
         mat2x3 texcoords = mat2x3(SGATHER(texcoords_texture, trig, 0)._SWIZV, SGATHER(texcoords_texture, trig, 1)._SWIZV);
         mat3x2 txds = transpose(texcoords);
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
@@ -196,11 +204,12 @@ HitRework interpolateMeshData(inout HitRework res) {
         // tangent determinant
         float det = determinant(dlts), f = 1.f / (max(abs(det), 0.00001f) * (det >= 0.f ? 1 : -1));
         { f = isnan(f) ? 0.f : f, f = isinf(f) ? 10000.f : f; }
-        vec3 tang = fma(dlts[1].yyy, deltaPos1, -dlts[0].y * deltaPos2) * f;
+        vec3 btng = fma(dlts[0].xxx, deltaPos2 ,- dlts[1].xxx * deltaPos1) * f;
+        vec3 tang = cross(btng, normal);
 
         IF (validInterpolant) {
-            res.normalHeight = vec4(faceforward(vs * mat3x3(SGATHER(normal_texture, trig, 0)._SWIZV, SGATHER(normal_texture, trig, 1)._SWIZV, SGATHER(normal_texture, trig, 2)._SWIZV), -normal, normal), 0.0f);
-            res.tangent = vec4(normalize(tang - normal * sign(dot(tang, normal))), 0.0f);
+            res.normalHeight = vec4(normal, 0.0f);
+            res.tangent = vec4(-tang, 0.0f);
             res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
             HitActived(res, TRUE_); // temporary enable

@@ -167,7 +167,6 @@ void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
 
 void deferTriangles(in int tri) {
     deftri = tri;
-    //if (deftri.x >= 0) awaitFlag = true; // deferred-lock instead soft-lock
 }
 
 // intersection stage per traverse phase
@@ -189,7 +188,6 @@ void doIntersection() {
 // planned block optimized system
 void checkChildNodes() {
     if ( bool(validBox) && !awaitFlag ) { // traverse BVH, but don't traverse when deferred triangles
-    //IF (validBox) {
         int found = -1;
 
         BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
@@ -201,53 +199,48 @@ void checkChildNodes() {
 
         // calculate boxes intersections
         ivec4 comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
-        if (comp4.x != comp4.y) { // test boxes (if not leafs)
-            int _cmp = comp4.x >> 1;
 
-            // do dual box intersection (claymore style)
-            overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
-                UNPACK_LANE_(bvhBoxes[_cmp][0]),
-                UNPACK_LANE_(bvhBoxes[_cmp][1]),
-                UNPACK_LANE_(bvhBoxes[_cmp][2])
-            ), nears, fars);
-            
-            // correct near dist and mark order by distances
-            leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
+        // if is leaf and has triangle, do locking when already deferred 
+        if (deftri.x >= 0) { if (comp4.x == comp4.y && comp4.w >= 0) awaitFlag = true; }
 
-            // validate intersection
-            overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist)));
-        } else 
+        if (!awaitFlag) {
+            if (comp4.x != comp4.y) { // test boxes (if not leafs)
+                int _cmp = comp4.x >> 1;
 
-        // if is leaf, defer intersection
-        //if (comp4.x == comp4.y) 
-        {
-            deferTriangles(comp4.w);
-            overlapsGeneral &= FALSE_.xx;
-        }
+                // do dual box intersection (claymore style)
+                overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
+                    UNPACK_LANE_(bvhBoxes[_cmp][0]),
+                    UNPACK_LANE_(bvhBoxes[_cmp][1]),
+                    UNPACK_LANE_(bvhBoxes[_cmp][2])
+                ), nears, fars);
+                
+                // correct near dist and mark order by distances
+                leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
 
-        // choice child nodes by nears
-        IF (any(overlapsGeneral)) {
-            bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
-            ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
-            nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
-            IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
-                storeStack(min(++deferredPtr, STACK_SIZE_SM-1), nodepdata.y);
+                // validate intersection
+                overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist)));
+            } else {
+                deferTriangles(comp4.w);
+                overlapsGeneral &= FALSE_.xx;
             }
-            deferredPtr = min(deferredPtr, STACK_SIZE_SM-1);
-        }
 
-        { // unified child/parent/another switcher
-            bool _ssc = found >= 0;
-            int ptr = deferredPtr; deferredPtr = max(deferredPtr-(_ssc ? 0 : 1), -1);
-            esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
-        }
+            // choice child nodes by nears
+            IF (any(overlapsGeneral)) {
+                bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
+                ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
+                nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
+                IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
+                    storeStack(min(++deferredPtr, STACK_SIZE_SM-1), nodepdata.y);
+                }
+                deferredPtr = min(deferredPtr, STACK_SIZE_SM-1);
+            }
 
-        // make sure that next node is not leaf, is leaf, do soft-lock
-        if (deftri.x >= 0) {
-            comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
-            if (comp4.x == comp4.y && comp4.w >= 0) awaitFlag = true;
+            { // unified child/parent/another switcher
+                bool _ssc = found >= 0;
+                int ptr = deferredPtr; deferredPtr = max(deferredPtr-(_ssc ? 0 : 1), -1);
+                esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
+            }
         }
-
     }
 }
 

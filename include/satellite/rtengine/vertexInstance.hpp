@@ -48,19 +48,19 @@ namespace NSM {
             void setDataAccessSet(std::shared_ptr<DataAccessSet>& accessDataSet);
 
             // getters of buffers
-            BufferType getBufferSpaceBuffer() { 
+            BufferType getBufferSpaceBuffer() {
                 return bufferSpace->getDataBuffer();
             };
-            BufferType getBufferSpaceRegions() { 
+            BufferType getBufferSpaceRegions() {
                 return bufferSpace->getRegionsBuffer();
             };
-            BufferType getBufferViewsBuffer() { 
+            BufferType getBufferViewsBuffer() {
                 return bufferViewSet->getBuffer();
             };
-            BufferType getDataFormatBuffer() { 
+            BufferType getDataFormatBuffer() {
                 return dataFormatSet->getBuffer();
             };
-            BufferType getBufferBindingBuffer() { 
+            BufferType getBufferBindingBuffer() {
                 return dataBindingSet->getBuffer();
             };
             BufferType getUniformBuffer() {

@@ -218,7 +218,7 @@ namespace SatelliteExample {
 
         // unify buffers
         for (int i = 0; i < gltfModel.buffers.size(); i++) {
-            intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data.data(), tiled(gltfModel.buffers[i].data.size(),4)*4);
+            intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data.data(), tiled(gltfModel.buffers[i].data.size(), 4) * 4);
             vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(tiled(gltfModel.buffers[i].data.size(),4) * 4) });
         }
 
@@ -275,16 +275,16 @@ namespace SatelliteExample {
                     }
                     else
 
-                    // normal
-                    if (it.first.compare("NORMAL") == 0) {
-                        geom->setNormalBinding(bnds->addElement(vattr));
-                    }
-                    else
+                        // normal
+                        if (it.first.compare("NORMAL") == 0) {
+                            geom->setNormalBinding(bnds->addElement(vattr));
+                        }
+                        else
 
-                    // texcoord
-                    if (it.first.compare("TEXCOORD_0") == 0) {
-                        geom->setTexcoordBinding(bnds->addElement(vattr));
-                    }
+                            // texcoord
+                            if (it.first.compare("TEXCOORD_0") == 0) {
+                                geom->setTexcoordBinding(bnds->addElement(vattr));
+                            }
                 }
 
                 // indices
@@ -321,7 +321,7 @@ namespace SatelliteExample {
 
         // init timing state
         time = glfwGetTime() * 1000.f, diff = 0;
-        
+
         // matrix with scaling
         glm::dmat4 matrix(1.0);
         matrix *= glm::scale(glm::dvec3(mscale))*glm::scale(glm::dvec3(1.f, 1.f, 1.f));

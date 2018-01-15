@@ -17,27 +17,27 @@ namespace ambientIO {
         std::vector<std::function<void(int32_t, const char*)>> errorFunctions;
         std::vector<std::function<void(ImDrawData* data)>> drawListFunctions;
     };
-    
+
     // for GLFW usage
-     void _glfwErrorHandler(int32_t error, const char* description) {
+    void _glfwErrorHandler(int32_t error, const char* description) {
         std::cerr << "GLFW Error: \n" + std::string(description) << std::endl;
         for (auto const& fn : Listeners::errorFunctions) fn(error, description);
     }
 
-     void _glfwKeyAction(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods) {
+    void _glfwKeyAction(GLFWwindow* window, int32_t key, int32_t scancode, int32_t action, int32_t mods) {
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) glfwSetWindowShouldClose(window, GLFW_TRUE);
         for (auto const& fn : Listeners::keyActionFunctions) fn(window, key, scancode, action, mods);
     }
 
-     void _glfwMouseAction(GLFWwindow* window, int32_t button, int32_t action, int32_t mods) {
+    void _glfwMouseAction(GLFWwindow* window, int32_t button, int32_t action, int32_t mods) {
         for (auto const& fn : Listeners::mouseActionFunctions) fn(window, button, action, mods);
     }
 
-     void _glfwMouseMove(GLFWwindow* window, double x, double y) {
+    void _glfwMouseMove(GLFWwindow* window, double x, double y) {
         for (auto const& fn : Listeners::mouseMoveFunctions) fn(window, x, y);
     }
 
-     void _ImGuiDrawListHandler(ImDrawData* data) {
+    void _ImGuiDrawListHandler(ImDrawData* data) {
         for (auto const& fn : Listeners::drawListFunctions) fn(data);
     }
 
@@ -51,27 +51,27 @@ namespace ambientIO {
 
 
     // user (coder) friend functions
-     void addMouseMoveCallback(std::function<void(GLFWwindow*, double, double)> cb) {
+    void addMouseMoveCallback(std::function<void(GLFWwindow*, double, double)> cb) {
         Listeners::mouseMoveFunctions.push_back(cb);
     }
 
-     void addMouseActionCallback(std::function<void(GLFWwindow*, int32_t, int32_t, int32_t)> cb) {
+    void addMouseActionCallback(std::function<void(GLFWwindow*, int32_t, int32_t, int32_t)> cb) {
         Listeners::mouseActionFunctions.push_back(cb);
     }
 
-     void addKeyboardCallback(std::function<void(GLFWwindow*, int32_t, int32_t, int32_t, int32_t)> cb) {
+    void addKeyboardCallback(std::function<void(GLFWwindow*, int32_t, int32_t, int32_t, int32_t)> cb) {
         Listeners::keyActionFunctions.push_back(cb);
     }
 
-     void addErrorHandler(std::function<void(int32_t, const char*)> cb) {
+    void addErrorHandler(std::function<void(int32_t, const char*)> cb) {
         Listeners::errorFunctions.push_back(cb);
     }
 
-     void addGuiDrawListCallback(std::function<void(ImDrawData*)> cb) {
+    void addGuiDrawListCallback(std::function<void(ImDrawData*)> cb) {
         Listeners::drawListFunctions.push_back(cb);
     }
 
-     void handleGlfw(GLFWwindow* window) {
+    void handleGlfw(GLFWwindow* window) {
         glfwSetErrorCallback(_glfwErrorHandler);
         glfwSetKeyCallback(window, _glfwKeyAction);
         glfwSetMouseButtonCallback(window, _glfwMouseAction);

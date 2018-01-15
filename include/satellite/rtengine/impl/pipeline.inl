@@ -7,12 +7,12 @@ namespace NSM {
     namespace rt {
 
         void Pipeline::syncUniforms() {
-            
+
 
             auto command = getCommandBuffer(device, true);
-			bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
-			bufferSubData(command, lightUniform.staging, lightUniformData, 0);
-			bufferSubData(command, rayStreamsUniform.staging, rayStreamsData, 0);
+            bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
+            bufferSubData(command, lightUniform.staging, lightUniformData, 0);
+            bufferSubData(command, rayStreamsUniform.staging, rayStreamsData, 0);
             memoryCopyCmd(command, rayBlockUniform.staging, rayBlockUniform.buffer, { 0, 0, strided<RayBlockUniform>(1) });
             memoryCopyCmd(command, lightUniform.staging, lightUniform.buffer, { 0, 0, strided<LightUniformStruct>(lightUniformData.size()) });
             memoryCopyCmd(command, rayStreamsUniform.staging, rayStreamsUniform.buffer, { 0, 0, strided<RayStream>(rayStreamsData.size()) });
@@ -62,8 +62,8 @@ namespace NSM {
                 vk::DescriptorSetLayoutBinding(14, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // StreamsBlockUniform
 
                 // BVH cache binding set 
-                vk::DescriptorSetLayoutBinding(16, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), 
-                vk::DescriptorSetLayoutBinding(17, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr) 
+                vk::DescriptorSetLayoutBinding(16, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                vk::DescriptorSetLayoutBinding(17, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr)
             };
 
             // images for sampling
@@ -196,12 +196,12 @@ namespace NSM {
             counters[AVAILABLE_COUNTER] += includeCount; // add rest counts
 
             // set bounded
-			{
-				auto commandBuffer = getCommandBuffer(device, true);
-				bufferSubData(commandBuffer, generalStagingBuffer, counters, 0);
-				memoryCopyCmd(commandBuffer, generalStagingBuffer, countersBuffer, { 0, 0, strided<uint32_t>(8) });
-				flushCommandBuffer(device, commandBuffer, true);
-			}
+            {
+                auto commandBuffer = getCommandBuffer(device, true);
+                bufferSubData(commandBuffer, generalStagingBuffer, counters, 0);
+                memoryCopyCmd(commandBuffer, generalStagingBuffer, countersBuffer, { 0, 0, strided<uint32_t>(8) });
+                flushCommandBuffer(device, commandBuffer, true);
+            }
 
             // setup active blocks count in host
             rayBlockData[0].samplerUniform.blockCount = counters[PREPARING_BLOCK_COUNTER];
@@ -246,44 +246,44 @@ namespace NSM {
             std::vector<uint32_t> ones(1024);
             for (int i = 0; i < 1024; i++) { zeros[i] = 0, ones[i] = 1; }
 
-			{
-				// make reference buffers
-				auto command = getCommandBuffer(device, true);
-				bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
-				bufferSubData(command, debugOnes32BufferReference, ones, 0);
-				flushCommandBuffer(device, command, true);
-			}
+            {
+                // make reference buffers
+                auto command = getCommandBuffer(device, true);
+                bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
+                bufferSubData(command, debugOnes32BufferReference, ones, 0);
+                flushCommandBuffer(device, command, true);
+            }
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(12).setPBufferInfo(&lightUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(13).setPBufferInfo(&rayBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo)
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(12).setPBufferInfo(&lightUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(13).setPBufferInfo(&rayBlockUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo)
             }, nullptr);
 
             // null envmap
             {
-				auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
+                auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
                 auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
                 auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
-				{
-					auto command = getCommandBuffer(device, true);
-					bufferSubData(command, tstage, std::vector<glm::vec4>({
-						glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f),
-						glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f)
-					}));
-					memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
-						.setImageExtent({ 2, 2, 1 })
-						.setImageOffset({ 0, 0, 0 })
-						.setBufferOffset(0)
-						.setBufferRowLength(2)
-						.setBufferImageHeight(2)
-						.setImageSubresource(texture->subresourceLayers));
-					flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
-				}
+                {
+                    auto command = getCommandBuffer(device, true);
+                    bufferSubData(command, tstage, std::vector<glm::vec4>({
+                        glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f),
+                        glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f)
+                        }));
+                    memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
+                        .setImageExtent({ 2, 2, 1 })
+                        .setImageOffset({ 0, 0, 0 })
+                        .setBufferOffset(0)
+                        .setBufferRowLength(2)
+                        .setBufferImageHeight(2)
+                        .setImageSubresource(texture->subresourceLayers));
+                    flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+                }
 
                 // update descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet> {
@@ -303,22 +303,22 @@ namespace NSM {
                 auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
                 auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-				// purple-black square
-				{
-					auto command = getCommandBuffer(device, true);
-					bufferSubData(command, tstage, std::vector<glm::vec4>({
-						glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
-						glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)
-					}));
-					memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
-						.setImageExtent({ 2, 2, 1 })
-						.setImageOffset({ 0, 0, 0 })
-						.setBufferOffset(0)
-						.setBufferRowLength(2)
-						.setBufferImageHeight(2)
-						.setImageSubresource(texture->subresourceLayers));
-					flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
-				}
+                // purple-black square
+                {
+                    auto command = getCommandBuffer(device, true);
+                    bufferSubData(command, tstage, std::vector<glm::vec4>({
+                        glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f),
+                        glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f)
+                        }));
+                    memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
+                        .setImageExtent({ 2, 2, 1 })
+                        .setImageOffset({ 0, 0, 0 })
+                        .setBufferOffset(0)
+                        .setBufferRowLength(2)
+                        .setBufferImageHeight(2)
+                        .setImageSubresource(texture->subresourceLayers));
+                    flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+                }
 
                 // write with same images
                 std::vector<vk::DescriptorImageInfo> imageDescs;
@@ -366,7 +366,7 @@ namespace NSM {
             rayBlockData[0].cameraUniform.enable360 = 0;
             clearRays();
         }
-        
+
         void Pipeline::init(DeviceQueueType& device) {
             this->device = device;
             rayBlockData.resize(1);
@@ -403,9 +403,9 @@ namespace NSM {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&depthImage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&depthImage->descriptorInfo),
             }, nullptr);
 
             clearSampling();
@@ -467,18 +467,18 @@ namespace NSM {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPBufferInfo(&rayNodeBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&rayBlockBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&currentBlocks->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&preparingBlocks->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&availableBlocks->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&clearingBlocks->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&texelBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(7).setPBufferInfo(&blockBinBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(9).setPBufferInfo(&hitBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(10).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo)
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&rayBlockBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&currentBlocks->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&preparingBlocks->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&availableBlocks->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&clearingBlocks->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&texelBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(7).setPBufferInfo(&blockBinBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(9).setPBufferInfo(&hitBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(10).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo)
             }, nullptr);
 
             // init swaps
@@ -498,7 +498,7 @@ namespace NSM {
             copyDesc.srcOffset = { 0, 0, 0 };
             copyDesc.dstOffset = { 0, int32_t(canvasHeight), 0 };
             copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight), 1 };
-            
+
             // copy images command
             auto copyCommand = getCommandBuffer(device, true);
             copyDesc.srcSubresource = accumulationImage->subresourceLayers;
@@ -546,7 +546,7 @@ namespace NSM {
 
             // copy commands 
             auto copyCommandBuffer = getCommandBuffer(device, true);
-			bufferSubData(copyCommandBuffer, rayBlockUniform.staging, rayBlockData, 0);
+            bufferSubData(copyCommandBuffer, rayBlockUniform.staging, rayBlockData, 0);
             memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) }); // don't touch criticals
             memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
 
@@ -569,12 +569,12 @@ namespace NSM {
 
             const size_t num_seeds = 16;
             rayStreamsData.resize(num_seeds);
-            for (int i = 0; i < rayStreamsData.size();i++) {
+            for (int i = 0; i < rayStreamsData.size(); i++) {
                 rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
-                rayStreamsData[i].superseed = glm::ivec4(sequenceId+i, sequenceId+i + num_seeds*1, sequenceId+i + num_seeds*2, sequenceId+i + num_seeds*3);
+                rayStreamsData[i].superseed = glm::ivec4(sequenceId + i, sequenceId + i + num_seeds * 1, sequenceId + i + num_seeds * 2, sequenceId + i + num_seeds * 3);
                 rayStreamsData[i].frand4 = glm::vec4(randf(), randf(), randf(), randf());
             }
-            sequenceId = (sequenceId+1) % 2147483647;
+            sequenceId = (sequenceId + 1) % 2147483647;
 
             // precalculate light center
             for (int i = 0; i < lightUniformData.size(); i++) {
@@ -584,7 +584,7 @@ namespace NSM {
                 lightUniformData[i].lightRandomizedOrigin = glm::vec4(glm::sphericalRand(lightUniformData[i].lightColor.w - 0.0001f) + lightCenter, 1.f);
             }
 
-            
+
             //rayBlockData[0].materialUniform.time = randm();
             rayBlockData[0].cameraUniform.ftime = float((milliseconds() - starttime) / (1000.0));
             rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;

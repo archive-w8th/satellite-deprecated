@@ -13,10 +13,10 @@ namespace NSM {
         }
 
         void VertexInstance::syncUniform() {
-			auto commandBuffer = getCommandBuffer(device, true);
-			bufferSubData(commandBuffer, meshUniformStager, meshUniformData, 0);
-			memoryCopyCmd(commandBuffer, meshUniformStager, meshUniformBuffer, { 0, 0, strided<MeshUniformStruct>(1) });
-			flushCommandBuffer(device, commandBuffer, true);
+            auto commandBuffer = getCommandBuffer(device, true);
+            bufferSubData(commandBuffer, meshUniformStager, meshUniformData, 0);
+            memoryCopyCmd(commandBuffer, meshUniformStager, meshUniformBuffer, { 0, 0, strided<MeshUniformStruct>(1) });
+            flushCommandBuffer(device, commandBuffer, true);
         }
 
         VertexInstance::VertexInstance(VertexInstance&& another) {
@@ -34,7 +34,7 @@ namespace NSM {
         }
 
 
-        
+
 
         void VertexInstance::setBufferSpace(std::shared_ptr<BufferSpace>& buf) {
             this->bufferSpace = buf;

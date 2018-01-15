@@ -5,7 +5,7 @@
 namespace NSM {
     namespace rt {
 
-        
+
 
         template<int BINDING, class STRUCTURE>
         class BufferComposer {
@@ -17,7 +17,7 @@ namespace NSM {
             BufferComposer(BufferComposer<BINDING, STRUCTURE>&& another);
             BufferComposer(DeviceQueueType& device, const size_t bsize = 1024 * 128);
             int32_t addElement(STRUCTURE accessorDesc);
-            BufferType getBuffer(); 
+            BufferType getBuffer();
 
             void resetStack() { data.resize(0); }
 
@@ -35,10 +35,10 @@ namespace NSM {
             BufferSpace(DeviceQueueType& device, const size_t space);
             BufferType getDataBuffer();
             BufferType getRegionsBuffer();
-            int32_t addRegionDesc( BufferRegion accessorDesc);
+            int32_t addRegionDesc(BufferRegion accessorDesc);
 
-            intptr_t copyGPUBuffer( BufferType external, const size_t size);
-            intptr_t copyGPUBuffer( BufferType external, const size_t size, const intptr_t offset);
+            intptr_t copyGPUBuffer(BufferType external, const size_t size);
+            intptr_t copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset);
 
             intptr_t copyHostBuffer(const uint8_t * external, const size_t size);
             intptr_t copyHostBuffer(const uint8_t * external, const size_t size, const intptr_t offset);
@@ -65,6 +65,6 @@ namespace NSM {
         using BufferViewSet = BufferComposer<3, VirtualBufferView>;
         using DataAccessSet = BufferComposer<4, VirtualDataAccess>;
         using DataBindingSet = BufferComposer<5, VirtualBufferBinding>;
-        
+
     }
 }

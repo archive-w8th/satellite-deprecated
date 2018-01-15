@@ -48,7 +48,7 @@ namespace NSM {
     // buffer with memory
     struct Buffer {
         bool initialized = false;
-		DeviceQueueType device;
+        DeviceQueueType device;
         //vk::DeviceMemory memory;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
@@ -73,7 +73,7 @@ namespace NSM {
         vk::DescriptorImageInfo descriptorInfo;
     };
 
-    
+
 
 
     // use alias
@@ -148,7 +148,7 @@ namespace NSM {
     };
 
 
-    
+
 
 
 };

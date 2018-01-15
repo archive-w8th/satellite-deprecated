@@ -195,7 +195,7 @@ namespace NSM {
                 // create semaphores
                 deviceQueuePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
                 deviceQueuePtr->commandPool = createCommandPool(deviceQueuePtr);
-                
+
 
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
@@ -213,6 +213,7 @@ namespace NSM {
                 };
                 deviceQueuePtr->descriptorPool = deviceQueuePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
                 deviceQueuePtr->fence = createFence(deviceQueuePtr, false);
+                deviceQueuePtr->initialized = true;
             }
 
             return std::move(deviceQueuePtr);
@@ -248,7 +249,7 @@ namespace NSM {
             // search preferred surface format support
             bool surfaceFormatFound = false;
             uint32_t surfaceFormatID = 0;
-            for (int i = 0; i < preferredFormats.size();i++) {
+            for (int i = 0; i < preferredFormats.size(); i++) {
                 if (surfaceFormatFound) break;
                 for (int f = 0; f < surfaceFormats.size(); f++) {
                     if (surfaceFormats[f].format == preferredFormats[i]) {
@@ -410,7 +411,7 @@ namespace NSM {
                 1, &device->familyIndex,
                 vk::ImageLayout::eUndefined
             );
-            
+
             VmaAllocationCreateInfo allocCreateInfo = {};
             allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 

@@ -7,7 +7,7 @@ namespace NSM {
     namespace rt {
 
         struct bbox {
-            glm::vec4 mn = glm::vec4( 10000.f);
+            glm::vec4 mn = glm::vec4(10000.f);
             glm::vec4 mx = glm::vec4(-10000.f);
         };
 
@@ -132,7 +132,7 @@ namespace NSM {
         };
 
 
-        
+
         struct MeshUniformStruct {
             int vertexAccessor = -1;
             int normalAccessor = -1;

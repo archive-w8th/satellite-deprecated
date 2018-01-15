@@ -38,19 +38,19 @@ namespace SatelliteExample {
         auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
         auto tstage = createBuffer(device, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-		{
-			auto command = getCommandBuffer(device, true);
-			imageBarrier(command, texture);
-			bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
-			memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
-				.setImageExtent({ width, height, 1 })
-				.setImageOffset({ 0, 0, 0 })
-				.setBufferOffset(0)
-				.setBufferRowLength(width)
-				.setBufferImageHeight(height)
-				.setImageSubresource(texture->subresourceLayers));
-			flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
-		}
+        {
+            auto command = getCommandBuffer(device, true);
+            imageBarrier(command, texture);
+            bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
+            memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
+                .setImageExtent({ width, height, 1 })
+                .setImageOffset({ 0, 0, 0 })
+                .setBufferOffset(0)
+                .setBufferRowLength(width)
+                .setBufferImageHeight(height)
+                .setImageSubresource(texture->subresourceLayers));
+            flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+        }
 
         // create sampler for combined
         texture->descriptorInfo.sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
@@ -211,7 +211,7 @@ namespace SatelliteExample {
     protected:
 
         ControlMap kmap;
-        
+
         // current context of application
         //std::shared_ptr<GuiRenderEngine> grengine;
         std::shared_ptr<GraphicsContext> currentContext;
@@ -226,13 +226,13 @@ namespace SatelliteExample {
         // default width and height of application
         const double superSampling = 2.0; // super sampling (in high DPI may 1x sample)
 
-        
+
 
 
         uint32_t gpuID = 0;
         std::string shaderPack = "shaders-spv";
         std::shared_ptr<rt::Pipeline> rays;
-        
+
 
         double time = 0, diff = 0;
         glm::dvec2 mousepos = glm::dvec2(0.0);
@@ -397,40 +397,40 @@ namespace SatelliteExample {
                 // create graphics pipeline
                 trianglePipeline = deviceQueue->logical.createGraphicsPipeline(pipelineCache,
                     vk::GraphicsPipelineCreateInfo()
-						.setPStages(pipelineShaderStages.data()).setStageCount(pipelineShaderStages.size())
-						.setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives)
-						.setPVertexInputState(&vk::PipelineVertexInputStateCreateInfo())
-						.setPInputAssemblyState(&vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleStrip))
-						.setPViewportState(&vk::PipelineViewportStateCreateInfo().setViewportCount(1).setScissorCount(1))
-						.setPRasterizationState(&vk::PipelineRasterizationStateCreateInfo()
-							.setDepthClampEnable(false)
-							.setRasterizerDiscardEnable(false)
-							.setPolygonMode(vk::PolygonMode::eFill)
-							.setCullMode(vk::CullModeFlagBits::eNone)
-							.setFrontFace(vk::FrontFace::eCounterClockwise)
-							.setDepthBiasEnable(false)
-							.setDepthBiasConstantFactor(0)
-							.setDepthBiasClamp(0)
-							.setDepthBiasSlopeFactor(0)
-							.setLineWidth(1.f))
-						.setPDepthStencilState(&vk::PipelineDepthStencilStateCreateInfo()
-							.setDepthTestEnable(false)
-							.setDepthWriteEnable(false)
-							.setDepthCompareOp(vk::CompareOp::eLessOrEqual)
-							.setDepthBoundsTestEnable(false)
-							.setStencilTestEnable(false))
-						.setPColorBlendState(&vk::PipelineColorBlendStateCreateInfo()
-							.setLogicOpEnable(false)
-							.setLogicOp(vk::LogicOp::eClear)
-							.setPAttachments(colorBlendAttachments.data())
-							.setAttachmentCount(colorBlendAttachments.size()))
-						.setLayout(pipelineLayout)
-						.setRenderPass(renderpass)
-						.setBasePipelineIndex(0)
-						.setPMultisampleState(&vk::PipelineMultisampleStateCreateInfo().setRasterizationSamples(vk::SampleCountFlagBits::e1))
-						.setPDynamicState(&vk::PipelineDynamicStateCreateInfo().setPDynamicStates(dynamicStates.data()).setDynamicStateCount(dynamicStates.size()))
-						.setPTessellationState(&vk::PipelineTessellationStateCreateInfo())
-						.setPNext(&vk::PipelineRasterizationConservativeStateCreateInfoEXT().setConservativeRasterizationMode(vk::ConservativeRasterizationModeEXT::eDisabled))
+                    .setPStages(pipelineShaderStages.data()).setStageCount(pipelineShaderStages.size())
+                    .setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives)
+                    .setPVertexInputState(&vk::PipelineVertexInputStateCreateInfo())
+                    .setPInputAssemblyState(&vk::PipelineInputAssemblyStateCreateInfo().setTopology(vk::PrimitiveTopology::eTriangleStrip))
+                    .setPViewportState(&vk::PipelineViewportStateCreateInfo().setViewportCount(1).setScissorCount(1))
+                    .setPRasterizationState(&vk::PipelineRasterizationStateCreateInfo()
+                        .setDepthClampEnable(false)
+                        .setRasterizerDiscardEnable(false)
+                        .setPolygonMode(vk::PolygonMode::eFill)
+                        .setCullMode(vk::CullModeFlagBits::eNone)
+                        .setFrontFace(vk::FrontFace::eCounterClockwise)
+                        .setDepthBiasEnable(false)
+                        .setDepthBiasConstantFactor(0)
+                        .setDepthBiasClamp(0)
+                        .setDepthBiasSlopeFactor(0)
+                        .setLineWidth(1.f))
+                    .setPDepthStencilState(&vk::PipelineDepthStencilStateCreateInfo()
+                        .setDepthTestEnable(false)
+                        .setDepthWriteEnable(false)
+                        .setDepthCompareOp(vk::CompareOp::eLessOrEqual)
+                        .setDepthBoundsTestEnable(false)
+                        .setStencilTestEnable(false))
+                    .setPColorBlendState(&vk::PipelineColorBlendStateCreateInfo()
+                        .setLogicOpEnable(false)
+                        .setLogicOp(vk::LogicOp::eClear)
+                        .setPAttachments(colorBlendAttachments.data())
+                        .setAttachmentCount(colorBlendAttachments.size()))
+                    .setLayout(pipelineLayout)
+                    .setRenderPass(renderpass)
+                    .setBasePipelineIndex(0)
+                    .setPMultisampleState(&vk::PipelineMultisampleStateCreateInfo().setRasterizationSamples(vk::SampleCountFlagBits::e1))
+                    .setPDynamicState(&vk::PipelineDynamicStateCreateInfo().setPDynamicStates(dynamicStates.data()).setDynamicStateCount(dynamicStates.size()))
+                    .setPTessellationState(&vk::PipelineTessellationStateCreateInfo())
+                    .setPNext(&vk::PipelineRasterizationConservativeStateCreateInfoEXT().setConservativeRasterizationMode(vk::ConservativeRasterizationModeEXT::eDisabled))
                 );
             }
 
@@ -489,7 +489,7 @@ namespace SatelliteExample {
                 auto& cb = this->currentBuffer;
 
                 std::shared_ptr<int32_t> curr_semaphore = std::make_shared<int32_t>(-1); // use locked ptr () 
-                context->draw = [context, curr_semaphore, &cb, &window,  app]() {
+                context->draw = [context, curr_semaphore, &cb, &window, app]() {
                     auto& currentContext = context;
                     auto& currentBuffer = cb;
 
@@ -501,7 +501,7 @@ namespace SatelliteExample {
                     app->updateSwapchains();
 
                     // acquire next image where will rendered (and get semaphore when will presented finally)
-					n_semaphore = (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1));
+                    n_semaphore = (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1));
                     currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
 
                     // submit rendering (and wait presentation in device)
@@ -523,19 +523,19 @@ namespace SatelliteExample {
                         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, currentContext->pipelineLayout, 0, currentContext->descriptorSets, nullptr);
                         commandBuffer.draw(4, 1, 0, 0);
                         commandBuffer.endRenderPass();
-						
+
                         // create render submission 
                         std::vector<vk::Semaphore> waitSemaphores = { currentContext->framebuffers[n_semaphore].semaphore };
                         std::vector<vk::Semaphore> signalSemaphores = { currentContext->framebuffers[c_semaphore].semaphore };
                         std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eAllCommands };
 
-						flushCommandBuffer(currentContext->device, commandBuffer, vk::SubmitInfo()
-							.setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
-							.setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
-							.setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), 
-						[&]() {
+                        flushCommandBuffer(currentContext->device, commandBuffer, vk::SubmitInfo()
+                            .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
+                            .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
+                            .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()),
+                            [&]() {
 
-						});
+                        });
                     }
 
                     // present for displaying of this image
@@ -662,7 +662,7 @@ namespace SatelliteExample {
             image.permute_axes("yzcx").mirror("y");
             image.get_shared_channel(3).fill(1.f);
             image.save_exr(name.c_str());
-            
+
             /*
             // copy HDR data
             FIBITMAP * btm = FreeImage_AllocateT(FIT_RGBAF, width, height);
@@ -714,7 +714,7 @@ namespace SatelliteExample {
     }
 
     // mouse moving and pressing
-    void PathTracerApplication::mousePress(const int32_t& button) { 
+    void PathTracerApplication::mousePress(const int32_t& button) {
         ImGuiIO& io = ImGui::GetIO();
         if (button == GLFW_MOUSE_BUTTON_LEFT && !io.WantCaptureMouse) kmap.mouseleft = true;
     }

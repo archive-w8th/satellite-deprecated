@@ -47,15 +47,15 @@ namespace NSM {
             TmpValues = createBuffer(device, strided<uint32_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             Histograms = createBuffer(device, strided<uint32_t>(WG_COUNT * 256), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             PrefixSums = createBuffer(device, strided<uint32_t>(WG_COUNT * 256), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            
+
             // write desks
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(24).setPBufferInfo(&VarBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(25).setPBufferInfo(&TmpKeys->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(26).setPBufferInfo(&TmpValues->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(27).setPBufferInfo(&Histograms->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(28).setPBufferInfo(&PrefixSums->descriptorInfo)
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(25).setPBufferInfo(&TmpKeys->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(26).setPBufferInfo(&TmpValues->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(27).setPBufferInfo(&Histograms->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(28).setPBufferInfo(&PrefixSums->descriptorInfo)
             }, nullptr);
         }
 
@@ -106,21 +106,20 @@ namespace NSM {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPBufferInfo(&InKeys->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(21).setPBufferInfo(&InVals->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(21).setPBufferInfo(&InVals->descriptorInfo),
             }, nullptr);
 
-            //const uint32_t stepCount = 32;
-            const uint32_t stepCount = 16;
-            //const uint32_t stepCount = 8;
-
+            
             // create steps data
+            const uint32_t stepCount = 16;
             std::vector<Consts> steps(stepCount);
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
 
-			// upload to buffer
-			auto commandBuffer = getCommandBuffer(device, true);
-			bufferSubData(commandBuffer, VarStaging, steps, 0);
-			flushCommandBuffer(device, commandBuffer, true);
+
+            // upload to buffer
+            auto commandBuffer = getCommandBuffer(device, true);
+            bufferSubData(commandBuffer, VarStaging, steps, 0);
+            flushCommandBuffer(device, commandBuffer, true);
 
 
             // copy headers buffer command
@@ -160,33 +159,10 @@ namespace NSM {
             std::vector<vk::SubmitInfo> buildSubmitInfos;
 
             for (int j = 0; j < stepCount; j++) {
-                // copy header
-                buildSubmitInfos.push_back(vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&copyBuffers[j])
-                );
-
-                // histogram
-                buildSubmitInfos.push_back(vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&histogramCommand)
-                );
-
-                // prefix sum
-                buildSubmitInfos.push_back(vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&workPrefixCommand)
-                );
-
-                // permute
-                buildSubmitInfos.push_back(vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&permuteCommand)
-                );
+                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&copyBuffers[j])); // copy header
+                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&histogramCommand)); // histogram
+                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&workPrefixCommand)); // prefix sum
+                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&permuteCommand)); // permute 
             }
 
             // submit radix sort
@@ -194,14 +170,14 @@ namespace NSM {
             device->queue.submit(buildSubmitInfos, fence);
 
             // asynchronous await for cleans
-            //std::async([=]() {
+            std::async([=](){
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 device->logical.destroyFence(fence);
                 device->logical.freeCommandBuffers(device->commandPool, copyBuffers);
                 device->logical.freeCommandBuffers(device->commandPool, 1, &histogramCommand);
                 device->logical.freeCommandBuffers(device->commandPool, 1, &workPrefixCommand);
                 device->logical.freeCommandBuffers(device->commandPool, 1, &permuteCommand);
-            //});
+            });
 
         }
 

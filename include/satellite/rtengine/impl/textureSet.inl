@@ -25,7 +25,7 @@ namespace NSM {
         }
 
         void TextureSet::freeTexture(const uint32_t& idx) {
-            freedomTextures.push_back(idx-1);
+            freedomTextures.push_back(idx - 1);
         }
 
         void TextureSet::clearTextures() {
@@ -35,11 +35,11 @@ namespace NSM {
         }
 
         void TextureSet::setTexture(uint32_t location, const TextureType& texture) {
-            for (int i = 0; i < freedomTextures.size();i++) {
-                if (freedomTextures[i] == location-1) freedomTextures.erase(freedomTextures.begin() + i);
+            for (int i = 0; i < freedomTextures.size(); i++) {
+                if (freedomTextures[i] == location - 1) freedomTextures.erase(freedomTextures.begin() + i);
             }
             if (textures.size() < location) textures.resize(location);
-            textures[location-1] = texture;
+            textures[location - 1] = texture;
         }
 
         uint32_t TextureSet::loadTexture(const TextureType& texture) {
@@ -75,7 +75,7 @@ namespace NSM {
             if (spectrum == 3) image.get_shared_channel(3).fill(255); // if RGB, will alpha channel
             //image.mirror("y");
             image.permute_axes("cxyz");
-            
+
 
             // create texture
             auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR8G8B8A8Unorm, 1);
@@ -83,17 +83,17 @@ namespace NSM {
 
             // purple-black square
             {
-				auto command = getCommandBuffer(device, true);
-				imageBarrier(command, texture);
-				bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(uint8_t), 0);
-				memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
-					.setImageExtent({ width, height, 1 })
-					.setImageOffset({ 0, 0, 0 })
-					.setBufferOffset(0)
-					.setBufferRowLength(width)
-					.setBufferImageHeight(height)
-					.setImageSubresource(texture->subresourceLayers));
-				flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+                auto command = getCommandBuffer(device, true);
+                imageBarrier(command, texture);
+                bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(uint8_t), 0);
+                memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
+                    .setImageExtent({ width, height, 1 })
+                    .setImageOffset({ 0, 0, 0 })
+                    .setBufferOffset(0)
+                    .setBufferRowLength(width)
+                    .setBufferImageHeight(height)
+                    .setImageSubresource(texture->subresourceLayers));
+                flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
             }
 
             return this->loadTexture(texture);
@@ -122,7 +122,7 @@ namespace NSM {
             uint8_t * pixelsPtr = FreeImage_GetBits(imagen);
 
             // create compatible imageData
-            std::vector<uint8_t> imageData(width*height*4);
+            std::vector<uint8_t> imageData(width*height * 4);
             memcpy(imageData.data(), pixelsPtr, imageData.size() * sizeof(uint8_t));
 
             // create texture

@@ -45,7 +45,7 @@ namespace NSM {
 
             vk::PipelineCache pipelineCache;
             vk::PipelineLayout pipelineLayout, loaderPipelineLayout;
-            
+
 
             size_t triangleCount = 1;
             size_t maxTriangles = 128 * 1024;

@@ -66,13 +66,13 @@ namespace NSM {
 
             //vk::DescriptorPool descriptorPool;
 
-            std::vector<vk::DescriptorSet> 
+            std::vector<vk::DescriptorSet>
                 rayShadingDescriptors, rayTracingDescriptors, samplingDescriptors, surfaceDescriptors;
 
-            std::vector<vk::DescriptorSetLayout> 
+            std::vector<vk::DescriptorSetLayout>
                 rayShadingDescriptorsLayout, rayTracingDescriptorsLayout, rayTraverseDescriptorsLayout, samplingDescriptorsLayout, surfaceDescriptorsLayout;
 
-            vk::PipelineLayout 
+            vk::PipelineLayout
                 rayShadingPipelineLayout, rayTracingPipelineLayout, rayTraversePipelineLayout, samplingPipelineLayout, surfacePipelineLayout;
 
             double starttime = 0.f;

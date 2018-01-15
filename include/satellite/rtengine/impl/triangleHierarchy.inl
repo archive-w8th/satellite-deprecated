@@ -37,7 +37,7 @@ namespace NSM {
                 vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // texcoord
                 vk::DescriptorSetLayoutBinding(13, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // modifiers
                 vk::DescriptorSetLayoutBinding(14, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // reserved (may colors)
-                
+
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // BVH boxes
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // materials
                 vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // orders
@@ -95,7 +95,7 @@ namespace NSM {
             boundPrimitives.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/minmax.comp.spv", pipelineLayout, pipelineCache);
             childLink.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/child-link.comp.spv", pipelineLayout, pipelineCache);
             aabbCalculate.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/aabbmaker.comp.spv", pipelineLayout, pipelineCache);
-            
+
             // vertex loader
             geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader.comp.spv", loaderPipelineLayout, pipelineCache);
             //geometryLoader16bit.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader-int16.comp.spv", loaderPipelineLayout, pipelineCache);
@@ -175,8 +175,8 @@ namespace NSM {
 
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);
-            for (int i = 0; i < 32;i++) {
-                minmaxes[i * 2 + 0] = glm::vec4( 10000.f);
+            for (int i = 0; i < 32; i++) {
+                minmaxes[i * 2 + 0] = glm::vec4(10000.f);
                 minmaxes[i * 2 + 1] = glm::vec4(-10000.f);
             }
 
@@ -187,11 +187,11 @@ namespace NSM {
 
 
             // make reference buffers
-			auto command = getCommandBuffer(device, true);
+            auto command = getCommandBuffer(device, true);
             bufferSubData(command, boundaryBufferReference, minmaxes, 0); // make reference buffer of boundary
             bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
             bufferSubData(command, debugOnes32BufferReference, ones, 0);
-			flushCommandBuffer(device, command, true);
+            flushCommandBuffer(device, command, true);
 
 
             // create client geometry uniform buffer
@@ -213,10 +213,10 @@ namespace NSM {
             // write buffers to main descriptors
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&bvhCounters),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&boundaryBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhCounters)
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&bvhCounters),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&boundaryBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhCounters)
             }, nullptr);
 
             // clear for fix issues
@@ -228,7 +228,7 @@ namespace NSM {
 
             // allocate these buffers 
             leafsBuffer = createBuffer(device, strided<HlbvhNode>(maxTriangles * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            
+
             // buffer for working with
             bvhNodesFlags = createBuffer(device, strided<uint32_t>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             workingBVHNodesBuffer = createBuffer(device, strided<uint32_t>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -257,7 +257,7 @@ namespace NSM {
 
             // bvh storage (32-bits elements)
             _MAX_HEIGHT = std::min(maxTriangles > 0 ? (maxTriangles - 1) / _BVH_WIDTH + 1 : 0, _BVH_WIDTH) + 1;
-            bvhMetaStorage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT*2), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
+            bvhMetaStorage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT * 2), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
             bvhBoxStorage = createBuffer(device, strided<glm::mat4>(maxTriangles * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // planned working dedicated buffers
@@ -275,37 +275,37 @@ namespace NSM {
             // write buffer to bvh builder descriptors
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&mortonCodesBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&leafsIndicesBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&leafsBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&bvhBoxWorking->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&bvhNodesFlags->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(6).setPBufferInfo(&workingBVHNodesBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo.setSampler(sampler)),
-            //}, nullptr);
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&leafsIndicesBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&leafsBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&bvhBoxWorking->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&bvhNodesFlags->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(6).setPBufferInfo(&workingBVHNodesBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo.setSampler(sampler)),
+                    //}, nullptr);
 
-            // write to client descriptors 
-            //device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(10).setPImageInfo(&vertexTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(11).setPImageInfo(&normalsTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(12).setPImageInfo(&texcoordTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(13).setPImageInfo(&modsTexelStorage->descriptorInfo.setSampler(sampler)),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhBoxStorage->descriptorInfo),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesStorage->descriptorInfo),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler)),
-            //}, nullptr);
+                    // write to client descriptors 
+                    //device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(10).setPImageInfo(&vertexTexelStorage->descriptorInfo.setSampler(sampler)),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(11).setPImageInfo(&normalsTexelStorage->descriptorInfo.setSampler(sampler)),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(12).setPImageInfo(&texcoordTexelStorage->descriptorInfo.setSampler(sampler)),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(13).setPImageInfo(&modsTexelStorage->descriptorInfo.setSampler(sampler)),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhBoxStorage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesStorage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc1Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo.setSampler(sampler)),
+                    //}, nullptr);
 
-            // write buffers to loader descriptors
-            //device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(10).setPImageInfo(&vertexTexelWorking->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&normalsTexelWorking->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(12).setPImageInfo(&texcoordTexelWorking->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(13).setPImageInfo(&modsTexelWorking->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
-                vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&orderIndicesWorking->descriptorInfo)
+                    // write buffers to loader descriptors
+                    //device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(10).setPImageInfo(&vertexTexelWorking->descriptorInfo),
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&normalsTexelWorking->descriptorInfo),
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(12).setPImageInfo(&texcoordTexelWorking->descriptorInfo),
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(13).setPImageInfo(&modsTexelWorking->descriptorInfo),
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
+                    vk::WriteDescriptorSet(ldesc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&orderIndicesWorking->descriptorInfo)
             }, nullptr);
         }
 
@@ -319,11 +319,11 @@ namespace NSM {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&vertexInstance->getBufferSpaceBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&vertexInstance->getBufferSpaceRegions()->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&vertexInstance->getBufferViewsBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&vertexInstance->getDataFormatBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&vertexInstance->getBufferBindingBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&vertexInstance->getUniformBuffer()->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&vertexInstance->getBufferSpaceRegions()->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&vertexInstance->getBufferViewsBuffer()->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&vertexInstance->getDataFormatBuffer()->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&vertexInstance->getBufferBindingBuffer()->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&vertexInstance->getUniformBuffer()->descriptorInfo),
             }, nullptr);
 
             // dispatch loading
@@ -332,10 +332,10 @@ namespace NSM {
         }
 
         void TriangleHierarchy::syncUniforms() {
-			auto command = getCommandBuffer(device, true);
-			bufferSubData(command, bvhBlockUniform.staging, bvhBlockData, 0);
-			memoryCopyCmd(command, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) });
-			flushCommandBuffer(device, command, true);
+            auto command = getCommandBuffer(device, true);
+            bufferSubData(command, bvhBlockUniform.staging, bvhBlockData, 0);
+            memoryCopyCmd(command, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) });
+            flushCommandBuffer(device, command, true);
         }
 
         // very hacky function, preferly don't use
@@ -401,8 +401,8 @@ namespace NSM {
             getBufferSubData(generalLoadingBuffer, bounds, 0);
             bbox bound = { bounds[0], bounds[1] };
             for (int i = 1; i < 32; i++) {
-                bound.mn = glm::min(bounds[i*2+0], bound.mn);
-                bound.mx = glm::max(bounds[i*2+1], bound.mx);
+                bound.mn = glm::min(bounds[i * 2 + 0], bound.mn);
+                bound.mx = glm::max(bounds[i * 2 + 1], bound.mx);
             }
 
             // get optimizations
@@ -410,7 +410,7 @@ namespace NSM {
             glm::vec3 offset = bound.mn.xyz();
             {
                 glm::dmat4 mat(1.0);
-                mat *= glm::inverse(glm::translate(glm::dvec3(0.5,0.5,0.5)) * glm::scale(glm::dvec3(0.5,0.5,0.5)));
+                mat *= glm::inverse(glm::translate(glm::dvec3(0.5, 0.5, 0.5)) * glm::scale(glm::dvec3(0.5, 0.5, 0.5)));
                 mat *= glm::inverse(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale)));
                 //mat *= glm::inverse(glm::dmat4(optimization));
                 bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
@@ -423,7 +423,7 @@ namespace NSM {
                 offsetof(GeometryUniformStruct, transform),
                 offsetof(BVHBlockUniform, transform),
                 strided<glm::mat4>(2)
-            }, true);
+                }, true);
 
             // calculate leafs and boundings of members
             copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) }, true); // reset BVH leafs counters
@@ -491,10 +491,10 @@ namespace NSM {
 
             // stage building BVH
             std::vector<int32_t> counters(8);
-            for (int i = 0; i < 32;i++) {
+            for (int i = 0; i < 32; i++) {
                 device->logical.resetFences(1, &fence);
                 device->queue.submit(buildSubmitInfos, fence);
-                
+
                 // wait and reset fence
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
 

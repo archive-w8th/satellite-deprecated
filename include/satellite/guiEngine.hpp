@@ -47,7 +47,7 @@ namespace NSM {
                 vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 1),
                 vk::DescriptorPoolSize(vk::DescriptorType::eStorageBuffer, 4),
             };
-            
+
             // descriptor set bindings
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, nullptr),
@@ -98,10 +98,10 @@ namespace NSM {
 
                 // viewport and scissors state
                 auto pv = vk::PipelineViewportStateCreateInfo().setViewportCount(1).setScissorCount(1);
-                    //.setPViewports(viewports.data()).setViewportCount(viewports.size())
-                    //.setPScissors(scissors.data()).setScissorCount(scissors.size());
+                //.setPViewports(viewports.data()).setViewportCount(viewports.size())
+                //.setPScissors(scissors.data()).setScissorCount(scissors.size());
 
-                // input assembly
+            // input assembly
                 auto pia = vk::PipelineInputAssemblyStateCreateInfo()
                     .setTopology(vk::PrimitiveTopology::eTriangleList);
 
@@ -228,10 +228,10 @@ namespace NSM {
             // write buffers to main descriptors
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPBufferInfo(&guiBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&vertBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&idcsBuffer->descriptorInfo)
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&vertBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&idcsBuffer->descriptorInfo)
             }, nullptr);
-            
+
             // create uniform 
             guiBlockData.resize(1);
 
@@ -258,7 +258,7 @@ namespace NSM {
 
 
         void loadImGuiResources() {
-			/*
+            /*
             // descriptors templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             auto desc0Imge = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
@@ -308,85 +308,85 @@ namespace NSM {
                 vk::WriteDescriptorSet(desc0Imge).setDstBinding(3).setPImageInfo(&fontTexture->descriptorInfo)
             }, nullptr);
 
-            // imgui IO identifier 
+            // imgui IO identifier
             io.Fonts->TexID = (void *)(intptr_t)fontTexture.get(); // don't know, WHY?!
-			*/
+            */
         }
 
 
-		void renderOn(Framebuffer& framebuffer, vk::Extent2D surfaceSize, ImDrawData* imData) {
-			/*
-			ImGuiIO& io = ImGui::GetIO();
-			imData->ScaleClipRects(io.DisplayFramebufferScale);
+        void renderOn(Framebuffer& framebuffer, vk::Extent2D surfaceSize, ImDrawData* imData) {
+            /*
+            ImGuiIO& io = ImGui::GetIO();
+            imData->ScaleClipRects(io.DisplayFramebufferScale);
 
-			// load projections into buffers
+            // load projections into buffers
 
 
-			// get optimizations
-			glm::vec3 scale = glm::vec3(2.f / float(io.DisplaySize.x), 2.f / float(io.DisplaySize.y), 1.f);
-			glm::vec3 offset = glm::vec3(-1.f, -1.f, 0.f);
+            // get optimizations
+            glm::vec3 scale = glm::vec3(2.f / float(io.DisplaySize.x), 2.f / float(io.DisplaySize.y), 1.f);
+            glm::vec3 offset = glm::vec3(-1.f, -1.f, 0.f);
 
-			// render area and clear values
-			auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(io.DisplaySize.x * io.DisplayFramebufferScale.x, io.DisplaySize.y * io.DisplayFramebufferScale.y));
-			std::vector<vk::Viewport> viewports = { vk::Viewport(0.0f, 0.0f, float(io.DisplaySize.x) * io.DisplayFramebufferScale.x, float(io.DisplaySize.y) * io.DisplayFramebufferScale.y, 0.f, 1.0f) };
-			std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
+            // render area and clear values
+            auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(io.DisplaySize.x * io.DisplayFramebufferScale.x, io.DisplaySize.y * io.DisplayFramebufferScale.y));
+            std::vector<vk::Viewport> viewports = { vk::Viewport(0.0f, 0.0f, float(io.DisplaySize.x) * io.DisplayFramebufferScale.x, float(io.DisplaySize.y) * io.DisplayFramebufferScale.y, 0.f, 1.0f) };
+            std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
 
-			// copy vertex data to unified buffer
-			{
-				size_t vtx_buffer_offset = 0, idx_buffer_offset = 0;
-				for (int n = 0; n < imData->CmdListsCount; n++) {
-					const ImDrawList* cmd_list = imData->CmdLists[n];
-					{
-						bufferSubData(generalStagingBuffer, (const uint8_t*)cmd_list->VtxBuffer.Data, strided<ImDrawVert>(cmd_list->VtxBuffer.Size), 0);
-						copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, generalStagingBuffer, vertBuffer, { 0, vtx_buffer_offset, strided<ImDrawVert>(cmd_list->VtxBuffer.Size) }, true);
-						vtx_buffer_offset += strided<ImDrawVert>(cmd_list->VtxBuffer.Size);
-					}
-					{
-						bufferSubData(generalStagingBuffer, (const uint8_t*)cmd_list->IdxBuffer.Data, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size), 0);
-						copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, generalStagingBuffer, idcsBuffer, { 0, idx_buffer_offset, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size) }, true);
-						idx_buffer_offset += strided<ImDrawIdx>(cmd_list->IdxBuffer.Size);
-					}
-				}
-			}
+            // copy vertex data to unified buffer
+            {
+                size_t vtx_buffer_offset = 0, idx_buffer_offset = 0;
+                for (int n = 0; n < imData->CmdListsCount; n++) {
+                    const ImDrawList* cmd_list = imData->CmdLists[n];
+                    {
+                        bufferSubData(generalStagingBuffer, (const uint8_t*)cmd_list->VtxBuffer.Data, strided<ImDrawVert>(cmd_list->VtxBuffer.Size), 0);
+                        copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, generalStagingBuffer, vertBuffer, { 0, vtx_buffer_offset, strided<ImDrawVert>(cmd_list->VtxBuffer.Size) }, true);
+                        vtx_buffer_offset += strided<ImDrawVert>(cmd_list->VtxBuffer.Size);
+                    }
+                    {
+                        bufferSubData(generalStagingBuffer, (const uint8_t*)cmd_list->IdxBuffer.Data, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size), 0);
+                        copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, generalStagingBuffer, idcsBuffer, { 0, idx_buffer_offset, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size) }, true);
+                        idx_buffer_offset += strided<ImDrawIdx>(cmd_list->IdxBuffer.Size);
+                    }
+                }
+            }
 
-			// create command buffer per FBO
-			{
-				guiBlockData[0].gproj = glm::transpose(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale))); // use transposed matrix
-				uint32_t vtx_buffer_offset = 0, idx_buffer_offset = 0;
-				for (int n = 0; n < imData->CmdListsCount; n++) {
-					const ImDrawList* cmd_list = imData->CmdLists[n];
-					guiBlockData[0].mdata.x = vtx_buffer_offset;
-					for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
-						guiBlockData[0].mdata.y = idx_buffer_offset;
-						updateUniforms();
+            // create command buffer per FBO
+            {
+                guiBlockData[0].gproj = glm::transpose(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale))); // use transposed matrix
+                uint32_t vtx_buffer_offset = 0, idx_buffer_offset = 0;
+                for (int n = 0; n < imData->CmdListsCount; n++) {
+                    const ImDrawList* cmd_list = imData->CmdLists[n];
+                    guiBlockData[0].mdata.x = vtx_buffer_offset;
+                    for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
+                        guiBlockData[0].mdata.y = idx_buffer_offset;
+                        updateUniforms();
 
-						const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-						if (pcmd->UserCallback) {
-							pcmd->UserCallback(cmd_list, pcmd);
-						} else {
-							std::vector<vk::Rect2D> scissors(1);
-							scissors[0].offset.x = int32_t(std::min(pcmd->ClipRect.x, pcmd->ClipRect.z));
-							scissors[0].offset.y = int32_t(std::min(pcmd->ClipRect.y, pcmd->ClipRect.w));
-							scissors[0].extent.width = uint32_t(abs(pcmd->ClipRect.z - pcmd->ClipRect.x));
-							scissors[0].extent.height = uint32_t(abs(pcmd->ClipRect.w - pcmd->ClipRect.y));
+                        const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+                        if (pcmd->UserCallback) {
+                            pcmd->UserCallback(cmd_list, pcmd);
+                        } else {
+                            std::vector<vk::Rect2D> scissors(1);
+                            scissors[0].offset.x = int32_t(std::min(pcmd->ClipRect.x, pcmd->ClipRect.z));
+                            scissors[0].offset.y = int32_t(std::min(pcmd->ClipRect.y, pcmd->ClipRect.w));
+                            scissors[0].extent.width = uint32_t(abs(pcmd->ClipRect.z - pcmd->ClipRect.x));
+                            scissors[0].extent.height = uint32_t(abs(pcmd->ClipRect.w - pcmd->ClipRect.y));
 
-							auto commandBuffer = getCommandBuffer(device, true);
-							commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(renderpass, framebuffer.frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
-							commandBuffer.setViewport(0, viewports);
-							commandBuffer.setScissor(0, scissors);
-							commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, sizeof(ImDrawIdx) == 2 ? guiPipeline16i : guiPipeline);
-							commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, descriptorSets, nullptr);
-							commandBuffer.draw(pcmd->ElemCount, 1, 0, 0);
-							commandBuffer.endRenderPass();
-							flushCommandBuffer(device, commandBuffer, true);
-						}
-						idx_buffer_offset += pcmd->ElemCount;
-					}
-					vtx_buffer_offset += cmd_list->VtxBuffer.Size;
-				}
-			}
-		*/
+                            auto commandBuffer = getCommandBuffer(device, true);
+                            commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(renderpass, framebuffer.frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
+                            commandBuffer.setViewport(0, viewports);
+                            commandBuffer.setScissor(0, scissors);
+                            commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, sizeof(ImDrawIdx) == 2 ? guiPipeline16i : guiPipeline);
+                            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, descriptorSets, nullptr);
+                            commandBuffer.draw(pcmd->ElemCount, 1, 0, 0);
+                            commandBuffer.endRenderPass();
+                            flushCommandBuffer(device, commandBuffer, true);
+                        }
+                        idx_buffer_offset += pcmd->ElemCount;
+                    }
+                    vtx_buffer_offset += cmd_list->VtxBuffer.Size;
+                }
+            }
+        */
 
-		}
+        }
     };
 };

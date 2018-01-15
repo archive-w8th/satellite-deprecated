@@ -3,4 +3,4 @@ set /p pflags=<%1
 
 :: show this model
 cd ../ 
-"./RelWithDebInfo/satellite-gltf.exe" %pflags% -g 0 -p nvidia -b noon_grass_8k.exr 
+"./RelWithDebInfo/satellite-gltf.exe" %pflags% -g 0 -p nvidia -b kiara_4_mid-morning_8k.exr

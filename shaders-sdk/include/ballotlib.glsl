@@ -230,11 +230,28 @@ int countInvocs(in BOOL_ val){
 }
 
 
-int firstActive() {return lsb(ballotHW(TRUE_));}
 
-int interpolInvocation(in BOOL_ value){
-    return lsb(ballotHW(value) & genGeMask());
+
+float readFLane(in float val, in int lane) {
+    return readFirstInvocationARB(val);
 }
+
+uint readFLane(in uint val, in int lane) {
+    return uint(readFirstInvocationARB(int(val)+1)-1);
+}
+
+int readFLane(in int val, in int lane) {
+    return readFirstInvocationARB(val+1)-1;
+}
+
+
+
+
+int firstActive() {return lsb(ballotHW(TRUE_));}
+int firstActive(in UVEC_BALLOT_WARP wps) {return lsb(wps);}
+
+//int firstActive() {return readFirstInvocationARB(int(LANE_IDX)+1)-1;}
+//int firstActive(in UVEC_BALLOT_WARP wps) {return readFirstInvocationARB(int(LANE_IDX)+1)-1;}
 
 
 int mcount64(in UVEC_BALLOT_WARP bits){
@@ -250,25 +267,25 @@ int mcount64(in UVEC_BALLOT_WARP bits){
 T fname(in BOOL_ _value) { \
     const BOOL_ value = TRUE_;\
     UVEC_BALLOT_WARP bits = ballotHW(value); \
-    int activeLane = lsb(bits); \
+    int activeLane = firstActive(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, mix(0, sumInOrder, LANE_IDX == activeLane));\
-    return readLane(gadd, activeLane) + idxInOrder; \
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder);\
+    return readFLane(gadd, activeLane) + idxInOrder; \
 }
 
 #define initAtomicDecFunction(mem, fname, T)\
 T fname(in BOOL_ _value) { \
     const BOOL_ value = TRUE_;\
     UVEC_BALLOT_WARP bits = ballotHW(value); \
-    int activeLane = lsb(bits); \
+    int activeLane = firstActive(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) { \
-    atomicMax(mem, 0); gadd = atomicAdd(mem, -mix(0, sumInOrder, LANE_IDX == activeLane)); atomicMax(mem, 0); } \
-    return readLane(gadd, activeLane) - idxInOrder; \
+    atomicMax(mem, 0); gadd = atomicAdd(mem, -sumInOrder); atomicMax(mem, 0); } \
+    return readFLane(gadd, activeLane) - idxInOrder; \
 }
 
 // with multiplier support
@@ -276,48 +293,48 @@ T fname(in BOOL_ _value) { \
 T fname(in BOOL_ _value, const int by) { \
     const BOOL_ value = TRUE_;\
     UVEC_BALLOT_WARP bits = ballotHW(value); \
-    int activeLane = lsb(bits); \
+    int activeLane = firstActive(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, mix(0, sumInOrder * by, LANE_IDX == activeLane));\
-    return readLane(gadd, activeLane) + idxInOrder * by; \
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder * by);\
+    return readFLane(gadd, activeLane) + idxInOrder * by; \
 }
 
 #define initAtomicIncFunctionTarget(mem, fname, T)\
 T fname(in uint WHERE, in BOOL_ _value) { \
     const BOOL_ value = TRUE_;\
     UVEC_BALLOT_WARP bits = ballotHW(value); \
-    int activeLane = lsb(bits); \
+    int activeLane = firstActive(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, mix(0, sumInOrder, LANE_IDX == activeLane));\
-    return readLane(gadd, activeLane) + idxInOrder; \
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder);\
+    return readFLane(gadd, activeLane) + idxInOrder; \
 }
 
 #define initNonAtomicIncFunction(mem, fname, T)\
 T fname(in BOOL_ _value) { \
     const BOOL_ value = TRUE_;\
     UVEC_BALLOT_WARP bits = ballotHW(value); \
-    int activeLane = lsb(bits); \
+    int activeLane = firstActive(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, mix(T(0), sumInOrder, LANE_IDX == activeLane));\
-    return readLane(gadd, activeLane) + idxInOrder; \
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, sumInOrder);\
+    return readFLane(gadd, activeLane) + idxInOrder; \
 }
 
 #define initNonAtomicIncFunctionTarget(mem, fname, T)\
 T fname(in uint WHERE, in BOOL_ _value) { \
     const BOOL_ value = TRUE_;\
     UVEC_BALLOT_WARP bits = ballotHW(value); \
-    int activeLane = lsb(bits); \
+    int activeLane = firstActive(bits); \
     T sumInOrder = T(bitCount64(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, mix(T(0), sumInOrder, LANE_IDX == activeLane));\
-    return readLane(gadd, activeLane) + idxInOrder; \
+    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, sumInOrder);\
+    return readFLane(gadd, activeLane) + idxInOrder; \
 }
 
 

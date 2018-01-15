@@ -493,7 +493,7 @@ namespace NSM {
             std::vector<int32_t> counters(8);
             for (int i = 0; i < 32; i++) {
                 device->logical.resetFences(1, &fence);
-                device->queue.submit(buildSubmitInfos, fence);
+                device->mainQueue->queue.submit(buildSubmitInfos, fence);
 
                 // wait and reset fence
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);

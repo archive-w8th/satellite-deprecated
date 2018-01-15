@@ -27,7 +27,7 @@ namespace NSM {
     vk::CommandPool createCommandPool(DeviceQueueType& deviceQueue) {
         return deviceQueue->logical.createCommandPool(vk::CommandPoolCreateInfo(
             vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
-            deviceQueue->familyIndex
+            deviceQueue->mainQueue->familyIndex
         ));
     }
 
@@ -67,7 +67,7 @@ namespace NSM {
         if (async) {
             std::async([=]() { // async submit and await for destruction command buffers
                 vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-                deviceQueue->queue.submit(submitInfos, fence);
+                deviceQueue->mainQueue->queue.submit(submitInfos, fence);
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
@@ -75,7 +75,7 @@ namespace NSM {
         }
         else {
             auto fence = deviceQueue->fence;
-            deviceQueue->queue.submit(submitInfos, fence);
+            deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             deviceQueue->logical.resetFences(1, &fence);
             deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
@@ -101,7 +101,7 @@ namespace NSM {
 
         std::async([=]() { // async submit and await for destruction command buffers
             vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-            deviceQueue->queue.submit(submitInfos, fence);
+            deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             asyncCallback();
             deviceQueue->logical.destroyFence(fence);
@@ -119,7 +119,7 @@ namespace NSM {
         kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
         std::async([=]() { // async submit and await for destruction command buffers
             vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-            deviceQueue->queue.submit(1, &kernel, fence);
+            deviceQueue->mainQueue->queue.submit(1, &kernel, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             asyncCallback();
             deviceQueue->logical.destroyFence(fence);
@@ -183,7 +183,7 @@ namespace NSM {
         imageInfo.extent = { size.width, size.height, size.depth * (isCubemap ? 6 : 1) };
         imageInfo.format = format;
         imageInfo.mipLevels = mipLevels;
-        imageInfo.pQueueFamilyIndices = &deviceQueue->familyIndex;
+        imageInfo.pQueueFamilyIndices = &deviceQueue->mainQueue->familyIndex;
         imageInfo.queueFamilyIndexCount = 1;
         imageInfo.samples = vk::SampleCountFlagBits::e1;
         imageInfo.usage = usage;
@@ -252,7 +252,7 @@ namespace NSM {
             bufferSize,
             usageBits,
             sharingMode,
-            1, &deviceQueue->familyIndex
+            1, &deviceQueue->mainQueue->familyIndex
         );
 
         VmaAllocationCreateInfo allocCreateInfo = {};

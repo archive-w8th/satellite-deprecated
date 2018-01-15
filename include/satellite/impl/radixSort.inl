@@ -167,7 +167,7 @@ namespace NSM {
 
             // submit radix sort
             vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
-            device->queue.submit(buildSubmitInfos, fence);
+            device->mainQueue->queue.submit(buildSubmitInfos, fence);
 
             // asynchronous await for cleans
             std::async([=](){

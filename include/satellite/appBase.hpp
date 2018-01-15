@@ -158,16 +158,36 @@ namespace NSM {
             auto gpuQueueProps = gpu.getQueueFamilyProperties();
 
             // search graphics supported queue family
+            std::vector<DevQueueType> queues;
+
             float priority = 0.0f;
-            uint32_t graphicsFamilyIndex = 0;
+            uint32_t computeFamilyIndex = 0, graphicsFamilyIndex = 0;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
+
+            // 
             for (auto& queuefamily : gpuQueueProps) {
-                if ((queuefamily.queueFlags & vk::QueueFlagBits::eGraphics) && (queuefamily.queueFlags & vk::QueueFlagBits::eCompute)) { // if graphics (and compute) queue?
-                    queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), graphicsFamilyIndex, 1, &priority));
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eGraphics)) { // compute/graphics queue
+                    queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), computeFamilyIndex, 1, &priority));
+                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ computeFamilyIndex, vk::Queue{} }));
+                    break;
+                }
+                computeFamilyIndex++;
+            }
+
+            // 
+            for (auto& queuefamily : gpuQueueProps) {
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics)) { // graphics/presentation queue
+                    if (graphicsFamilyIndex != computeFamilyIndex) queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), graphicsFamilyIndex, 1, &priority));
+                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ graphicsFamilyIndex, vk::Queue{} }));
                     break;
                 }
                 graphicsFamilyIndex++;
             }
+
+            // assign presentation 
+            if (graphicsFamilyIndex == computeFamilyIndex) queues[1] = queues[0];
+
+
 
             // pre-declare logical device 
             auto deviceQueuePtr = std::shared_ptr<DeviceQueue>(new DeviceQueue);
@@ -186,8 +206,10 @@ namespace NSM {
                         deviceExtensions.data(),
                         &gpuFeatures)
                 );
-                deviceQueuePtr->queue = deviceQueuePtr->logical.getQueue(graphicsFamilyIndex, 0);
-                deviceQueuePtr->familyIndex = graphicsFamilyIndex;
+
+                for (int i = 0; i < queues.size();i++) { queues[i]->queue = deviceQueuePtr->logical.getQueue(queues[i]->familyIndex, 0); }
+                deviceQueuePtr->queues = queues;
+                deviceQueuePtr->mainQueue = deviceQueuePtr->queues[0];
 
                 // add device and use this device
                 devices.push_back(deviceQueuePtr);
@@ -361,7 +383,7 @@ namespace NSM {
                 vk::ImageCreateFlags(), vk::ImageType::e2D,
                 formats.depthFormat, vk::Extent3D(applicationWindow.surfaceSize.width, applicationWindow.surfaceSize.height, 1), 1, 1, vk::SampleCountFlagBits::e1,
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::SharingMode::eExclusive,
-                1, &device->familyIndex,
+                1, &device->queues[1]->familyIndex,
                 vk::ImageLayout::eUndefined
             );
 
@@ -408,7 +430,7 @@ namespace NSM {
                 vk::ImageCreateFlags(), vk::ImageType::e2D,
                 formats.depthFormat, vk::Extent3D(applicationWindow.surfaceSize.width, applicationWindow.surfaceSize.height, 1), 1, 1, vk::SampleCountFlagBits::e1,
                 vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::SharingMode::eExclusive,
-                1, &device->familyIndex,
+                1, &device->queues[1]->familyIndex,
                 vk::ImageLayout::eUndefined
             );
 
@@ -470,7 +492,7 @@ namespace NSM {
             // get supported present mode, but prefer mailBox
             auto presentMode = vk::PresentModeKHR::eImmediate;
             for (auto& pm : surfacePresentModes) {
-                if ((pm == vk::PresentModeKHR::eMailbox || pm == vk::PresentModeKHR::eFifo || pm == vk::PresentModeKHR::eFifoRelaxed || pm == vk::PresentModeKHR::eImmediate) && device->physical.getSurfaceSupportKHR(device->familyIndex, surface)) {
+                if ((pm == vk::PresentModeKHR::eMailbox || pm == vk::PresentModeKHR::eFifo || pm == vk::PresentModeKHR::eFifoRelaxed || pm == vk::PresentModeKHR::eImmediate) && device->physical.getSurfaceSupportKHR(device->queues[1]->familyIndex, surface)) {
                     presentMode = pm; break;
                 }
             }
@@ -486,7 +508,7 @@ namespace NSM {
             swapchainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
             swapchainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
             swapchainCreateInfo.queueFamilyIndexCount = 1;
-            swapchainCreateInfo.pQueueFamilyIndices = &device->familyIndex;
+            swapchainCreateInfo.pQueueFamilyIndices = &device->queues[1]->familyIndex;
             swapchainCreateInfo.preTransform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
             swapchainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
             swapchainCreateInfo.presentMode = presentMode;

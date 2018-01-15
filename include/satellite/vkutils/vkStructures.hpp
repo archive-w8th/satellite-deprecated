@@ -9,20 +9,31 @@
 
 namespace NSM {
 
+    struct DevQueue {
+        uint32_t familyIndex;
+        vk::Queue queue;
+    };
+
+    using DevQueueType = std::shared_ptr<DevQueue>;
+
+
     // application device structure
     struct DeviceQueue {
         bool initialized = false;
         bool executed = false;
         vk::Device logical;
         vk::PhysicalDevice physical;
-        vk::Queue queue;
-        uint32_t familyIndex = 0;
+        
         vk::Semaphore wsemaphore;
         vk::CommandPool commandPool;
         vk::Semaphore currentSemaphore = nullptr;
         vk::DescriptorPool descriptorPool;
         vk::Fence fence;
         VmaAllocator allocator;
+
+        // queue managment
+        DevQueueType mainQueue;
+        std::vector<DevQueueType> queues;
     };
 
     using DeviceQueueType = std::shared_ptr<DeviceQueue>;

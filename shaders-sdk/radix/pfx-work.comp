@@ -12,22 +12,22 @@ layout (local_size_x = RADICES) in;
 
 // reductive prefix scan of work groups
 void prefixScan() {
-    UVEC_WARP localIdx = LT_IDX;
+    UVEC_WARP ldx = LT_IDX;
     {
-        uint prv = localIdx >= 1 ? localIdx-1 : 0;
-        uint tmp = localIdx >= 1 && localIdx < RADICES ? localHistogram[prv] : 0;
+        uint prv = ldx >= 1 ? ldx-1 : 0;
+        uint tmp = ldx >= 1 && ldx < RADICES ? localHistogram[prv] : 0;
         memoryBarrier(); barrier();
-        if (localIdx < RADICES) localHistogram[localIdx] = tmp;
+        if (ldx < RADICES) localHistogram[ldx] = tmp;
         memoryBarrier(); barrier();
     }
 
     // reduction prefix-scan
     for (int i=1;i<RADICES;i<<=1) {
-        uint prv = localIdx >= i ? localIdx-i : 0;
-        uint off = localIdx >= i && localIdx < RADICES ? localHistogram[prv] : 0;
+        uint prv = ldx >= i ? ldx-i : 0;
+        uint off = ldx >= i && ldx < RADICES ? localHistogram[prv] : 0, 
+             hst =             ldx < RADICES ? localHistogram[ldx] : 0;
         memoryBarrier(); barrier();
-        uint hst = localIdx < RADICES ? localHistogram[localIdx] : 0;
-        if (localIdx < RADICES) localHistogram[localIdx] = off + hst;
+        if (ldx < RADICES) localHistogram[ldx] = off + hst;
         memoryBarrier(); barrier();
     }
 }

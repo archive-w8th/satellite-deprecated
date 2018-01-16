@@ -45,8 +45,8 @@ namespace NSM {
             VarBuffer = createBuffer(device, strided<Consts>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             TmpKeys = createBuffer(device, strided<uint64_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             TmpValues = createBuffer(device, strided<uint32_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            Histograms = createBuffer(device, strided<uint32_t>(WG_COUNT * 256), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            PrefixSums = createBuffer(device, strided<uint32_t>(WG_COUNT * 256), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            Histograms = createBuffer(device, strided<uint32_t>(WG_COUNT * 16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            PrefixSums = createBuffer(device, strided<uint32_t>(WG_COUNT * 16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // write desks
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -125,20 +125,22 @@ namespace NSM {
             // copy headers buffer command
             std::vector<vk::CommandBuffer> copyBuffers;
             for (int i = 0; i < stepCount; i++) {
-                auto copyCounterCommand = getCommandBuffer(device, true);
-                memoryCopyCmd(copyCounterCommand, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
-                copyCounterCommand.end();
-                copyBuffers.push_back(copyCounterCommand);
+                auto copyCommand = getCommandBuffer(device, true);
+                memoryCopyCmd(copyCommand, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
+                memoryCopyCmd(copyCommand, InKeys, TmpKeys, { 0, 0, strided<uint64_t>(size) });
+                memoryCopyCmd(copyCommand, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
+                copyCommand.end();
+                copyBuffers.push_back(copyCommand);
             }
+
 
             // histogram command (include copy command)
             auto histogramCommand = getCommandBuffer(device, true);
-            memoryCopyCmd(histogramCommand, InKeys, TmpKeys, { 0, 0, strided<uint64_t>(size) });
-            memoryCopyCmd(histogramCommand, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
             histogramCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
             histogramCommand.bindPipeline(vk::PipelineBindPoint::eCompute, histogram.pipeline);
             histogramCommand.dispatch(WG_COUNT, RADICE_AFFINE, 1); // dispatch few counts
             histogramCommand.end();
+
 
             // work prefix command
             auto workPrefixCommand = getCommandBuffer(device, true);
@@ -146,6 +148,7 @@ namespace NSM {
             workPrefixCommand.bindPipeline(vk::PipelineBindPoint::eCompute, workPrefixSum.pipeline);
             workPrefixCommand.dispatch(1, 1, 1); // dispatch few counts
             workPrefixCommand.end();
+
 
             // permute command
             auto permuteCommand = getCommandBuffer(device, true);
@@ -155,9 +158,7 @@ namespace NSM {
             permuteCommand.end();
 
 
-            vk::PipelineStageFlags stageMasks = vk::PipelineStageFlagBits::eAllCommands;
             std::vector<vk::SubmitInfo> buildSubmitInfos;
-
             for (int j = 0; j < stepCount; j++) {
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&copyBuffers[j])); // copy header
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&histogramCommand)); // histogram
@@ -165,9 +166,11 @@ namespace NSM {
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&permuteCommand)); // permute 
             }
 
+
             // submit radix sort
             vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
             device->mainQueue->queue.submit(buildSubmitInfos, fence);
+
 
             // asynchronous await for cleans
             std::async([=](){

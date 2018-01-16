@@ -144,10 +144,8 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
 
-    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), faceforward(sdr, sdr, -tbn[2]), clamp(refly * sqrt(random()), 0.0f, 1.0f)));
-    //ray.direct.xyz = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), faceforward(sdr, sdr, -tbn[2]), clamp(refly * random(), 0.0f, 1.0f)));
-    //sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(random() * modularize(refly), 0.0f, 1.0f).xxx));
-    sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(random() * (refly), 0.0f, 1.0f).xxx));
+    //sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(sqrt(random()) * modularize(refly), 0.0f, 1.0f).xxx));
+    sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
     //sdr = reflect(ray.direct.xyz, tbn[2]);
     ray.direct.xyz = faceforward(sdr, sdr, -tbn[2]);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);

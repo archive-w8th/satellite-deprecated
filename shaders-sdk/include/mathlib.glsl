@@ -300,6 +300,9 @@ vec3 toLinear(in vec3 sRGB) {
     //return mix(pow((sRGB + vec3(0.055))/vec3(1.055), vec3(2.4)), sRGB/vec3(12.92), lessThan(sRGB, vec3(0.04045)));
 }
 
+vec3 toSRGB(in vec3 linearRGB) {
+    return mix(vec3(1.055)*pow(linearRGB, vec3(1.0/2.4)) - vec3(0.055), linearRGB * vec3(12.92), lessThan(linearRGB, vec3(0.0031308)));
+}
 
 
 

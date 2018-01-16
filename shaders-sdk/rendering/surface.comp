@@ -149,22 +149,13 @@ vec4 fetchDiffuse(in Material mat, in vec2 texcoord) {
 }
 
 
-
 struct Textured {
-    vec2 texcoord;
-
-    int diffusePart;
-    int specularPart;
-    int bumpPart;
-    int emissivePart;
-
     vec4 diffuse;
     vec4 specular;
     vec4 bump;
     vec4 emissive;
-};
+} textured;
 
-Textured textured;
 
 #define material submats[matID]
 //#define hit hits[globalID]
@@ -238,15 +229,6 @@ void main() {
             int matID = hit.materialID - RAY_BLOCK materialUniform.materialOffset;
             overflow = overflow || (matID >= RAY_BLOCK materialUniform.materialCount || matID < 0);
 
-            vec2 texcoord = hit.texcoord.xy;
-            textured.texcoord = texcoord;
-
-            // texture indexes
-            textured.diffusePart = material.diffusePart;
-            textured.bumpPart = material.bumpPart;
-            textured.specularPart = material.specularPart;
-            textured.emissivePart = material.emissivePart;
-
             // static colors
             textured.diffuse = material.diffuse;
             textured.bump = vec4(0.f, 0.f, 1.f, 1.f);
@@ -254,23 +236,24 @@ void main() {
             textured.emissive = material.emissive;
 
             // AMD not supported per-lane texture data loading, if texture index is not constant
+            vec2 texcoord = hit.texcoord.xy;
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             bool wasTextured = false;
             for (int wl=0;wl<WARP_SIZE_RT;wl++) {
                 IFALL(wasTextured) break;
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
-                    if (validateTexture(textured.bumpPart)) textured.bump.xyz = getNormalMapping(textured.bumpPart, textured.texcoord);
-                    if (validateTexture(textured.diffusePart)) textured.diffuse = fetchTexture(textured.diffusePart, textured.texcoord);
-                    if (validateTexture(textured.specularPart)) textured.specular = fetchTexture(textured.specularPart, textured.texcoord);
-                    if (validateTexture(textured.emissivePart)) textured.emissive = fetchTexture(textured.emissivePart, textured.texcoord);
+                    if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
+                    if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
+                    if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
+                    if (validateTexture(material.emissivePart)) textured.emissive = fetchTexture(material.emissivePart, texcoord);
                     wasTextured = true;
                 }
             }
 #else
-            if (validateTexture(textured.diffusePart)) textured.diffuse = fetchTexture(textured.diffusePart, textured.texcoord);
-            if (validateTexture(textured.specularPart)) textured.specular = fetchTexture(textured.specularPart, textured.texcoord);
-            if (validateTexture(textured.emissivePart)) textured.emissive = fetchTexture(textured.emissivePart, textured.texcoord);
-            if (validateTexture(textured.bumpPart)) textured.bump.xyz = getNormalMapping(textured.bumpPart, textured.texcoord);
+            if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
+            if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
+            if (validateTexture(material.emissivePart)) textured.emissive = fetchTexture(material.emissivePart, texcoord);
+            if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
 #endif
 
             vec3 normal = normalize(hit.normalHeight.xyz);

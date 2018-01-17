@@ -181,9 +181,19 @@ HitRework interpolateMeshData(inout HitRework res) {
 
         // transposed
         mat3x3 triverts = mat3x3(fetchMosaic(vertex_texture, triv, 0).xyz, fetchMosaic(vertex_texture, triv, 1).xyz, fetchMosaic(vertex_texture, triv, 2).xyz);
+
+        vec3 vmx = max(max(triverts[2], triverts[1]), triverts[0]);
+        vec3 vmn = min(min(triverts[2], triverts[1]), triverts[0]);
+
+        // make unit coordination
+        triverts[0] -= vmn;
+        triverts[1] -= vmn;
+        triverts[2] -= vmn;
+        vmx -= vmn;
+
+        vec3 normal = normalize(cross(triverts[1] - triverts[0], triverts[2] - triverts[0]));
         vec3 deltaPos0 = triverts[1] - triverts[0];
         vec3 deltaPos1 = triverts[2] - triverts[0];
-        vec3 normal = normalize(cross(deltaPos0, deltaPos1));
 
         //vSgn = -sign(dot(normal, viewVec));
         //normal *= vSgn;

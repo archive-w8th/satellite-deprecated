@@ -170,6 +170,9 @@ float vSgn = 1.f;
 
 float precIssue (in float a) { return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
 
+// barycentric map (for corrections tangents in POM)
+const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
+
 HitRework interpolateMeshData(inout HitRework res) {
     int tri = floatBitsToInt(res.uvt.w);
     BOOL_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & BOOL_(tri != LONGEST);
@@ -197,7 +200,6 @@ HitRework interpolateMeshData(inout HitRework res) {
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
         vec3 btng = fma(dlts[1].xxx, deltaPos0, -dlts[0].xxx * deltaPos1) / precIssue(determinant(dlts));
-        //vec3 tang = fma(dlts[1].yyy, deltaPos0, -dlts[0].yyy * deltaPos1) / determinant(dlts);
         vec3 tang = normalize(cross(btng, normal));
 
         IF (validInterpolant) {

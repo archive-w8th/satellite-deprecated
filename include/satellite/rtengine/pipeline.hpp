@@ -9,7 +9,6 @@ namespace NSM {
 
         class Pipeline {
         protected:
-            const size_t WORK_SIZE = 128;
             const size_t INTENSIVITY = 256;
             const size_t MAX_SURFACE_IMAGES = 72;
             const size_t BLOCK_COUNTER = 0;

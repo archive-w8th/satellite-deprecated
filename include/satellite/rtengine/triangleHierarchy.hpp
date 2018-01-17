@@ -10,8 +10,6 @@ namespace NSM {
         class TriangleHierarchy {
         protected:
             std::shared_ptr<RadixSort> radixSort;
-
-            const size_t WORK_SIZE = 128;
             const size_t INTENSIVITY = 256;
             const size_t WARPED_WIDTH = 2048;
             const size_t _WIDTH = 6144;

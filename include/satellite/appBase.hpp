@@ -318,46 +318,53 @@ namespace NSM {
         virtual vk::RenderPass createRenderpass(DeviceQueueType& device, SurfaceFormat &formats) {
             // attachments 
             std::vector<vk::AttachmentDescription> attachmentDescriptions = {
+
                 vk::AttachmentDescription()
                     .setFormat(formats.colorFormat).setSamples(vk::SampleCountFlagBits::e1)
                     .setLoadOp(vk::AttachmentLoadOp::eLoad).setStoreOp(vk::AttachmentStoreOp::eStore)
                     .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
                     .setInitialLayout(vk::ImageLayout::eUndefined).setFinalLayout(vk::ImageLayout::ePresentSrcKHR),
+
                 vk::AttachmentDescription()
                     .setFormat(formats.depthFormat).setSamples(vk::SampleCountFlagBits::e1)
                     .setLoadOp(vk::AttachmentLoadOp::eClear).setStoreOp(vk::AttachmentStoreOp::eDontCare)
                     .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare).setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
                     .setInitialLayout(vk::ImageLayout::eUndefined).setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+
             };
+
             // attachments references
             std::vector<vk::AttachmentReference> colorReferences = { vk::AttachmentReference(0, vk::ImageLayout::eColorAttachmentOptimal) };
             std::vector<vk::AttachmentReference> depthReferences = { vk::AttachmentReference(1, vk::ImageLayout::eDepthStencilAttachmentOptimal) };
 
             // subpasses desc
             std::vector<vk::SubpassDescription> subpasses = {
-                vk::SubpassDescription().setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
-                .setPColorAttachments(colorReferences.data()).setColorAttachmentCount(colorReferences.size()).setPDepthStencilAttachment(depthReferences.data())
+                vk::SubpassDescription()
+                .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+                .setPColorAttachments(colorReferences.data()).setColorAttachmentCount(colorReferences.size())
+                .setPDepthStencilAttachment(depthReferences.data())
             };
 
             // dependency
             std::vector<vk::SubpassDependency> dependencies = {
-                vk::SubpassDependency()
-                    .setSrcSubpass(~0U)
-                    .setSrcStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
-                    .setSrcAccessMask(vk::AccessFlagBits::eMemoryRead)
+                vk::SubpassDependency().setDependencyFlags(vk::DependencyFlagBits::eByRegion)
+                    .setSrcSubpass(VK_SUBPASS_EXTERNAL)
+                    .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eBottomOfPipe | vk::PipelineStageFlagBits::eTransfer)
+                    .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentWrite)
+
                     .setDstSubpass(0)
                     .setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-                    .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
-                    .setDependencyFlags(vk::DependencyFlagBits::eByRegion),
+                    .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite),
 
-                vk::SubpassDependency()
+                vk::SubpassDependency().setDependencyFlags(vk::DependencyFlagBits::eByRegion)
                     .setSrcSubpass(0)
                     .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
                     .setSrcAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
-                    .setDstSubpass(~0U)
-                    .setDstStageMask(vk::PipelineStageFlagBits::eBottomOfPipe)
-                    .setDstAccessMask(vk::AccessFlagBits::eMemoryRead)
-                    .setDependencyFlags(vk::DependencyFlagBits::eByRegion)
+
+                    .setDstSubpass(VK_SUBPASS_EXTERNAL)
+                    .setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eTopOfPipe | vk::PipelineStageFlagBits::eTransfer)
+                    .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite)
+                    
             };
 
             // create renderpass

@@ -127,11 +127,12 @@ vec3 getNormalMapping(in int binding, vec2 texcoordi) {
     IF (equalF(tc.x, tc.y) & equalF(tc.x, tc.z)) {
         vec2 txs = 1.f/textureSize(sampler2D(textures[binding], samplers[0]), 0);
         vec4 tx4 = vec4(-txs.xy, txs.xy)*0.5f;
+        vec4 txu = vec4(-1.f,-1.f,1.f,1.f)*0.5f;
 
-        const float hsize = 0.005f;
-        vec3 t00 = getUVH(binding, texcoordi + tx4.xy) * vec3(1.f,1.f,hsize);
-        vec3 t01 = getUVH(binding, texcoordi + tx4.xw) * vec3(1.f,1.f,hsize);
-        vec3 t10 = getUVH(binding, texcoordi + tx4.zy) * vec3(1.f,1.f,hsize);
+        const float hsize = 4.f;
+        vec3 t00 = vec3(txu.xy, getUVH(binding, texcoordi + tx4.xy).z) * vec3(1.f,1.f,hsize);
+        vec3 t01 = vec3(txu.xw, getUVH(binding, texcoordi + tx4.xw).z) * vec3(1.f,1.f,hsize);
+        vec3 t10 = vec3(txu.zy, getUVH(binding, texcoordi + tx4.zy).z) * vec3(1.f,1.f,hsize);
         vec3 bump = normalize(cross(t10 - t00, t01 - t00));
         normal = faceforward(bump, normal, bump);
     } else {

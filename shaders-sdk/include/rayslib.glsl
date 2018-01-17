@@ -134,6 +134,10 @@ int getGeneralPlainId(){
 }
 
 
+ivec2 decomposeLinearId(in int linid){
+    return ivec2(linid / R_BLOCK_SIZE, linid % R_BLOCK_SIZE);
+}
+
 
 // counters
 layout ( std430, binding = 8, set = 0 ) restrict buffer CounterBlock { 

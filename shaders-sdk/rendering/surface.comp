@@ -160,10 +160,15 @@ struct Textured {
 
 #define material submats[matID]
 //#define hit hits[globalID]
-#define ray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE]
+#define ray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE].data
 
 LOCAL_SIZE_LAYOUT;
 
+vec3 viewVec = vec3(0.f);
+float vSgn = 1.f;
+
+
+float precIssue (in float a) { return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
 
 HitRework interpolateMeshData(inout HitRework res) {
     int tri = floatBitsToInt(res.uvt.w);
@@ -173,9 +178,12 @@ HitRework interpolateMeshData(inout HitRework res) {
 
         // transposed
         mat3x3 triverts = mat3x3(fetchMosaic(vertex_texture, triv, 0).xyz, fetchMosaic(vertex_texture, triv, 1).xyz, fetchMosaic(vertex_texture, triv, 2).xyz);
-        vec3 deltaPos1 = triverts[1] - triverts[0];
-        vec3 deltaPos2 = triverts[2] - triverts[0];
-        vec3 normal = normalize(cross(deltaPos1, deltaPos2));
+        vec3 deltaPos0 = triverts[1] - triverts[0];
+        vec3 deltaPos1 = triverts[2] - triverts[0];
+        vec3 normal = normalize(cross(deltaPos0, deltaPos1));
+
+        //vSgn = -sign(dot(normal, viewVec));
+        //normal *= vSgn;
 
         // gather texcoord
         vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
@@ -188,19 +196,13 @@ HitRework interpolateMeshData(inout HitRework res) {
         mat3x2 txds = transpose(texcoords);
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
-        // 
-        if (abs(dlts[0].x) < 0.00001f && abs(dlts[0].y) < 0.00001f) dlts[0].x = 1.f, dlts[0].y =  0.f; // correction txcoords delta x
-        if (abs(dlts[1].x) < 0.00001f && abs(dlts[1].y) < 0.00001f) dlts[1].x = 0.f, dlts[1].y =  1.f; // correction txcoords delta y
-
-        // tangent determinant
-        float det = determinant(dlts), f = 1.f / (max(abs(det), 0.00001f) * (det >= 0.f ? 1 : -1));
-        { f = isnan(f) ? 0.f : f, f = isinf(f) ? 10000.f : f; }
-        vec3 btng = fma(dlts[1].xxx, deltaPos1, -dlts[0].xxx * deltaPos2) * f;
-        vec3 tang = cross(btng, normal);
+        vec3 btng = fma(dlts[1].xxx, deltaPos0, -dlts[0].xxx * deltaPos1) / precIssue(determinant(dlts));
+        //vec3 tang = fma(dlts[1].yyy, deltaPos0, -dlts[0].yyy * deltaPos1) / determinant(dlts);
+        vec3 tang = normalize(cross(btng, normal));
 
         IF (validInterpolant) {
             res.normalHeight = vec4(normal, 0.0f);
-            res.tangent = vec4(normalize(tang), 0.0f);
+            res.tangent = vec4(tang, 0.f);
             res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
             HitActived(res, TRUE_); // temporary enable
@@ -208,7 +210,6 @@ HitRework interpolateMeshData(inout HitRework res) {
     }
     return res;
 }
-
 
 void main() {
     #define wsize RAY_BLOCK samplerUniform.hitCount
@@ -223,6 +224,8 @@ void main() {
         IFALL(overflow) break;
         {
             HitRework hit = hits[globalID];
+            viewVec = ray.direct.xyz;
+
             interpolateMeshData(hit);
 
             globalInvocationSMP = globalID;
@@ -238,6 +241,10 @@ void main() {
 
             // AMD not supported per-lane texture data loading, if texture index is not constant
             vec2 texcoord = hit.texcoord.xy;
+            vec3 normal = normalize(hit.normalHeight.xyz);
+            vec3 tangent = normalize(hit.tangent.xyz);
+            mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
+
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             bool wasTextured = false;
             for (int wl=0;wl<WARP_SIZE_RT;wl++) {
@@ -247,6 +254,7 @@ void main() {
                     if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
                     if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
                     if (validateTexture(material.emissivePart)) textured.emissive = fetchTexture(material.emissivePart, texcoord);
+
                     wasTextured = true;
                 }
             }
@@ -257,10 +265,6 @@ void main() {
             if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
 #endif
 
-            vec3 normal = normalize(hit.normalHeight.xyz);
-            vec3 tangent = normalize(hit.tangent.xyz);
-            mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
-
             vec4 diffuse = textured.diffuse; diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
             vec4 emission = textured.emissive; emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
             vec4 spc = clamp01(textured.specular);
@@ -269,6 +273,10 @@ void main() {
             hit.emission.xy = packHalf2(emission.xyzw).xy;
             hit.albedo.xy = packHalf2(diffuse.xyzw).xy;
             hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
+
+            // TODO: delta of texcoords
+            //hit.metallicRoughness.zw = packHalf2(vec4(tdelta[0].xy, tdelta[1].xy).xyzw).xy;
+
             HitActived(hit, TRUE_);
 
             if (!overflow) hits[globalID] = hit;

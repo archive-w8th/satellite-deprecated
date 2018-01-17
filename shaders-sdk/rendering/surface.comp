@@ -261,13 +261,9 @@ void main() {
             vec3 tangent = normalize(hit.tangent.xyz);
             mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
 
-            vec4 diffuse = textured.diffuse;
-            vec4 emission = textured.emissive;
+            vec4 diffuse = textured.diffuse; diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
+            vec4 emission = textured.emissive; emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
             vec4 spc = clamp01(textured.specular);
-
-            emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
-            diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
-            //diffuse = vec4(1.f.xxxx);
 
             hit.normalHeight.xyzw = vec4(normalize(tbn*textured.bump.xyz), 1.f).xyzw;
             hit.emission.xy = packHalf2(emission.xyzw).xy;

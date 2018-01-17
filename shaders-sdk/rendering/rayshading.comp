@@ -152,7 +152,7 @@ void envShading(inout bool skipping) {
     }
 
     // apply background
-    vec4 color = vec4(0.0f); EnvironmentShader(color, currentRay); color.xyz = toLinear(max(color.xyz, vec3(0.f)));
+    vec4 color = vec4(0.0f); EnvironmentShader(color, currentRay); //color.xyz = toLinear(max(color.xyz, vec3(0.f)));
     if ((SSC(greaterEqualF(compositedHit[currentLayer].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay)) && RayType(currentRay) != 2) {
         currentRay.final.xyz = currentRay.color.xyz * color.xyz;
         currentRay.color.xyz *= 0.0f;

@@ -24,6 +24,7 @@ struct SurfaceUnpacked {
      vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
      vec4 metallicRoughness;
      vec4 tangent;
+     vec4 bitangent;
 
     // color parameters
      vec4 emission;
@@ -40,6 +41,12 @@ int proceduralID = -1;
 
 
 #define hit firstHit
+
+
+
+float randomed(in float r){
+    return random() < r ? 1.f : 0.f;
+}
 
 void invokeSurface(inout bool overflow) {
     // initial hit
@@ -82,6 +89,7 @@ void invokeSurface(inout bool overflow) {
         compositedHit[0].metallicRoughness = unpackHalf(firstHit.metallicRoughness);
         compositedHit[0].normalHeight = firstHit.normalHeight;
         compositedHit[0].tangent = firstHit.tangent;
+        compositedHit[0].bitangent = firstHit.bitangent;
     }
 
     // layers composition
@@ -94,12 +102,15 @@ void invokeSurface(inout bool overflow) {
 
         // composite decals
         vec4 albedo = unpackHalf(hit.albedo);
+        vec4 ralpha = randomed(albedo.w).xxxx;
+
         compositedHit[searchLayer].uvt = hit.uvt;
         compositedHit[searchLayer].albedo = composite(compositedHit[searchLayer].albedo, albedo);
-        compositedHit[searchLayer].normalHeight = fmix(compositedHit[searchLayer].normalHeight, hit.normalHeight, albedo.wwww);
-        compositedHit[searchLayer].metallicRoughness = fmix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), albedo.wwww);
-        compositedHit[searchLayer].emission = fmix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), albedo.wwww);
-        compositedHit[searchLayer].tangent = fmix(compositedHit[searchLayer].tangent, hit.tangent, albedo.wwww);
+        compositedHit[searchLayer].normalHeight = fmix(compositedHit[searchLayer].normalHeight, hit.normalHeight, ralpha);
+        compositedHit[searchLayer].metallicRoughness = fmix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), ralpha);
+        compositedHit[searchLayer].emission = fmix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), ralpha);
+        compositedHit[searchLayer].tangent = fmix(compositedHit[searchLayer].tangent, hit.tangent, ralpha);
+        compositedHit[searchLayer].bitangent = fmix(compositedHit[searchLayer].bitangent, hit.bitangent, ralpha);
 
         // already filled layer
         if (compositedHit[searchLayer].albedo.a > 0.99999f) break;
@@ -250,8 +261,7 @@ void main() {
                     // get normals
                     vec3 surfacenormal = compositedHit[currentLayer].normalHeight.xyz;
                     vec3 normal = faceforward(surfacenormal, currentRay.direct.xyz, surfacenormal);
-                    vec3 tangent = normalize(compositedHit[currentLayer].tangent.xyz);
-                    mat3 tbn = mat3(tangent.xyz, normalize(cross(normal.xyz, tangent.xyz)), normal.xyz);
+                    mat3 tbn = mat3(compositedHit[currentLayer].tangent.xyz, compositedHit[currentLayer].bitangent.xyz, normal.xyz);
 
                     // get texture composition data
                     vec4 diffcolor = compositedHit[currentLayer].albedo;

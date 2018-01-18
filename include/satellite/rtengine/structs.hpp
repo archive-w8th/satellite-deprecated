@@ -24,6 +24,7 @@ namespace NSM {
             glm::vec4 uvt; // UV, distance, triangle
             glm::vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
             glm::vec4 tangent; // also have 4th extra slot
+            glm::vec4 bitangent; // TODO: extend structure size
             glm::vec4 texcoord; // critical texcoords 
 
             glm::uvec2 metallicRoughness;

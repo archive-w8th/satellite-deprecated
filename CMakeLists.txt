@@ -55,6 +55,18 @@ set (CMAKE_MODULE_PATH
     "${CMAKE_MODULE_PATH}/modules" 
     "${PROJECT_SOURCE_DIR}/modules/" )
 
+# search package as optional
+find_package(OptiX QUIET)
+
+# if OptiX was has
+if (OptiX_FOUND) 
+set (INC_DIR "${INC_DIR} ${OptiX_INCLUDE}")
+set (LIB_DIR "${LIB_DIR} ${optix_LIBRARY} ${optix_prime_LIBRARY} ${optixu_LIBRARY}")
+set (DEFINES ${DEFINES} -DOPTIX_DENOISER_HACK)
+endif()
+
+    
+    
 set (LIBS 
     vulkan-1
     glfw3 

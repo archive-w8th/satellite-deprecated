@@ -38,3 +38,7 @@ cub/
 x64/
 Distribution/
 external/vk-sdk/
+
+*/FindCUDA/
+*/FindCUDA.*
+*/FindOptiX.*

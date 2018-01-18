@@ -19,3 +19,12 @@
 
 * [Discord channel](https://discordapp.com/invite/HFfADHH)
 
+### Minimal requirement for minimal product
+
+For minimal production, all components and deps is (royalty) free for commercial usage. 
+
+* GLM 
+* Vulkan API (and Vulkan-Hpp)
+* GLFW3 (but can be easily remedy for SDL usage)
+
+BUT! All deps is not "Release" versioned. 

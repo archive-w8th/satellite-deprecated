@@ -55,14 +55,20 @@ set (CMAKE_MODULE_PATH
     "${CMAKE_MODULE_PATH}/modules" 
     "${PROJECT_SOURCE_DIR}/modules/" )
 
+set(ENABLE_OPTIX_DENOISER OFF CACHE BOOL "Enable support of OptiX denoiser (be aware with NVidia EULA)")
+
 # search package as optional
+if (ENABLE_OPTIX_DENOISER) 
 find_package(OptiX QUIET)
+endif()
 
 # if OptiX was has
 if (OptiX_FOUND) 
 set (INC_DIR "${INC_DIR} ${OptiX_INCLUDE}")
 set (LIB_DIR "${LIB_DIR} ${optix_LIBRARY} ${optix_prime_LIBRARY} ${optixu_LIBRARY}")
+if (ENABLE_OPTIX_DENOISER) 
 set (DEFINES ${DEFINES} -DOPTIX_DENOISER_HACK)
+endif()
 endif()
 
     

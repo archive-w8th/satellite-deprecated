@@ -37,6 +37,8 @@
 #define NSM ste
 #endif
 
+
+
 namespace NSM {
     auto randm() {
         auto dvc = std::mt19937(std::random_device()());

@@ -23,6 +23,17 @@
 #include "satellite/ambientIO.hpp"
 #include "args.hxx"
 
+
+
+
+#ifdef OPTIX_DENOISER_HACK
+#include "optix.h"
+#endif
+
+
+
+
+
 namespace SatelliteExample {
 
     using namespace ste;

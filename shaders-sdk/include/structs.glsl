@@ -132,6 +132,7 @@ struct HitRework {
      vec4 uvt; // UV, distance, triangle
      vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
      vec4 tangent; // also have 4th extra slot
+     vec4 bitangent; // TODO: extend structure size
      vec4 texcoord; // critical texcoords 
 
     uvec2 metallicRoughness;

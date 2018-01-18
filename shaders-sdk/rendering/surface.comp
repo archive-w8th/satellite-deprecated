@@ -173,14 +173,15 @@ float precIssue (in float a) { return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
 
 
 
-const float parallaxScale = 0.05f;
+const float parallaxScale = 0.02f;
 const float minLayers = 10, maxLayers = 20;
 const int refLayers = 10;
+
 
 vec2 parallaxMapping(in int binding, in vec3 V, in vec2 T, out float parallaxHeight) {
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
     float layerHeight = 1.0f / numLayers;
-    vec2 dtex = parallaxScale * V.xy / V.z * layerHeight;
+    vec2 dtex = parallaxScale * V.xy * vec2(1.f,-1.f) / V.z * layerHeight;
     vec3 chv = vec3(-dtex, layerHeight);
     
     // start pos
@@ -188,7 +189,7 @@ vec2 parallaxMapping(in int binding, in vec3 V, in vec2 T, out float parallaxHei
 
     // parallax sample tracing 
     for(int l=0;l<256;l++){
-        float heightFromTexture = 1.f-fetchTexture(binding, chd_b.xy).x;
+        float heightFromTexture = 1.f-fetchTexture(binding, chd_b.xy).z;
         if ( heightFromTexture <= chd_b.z ) break;
         chd_a = chd_b, chd_b += chv;
     }
@@ -196,13 +197,13 @@ vec2 parallaxMapping(in int binding, in vec3 V, in vec2 T, out float parallaxHei
     // refinement
     for(int l=0;l<refLayers;l++){
         vec3 chd = mix(chd_a, chd_b, 0.5f);
-        float heightFromTexture = 1.f-fetchTexture(binding, chd.xy).x;
+        float heightFromTexture = 1.f-fetchTexture(binding, chd.xy).z;
         if ( heightFromTexture <= chd.z ) { chd_b = chd; } else { chd_a = chd; }
     }
 
     // do occlusion
-    float nextH	= (1.f-fetchTexture(binding, chd_b.xy).x) - chd_b.z;
-    float prevH = (1.f-fetchTexture(binding, chd_a.xy).x) - chd_a.z;
+    float nextH	= (1.f-fetchTexture(binding, chd_b.xy).z) - chd_b.z;
+    float prevH = (1.f-fetchTexture(binding, chd_a.xy).z) - chd_a.z;
 
     float dvh = (nextH - prevH);
     float weight = nextH / precIssue(dvh);
@@ -259,13 +260,14 @@ HitRework interpolateMeshData(inout HitRework res) {
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
         vec3 btng = fma(dlts[1].xxx, deltaPos0, -dlts[0].xxx * deltaPos1) / precIssue(determinant(dlts));
-        //vec3 tang = normalize(cross(btng, normal));
+        vec3 tang = fma(dlts[1].yyy, deltaPos0, -dlts[0].yyy * deltaPos1) / precIssue(determinant(dlts));
 
         IF (validInterpolant) {
             res.normalHeight = vec4(normal, 0.0f);
-            res.tangent = vec4(btng, 0.f);
+            res.tangent = vec4(normalize(tang - normal * dot(normal, tang)), 0.f);
             res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
+            res.bitangent = vec4(normalize(btng - normal * dot(normal, btng)), 0.f);
             HitActived(res, TRUE_); // temporary enable
         }
     }
@@ -303,8 +305,8 @@ void main() {
             // AMD not supported per-lane texture data loading, if texture index is not constant
             vec2 texcoord = hit.texcoord.xy;
             vec3 normal = normalize(hit.normalHeight.xyz);
-            vec3 bitang = normalize(hit.tangent.xyz);
-            vec3 tangent = normalize(cross(bitang, normal));
+            vec3 bitang = normalize(hit.bitangent.xyz);
+            vec3 tangent = normalize(hit.tangent.xyz);
 
             mat3 tbn = mat3(tangent.xyz, bitang.xyz, normal.xyz);
             vec3 pV = normalize((-ray.direct.xyz * hit.uvt.z) * tbn);
@@ -317,9 +319,9 @@ void main() {
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
 
                     // do parallax mapping
-                    //if (validateTexture(material.bumpPart)) {
-                    //    texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW);
-                    //}
+                    if (validateTexture(material.bumpPart)) {
+                        texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW);
+                    }
 
                     if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
                     if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);

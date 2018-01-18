@@ -27,4 +27,4 @@ For minimal production, all components and deps is (royalty) free for commercial
 * Vulkan API (and Vulkan-Hpp)
 * GLFW3 (but can be easily remedy for SDL usage)
 
-BUT! All deps is not "Release" versioned. 
+BUT! All deps is not "Release" stage. 

@@ -131,7 +131,11 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     ray.final.xyz *= 0.f;
 
     // bounce mini-config
+#ifdef USE_SIMPLIFIED_MODE
+    const int caustics_bounces = 0, reflection_bounces = 1;
+#else
     const int caustics_bounces = 0, reflection_bounces = 2;
+#endif
 
     //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
     if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics

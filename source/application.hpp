@@ -251,6 +251,12 @@ namespace SatelliteExample {
         int32_t baseWidth = 1, baseHeight = 1;
 
 
+        BufferType memoryBufferToHost;
+        BufferType memoryBufferFromHost;
+
+
+
+
         virtual void updateSwapchains() {
             if (needToUpdate) {
                 needToUpdate = false;
@@ -320,6 +326,12 @@ namespace SatelliteExample {
 
             // create GUI rendering engine 
             //grengine = std::shared_ptr<GuiRenderEngine>(new GuiRenderEngine(deviceQueue, renderpass, shaderPack));
+
+
+            // create dedicated buffer zones
+            memoryBufferToHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
+            memoryBufferFromHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
 
             // init ray tracer
             rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(deviceQueue, shaderPack));
@@ -644,17 +656,15 @@ namespace SatelliteExample {
 
         {
             auto texture = rays->getRawImage();
-            auto tstage = createBuffer(currentContext->device, imageData.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
-            auto bufferImageCopy = vk::BufferImageCopy()
+            auto tstage = memoryBufferToHost;
+            copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, tstage, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
-                .setImageOffset({ 0, 0, 0 })
+                .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
                 .setBufferOffset(0)
                 .setBufferRowLength(width)
                 .setBufferImageHeight(height)
-                .setImageSubresource(texture->subresourceLayers);
-            copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, tstage, bufferImageCopy, false);
+                .setImageSubresource(texture->subresourceLayers), false);
             getBufferSubData(tstage, imageData, 0);
-            destroyBuffer(tstage);
         }
 
         {

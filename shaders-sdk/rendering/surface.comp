@@ -170,6 +170,55 @@ float vSgn = 1.f;
 
 float precIssue (in float a) { return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
 
+
+
+
+const float parallaxScale = 0.05f;
+const float minLayers = 10, maxLayers = 20;
+const int refLayers = 10;
+
+vec2 parallaxMapping(in int binding, in vec3 V, in vec2 T, out float parallaxHeight) {
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
+    float layerHeight = 1.0f / numLayers;
+    vec2 dtex = parallaxScale * V.xy / V.z * layerHeight;
+    vec3 chv = vec3(-dtex, layerHeight);
+    
+    // start pos
+    vec3 chd_a = vec3(T, 0.f), chd_b = chd_a;
+
+    // parallax sample tracing 
+    for(int l=0;l<256;l++){
+        float heightFromTexture = 1.f-fetchTexture(binding, chd_b.xy).x;
+        if ( heightFromTexture <= chd_b.z ) break;
+        chd_a = chd_b, chd_b += chv;
+    }
+    
+    // refinement
+    for(int l=0;l<refLayers;l++){
+        vec3 chd = mix(chd_a, chd_b, 0.5f);
+        float heightFromTexture = 1.f-fetchTexture(binding, chd.xy).x;
+        if ( heightFromTexture <= chd.z ) { chd_b = chd; } else { chd_a = chd; }
+    }
+
+    // do occlusion
+    float nextH	= (1.f-fetchTexture(binding, chd_b.xy).x) - chd_b.z;
+    float prevH = (1.f-fetchTexture(binding, chd_a.xy).x) - chd_a.z;
+
+    float dvh = (nextH - prevH);
+    float weight = nextH / precIssue(dvh);
+    
+    parallaxHeight = chd_b.z+mix(nextH, prevH, weight);
+    return mix(chd_b.xy, chd_a.xy, weight);
+}
+
+
+
+
+
+
+
+
+
 // barycentric map (for corrections tangents in POM)
 const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
@@ -258,12 +307,20 @@ void main() {
             vec3 tangent = normalize(cross(bitang, normal));
 
             mat3 tbn = mat3(tangent.xyz, bitang.xyz, normal.xyz);
+            vec3 pV = normalize((-ray.direct.xyz * hit.uvt.z) * tbn);
+            float hW = 0.f;
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             bool wasTextured = false;
             for (int wl=0;wl<WARP_SIZE_RT;wl++) {
                 IFALL(wasTextured) break;
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
+
+                    // do parallax mapping
+                    //if (validateTexture(material.bumpPart)) {
+                    //    texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW);
+                    //}
+
                     if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
                     if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
                     if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);

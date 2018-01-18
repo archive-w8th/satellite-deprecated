@@ -103,7 +103,7 @@ namespace NSM {
             vk::ApplicationInfo appinfo;
             appinfo.pApplicationName = "VKTest";
             appinfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-            appinfo.apiVersion = VK_MAKE_VERSION(1, 0, 61);
+            appinfo.apiVersion = VK_MAKE_VERSION(1, 0, 68);
 
             // create instance info
             vk::InstanceCreateInfo cinstanceinfo;

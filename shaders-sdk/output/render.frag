@@ -31,8 +31,8 @@ void main() {
 
     vec3 color = filtered(ctx).xyz;
 
-    color = pow(color, 1.f/1.2f.xxx);
-    color = fromLinear(color);
+    //color = pow(color, 1.f/1.2f.xxx);
+    //color = fromLinear(color);
     
     outFragColor = vec4(color.xyz, 1.0f);
 }

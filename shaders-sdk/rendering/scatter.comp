@@ -51,7 +51,7 @@ void main() {
 
                         
                         if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
-                            prevc = imageLoad(presampled, cid);
+                            prevc = toLinear(imageLoad(presampled, cid));
                             prevc.xyz *= prevc.w;
                             /*
                             vec4 prj = texelBuf.nodes[ts].p3d;
@@ -113,10 +113,10 @@ void main() {
                 imageStore(presampled, cid + ivec2(0, whs.y), vec4(0.f));
             }
 
-            vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
+            vec4 xsample = toLinear(imageLoad(presampled, cid)); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
             imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
-            imageStore(presampled, cid, vec4(xsample)); // store in current projection
+            imageStore(presampled, cid, fromLinear(vec4(xsample))); // store in current projection
         }
     }
 }

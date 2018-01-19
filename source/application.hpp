@@ -312,6 +312,24 @@ namespace SatelliteExample {
                             .setPImageInfo(&vk::DescriptorImageInfo().setImageLayout(image->layout).setImageView(image->view).setSampler(sampler)),
                     }, nullptr);
                 }
+
+#ifdef OPTIX_DENOISER_HACK
+                if (denoisedBuffer) denoisedBuffer->destroy();
+                if (inputBuffer) inputBuffer->destroy();
+                if (commandListWithDenoiser) commandListWithDenoiser->destroy();
+
+                // create buffer for processing
+                denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+                inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+                denoiserStage->queryVariable("input_buffer")->set(inputBuffer);
+                denoiserStage->queryVariable("output_buffer")->set(denoisedBuffer);
+
+                // denoise command
+                commandListWithDenoiser = context->createCommandList();
+                commandListWithDenoiser->appendPostprocessingStage(denoiserStage, canvasWidth, canvasHeight);
+                commandListWithDenoiser->finalize();
+#endif
+
             }
         }
 
@@ -371,18 +389,19 @@ namespace SatelliteExample {
 
 #ifdef OPTIX_DENOISER_HACK
             context = optix::Context::create();
-            denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-            inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
 
+            // TODO support of albedo/color
             denoiserStage = context->createBuiltinPostProcessingStage("DLDenoiser");
-            denoiserStage->declareVariable("input_buffer")->set(inputBuffer);
-            denoiserStage->declareVariable("output_buffer")->set(denoisedBuffer);
-            denoiserStage->declareVariable("blend")->setFloat(0.f);
-
-            // TODO support
             denoiserStage->declareVariable("input_albedo_buffer");
             denoiserStage->declareVariable("input_normal_buffer");
+            denoiserStage->declareVariable("blend")->setFloat(0.f);
 
+            // create buffer for processing
+            denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+            inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+            denoiserStage->declareVariable("input_buffer")->set(inputBuffer);
+            denoiserStage->declareVariable("output_buffer")->set(denoisedBuffer);
+            
             // denoise command
             commandListWithDenoiser = context->createCommandList();
             commandListWithDenoiser->appendPostprocessingStage(denoiserStage, canvasWidth, canvasHeight);
@@ -563,9 +582,6 @@ namespace SatelliteExample {
                     int32_t c_semaphore = (*curr_semaphore + 1) % context->framebuffers.size();
                     *curr_semaphore = c_semaphore;
 
-                    // update swapchain (if need)
-                    app->updateSwapchains();
-
                     // acquire next image where will rendered (and get semaphore when will presented finally)
                     n_semaphore = (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1));
                     currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
@@ -667,14 +683,14 @@ namespace SatelliteExample {
             // measure render begin time
             auto tStart = std::chrono::high_resolution_clock::now();
 
+            // update swapchain (if need)
+            this->updateSwapchains();
+
             // do ray tracing
             this->process();
 
-
-
-            {
 #ifdef OPTIX_DENOISER_HACK
-
+            {
                 auto width = rays->getCanvasWidth();
                 auto height = rays->getCanvasHeight();
                 auto texture = rays->getRawImage();
@@ -710,12 +726,8 @@ namespace SatelliteExample {
                         .setBufferImageHeight(height)
                         .setImageSubresource(filtered->subresourceLayers), true);
                 });
-
-
-                
-
-#endif
             }
+#endif
 
 
 

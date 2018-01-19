@@ -280,25 +280,26 @@ vec4 textureBicubic(in sampler2D tx, in vec2 texCoords) {
 
 const float HDR_GAMMA = 2.2f;
 
-vec4 fromLinear(in vec4 linearRGB) {
-    //return pow(linearRGB, vec4(1.f/HDR_GAMMA));
-    return mix(vec4(1.055)*pow(linearRGB, vec4(1.0/2.4)) - vec4(0.055), linearRGB * vec4(12.92), lessThan(linearRGB, vec4(0.0031308)));
-}
 
-vec4 toLinear(in vec4 sRGB) {
-    //return pow(sRGB, vec4(HDR_GAMMA));
-    return mix(pow((sRGB + vec4(0.055))/vec4(1.055), vec4(2.4)), sRGB/vec4(12.92), lessThan(sRGB, vec4(0.04045)));
-}
 
 vec3 fromLinear(in vec3 linearRGB) {
-    //return pow(linearRGB, vec3(1.f/HDR_GAMMA));
     return mix(vec3(1.055)*pow(linearRGB, vec3(1.0/2.4)) - vec3(0.055), linearRGB * vec3(12.92), lessThan(linearRGB, vec3(0.0031308)));
 }
 
 vec3 toLinear(in vec3 sRGB) {
-    //return pow(sRGB, vec3(HDR_GAMMA));
     return mix(pow((sRGB + vec3(0.055))/vec3(1.055), vec3(2.4)), sRGB/vec3(12.92), lessThan(sRGB, vec3(0.04045)));
 }
+
+
+
+vec4 fromLinear(in vec4 linearRGB) {
+    return vec4(fromLinear(linearRGB.xyz), linearRGB.w);
+}
+
+vec4 toLinear(in vec4 sRGB) {
+    return vec4(toLinear(sRGB.xyz), sRGB.w);
+}
+
 
 
 

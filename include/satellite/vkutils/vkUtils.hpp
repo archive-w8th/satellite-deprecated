@@ -24,7 +24,7 @@
 namespace NSM {
 
     // create command pool function
-    vk::CommandPool createCommandPool(DeviceQueueType& deviceQueue) {
+    vk::CommandPool createCommandPool(const DeviceQueueType& deviceQueue) {
         return deviceQueue->logical.createCommandPool(vk::CommandPoolCreateInfo(
             vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
             deviceQueue->mainQueue->familyIndex
@@ -32,7 +32,7 @@ namespace NSM {
     }
 
     // get or create command buffer
-    auto getCommandBuffer(DeviceQueueType& deviceQueue, bool begin = true) {
+    auto getCommandBuffer(const DeviceQueueType& deviceQueue, bool begin = true) {
         vk::CommandBuffer cmdBuffer = deviceQueue->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
         if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
         cmdBuffer.pipelineBarrier(
@@ -48,7 +48,7 @@ namespace NSM {
 
 
     // finish temporary command buffer function 
-    auto flushCommandBuffer(DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, bool async = false) {
+    auto flushCommandBuffer(const DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, bool async = false) {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = {
@@ -83,7 +83,7 @@ namespace NSM {
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffer(DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, const std::function<void()>& asyncCallback) {
+    auto flushCommandBuffer(const DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, const std::function<void()>& asyncCallback) {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = {
@@ -113,7 +113,7 @@ namespace NSM {
 
 
     // flush command for rendering 
-    auto flushCommandBuffer(DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, vk::SubmitInfo kernel, const std::function<void()>& asyncCallback) {
+    auto flushCommandBuffer(const DeviceQueueType& deviceQueue, vk::CommandBuffer& commandBuffer, vk::SubmitInfo kernel, const std::function<void()>& asyncCallback) {
         commandBuffer.end();
 
         kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
@@ -151,7 +151,7 @@ namespace NSM {
     }
 
     // create texture object
-    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageViewType imageViewType, vk::ImageLayout layout, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+    auto createTexture(const DeviceQueueType& deviceQueue, vk::ImageViewType imageViewType, vk::ImageLayout layout, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
         std::shared_ptr<Texture> texture(new Texture);
 
         // link device
@@ -230,7 +230,7 @@ namespace NSM {
     }
 
     // 
-    auto createTexture(DeviceQueueType& deviceQueue, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+    auto createTexture(const DeviceQueueType& deviceQueue, vk::ImageViewType viewType, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
         return createTexture(deviceQueue, viewType, vk::ImageLayout::eGeneral, size, usage, format, mipLevels, usageType);
     }
 
@@ -241,7 +241,7 @@ namespace NSM {
 
 
     // create buffer function
-    auto createBuffer(DeviceQueueType& deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType, vk::SharingMode sharingMode = vk::SharingMode::eExclusive) {
+    auto createBuffer(const DeviceQueueType& deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType, vk::SharingMode sharingMode = vk::SharingMode::eExclusive) {
         std::shared_ptr<Buffer> buffer(new Buffer);
 
         // link with device
@@ -273,24 +273,24 @@ namespace NSM {
 
     // fill buffer function
     template<class T>
-    void bufferSubData(vk::CommandBuffer& cmd, BufferType& buffer, const std::vector<T>& hostdata, intptr_t offset = 0) {
+    void bufferSubData(vk::CommandBuffer& cmd, const BufferType& buffer, const std::vector<T>& hostdata, intptr_t offset = 0) {
         const size_t bufferSize = hostdata.size() * sizeof(T);
         if (bufferSize > 0) memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata.data(), bufferSize);
     }
 
 
-    void bufferSubData(vk::CommandBuffer& cmd, BufferType& buffer, const uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
+    void bufferSubData(vk::CommandBuffer& cmd, const BufferType& buffer, const uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
         if (bufferSize > 0) memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata, bufferSize);
     }
 
     // get buffer data function
     template<class T>
-    void getBufferSubData(BufferType& buffer, std::vector<T>& hostdata, intptr_t offset = 0) {
+    void getBufferSubData(const BufferType& buffer, std::vector<T>& hostdata, intptr_t offset = 0) {
         memcpy(hostdata.data(), (const uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata.size() * sizeof(T));
     }
 
     // get buffer data function
-    void getBufferSubData(BufferType& buffer, uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
+    void getBufferSubData(const BufferType& buffer, uint8_t * hostdata, const size_t bufferSize, intptr_t offset = 0) {
         memcpy(hostdata, (const uint8_t *)buffer->allocationInfo.pMappedData + offset, bufferSize);
     }
 
@@ -298,51 +298,51 @@ namespace NSM {
 
 
 
-    // copy buffer command by region
-    void memoryCopyCmd(vk::CommandBuffer& cmd, BufferType& src, BufferType& dst, vk::BufferCopy region) {
+    // copy buffer command by region 
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const BufferType& src, const BufferType& dst, vk::BufferCopy region) {
         cmd.copyBuffer(src->buffer, dst->buffer, 1, &region);
     }
 
     // store buffer data to subimage
-    void memoryCopyCmd(vk::CommandBuffer& cmd, BufferType& src, TextureType& dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout) {
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const BufferType& src, const TextureType& dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout) {
         cmd.copyBufferToImage(src->buffer, dst->image, dst->layout, 1, &region);
     }
 
     // load image subdata to buffer
-    void memoryCopyCmd(vk::CommandBuffer& cmd, TextureType& src, BufferType& dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout) {
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const TextureType& src, const BufferType& dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout) {
         cmd.copyImageToBuffer(src->image, src->layout, dst->buffer, 1, &region);
     }
 
     // copy image to image
-    void memoryCopyCmd(vk::CommandBuffer& cmd, TextureType& src, TextureType& dst, vk::ImageCopy region, vk::ImageLayout srcOldLayout, vk::ImageLayout dstOldLayout) {
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const TextureType& src, const TextureType& dst, vk::ImageCopy region, vk::ImageLayout srcOldLayout, vk::ImageLayout dstOldLayout) {
         cmd.copyImage(src->image, src->layout, dst->image, dst->layout, 1, &region);
     }
 
     // store buffer data to subimage
-    void memoryCopyCmd(vk::CommandBuffer& cmd, BufferType& src, TextureType& dst, vk::BufferImageCopy region) {
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const BufferType& src, const TextureType& dst, vk::BufferImageCopy region) {
         memoryCopyCmd(cmd, src, dst, region, dst->initialLayout);
     }
 
     // store buffer data to subimage
-    void memoryCopyCmd(vk::CommandBuffer& cmd, TextureType& src, TextureType& dst, vk::ImageCopy region) {
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const TextureType& src, const TextureType& dst, vk::ImageCopy region) {
         memoryCopyCmd(cmd, src, dst, region, src->initialLayout, dst->initialLayout);
     }
 
     // load image subdata to buffer
-    void memoryCopyCmd(vk::CommandBuffer& cmd, TextureType& src, BufferType& dst, vk::BufferImageCopy region) {
+    void memoryCopyCmd(vk::CommandBuffer& cmd, const TextureType& src, const BufferType& dst, vk::BufferImageCopy region) {
         memoryCopyCmd(cmd, src, dst, region, src->initialLayout);
     }
 
 
 
     template<class ...T>
-    void copyMemoryProxy(DeviceQueueType& deviceQueue, T... args, bool async = true) { // copy staging buffers
+    void copyMemoryProxy(const DeviceQueueType& deviceQueue, T... args, bool async = true) { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...); flushCommandBuffer(deviceQueue, copyCmd, async);
     }
 
     template<class ...T>
-    void copyMemoryProxy(DeviceQueueType& deviceQueue, T... args, const std::function<void()>& asyncCallback) { // copy staging buffers
+    void copyMemoryProxy(const DeviceQueueType& deviceQueue, T... args, const std::function<void()>& asyncCallback) { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...); flushCommandBuffer(deviceQueue, copyCmd, asyncCallback);
     }

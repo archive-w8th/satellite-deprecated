@@ -27,9 +27,11 @@
 
 
 #ifdef OPTIX_DENOISER_HACK
-#include "optix.h"
+#include "optixu/optixpp.h"
+using U_MEM_HANDLE = uint8_t * ;
+#else
+using U_MEM_HANDLE = uint8_t * ;
 #endif
-
 
 
 
@@ -266,6 +268,14 @@ namespace SatelliteExample {
         BufferType memoryBufferFromHost;
 
 
+#ifdef OPTIX_DENOISER_HACK
+        optix::CommandList commandListWithDenoiser;
+        optix::Context context = 0;
+        optix::PostprocessingStage denoiserStage;
+        optix::Buffer denoisedBuffer;
+        optix::Buffer inputBuffer; // TODO: albedo, normals support
+        optix::Buffer trainingDataBuffer; // training AI buffer
+#endif
 
 
         virtual void updateSwapchains() {
@@ -289,7 +299,7 @@ namespace SatelliteExample {
                 {
                     // create sampler
                     auto sampler = currentContext->device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eClampToEdge).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMagFilter(vk::Filter::eLinear).setMinFilter(vk::Filter::eLinear).setCompareEnable(false));
-                    auto image = rays->getRawImage();
+                    auto image = rays->getFilteredImage();
 
                     // update descriptors
                     currentContext->device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
@@ -339,6 +349,9 @@ namespace SatelliteExample {
             //grengine = std::shared_ptr<GuiRenderEngine>(new GuiRenderEngine(deviceQueue, renderpass, shaderPack));
 
 
+
+
+
             // create dedicated buffer zones
             memoryBufferToHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
             memoryBufferFromHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -351,6 +364,36 @@ namespace SatelliteExample {
             glfwGetWindowContentScale(wind, &windowScale, nullptr);
             this->resizeBuffers(baseWidth * superSampling, baseHeight * superSampling);
             this->resize(canvasWidth, canvasHeight);
+
+
+
+
+
+#ifdef OPTIX_DENOISER_HACK
+            context = optix::Context::create();
+            denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+            inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+
+            denoiserStage = context->createBuiltinPostProcessingStage("DLDenoiser");
+            denoiserStage->declareVariable("input_buffer")->set(inputBuffer);
+            denoiserStage->declareVariable("output_buffer")->set(denoisedBuffer);
+            denoiserStage->declareVariable("blend")->setFloat(0.f);
+
+            // TODO support
+            denoiserStage->declareVariable("input_albedo_buffer");
+            denoiserStage->declareVariable("input_normal_buffer");
+
+            // denoise command
+            commandListWithDenoiser = context->createCommandList();
+            commandListWithDenoiser->appendPostprocessingStage(denoiserStage, canvasWidth, canvasHeight);
+            commandListWithDenoiser->finalize();
+
+
+            
+#endif
+
+
+
 
             {
                 auto app = this;
@@ -467,7 +510,7 @@ namespace SatelliteExample {
                 samplerInfo.magFilter = vk::Filter::eLinear;
                 samplerInfo.compareEnable = false;
                 auto sampler = deviceQueue->logical.createSampler(samplerInfo);
-                auto image = rays->getRawImage();
+                auto image = rays->getFilteredImage();
 
                 // desc texture texture
                 vk::DescriptorImageInfo imageDesc;
@@ -627,6 +670,55 @@ namespace SatelliteExample {
             // do ray tracing
             this->process();
 
+
+
+            {
+#ifdef OPTIX_DENOISER_HACK
+
+                auto width = rays->getCanvasWidth();
+                auto height = rays->getCanvasHeight();
+                auto texture = rays->getRawImage();
+                auto device = currentContext->device;
+                auto toloadtex = memoryBufferFromHost;
+                auto filtered = rays->getFilteredImage();
+
+                copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(device, texture, memoryBufferToHost, vk::BufferImageCopy()
+                    .setImageExtent({ width, height, 1 })
+                    .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+                    .setBufferOffset(0)
+                    .setBufferRowLength(width)
+                    .setBufferImageHeight(height)
+                    .setImageSubresource(texture->subresourceLayers),
+                    [=]() {
+
+                    // load to denoiser 
+                    getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)inputBuffer->map(), sizeof(float) * width * height * 4, 0);
+                    inputBuffer->unmap();
+
+                    // execute denoising
+                    commandListWithDenoiser->execute();
+
+                    // rise back denoise result (for show)
+                    vk::CommandBuffer _cmd{};
+                    bufferSubData(_cmd, toloadtex, (const U_MEM_HANDLE)denoisedBuffer->map(), sizeof(float) * width * height * 4, 0);
+                    denoisedBuffer->unmap();
+                    copyMemoryProxy<const BufferType&, const TextureType&, vk::BufferImageCopy>(device, toloadtex, filtered, vk::BufferImageCopy()
+                        .setImageExtent({ width, height, 1 })
+                        .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+                        .setBufferOffset(0)
+                        .setBufferRowLength(width)
+                        .setBufferImageHeight(height)
+                        .setImageSubresource(filtered->subresourceLayers), true);
+                });
+
+
+                
+
+#endif
+            }
+
+
+
             // measure render end time
             auto tEnd = std::chrono::high_resolution_clock::now();
             auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -667,16 +759,40 @@ namespace SatelliteExample {
 
         {
             auto texture = rays->getRawImage();
-            auto tstage = memoryBufferToHost;
-            copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, tstage, vk::BufferImageCopy()
+            copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
                 .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
                 .setBufferOffset(0)
                 .setBufferRowLength(width)
                 .setBufferImageHeight(height)
                 .setImageSubresource(texture->subresourceLayers), false);
-            getBufferSubData(tstage, imageData, 0);
+            //getBufferSubData(tstage, imageData, 0);
         }
+
+        {
+#ifdef OPTIX_DENOISER_HACK
+            auto inp_data = inputBuffer->map(); // to denoiser before
+#else
+            auto inp_data = imageData.data(); // directly to outputs
+#endif
+
+        // merge to 
+            getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)inp_data, sizeof(float) * width * height * 4, 0);
+
+            // process denoising
+#ifdef OPTIX_DENOISER_HACK
+            inputBuffer->unmap();
+
+            // execute denoising
+            commandListWithDenoiser->execute();
+
+            // get denoised data
+            memcpy(imageData.data(), denoisedBuffer->map(), sizeof(float) * width * height * 4);
+            denoisedBuffer->unmap();
+#endif
+        }
+
+
 
         {
             cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);

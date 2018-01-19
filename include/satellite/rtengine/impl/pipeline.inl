@@ -513,6 +513,15 @@ namespace NSM {
             copyDesc.dstSubresource = flagsImage->subresourceLayers;
             memoryCopyCmd(copyCommand, flagsImage, flagsImage, copyDesc);
 
+
+            copyDesc.srcOffset = { 0, 0, 0 };
+            copyDesc.dstOffset = { 0, 0, 0 };
+            copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight)*2, 1 };
+            memoryCopyCmd(copyCommand, accumulationImage, filteredImage, copyDesc);
+            
+
+
+
             // clear command
             vk::CommandBuffer clearCommand;
             if (doCleanSamples) {

@@ -11,6 +11,10 @@ layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
 layout ( binding = 2, set = 1, r32i ) uniform iimage2D sampleflags;
 layout ( binding = 3, set = 1, rgba32f ) uniform image2D currdepth;
 
+// additional buffers
+layout ( binding = 4, set = 1, rgba32f ) uniform image2D normalbuf;
+layout ( binding = 5, set = 1, rgba32f ) uniform image2D albedobuf;
+
 LOCAL_SIZE_LINEAR_LAYOUT;
 
 void main() {
@@ -38,6 +42,8 @@ void main() {
         vec4 newc = vec4(0.0f); float samplecount = 0;
         float dpl = INFINITY;
 
+        vec4 albedo = vec4(0.f), normal = vec4(0.f);
+
         for (float x=-1.f;x<=scl.x;x+=1.f) {
             for (float y=-1.f;y<=scl.y;y+=1.f) {
                 vec2 cmp = basis + vec2(x, y);
@@ -45,10 +51,12 @@ void main() {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
                     vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);
                     vec4 color = vec4(0.f), prevc = vec4(0.f);
+                    
                     float hsmp = 0.f;
 
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
-
+                        albedo += texelBuf.nodes[ts].albedo;
+                        normal += texelBuf.nodes[ts].normal;
                         
                         if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
                             prevc = toLinear(imageLoad(presampled, cid));
@@ -104,6 +112,8 @@ void main() {
             }
         }
         newc /= samplecount;
+        albedo /= samplecount;
+        normal /= samplecount;
         
         if (samplecount > 0) {
             if (imageLoad(sampleflags, cid).x > 0) {
@@ -111,12 +121,32 @@ void main() {
                 imageStore(sampleflags, cid, ivec4(0));
                 imageStore(presampled, cid, vec4(0.f));
                 imageStore(presampled, cid + ivec2(0, whs.y), vec4(0.f));
+
+                // additional buffers (for filters)
+                imageStore(normalbuf, cid, vec4(0.f));
+                imageStore(albedobuf, cid, vec4(0.f));
             }
+
+            normal = normal * 0.5f + 0.5f;
+            imageStore(normalbuf, cid, mix(normal, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
+            imageStore(albedobuf, cid, mix(albedo, imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
+
+
+            vec4 alb = imageLoad(albedobuf, cid);
+            vec4 nrm = imageLoad(normalbuf, cid);
+
 
             vec4 xsample = toLinear(imageLoad(presampled, cid)); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
+
             imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
             imageStore(presampled, cid, fromLinear(vec4(xsample))); // store in current projection
+
+
+
+            
+            
+            
         }
     }
 }

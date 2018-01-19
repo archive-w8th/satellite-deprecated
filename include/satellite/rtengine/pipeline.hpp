@@ -50,7 +50,7 @@ namespace NSM {
             BufferType traverseBlockData, traverseCacheData, leafTraverseBuffer, prepareTraverseBuffer;
 
             // output images
-            TextureType accumulationImage, filteredImage, flagsImage, depthImage;
+            TextureType accumulationImage, filteredImage, flagsImage, depthImage, normalImage, albedoImage;
 
 
             // uniforms
@@ -112,6 +112,8 @@ namespace NSM {
 
             TextureType& getRawImage();
             TextureType& getFilteredImage();
+            TextureType& getAlbedoImage();
+            TextureType& getNormalImage();
 
             // panorama mode
             void enable360mode(bool mode);

@@ -308,6 +308,8 @@ void main() {
                     // save last 3d point (for reprojection purpose)
                     IF (BOOL_(RayType(rayTemplate) == 3) & not(RayActived(rayTemplate)) & RayActived(currentRay)) {
                         texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId-1].texels[currentBlockNode]-1].p3d = vec4(currentRay.origin.xyz, 1.f);
+                        texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId-1].texels[currentBlockNode]-1].albedo = vec4(fromLinear(diffcolor));
+                        texelBuf.nodes[blockBins[rayBlocks[currentBlock].info.blockBinId-1].texels[currentBlockNode]-1].normal = vec4(normalize((RAY_BLOCK cameraUniform.camInv*vec4(normal.xyz, 0.f)).xyz), 0.f);
                     }
 
 #ifdef USE_SIMPLIFIED_MODE

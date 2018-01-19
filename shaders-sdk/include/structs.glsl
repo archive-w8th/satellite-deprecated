@@ -7,6 +7,8 @@ struct Texel {
      vec4 coord;
      vec4 color; // when collected from blocks
      vec4 p3d;
+     vec4 albedo;
+     vec4 normal;
 };
 
 struct bbox {

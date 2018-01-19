@@ -116,7 +116,8 @@ void main()
                     }
 
                     texelBuf.nodes[idx].p3d = vec4(fma(dir.xyz, INFINITY.xxx, eye.xyz), 1.f);
-
+                    texelBuf.nodes[idx].albedo = vec4(0.f);
+                    texelBuf.nodes[idx].normal = vec4(0.0f, 0.0f, 1.f, 0.f);
 
                     // apply DOF
 #ifdef EXPERIMENTAL_DOF

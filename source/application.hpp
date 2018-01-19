@@ -275,6 +275,9 @@ namespace SatelliteExample {
         optix::Buffer denoisedBuffer;
         optix::Buffer inputBuffer; // TODO: albedo, normals support
         optix::Buffer trainingDataBuffer; // training AI buffer
+
+        optix::Buffer albedoBuffer;
+        optix::Buffer normalBuffer;
 #endif
 
 
@@ -321,6 +324,11 @@ namespace SatelliteExample {
                 // create buffer for processing
                 denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
                 inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+                albedoBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+                normalBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+
+                denoiserStage->queryVariable("input_albedo_buffer")->set(albedoBuffer);
+                denoiserStage->queryVariable("input_normal_buffer")->set(normalBuffer);
                 denoiserStage->queryVariable("input_buffer")->set(inputBuffer);
                 denoiserStage->queryVariable("output_buffer")->set(denoisedBuffer);
 
@@ -392,13 +400,17 @@ namespace SatelliteExample {
 
             // TODO support of albedo/color
             denoiserStage = context->createBuiltinPostProcessingStage("DLDenoiser");
-            denoiserStage->declareVariable("input_albedo_buffer");
-            denoiserStage->declareVariable("input_normal_buffer");
             denoiserStage->declareVariable("blend")->setFloat(0.f);
 
             // create buffer for processing
             denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
             inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+            albedoBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+            normalBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
+
+            // initial buffers
+            denoiserStage->declareVariable("input_albedo_buffer")->set(albedoBuffer);
+            denoiserStage->declareVariable("input_normal_buffer")->set(normalBuffer);
             denoiserStage->declareVariable("input_buffer")->set(inputBuffer);
             denoiserStage->declareVariable("output_buffer")->set(denoisedBuffer);
             
@@ -694,37 +706,60 @@ namespace SatelliteExample {
                 auto width = rays->getCanvasWidth();
                 auto height = rays->getCanvasHeight();
                 auto texture = rays->getRawImage();
+                auto albedo = rays->getAlbedoImage();
+                auto normal = rays->getNormalImage();
+
                 auto device = currentContext->device;
                 auto toloadtex = memoryBufferFromHost;
+                auto fromtex = memoryBufferToHost;
                 auto filtered = rays->getFilteredImage();
 
-                copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(device, texture, memoryBufferToHost, vk::BufferImageCopy()
+                // copy normal buffer to denoiser
+                copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(device, normal, fromtex, vk::BufferImageCopy()
                     .setImageExtent({ width, height, 1 })
-                    .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+                    .setImageOffset({ 0, 0, 0 }) // copy ready (rendered) image
                     .setBufferOffset(0)
                     .setBufferRowLength(width)
                     .setBufferImageHeight(height)
-                    .setImageSubresource(texture->subresourceLayers),
-                    [=]() {
+                    .setImageSubresource(normal->subresourceLayers), 
+                [=]() {getBufferSubData(fromtex, (U_MEM_HANDLE)normalBuffer->map(), sizeof(float) * width * height * 4, 0); normalBuffer->unmap();
 
-                    // load to denoiser 
-                    getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)inputBuffer->map(), sizeof(float) * width * height * 4, 0);
-                    inputBuffer->unmap();
-
-                    // execute denoising
-                    commandListWithDenoiser->execute();
-
-                    // rise back denoise result (for show)
-                    vk::CommandBuffer _cmd{};
-                    bufferSubData(_cmd, toloadtex, (const U_MEM_HANDLE)denoisedBuffer->map(), sizeof(float) * width * height * 4, 0);
-                    denoisedBuffer->unmap();
-                    copyMemoryProxy<const BufferType&, const TextureType&, vk::BufferImageCopy>(device, toloadtex, filtered, vk::BufferImageCopy()
+                    // load to denoiser
+                    copyMemoryProxy<const TextureType&, const BufferType&, vk::BufferImageCopy>(device, albedo, fromtex, vk::BufferImageCopy()
                         .setImageExtent({ width, height, 1 })
-                        .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+                        .setImageOffset({ 0, 0, 0 }) // copy ready (rendered) image
                         .setBufferOffset(0)
                         .setBufferRowLength(width)
                         .setBufferImageHeight(height)
-                        .setImageSubresource(filtered->subresourceLayers), true);
+                        .setImageSubresource(albedo->subresourceLayers),
+                    [=]() {getBufferSubData(fromtex, (U_MEM_HANDLE)albedoBuffer->map(), sizeof(float) * width * height * 4, 0); albedoBuffer->unmap();
+
+                        // load to denoiser
+                        copyMemoryProxy<const TextureType&, const BufferType&, vk::BufferImageCopy>(device, texture, fromtex, vk::BufferImageCopy()
+                            .setImageExtent({ width, height, 1 })
+                            .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+                            .setBufferOffset(0)
+                            .setBufferRowLength(width)
+                            .setBufferImageHeight(height)
+                            .setImageSubresource(texture->subresourceLayers),
+                        [=]() {getBufferSubData(fromtex, (U_MEM_HANDLE)inputBuffer->map(), sizeof(float) * width * height * 4, 0); inputBuffer->unmap();
+
+                            // execute denoising
+                            commandListWithDenoiser->execute();
+
+                            // rise back denoise result (for show)
+                            vk::CommandBuffer _cmd{};
+                            bufferSubData(_cmd, toloadtex, (const U_MEM_HANDLE)denoisedBuffer->map(), sizeof(float) * width * height * 4, 0);
+                            denoisedBuffer->unmap();
+                            copyMemoryProxy<const BufferType&, const TextureType&, vk::BufferImageCopy>(device, toloadtex, filtered, vk::BufferImageCopy()
+                                .setImageExtent({ width, height, 1 })
+                                .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+                                .setBufferOffset(0)
+                                .setBufferRowLength(width)
+                                .setBufferImageHeight(height)
+                                .setImageSubresource(filtered->subresourceLayers), true);
+                        });
+                    });
                 });
             }
 #endif
@@ -763,7 +798,6 @@ namespace SatelliteExample {
     }
 
 
-    // unsupported
     void PathTracerApplication::saveHdr(std::string name) {
         auto width = rays->getCanvasWidth();
         auto height = rays->getCanvasHeight();

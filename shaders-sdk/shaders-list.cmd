@@ -44,6 +44,9 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%GENG%vertex.vert        -o %OU
 :: --ccp not supported by that renderer 
 
 set OPTFLAGS= ^
+-O ^
+-Os ^
+--ccp ^
 --unify-const ^
 --flatten-decorations ^
 --fold-spec-const-op-composite ^

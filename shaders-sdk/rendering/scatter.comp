@@ -32,17 +32,16 @@ void main() {
 
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
+
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
         float ft = float(it);
+        
         vec2 screen = vec2(ft - whs.x * floor(ft / whs.x + 0.0001f), floor(float(it) / whs.x));
         vec2 basis = floor(screen * aspect);
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
 
-        vec4 depth = vec4(0.0f);
-        vec4 newc = vec4(0.0f); float samplecount = 0;
-        float dpl = INFINITY;
-
-        vec4 albedo = vec4(0.f), normal = vec4(0.f);
+        vec4 depth = vec4(0.0f), newc = vec4(0.0f), albedo = vec4(0.f), normal = vec4(0.f);
+        float dpl = INFINITY, samplecount = 0;
 
         for (float x=-1.f;x<=scl.x;x+=1.f) {
             for (float y=-1.f;y<=scl.y;y+=1.f) {
@@ -51,44 +50,14 @@ void main() {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
                     vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);
                     vec4 color = vec4(0.f), prevc = vec4(0.f);
-                    
                     float hsmp = 0.f;
 
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
-                        albedo += texelBuf.nodes[ts].albedo;
-                        normal += texelBuf.nodes[ts].normal;
+                        albedo += texelBuf.nodes[ts].albedo, normal += texelBuf.nodes[ts].normal;
                         
                         if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
                             prevc = toLinear(imageLoad(presampled, cid));
                             prevc.xyz *= prevc.w;
-                            /*
-                            vec4 prj = texelBuf.nodes[ts].p3d;
-                            vec4 cpj = divW(mult4(camProj, prj)); //depth += cpj;
-                            float rd = length(divW(mult4(camCProj, prj)).xyz);
-
-                            if (RAY_BLOCK cameraUniform.enable360 == 1) {
-                                vec3 dir = normalize(cpj.xyz);
-                                cpj.xy = vec2(atan(dir.z, dir.x), asin(dir.y) * 2.0) / PI;
-                            } else {
-                                cpj = divW(mult4(vProj, cpj));
-                            }
-
-                            //IF (equalF(rd, dpl)) { dpl = rd; depth += prj; } else 
-                            //IF (lessF(rd, dpl)) { dpl = rd; depth = prj; }
-
-                            vec2 ssd = fma(cpj.xy, 0.5f.xx, 0.5f.xx);
-                            IF (greaterEqualF(ssd.x,0.f) & greaterEqualF(ssd.y,0.f) & lessEqualF(ssd.x,1.f) & lessEqualF(ssd.y,1.f)) {
-                                if (RAY_BLOCK cameraUniform.enable360 == 1) { ssd.x = fract(ssd.x+0.25f); }
-                                ivec2 s2 = ivec2(floor(clamp(ssd, 0.f.xx, 0.9999f.xx) * whs + 0.0001f)); s2.y += int(whs.y);
-                                //vec4 pd = vec4(imageLoad(currdepth, s2).xyz, 1.f);
-                                //bool depthvld = length(pd.xyz - prj.xyz) < rd * 0.002f;
-                                //vec4 cpj = divW(mult4(camProj, pd));
-                                if (s2.x == int(coord.x) && (s2.y - int(whs.y)) == int(coord.y) && imageLoad(sampleflags, s2).x < 1) {
-                                    prevc = imageLoad(presampled, s2);
-                                    prevc.xyz *= prevc.w;
-                                }
-                            }
-                            */
                         }
                         
                         samplecount += 1.f, hsmp = 1.f;
@@ -127,26 +96,14 @@ void main() {
                 imageStore(albedobuf, cid, vec4(0.f));
             }
 
-            normal = normal * 0.5f + 0.5f;
-            imageStore(normalbuf, cid, mix(normal, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
-            imageStore(albedobuf, cid, mix(albedo, imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
-
-
-            vec4 alb = imageLoad(albedobuf, cid);
-            vec4 nrm = imageLoad(normalbuf, cid);
-
+            imageStore(normalbuf, cid, mix(normal * 0.5f + 0.5f, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
+            imageStore(albedobuf, cid, mix(albedo              , imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
 
             vec4 xsample = toLinear(imageLoad(presampled, cid)); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
 
             imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
             imageStore(presampled, cid, fromLinear(vec4(xsample))); // store in current projection
-
-
-
-            
-            
-            
         }
     }
 }

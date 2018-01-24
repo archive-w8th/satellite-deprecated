@@ -114,15 +114,14 @@ struct bbox {
 // {1 ..2 }[2] - ray type (for example diffuse, specular, shadow)
 // {3     }[1] - applyable direct light (can intersect with light data or not)
 // {4 ..7 }[4] - target light index (for shadow type)
-// {8 ..10}[4] - bounce index, 3-bit (reflection, refraction)
+// {8 ..10}[3] - bounce index, 3-bit (reflection, refraction)
 // {11..15}[5] - stream directional order (up to 31 streams)
-// {16..18}[6] - bounce index, 3-bit (diffuse)
+// {16..18}[3] - bounce index, 3-bit (diffuse)
+
 
 // 64-byte aligned (optimal for HBM2 read/write, but unoptimal for GDDR6)
 // really recommended 32-byte aligment, but at now no possible to do that
 struct RayRework {
-     //vec3 origin; int hit; // index of hit chain
-     //vec3 direct; uint bitfield; // up to 32-bits
      vec4 origin;
      vec4 direct;
      vec4 color;

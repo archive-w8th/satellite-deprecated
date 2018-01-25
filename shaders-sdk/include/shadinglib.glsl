@@ -50,7 +50,6 @@ float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist)
 
 RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 tbn) {
     RayActived(directRay, RayType(directRay) == 2 ? FALSE_ : RayActived(directRay));
-    RayDL(directRay, TRUE_);
     RayTargetLight(directRay, i);
     RayDiffBounce(directRay, min(1, max(RayDiffBounce(directRay)-1,0)));
     RayBounce(directRay, min(RayBounce(directRay), 1)); // incompatible with reflections and diffuses
@@ -61,17 +60,21 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
     float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
     float weight = samplingWeight(ldirect, tbn[2], lightUniform.lightNode[i].lightColor.w, dist);
 
-    directRay.direct.xyz = ldirect;
-    directRay.color = f32_f16( f16_f32(directRay.color) * vec4(color,1.f) * vec4(weight.xxx,1.f));
-    directRay.final = f32_f16( 0.f.xxxx );
-    directRay.origin.xyz = fma(directRay.direct.xyz, vec3(GAP), directRay.origin.xyz);
+    directRay.cdirect.xy = lcts(ldirect);
+    directRay.origin.xyz = fma(ldirect.xyz, vec3(GAP), directRay.origin.xyz);
+    _writeColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
 
-    IF (lessF(dot(directRay.direct.xyz, tbn[2]), 0.f)) RayActived(directRay, FALSE_); // wrong direction, so invalid
+    IF (lessF(dot(ldirect.xyz, tbn[2]), 0.f)) {
+        RayActived(directRay, FALSE_); // wrong direction, so invalid
+    }
 
     // any trying will fail when flag not enabled
 #ifndef DIRECT_LIGHT_ENABLED
     RayActived(directRay, FALSE_);
 #endif
+
+    // inactived can't be shaded
+    IF (not(RayActived(directRay))) _writeColor(directRay.dcolor, 0.f.xxxx);
 
     return directRay;
 }
@@ -85,8 +88,7 @@ vec3 normalOrient(in vec3 runit, in mat3 tbn){
 
 
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
-    ray.color = f32_f16(f16_f32(ray.color) * vec4(color,1.f));
-    ray.final = f32_f16(0.f.xxxx);
+    _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
 
     const int diffuse_reflections = 2;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
@@ -97,37 +99,34 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     //vec3 sdr = rayStreams[RayDiffBounce(ray)].diffuseStream.xyz;
     //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
-    ray.direct.xyz = faceforward(sdr, sdr, -tbn[2]);
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
+    sdr = faceforward(sdr, sdr, -tbn[2]);
+    ray.cdirect.xy = lcts(sdr);
+    ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);
 
     if (RayType(ray) != 2) RayType(ray, 1);
-#ifdef DIRECT_LIGHT_ENABLED
-    RayDL(ray, FALSE_);
-#else
-    RayDL(ray, TRUE_);
-#endif
+
+    // inactived can't be shaded
+    IF (not(RayActived(ray))) _writeColor(ray.dcolor, 0.f.xxxx);
+
     return ray;
 }
 
 RayRework promised(in RayRework ray, in mat3 tbn) {
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
+    ray.origin.xyz = fma(dcts(ray.cdirect.xy), vec3(GAP), ray.origin.xyz);
     return ray;
 }
 
 RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
-    ray.final = f32_f16(max(f16_f32(ray.color) * vec4(color,1.f), vec4(0.0f)));
-    ray.final = RayType(ray) == 2 ? f32_f16(0.0f.xxxx) : ray.final;
-    ray.color = f32_f16(0.0f.xxxx);
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
+    _writeColor(ray.dcolor, max(f16_f32(ray.dcolor) * vec4(color,1.f), vec4(0.0f)));
+    _writeColor(ray.dcolor, RayType(ray) == 2 ? 0.0f.xxxx : f16_f32(ray.dcolor));
+    ray.origin.xyz = fma(dcts(ray.cdirect.xy), vec3(GAP), ray.origin.xyz);
     RayBounce(ray, 0);
     RayActived(ray, FALSE_);
-    RayDL(ray, FALSE_);
     return ray;
 }
 
 RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refly) {
-    ray.color = f32_f16( f16_f32(ray.color) * vec4(color, 1.f));
-    ray.final = f32_f16( 0.f.xxxx );
+    _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
 
     // bounce mini-config
 #ifdef USE_SIMPLIFIED_MODE
@@ -136,8 +135,6 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     const int caustics_bounces = 0, reflection_bounces = 2;
 #endif
 
-    //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
-    if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
     RayBounce(ray, min(RayType(ray) == 1 ? caustics_bounces : reflection_bounces, max(RayBounce(ray)-1, 0)));
 
@@ -147,40 +144,44 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
 
-    //sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(sqrt(random()) * modularize(refly), 0.0f, 1.0f).xxx));
-    sdr = normalize(fmix(reflect(ray.direct.xyz, tbn[2]), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
-    //sdr = reflect(ray.direct.xyz, tbn[2]);
-    ray.direct.xyz = faceforward(sdr, sdr, -tbn[2]);
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-
-
+    //sdr = normalize(fmix(reflect(ray.cdirect.xyz, tbn[2]), sdr, clamp(sqrt(random()) * modularize(refly), 0.0f, 1.0f).xxx));
+    sdr = normalize(fmix(reflect(dcts(ray.cdirect.xy), tbn[2]), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
+    sdr = faceforward(sdr, sdr, -tbn[2]);
+    ray.cdirect.xy = lcts(sdr);
+    ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
+
+    // inactived can't be shaded
+    IF (not(RayActived(ray))) _writeColor(ray.dcolor, 0.f.xxxx);
+
     return ray;
 }
 
 // for future purpose
 RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inior, in float outior, in float glossiness) {
-    vec3 refrDir = normalize(  refract(ray.direct.xyz, tbn[2], inior / outior)  );
+    vec3 refrDir = normalize(  refract( dcts(ray.cdirect.xy) , tbn[2], inior / outior)  );
     BOOL_ directDirc = equalF(inior, outior), isShadowed = BOOL_(RayType(ray) == 2);
 
 #ifdef REFRACTION_SKIP_SUN
     IF (not(isShadowed | directDirc)) {
-        ray.direct.xyz = refrDir;
+        ray.cdirect.xy = lcts(refrDir);
         RayBounce(ray, max(RayBounce(ray)-1, 0));
     }
 #else
     IF (not(directDirc)) { // if can't be directed
-        ray.direct.xyz = refrDir;
+        ray.cdirect.xy = lcts(refrDir);
         RayBounce(ray, max(RayBounce(ray)-1, 0));
-        //if (RayType(ray) == 3) RayDL(ray, TRUE_); // specular color
-        if (RayType(ray) == 1) RayDL(ray, BOOL_(SUNLIGHT_CAUSTICS)); // caustics
         if ( isShadowed) RayActived(ray, FALSE_); // trying to refract shadows will fails
         if (!isShadowed) RayType(ray, 0); // can be lighted by direct
     }
 #endif
 
-    ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    ray.color = f32_f16( f16_f32(ray.color) * vec4(color, 1.f));
+    ray.origin.xyz = fma(refrDir, vec3(GAP), ray.origin.xyz);
+    _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
+
+    // inactived can't be shaded
+    IF (not(RayActived(ray))) _writeColor(ray.dcolor, 0.f.xxxx);
+
     return ray;
 }
 

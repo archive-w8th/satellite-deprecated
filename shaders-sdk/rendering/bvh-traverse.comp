@@ -108,7 +108,7 @@ void storeStack(in int STI, in int VALUE) {
 
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // 
-void beginTraverse(inout vec3 origin, inout vec3 direct, in BOOL_ valid) {
+void beginTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     direct = normalize(direct);
 
     // test constants
@@ -348,7 +348,7 @@ void main() {
         nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
         
         // global traversing
-        beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
+        beginTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));
 
 #define L_MAX_ITERATION 8192
         for (int iteration=0;iteration<L_MAX_ITERATION;iteration++) {

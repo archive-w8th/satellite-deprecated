@@ -60,13 +60,12 @@ void main()
                 accquirePlainNode(blockID, nid); // accquire by lane
                 
                 // by default is inactive
-                currentRay.direct = vec4(vec3(0), FINT_ZERO);
-                currentRay.origin = vec4(vec3(0), FINT_NULL);
+                currentRay.cdirect = vec2(0.f.xx);
+                currentRay.origin = vec4(vec3(0.f.xxx), FINT_NULL);
                 RayActived(currentRay, FALSE_);
 
                 // default colors of rays
-                currentRay.color = f32_f16(vec4(0.f.xxx, 0));
-                currentRay.final = f32_f16(vec4(0.f.xxx, 0));
+                _writeColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
                 // get 2D index
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
@@ -130,14 +129,14 @@ void main()
                     dir = vec4(normalize(focus.xyz - offsetEye.xyz), 0.0f);
 #endif
 
-                    currentRay.direct = vec4(dir.xyz, FINT_ZERO);
+                    currentRay.cdirect = lcts(dir.xyz);//vec4(dir.xyz, FINT_ZERO);
                     currentRay.origin = vec4(orig.xyz, FINT_NULL);
-                    currentRay.color = f32_f16(vec4(1.f.xxx, 0));
-                    currentRay.final = f32_f16(vec4(0.f.xxx, 0));
+                    
+                    // set default bitset
+                    currentRay.dcolor = uvec2((0u).xx);
+                    _writeColor(currentRay.dcolor, vec4(1.f.xxx, 0));
 
                     RayActived(currentRay, TRUE_);
-                    RayDL(currentRay, FALSE_);
-
                     RayType(currentRay, 3); // primary rays
                     RayBounce(currentRay, 3);
                     RayDiffBounce(currentRay, 2);

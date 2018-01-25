@@ -120,34 +120,32 @@ void invokeSurface(inout bool overflow) {
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.color).xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
+    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
+    IF (not(RayActived(rayTemplate)) & BOOL_(!overflow)) _writeColor(rayTemplate.dcolor, 0.f.xxxx);
 }
 
+
 void cleanRay(inout RayRework rayTemplate){
-    rayTemplate.final = f32_f16(vec4(max(0.0f.xxxx, f16_f32(rayTemplate.final)).xyz, 1.f));
-    rayTemplate.color = f32_f16(vec4(max(0.0f.xxxx, f16_f32(rayTemplate.color)).xyz, 1.f));
+    _writeColor(rayTemplate.dcolor, vec4(max(0.0f.xxxx, f16_f32(rayTemplate.dcolor)).xyz, 1.f));
     rayTemplate.origin.w = FINT_NULL; // reset chains
-    invalidateRay(rayTemplate, false);
 }
 
 
 void envShading(inout bool skipping) {
     // bad ray
-    if (skipping) RayActived(currentRay, FALSE_);
+    if (skipping) {
+        RayActived(currentRay, FALSE_);
+        _writeColor(currentRay.dcolor, 0.f.xxxx);
+    }
 
     // apply physical lights
     int lc = -1;
     const int lcount = min(RAY_BLOCK materialUniform.lightcount, 16);
-
-    if (wasHit == -1) { 
-        //RayActived(currentRay, FALSE_); 
-        currentRay.final = f32_f16(0.f.xxxx);
-    }
     
     IF (RayDL(currentRay) & RayActived(currentRay)) {
         for (int i=0;i<lcount;i++) {
             float md = 1.0f;
-            float dt = intersectSphere(currentRay.origin.xyz, currentRay.direct.xyz, lightCenter(i).xyz, lightUniform.lightNode[i].lightColor.w + GAP);
+            float dt = intersectSphere(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), lightCenter(i).xyz, lightUniform.lightNode[i].lightColor.w + GAP);
             float t = md * dt;
             IF (lessF(dt, INFINITY) & lessEqualF(t, compositedHit[currentLayer].uvt.z)) lc = i;
         }
@@ -155,8 +153,7 @@ void envShading(inout bool skipping) {
 
     // shade light
     if (lc >= 0 && (RayTargetLight(currentRay) == lc || RayType(currentRay) != 2) && SSC(RayActived(currentRay))) {
-        currentRay.final = f32_f16(f16_f32(currentRay.color) * vec4(getLightColor(lc), 1.f));
-        currentRay.color = f32_f16(0.0f.xxxx);
+        _writeColor(currentRay.dcolor, f16_f32(currentRay.dcolor) * vec4(getLightColor(lc), 1.f));
         RayActived(currentRay, FALSE_);
         skipping = true;
     }
@@ -164,23 +161,21 @@ void envShading(inout bool skipping) {
     // apply background
     vec4 color = vec4(0.0f); EnvironmentShader(color, currentRay); //color.xyz = toLinear(max(color.xyz, vec3(0.f)));
     if ((SSC(greaterEqualF(compositedHit[currentLayer].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay)) && RayType(currentRay) != 2) {
-        currentRay.final = f32_f16(f16_f32(currentRay.color) * vec4(color.xyz, 1.f));
-        currentRay.color = f32_f16(0.0f.xxxx);
+        _writeColor(currentRay.dcolor, f16_f32(currentRay.dcolor) * vec4(color.xyz, 1.f));
         RayActived(currentRay, FALSE_);
         skipping = true;
     }
 
     // resolve and valiate ray
     //IF (RayActived(currentRay)) {
-        currentRay.origin.xyz = fma(currentRay.direct.xyz, compositedHit[currentLayer].uvt.zzz, currentRay.origin.xyz);
-        currentRay.direct.xyz = normalize(currentRay.direct.xyz);
+        currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit[currentLayer].uvt.zzz, currentRay.origin.xyz);
     //}
 
-    // not shadeable skipping
-    if (wasHit == -1) {
+    // wrong ray?
+    if (wasHit == -1 && SSC(RayActived(currentRay))) {
         RayActived(currentRay, FALSE_);
-        currentRay.color = f32_f16(0.0f.xxxx);
-        skipping = true; 
+        _writeColor(currentRay.dcolor, 0.0f.xxxx);
+        skipping = true;
     }
 
     // stagging ray
@@ -196,8 +191,8 @@ int createBlockOnce(inout int block, in bool minimalCondition){
         if (LANE_IDX == activeLane) block = createBlock(); block = readLane(block, activeLane);
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
             int nid = tb + int(LANE_IDX);
-            rayBlockNodes[block][nid].data.final = f32_f16(0.0f.xxxx);
-            rayBlockNodes[block][nid].data.color = f32_f16(0.0f.xxxx);
+            rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
+            _writeColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
             rayBlocks[block].indices[nid] = IDCTYPE(-1);
@@ -259,7 +254,7 @@ void main() {
 
                     // get normals
                     vec3 surfacenormal = compositedHit[currentLayer].normalHeight.xyz;
-                    vec3 normal = faceforward(surfacenormal, currentRay.direct.xyz, surfacenormal);
+                    vec3 normal = faceforward(surfacenormal, dcts(currentRay.cdirect.xy), surfacenormal);
                     mat3 tbn = mat3(compositedHit[currentLayer].tangent.xyz, compositedHit[currentLayer].bitangent.xyz, normal.xyz);
 
                     // get texture composition data
@@ -268,7 +263,7 @@ void main() {
                     float refly = compositedHit[currentLayer].metallicRoughness.x; // roughness
                     float metallic = sqrt(compositedHit[currentLayer].metallicRoughness.y); // metallic
 
-                    vec3 freflcolor = fmix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(currentRay.direct.xyz, normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
+                    vec3 freflcolor = fmix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(dcts(currentRay.cdirect.xy), normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
                     vec3 speccolor = fmix(freflcolor, diffcolor.xyz, metallic.xxx);
                     
                     // coefficents
@@ -298,7 +293,7 @@ void main() {
 
                     // transparent rays
                     RayRework rayTemplate = promised(currentRay, tbn);
-                    rayTemplate.color = f32_f16(f16_f32(rayTemplate.color) * vec4((RayType(currentRay) == 2 ? prom : qprom).xxx, 1.f)); // shadows dims 
+                    _writeColor(rayTemplate.dcolor, f16_f32(rayTemplate.dcolor) * vec4((RayType(currentRay) == 2 ? prom : qprom).xxx, 1.f)); // shadows dims 
                     invalidateRay(rayTemplate, overflow);
                     storeRay(overwriteBlock, rayTemplate);
                     confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
@@ -326,9 +321,9 @@ void main() {
 
                         // emissions
                         rayTemplate = emissive(currentRay, _emission + _fake_diffuse, tbn);
-                        if (overflow || RayType(currentRay) == 2) rayTemplate.final = vec4(0.f);
+                        if (overflow || RayType(currentRay) == 2) _writeColor(rayTemplate.dcolor, vec4(0.f.xxxx));
                         invalidateRay(rayTemplate, true);
-                        createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
+                        createBlockOnce(emissionBlock, !overflow && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
                     }
 #else
@@ -360,9 +355,9 @@ void main() {
 
                         // emissions
                         rayTemplate = emissive(currentRay, _emission, tbn);
-                        if (overflow || RayType(currentRay) == 2) rayTemplate.final = f32_f16(0.f.xxxx);
+                        if (overflow || RayType(currentRay) == 2) _writeColor(rayTemplate.dcolor, 0.f.xxxx);
                         invalidateRay(rayTemplate, true);
-                        createBlockOnce(emissionBlock, !overflow && mlength(f16_f32(rayTemplate.final).xyz) >= 0.00001f);
+                        createBlockOnce(emissionBlock, !overflow && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
                     }
 #endif

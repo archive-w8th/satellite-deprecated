@@ -113,12 +113,12 @@ float heightMapTracing(in vec3 orig, in vec3 dir) {
 
 void addOcean(inout bool overflow) {
     if (!overflow) {
-        float dist = heightMapTracing(currentRay.origin.xyz, currentRay.direct.xyz);
+        float dist = heightMapTracing(currentRay.origin.xyz, dcts(currentRay.cdirect.xy));
         IF (lessF(dist, compositedHit[0].uvt.z)) {
             proceduralID = 0;
             wasHit = 0;
             compositedHit[0].uvt.z = dist;
-            compositedHit[0].normalHeight = vec4(getNormal(currentRay.origin.xyz + currentRay.direct.xyz * dist, EPSILON), 1.f);
+            compositedHit[0].normalHeight = vec4(getNormal(currentRay.origin.xyz + dcts(currentRay.cdirect.xy) * dist, EPSILON), 1.f);
         }
     }
 }

@@ -2,9 +2,9 @@
 #define _RAYS_H
 
 // don't use shared memory for rays (need 32-byte aligment per rays)
-#ifndef EXTENDED_SHARED_CACHE_SUPPORT
+//#ifndef EXTENDED_SHARED_CACHE_SUPPORT
 #define DISCARD_SHARED_CACHING
-#endif
+//#endif
 
 // include
 #include "../include/mathlib.glsl"
@@ -185,7 +185,7 @@ void copyBlockIndices(in int block, in int bidx){
 
 bool checkIllumination(in int block, in int bidx){
     int nd = int(bidx);//rayBlocks[block].indices[bidx]-1;
-    return (nd >= 0 && block >= 0 ? mlength(f16_f32(rayBlockNodes[block][nd].data.final).xyz) >= 0.00001f : false);
+    return (nd >= 0 && block >= 0 ? mlength(f16_f32(rayBlockNodes[block][nd].data.dcolor).xyz) >= 0.00001f : false);
 }
 
 

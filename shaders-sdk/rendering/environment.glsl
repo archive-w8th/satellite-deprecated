@@ -19,6 +19,11 @@ vec4 readEnv(in vec3 r) {
     return texture(skybox[0], vec2(fma(vec2(atan(nr.z, nr.x), asin(-nr.y) * 2.0) / PI, vec2(0.5), vec2(0.5))));
 }
 
+vec4 readEnv(in vec2 ds) {
+    return texture(skybox[0], fma(ds * vec2(1.f,2.f) / PI + vec2(0.f,-1.f), vec2(0.5), vec2(0.5)));
+}
+
+
 float js_getThickness(in vec3 rd) {
      float sr = earthRadius+atmosphereHeight;
      vec3 ro = -up*earthRadius;
@@ -49,13 +54,14 @@ vec3 lightCenterSky(in int i) {
 }
 
 void env(inout vec4 color, in RayRework ray) {
-    color = readEnv(ray.direct.xyz);
+    //color = readEnv(dts(ray.cdirect.xy));
+    color = readEnv(ray.cdirect.xy);
     //color = fromLinear(color); // HDR support (gamma correct)
     color = clamp(color, vec4(0.f.xxxx), vec4(2.f,2.f,2.f,1.f));
     
     //vec3 lcenter = lightCenterSky(0);
-    //color.xyz = js_getScatter(ray.direct.xyz, -normalize(lcenter - ray.origin.xyz), 800.0f) +
-    //            js_getScatter(ray.direct.xyz,  normalize(lcenter - ray.origin.xyz), 4000.0f);
+    //color.xyz = js_getScatter(ray.cdirect.xyz, -normalize(lcenter - ray.origin.xyz), 800.0f) +
+    //            js_getScatter(ray.cdirect.xyz,  normalize(lcenter - ray.origin.xyz), 4000.0f);
     //color = clamp((1.0f - exp(-1.0f * color)), vec4(0.0f), vec4(1.0f));
 }
 

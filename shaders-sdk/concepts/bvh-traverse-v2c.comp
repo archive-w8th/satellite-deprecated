@@ -383,7 +383,7 @@ void main() {
         nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
         
         // global traversing
-        beginTraverse(currentRay.origin.xyz, currentRay.direct.xyz, not(overflow));
+        beginTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));
         for (int iteration=0;iteration<512;iteration++) {
             if (!anyInvoc(bool(validBox))) break; // if all invocs expiried, don't traverse next
             for (int lt=0;lt<512;lt++) {

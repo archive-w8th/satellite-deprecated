@@ -109,23 +109,38 @@ struct bbox {
 #define TRANSPOSEF_(m)PACK_BOX_(transpose(UNPACK_BOX_(m)))
 
 
-// ray bitfield spec
+// ray bitfield spec (reduced to 16-bit)
 // {0     }[1] - actived or not
 // {1 ..2 }[2] - ray type (for example diffuse, specular, shadow)
-// {3     }[1] - applyable direct light (can intersect with light data or not)
-// {4 ..7 }[4] - target light index (for shadow type)
+// {3 ..7 }[5] - stream/light system id
 // {8 ..10}[3] - bounce index, 3-bit (reflection, refraction)
-// {11..15}[5] - stream directional order (up to 31 streams)
-// {16..18}[3] - bounce index, 3-bit (diffuse)
+// {11..13}[3] - bounce index, 3-bit (diffuse)
 
 
-// 64-byte aligned (optimal for HBM2 read/write, but unoptimal for GDDR6)
-// really recommended 32-byte aligment, but at now no possible to do that
-// experimentally reduced to 48-byte
+
+// possible structure in 32-byte presentation 
+// but: 
+// 1. use cartesian direction instead of 3-vec
+// 2. need resolve "vec4" conflict of 16-bit encoded data in "vec3", because need reserve one of 32-bit 
+// 3. decline of "final" color term 
+// 4. reduce bitfield to 16-bit weight 
+
+// possible extra solutions: 
+// 1. add extra array of ray metadata/offload (but we very limited in binding registers)
+
 struct RayRework {
-     vec4 origin, direct;
-     uvec2 color, final;
+     vec4 origin; vec2 cdirect; uvec2 dcolor;
 };
+
+
+// write color, but don't write (save) last element
+uvec2 _writeColor(inout uvec2 rwby, in vec4 color){
+    uint btw = BFE_HW(rwby.y, 16, 16);
+    uvec2 clr = f32_f16(color);
+    rwby = uvec2(clr.x, BFI_HW(clr.y, btw, 16, 16));
+    return rwby;
+}
+
 
 
 struct HitRework {
@@ -148,13 +163,13 @@ struct HitRework {
 };
 
 
-const ivec2 ACTIVED = ivec2(0, 1);
-const ivec2 TYPE = ivec2(1, 2);
-const ivec2 DIRECT_LIGHT = ivec2(3, 1);
-const ivec2 TARGET_LIGHT = ivec2(4, 4);
-const ivec2 BOUNCE = ivec2(8, 3);
-const ivec2 SDO = ivec2(11, 5);
-const ivec2 DBOUNCE = ivec2(16, 3);
+const int B16FT = 16;
+const ivec2 ACTIVED = ivec2(B16FT+0, 1);
+const ivec2 TYPE = ivec2(B16FT+1, 2);
+const ivec2 TARGET_LIGHT = ivec2(B16FT+3, 5);
+const ivec2 BOUNCE = ivec2(B16FT+8, 3);
+const ivec2 DBOUNCE = ivec2(B16FT+11, 3);
+
 
 int parameteri(const ivec2 parameter, inout uint bitfield) {
     return int(BFE_HW(bitfield, parameter.x, parameter.y));
@@ -190,39 +205,9 @@ void parameterb(const ivec2 parameter, inout float bitfield, in BOOL_ value) {
 }
 
 
-
-
-
-/* // under consideration parameter based system, this code should be rewrite
-int parameteri(const ivec2 parameter, inout HitRework hit) {
-    return BFE(hit.bitfield, parameter.x, parameter.y);
-}
-
-int parameteri(const ivec2 parameter, inout RayRework ray) {
-    return BFE(floatBitsToInt(ray.direct.w), parameter.x, parameter.y);
-}
-
-void parameteri(const ivec2 parameter, inout RayRework ray, in int value) {
-    ray.direct.w = intBitsToFloat(BFI_HW(floatBitsToInt(ray.direct.w), value, parameter.x, parameter.y));
-}
-
-void parameterb(const ivec2 parameter, inout RayRework ray, in BOOL_ value) {
-    ray.direct.w = intBitsToFloat(BFI_HW(floatBitsToInt(ray.direct.w), int(value), parameter.x, parameter.y));
-}
-
-void parameteri(const ivec2 parameter, inout HitRework hit, in int value) {
-    hit.bitfield = BFI_HW(hit.bitfield, value, parameter.x, parameter.y);
-}
-
-void parameterb(const ivec2 parameter, inout HitRework hit, in BOOL_ value) {
-    hit.bitfield = BFI_HW(hit.bitfield, int(value), parameter.x, parameter.y);
-}
-*/
-
-
-
-#define RAY_BITFIELD_ ray.direct.w
+#define RAY_BITFIELD_ ray.dcolor.y
 #define HIT_BITFIELD_ hit.bitfield
+
 
 
 BOOL_ HitActived(inout HitRework hit) {
@@ -233,6 +218,8 @@ void HitActived(inout HitRework hit, in BOOL_ actived) {
     parameterb(ACTIVED, HIT_BITFIELD_, actived);
 }
 
+
+
 BOOL_ RayActived(inout RayRework ray) {
     return parameterb(ACTIVED, RAY_BITFIELD_);
 }
@@ -241,13 +228,7 @@ void RayActived(inout RayRework ray, in BOOL_ actived) {
     parameterb(ACTIVED, RAY_BITFIELD_, actived);
 }
 
-BOOL_ RayDL(inout RayRework ray) {
-    return parameterb(DIRECT_LIGHT, RAY_BITFIELD_);
-}
 
-void RayDL(inout RayRework ray, in BOOL_ dl) {
-    parameterb(DIRECT_LIGHT, RAY_BITFIELD_, dl);
-}
 
 
 int RayType(inout RayRework ray) {
@@ -258,6 +239,15 @@ void RayType(inout RayRework ray, in int type) {
     parameteri(TYPE, RAY_BITFIELD_, type);
 }
 
+
+
+// criteria-based 
+BOOL_ RayDL(inout RayRework ray) {
+    return BOOL_(RayType(ray) == 2);
+}
+
+
+
 int RayTargetLight(inout RayRework ray) {
     return parameteri(TARGET_LIGHT, RAY_BITFIELD_);
 }
@@ -265,6 +255,7 @@ int RayTargetLight(inout RayRework ray) {
 void RayTargetLight(inout RayRework ray, in int tl) {
     parameteri(TARGET_LIGHT, RAY_BITFIELD_, tl);
 }
+
 
 int RayBounce(inout RayRework ray) {
     return int(uint(parameteri(BOUNCE, RAY_BITFIELD_)));
@@ -289,14 +280,6 @@ struct HlbvhNode {
      UHBOXF_ lbox;
      ivec4 pdata;
 };
-
-
-struct ColorChain {
-     vec4 color;
-     ivec4 cdata;
-};
-
-
 
 
 

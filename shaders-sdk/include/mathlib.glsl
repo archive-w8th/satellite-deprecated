@@ -155,29 +155,6 @@ int btc(in uvec2 lh) { return bitCount64(lh); }
 int btc(in uint64_t lh) { return bitCount64(U2P(lh)); }
 
 
-/*
-// bit measure utils
-int lsb(in uint64_t vlc) {
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return findLSB(vlc); 
-#else
-    uvec2 pair = U2P(vlc); int lv = lsb(pair.x), hi = lsb(pair.y); return (lv >= 0) ? lv : (32 + hi);
-#endif
-}
-
-int msb(in uint64_t vlc) {
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return findMSB(vlc); 
-#else
-    uvec2 pair = U2P(vlc); int lv = msb(pair.x), hi = msb(pair.y); return (hi >= 0) ? (32 + hi) : lv;
-#endif
-}
-
-int msb(in uvec2 pair) { return msb(P2U(pair)); }
-int lsb(in uvec2 pair) { return lsb(P2U(pair)); }
-*/
-
-
 // bit measure utils
 int lsb(in uvec2 pair) {
     int lv = lsb(pair.x), hi = lsb(pair.y); return (lv >= 0) ? lv : (32 + hi);
@@ -577,6 +554,19 @@ mat3 make_stream_projection(in vec3 normal){
     r[2].z = 1.f - normal.z * normal.z;
     return r;
 }
+
+
+// get cartesian from direction (for packing)
+vec2 lcts(in vec3 direct){
+    direct.xyz = direct.xzy; // prefer Y-based representation
+    return vec2(acos(direct.z), atan(direct.y, direct.x)).yx;
+}
+
+vec3 dcts(in vec2 hr){
+    hr.xy = hr.yx;
+    return normalize(vec3(sin(hr.x)*cos(hr.y), sin(hr.x)*sin(hr.y), cos(hr.x))).xzy;
+}
+
 
 
 

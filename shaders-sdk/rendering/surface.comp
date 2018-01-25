@@ -287,7 +287,7 @@ void main() {
         IFALL(overflow) break;
         {
             HitRework hit = hits[globalID];
-            viewVec = ray.direct.xyz;
+            viewVec = dcts(ray.cdirect.xy);
 
             interpolateMeshData(hit);
 
@@ -309,7 +309,7 @@ void main() {
             vec3 tangent = normalize(hit.tangent.xyz);
 
             mat3 tbn = mat3(tangent.xyz, bitang.xyz, normal.xyz);
-            vec3 pV = normalize((-ray.direct.xyz * hit.uvt.z) * tbn);
+            vec3 pV = normalize((-dcts(ray.cdirect.xy) * hit.uvt.z) * tbn);
             float hW = 0.f;
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET

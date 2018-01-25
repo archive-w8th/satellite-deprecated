@@ -11,58 +11,58 @@ shared uint localHistogram[RADICES];
 layout (local_size_x = RADICES) in;
 
 // reductive prefix scan of work groups
-void prefixScan() {
+uint prefixScan(const uint limit) {
     UVEC_WARP ldx = LT_IDX;
+    memoryBarrier(); barrier();
     {
         uint prv = ldx >= 1 ? ldx-1 : 0;
-        uint tmp = ldx >= 1 && ldx < RADICES ? localHistogram[prv] : 0;
+        uint tmp = ldx >= 1 && ldx < limit ? localHistogram[prv] : 0;
         memoryBarrier(); barrier();
-        if (ldx < RADICES) localHistogram[ldx] = tmp;
+        if (ldx < limit) localHistogram[ldx] = tmp;
         memoryBarrier(); barrier();
     }
 
     // reduction prefix-scan
-    for (int i=1;i<RADICES;i<<=1) {
+    for (int i=1;i<limit;i<<=1) {
         uint prv = ldx >= i ? ldx-i : 0;
-        uint off = ldx >= i && ldx < RADICES ? localHistogram[prv] : 0, 
-             hst =             ldx < RADICES ? localHistogram[ldx] : 0;
+        uint off = ldx >= i && ldx < limit ? localHistogram[prv] : 0, 
+             hst =             ldx < limit ? localHistogram[ldx] : 0;
         memoryBarrier(); barrier();
-        if (ldx < RADICES) localHistogram[ldx] = off + hst;
+        if (ldx < limit) localHistogram[ldx] = off + hst;
         memoryBarrier(); barrier();
     }
+
+    uint res = localHistogram[ldx];
+    memoryBarrier(); barrier();
+    return res;
 }
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;
     LC_IDX = gl_LocalInvocationID.x / WARP_SIZE_RT;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
-    IFALL (gl_WorkGroupID.y >= AFFINITION) return;
 
-    // prefix scans of workers for every radice
-    uint prv = LT_IDX;
-    for (uint wk=0;wk<WG_COUNT;wk++) {
-        uint idx = LT_IDX + wk * RADICES;
-        uint pfx = LT_IDX < RADICES && wk > 0 ? Histogram[prv] : 0;
-        uint val = LT_IDX < RADICES && wk > 0 ? PrefixSum[prv] : 0;
-        if (LT_IDX < RADICES) PrefixSum[idx] = val + pfx;
-        prv = idx;
-    }
-    memoryBarrier(); barrier();
+    // 
+    IFALL (gl_WorkGroupID.y < AFFINITION) {
+        
+        // calculate prefix-sums of all work groups
+        localHistogram[LT_IDX] = 0;
+        memoryBarrier(); barrier();
 
-    // calculate general histograms of radices
-    if (LT_IDX < RADICES) {
-        uint head = LT_IDX + (WG_COUNT-1) * RADICES;
-        localHistogram[LT_IDX] = Histogram[head] + PrefixSum[head];
-    }
-    memoryBarrier(); barrier();
-
-    // prefix scan of seeds
-    prefixScan();
-
-    // apply prefix scans
-    if (LT_IDX < RADICES) {
+        // calculate local prefix-sum in each work of each radice
+        uint awHistogram = 0; // sum of work-group histograms (globalized histograms)
         for (uint wk=0;wk<WG_COUNT;wk++) {
-            PrefixSum[LT_IDX + wk * RADICES] += localHistogram[LT_IDX];
+            uint widx = LT_IDX + RADICES * wk;
+            if (LT_IDX < RADICES) PrefixSum[widx] = add(awHistogram, Histogram[widx]);
+        }
+
+        // calculate prefix-sum of all work-groups for each radice
+        if (LT_IDX < RADICES) localHistogram[LT_IDX] = awHistogram;
+        uint rdcAwPrefixOffset = prefixScan(RADICES);
+        
+        // add work-group prefix-sum of radice to in-group prefix-sum
+        for (uint wk=0;wk<WG_COUNT;wk++) {
+            if (LT_IDX < RADICES) PrefixSum[LT_IDX + RADICES * wk] += rdcAwPrefixOffset;
         }
     }
 }

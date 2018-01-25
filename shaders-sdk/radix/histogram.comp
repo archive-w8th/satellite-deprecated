@@ -9,8 +9,8 @@ layout (local_size_x = BLOCK_SIZE) in;
 shared uint localHistogram[RADICES];
 
 // shared for 16 threads (with lanes)
-shared UVEC64_WARP _data[WARP_SIZE];
-#define data _data[LANE_IDX]
+shared URDC_WARP _data[WARP_SIZE];
+#define key _data[LANE_IDX]
 
 initNonAtomicIncFunctionTarget(localHistogram[WHERE], countHistogram, uint)
 
@@ -26,13 +26,12 @@ void main() {
         // calculate blocks
         blocks_info blocks = get_blocks_info(NumKeys);
         uint bcount = min(blocks.count, 16384);
-        uint addr = blocks.offset + LT_IDX;
-
+        
         // barrier-less, WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
-            uint radice = rk + LC_IDX;
-            addr = blocks.offset + LANE_IDX;
-            if (radice >= RADICES) break; 
+            WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
+            URDC_WARP radice = URDC_WARP(rk + LC_IDX);
+            if (radice >= RADICES) break;
 
             // clear histogram of block
             localHistogram[radice] = 0;
@@ -40,17 +39,18 @@ void main() {
             // use SIMD lanes for calculate histograms
             for ( uint wk = 0; wk < bcount; wk++ ) {
                 BVEC_WARP validAddress = addr < NumKeys && gl_WorkGroupID.y < AFFINITION;
-                //if (!validAddress) break; // no need more 
                 IFALL(!validAddress) break;
 
                 memoryBarrier(); barrier();
-                if (LF_IDX == 0) data = validAddress ? UVEC64_WARP(KeyIn[addr]) : 0xFFFFFFFFFFFFFFFFul;
+                if (LF_IDX == 0) {
+                    key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
+                }
                 memoryBarrier(); barrier();
 
-                UVEC_WARP k = UVEC_WARP(BFE(data, int(Shift*BITS_PER_PASS), BITS_PER_PASS));
-
-                BVEC_WARP vld = k == radice && validAddress;
-                if (vld) countHistogram(radice, TRUE_);
+                if (key == radice && validAddress) {
+                    countHistogram(radice, TRUE_);
+                }
+                
                 addr += WARP_SIZE_RT;
             }
 

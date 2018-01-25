@@ -25,10 +25,21 @@ uint LF_IDX = 0;
 #define UVEC_WARP uint
 #define BVEC_WARP bool
 #define UVEC64_WARP uint64_t
+#define URDC_WARP uint
+
+// pointer of...
+#define WPTR uint
+
 
 #define READ_LANE(V, I) (uint(I >= 0 && I < WARP_SIZE_RT) * readLane(V, I))
-#define BFE(a,o,n) ((a >> o) & ((1u << n)-1u))
-//#define BFE(a,o,n) bitfieldExtract(a,o,n) // not supported 64-bit
+
+uint64_t BFE(in uint64_t ua, in uint64_t o, in uint64_t n) {
+    return (ua >> o) & ((1ul << n)-1ul);
+}
+
+uint BFE(in uint ua, in int o, in int n) {
+    return BFE_HW(ua, o, n);
+}
 
 
 #define KEYTYPE UVEC64_WARP
@@ -54,4 +65,3 @@ blocks_info get_blocks_info(in uint n) {
     uint block_count = n > 0 ? ((n - 1) / (WARP_SIZE_RT * gl_NumWorkGroups.x) + 1) : 0;
     return blocks_info(block_count, gl_WorkGroupID.x * WARP_SIZE_RT * block_count);
 }
-

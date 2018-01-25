@@ -259,6 +259,9 @@ HitRework interpolateMeshData(inout HitRework res) {
         mat3x2 txds = transpose(texcoords);
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
 
+        if (all(lessThan(abs(dlts[0]), 0.0001f.xx))) dlts[0] = vec2( 1.f,  0.f);
+        if (all(lessThan(abs(dlts[1]), 0.0001f.xx))) dlts[1] = vec2( 0.f, -1.f);
+
         vec3 btng = fma(dlts[1].xxx, deltaPos0, -dlts[0].xxx * deltaPos1) / precIssue(determinant(dlts));
         vec3 tang = fma(dlts[1].yyy, deltaPos0, -dlts[0].yyy * deltaPos1) / precIssue(determinant(dlts));
 

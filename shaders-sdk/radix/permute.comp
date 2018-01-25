@@ -29,7 +29,7 @@ void main() {
         // barrier-less, WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
             WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
-            URDC_WARP radice = URDC_WARP(rk + LC_IDX);
+            UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
             if (radice >= RADICES) break;
 
             // copy to local histogram

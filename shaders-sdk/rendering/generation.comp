@@ -65,8 +65,8 @@ void main()
                 RayActived(currentRay, FALSE_);
 
                 // default colors of rays
-                currentRay.color = vec4(vec3(0.f), 0);
-                currentRay.final = vec4(vec3(0.f), 0);
+                currentRay.color = f32_f16(vec4(0.f.xxx, 0));
+                currentRay.final = f32_f16(vec4(0.f.xxx, 0));
 
                 // get 2D index
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
@@ -86,7 +86,7 @@ void main()
                     Texel txfi = texelBuf.nodes[idx];
                     txfi.coord.x = coord.x;
                     txfi.coord.y = coord.y;
-                    txfi.color = vec4(0.f); // debug white
+                    txfi.color = 0.f.xxxx; // debug white
                     texelBuf.nodes[idx] = txfi;
 
                     //coord.y = 1.f - coord.y; // correct coordinates
@@ -132,8 +132,8 @@ void main()
 
                     currentRay.direct = vec4(dir.xyz, FINT_ZERO);
                     currentRay.origin = vec4(orig.xyz, FINT_NULL);
-                    currentRay.color = vec4(vec3(1.f), 0);
-                    currentRay.final = vec4(vec3(0.f), 0);
+                    currentRay.color = f32_f16(vec4(1.f.xxx, 0));
+                    currentRay.final = f32_f16(vec4(0.f.xxx, 0));
 
                     RayActived(currentRay, TRUE_);
                     RayDL(currentRay, FALSE_);

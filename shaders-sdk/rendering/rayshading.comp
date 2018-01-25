@@ -120,12 +120,12 @@ void invokeSurface(inout bool overflow) {
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(rayTemplate.color.xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
+    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.color).xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
 }
 
 void cleanRay(inout RayRework rayTemplate){
-    rayTemplate.final.xyz = max(vec3(0.0f), rayTemplate.final.xyz);
-    rayTemplate.color.xyz = max(vec3(0.0f), rayTemplate.color.xyz);
+    rayTemplate.final = f32_f16(vec4(max(0.0f.xxxx, f16_f32(rayTemplate.final)).xyz, 1.f));
+    rayTemplate.color = f32_f16(vec4(max(0.0f.xxxx, f16_f32(rayTemplate.color)).xyz, 1.f));
     rayTemplate.origin.w = FINT_NULL; // reset chains
     invalidateRay(rayTemplate, false);
 }
@@ -141,7 +141,7 @@ void envShading(inout bool skipping) {
 
     if (wasHit == -1) { 
         //RayActived(currentRay, FALSE_); 
-        currentRay.final.xyz *= vec3(0.f);
+        currentRay.final = f32_f16(0.f.xxxx);
     }
     
     IF (RayDL(currentRay) & RayActived(currentRay)) {
@@ -155,9 +155,8 @@ void envShading(inout bool skipping) {
 
     // shade light
     if (lc >= 0 && (RayTargetLight(currentRay) == lc || RayType(currentRay) != 2) && SSC(RayActived(currentRay))) {
-        currentRay.final.xyz = currentRay.color.xyz * getLightColor(lc);
-        //currentRay.final.xyz = currentRay.color.xyz * toLinear(getLightColor(lc));
-        currentRay.color.xyz *= 0.0f;
+        currentRay.final = f32_f16(f16_f32(currentRay.color) * vec4(getLightColor(lc), 1.f));
+        currentRay.color = f32_f16(0.0f.xxxx);
         RayActived(currentRay, FALSE_);
         skipping = true;
     }
@@ -165,8 +164,8 @@ void envShading(inout bool skipping) {
     // apply background
     vec4 color = vec4(0.0f); EnvironmentShader(color, currentRay); //color.xyz = toLinear(max(color.xyz, vec3(0.f)));
     if ((SSC(greaterEqualF(compositedHit[currentLayer].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay)) && RayType(currentRay) != 2) {
-        currentRay.final.xyz = currentRay.color.xyz * color.xyz;
-        currentRay.color.xyz *= 0.0f;
+        currentRay.final = f32_f16(f16_f32(currentRay.color) * vec4(color.xyz, 1.f));
+        currentRay.color = f32_f16(0.0f.xxxx);
         RayActived(currentRay, FALSE_);
         skipping = true;
     }
@@ -180,7 +179,7 @@ void envShading(inout bool skipping) {
     // not shadeable skipping
     if (wasHit == -1) {
         RayActived(currentRay, FALSE_);
-        currentRay.color.xyz *= 0.0f;
+        currentRay.color = f32_f16(0.0f.xxxx);
         skipping = true; 
     }
 
@@ -197,8 +196,8 @@ int createBlockOnce(inout int block, in bool minimalCondition){
         if (LANE_IDX == activeLane) block = createBlock(); block = readLane(block, activeLane);
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
             int nid = tb + int(LANE_IDX);
-            rayBlockNodes[block][nid].data.final = vec4(0.f);
-            rayBlockNodes[block][nid].data.color = vec4(0.f);
+            rayBlockNodes[block][nid].data.final = f32_f16(0.0f.xxxx);
+            rayBlockNodes[block][nid].data.color = f32_f16(0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
             rayBlocks[block].indices[nid] = IDCTYPE(-1);
@@ -298,8 +297,8 @@ void main() {
 #endif
 
                     // transparent rays
-                    RayRework rayTemplate = promised(currentRay, tbn); 
-                    rayTemplate.color.xyz *= RayType(currentRay) == 2 ? prom : qprom; // shadows dims 
+                    RayRework rayTemplate = promised(currentRay, tbn);
+                    rayTemplate.color = f32_f16(f16_f32(rayTemplate.color) * vec4((RayType(currentRay) == 2 ? prom : qprom).xxx, 1.f)); // shadows dims 
                     invalidateRay(rayTemplate, overflow);
                     storeRay(overwriteBlock, rayTemplate);
                     confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
@@ -361,9 +360,9 @@ void main() {
 
                         // emissions
                         rayTemplate = emissive(currentRay, _emission, tbn);
-                        if (overflow || RayType(currentRay) == 2) rayTemplate.final = vec4(0.f);
+                        if (overflow || RayType(currentRay) == 2) rayTemplate.final = f32_f16(0.f.xxxx);
                         invalidateRay(rayTemplate, true);
-                        createBlockOnce(emissionBlock, !overflow && mlength(rayTemplate.final.xyz) >= 0.00001f);
+                        createBlockOnce(emissionBlock, !overflow && mlength(f16_f32(rayTemplate.final).xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
                     }
 #endif

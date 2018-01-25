@@ -62,8 +62,8 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
     float weight = samplingWeight(ldirect, tbn[2], lightUniform.lightNode[i].lightColor.w, dist);
 
     directRay.direct.xyz = ldirect;
-    directRay.color.xyz *= color * weight;
-    directRay.final.xyz *= 0.f;
+    directRay.color = f32_f16( f16_f32(directRay.color) * vec4(color,1.f) * vec4(weight.xxx,1.f));
+    directRay.final = f32_f16( 0.f.xxxx );
     directRay.origin.xyz = fma(directRay.direct.xyz, vec3(GAP), directRay.origin.xyz);
 
     IF (lessF(dot(directRay.direct.xyz, tbn[2]), 0.f)) RayActived(directRay, FALSE_); // wrong direction, so invalid
@@ -85,8 +85,8 @@ vec3 normalOrient(in vec3 runit, in mat3 tbn){
 
 
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
-    ray.color.xyz *= color;
-    ray.final.xyz *= 0.f;
+    ray.color = f32_f16(f16_f32(ray.color) * vec4(color,1.f));
+    ray.final = f32_f16(0.f.xxxx);
 
     const int diffuse_reflections = 2;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
@@ -99,7 +99,6 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
     ray.direct.xyz = faceforward(sdr, sdr, -tbn[2]);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    //ray.color.xyz *= fmix(0.f, 1.f, max(dot(tbn[2], ray.direct.xyz), 0.f)) * 2.f;
 
     if (RayType(ray) != 2) RayType(ray, 1);
 #ifdef DIRECT_LIGHT_ENABLED
@@ -116,9 +115,9 @@ RayRework promised(in RayRework ray, in mat3 tbn) {
 }
 
 RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
-    ray.final.xyz = max(ray.color.xyz * color, vec3(0.0f));
-    ray.final = RayType(ray) == 2 ? vec4(0.0f) : ray.final;
-    ray.color.xyz *= 0.0f;
+    ray.final = f32_f16(max(f16_f32(ray.color) * vec4(color,1.f), vec4(0.0f)));
+    ray.final = RayType(ray) == 2 ? f32_f16(0.0f.xxxx) : ray.final;
+    ray.color = f32_f16(0.0f.xxxx);
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
     RayBounce(ray, 0);
     RayActived(ray, FALSE_);
@@ -127,8 +126,8 @@ RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
 }
 
 RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refly) {
-    ray.color.xyz *= color;
-    ray.final.xyz *= 0.f;
+    ray.color = f32_f16( f16_f32(ray.color) * vec4(color, 1.f));
+    ray.final = f32_f16( 0.f.xxxx );
 
     // bounce mini-config
 #ifdef USE_SIMPLIFIED_MODE
@@ -181,7 +180,7 @@ RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inio
 #endif
 
     ray.origin.xyz = fma(ray.direct.xyz, vec3(GAP), ray.origin.xyz);
-    ray.color.xyz *= color;
+    ray.color = f32_f16( f16_f32(ray.color) * vec4(color, 1.f));
     return ray;
 }
 

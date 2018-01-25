@@ -579,4 +579,10 @@ mat3 make_stream_projection(in vec3 normal){
 }
 
 
+
+#define f32_f16 packHalf2
+#define f16_f32 unpackHalf
+
+
+
 #endif

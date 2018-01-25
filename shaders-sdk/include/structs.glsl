@@ -121,11 +121,10 @@ struct bbox {
 
 // 64-byte aligned (optimal for HBM2 read/write, but unoptimal for GDDR6)
 // really recommended 32-byte aligment, but at now no possible to do that
+// experimentally reduced to 48-byte
 struct RayRework {
-     vec4 origin;
-     vec4 direct;
-     vec4 color;
-     vec4 final;
+     vec4 origin, direct;
+     uvec2 color, final;
 };
 
 

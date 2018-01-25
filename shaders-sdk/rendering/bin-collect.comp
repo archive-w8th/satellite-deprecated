@@ -43,8 +43,8 @@ void main() {
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE) {
                             int texel = blockBins[globalID].texels[nid]-1;
-                            vec4 color = rayBlockNodes[idx][nid].data.final;
-                            rayBlockNodes[idx][nid].data.final = vec4(0);
+                            vec4 color = f16_f32(rayBlockNodes[idx][nid].data.final);
+                            rayBlockNodes[idx][nid].data.final = f32_f16(0.f.xxxx);
                             if (texel >= 0) texelBuf.nodes[texel].color.xyz += color.xyz;
                         }
                     }

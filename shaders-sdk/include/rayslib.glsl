@@ -185,7 +185,7 @@ void copyBlockIndices(in int block, in int bidx){
 
 bool checkIllumination(in int block, in int bidx){
     int nd = int(bidx);//rayBlocks[block].indices[bidx]-1;
-    return (nd >= 0 && block >= 0 ? mlength(rayBlockNodes[block][nd].data.final.xyz) >= 0.00001f : false);
+    return (nd >= 0 && block >= 0 ? mlength(f16_f32(rayBlockNodes[block][nd].data.final).xyz) >= 0.00001f : false);
 }
 
 

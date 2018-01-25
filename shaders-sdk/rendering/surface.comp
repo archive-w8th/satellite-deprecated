@@ -322,7 +322,7 @@ void main() {
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
 
                     // do parallax mapping
-                    if (validateTexture(material.bumpPart)) texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW);
+                    //if (validateTexture(material.bumpPart)) texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW);
                     if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
                     if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
                     if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
@@ -333,7 +333,7 @@ void main() {
             }
 #else
             // do parallax mapping
-            if (validateTexture(material.bumpPart)) texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW); 
+            //if (validateTexture(material.bumpPart)) texcoord = parallaxMapping(material.bumpPart, pV, texcoord, hW); 
             if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
             if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
             if (validateTexture(material.emissivePart)) textured.emissive = fetchTexture(material.emissivePart, texcoord);

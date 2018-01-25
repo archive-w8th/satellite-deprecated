@@ -3,6 +3,7 @@
 
 #define GAP (PZERO*2.f)
 
+
 float computeFresnel(in vec3 normal, in vec3 indc, in float n1, in float n2) {
     float cosi = dot(normal,  normalize(indc));
     float cost = dot(normal,  normalize(refract(indc, normal, n1 / n2)));
@@ -11,16 +12,19 @@ float computeFresnel(in vec3 normal, in vec3 indc, in float n1, in float n2) {
     return sqrt(clamp(sqlen(vec2(Rs, Rp)) * 0.5f, 0.0f, 1.0f));
 }
 
+
 vec3 lightCenter(in int i) {
     vec3 playerCenter = vec3(0.0f);
     vec3 lvec = normalize(lightUniform.lightNode[i].lightVector.xyz) * (lightUniform.lightNode[i].lightVector.y < 0.0f ? -1.0f : 1.0f);
     return fma(lvec, vec3(lightUniform.lightNode[i].lightVector.w), (lightUniform.lightNode[i].lightOffset.xyz + playerCenter.xyz));
 }
 
+
 vec3 sLight(in int i) {
     return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
     //return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
 }
+
 
 float intersectSphere(in vec3 origin, in vec3 ray, in vec3 sphereCenter, in float sphereRadius) {
     vec3 toSphere = origin - sphereCenter;
@@ -40,13 +44,16 @@ float intersectSphere(in vec3 origin, in vec3 ray, in vec3 sphereCenter, in floa
     return t;
 }
 
+
 float modularize(in float f) {
     return 1.0f-sqrt(max(1.0f - f, 0.f));
 }
 
+
 float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist) {
     return modularize(max(dot(ldir, ndir), 0.f) * pow(radius / dist, 2.f)) * 2.f;
 }
+
 
 RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 tbn) {
     RayActived(directRay, RayType(directRay) == 2 ? FALSE_ : RayActived(directRay));
@@ -80,9 +87,8 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
 }
 
 
-
 vec3 normalOrient(in vec3 runit, in mat3 tbn){
-    //vec3 btn = cross(runit, tbn[2]), tng = cross(btn, tbn[2]); btn = cross(tbn[2], tng);
+    //vec3 btn = cross(runit, tbn[2]), tng = cross(btn, tbn[2]); btn = cross(tng, tbn[2]);
     //return normalize(mat3(tng, btn, tbn[2]) * runit);
     return normalize(tbn * runit);
 }
@@ -108,10 +114,12 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     return ray;
 }
 
+
 RayRework promised(in RayRework ray, in mat3 tbn) {
     ray.origin.xyz = fma(dcts(ray.cdirect.xy), vec3(GAP), ray.origin.xyz);
     return ray;
 }
+
 
 RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
     _writeColor(ray.dcolor, max(f16_f32(ray.dcolor) * vec4(color,1.f), vec4(0.0f)));
@@ -121,6 +129,7 @@ RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
     RayActived(ray, FALSE_);
     return ray;
 }
+
 
 RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refly) {
     _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
@@ -150,6 +159,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     return ray;
 }
 
+
 // for future purpose
 RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inior, in float outior, in float glossiness) {
     vec3 refrDir = normalize(  refract( dcts(ray.cdirect.xy) , tbn[2], inior / outior)  );
@@ -177,6 +187,7 @@ RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inio
 
     return ray;
 }
+
 
 vec3 getLightColor(in int lc) {
     return max(lightUniform.lightNode[lc].lightColor.xyz, vec3(0.f));

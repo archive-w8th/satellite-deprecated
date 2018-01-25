@@ -84,9 +84,9 @@ void invokeSurface(inout bool overflow) {
     // if any found
     IF (HitActived(firstHit)) {
         compositedHit[0].uvt = firstHit.uvt;
-        compositedHit[0].albedo = unpackHalf(firstHit.albedo);
-        compositedHit[0].emission = unpackHalf(firstHit.emission);
-        compositedHit[0].metallicRoughness = unpackHalf(firstHit.metallicRoughness);
+        compositedHit[0].albedo = f16_f32(firstHit.albedo);
+        compositedHit[0].emission = f16_f32(firstHit.emission);
+        compositedHit[0].metallicRoughness.xy = f16_f32(hit.metallicRoughness).xy;
         compositedHit[0].normalHeight = firstHit.normalHeight;
         compositedHit[0].tangent = firstHit.tangent;
         compositedHit[0].bitangent = firstHit.bitangent;
@@ -102,12 +102,12 @@ void invokeSurface(inout bool overflow) {
 
         // composite decals
         vec4 albedo = unpackHalf(hit.albedo);
-        vec4 ralpha = randomed(albedo.w).xxxx;
+        vec4 ralpha = randomed(clamp(albedo.w, 0.f, 1.f)).xxxx;
 
         compositedHit[searchLayer].uvt = hit.uvt;
         compositedHit[searchLayer].albedo = composite(compositedHit[searchLayer].albedo, albedo);
         compositedHit[searchLayer].normalHeight = fmix(compositedHit[searchLayer].normalHeight, hit.normalHeight, ralpha);
-        compositedHit[searchLayer].metallicRoughness = fmix(compositedHit[searchLayer].metallicRoughness, unpackHalf(hit.metallicRoughness), ralpha);
+        compositedHit[searchLayer].metallicRoughness.xy = fmix(compositedHit[searchLayer].metallicRoughness.xy, f16_f32(hit.metallicRoughness).xy, ralpha.xx);
         compositedHit[searchLayer].emission = fmix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), ralpha);
         compositedHit[searchLayer].tangent = fmix(compositedHit[searchLayer].tangent, hit.tangent, ralpha);
         compositedHit[searchLayer].bitangent = fmix(compositedHit[searchLayer].bitangent, hit.bitangent, ralpha);

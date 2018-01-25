@@ -82,8 +82,9 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
 
 
 vec3 normalOrient(in vec3 runit, in mat3 tbn){
-    vec3 btn = cross(runit, tbn[2]), tng = cross(btn, tbn[2]);
-    return normalize(mat3(tng, btn, tbn[2]) * runit);
+    //vec3 btn = cross(runit, tbn[2]), tng = cross(btn, tbn[2]); btn = cross(tbn[2], tng);
+    //return normalize(mat3(tng, btn, tbn[2]) * runit);
+    return normalize(tbn * runit);
 }
 
 
@@ -94,10 +95,6 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-1,0)));
 
-    int streamID = int(floor(16.f * random()));
-
-    //vec3 sdr = rayStreams[RayDiffBounce(ray)].diffuseStream.xyz;
-    //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
     sdr = faceforward(sdr, sdr, -tbn[2]);
     ray.cdirect.xy = lcts(sdr);
@@ -138,15 +135,11 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
     RayBounce(ray, min(RayType(ray) == 1 ? caustics_bounces : reflection_bounces, max(RayBounce(ray)-1, 0)));
 
-    int streamID = int(floor(16.f * random()));
-
-    //vec3 sdr = rayStreams[RayBounce(ray)].diffuseStream.xyz;
-    //vec3 sdr = rayStreams[streamID].diffuseStream.xyz; // experimental random choiced selection
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
-
-    //sdr = normalize(fmix(reflect(ray.cdirect.xyz, tbn[2]), sdr, clamp(sqrt(random()) * modularize(refly), 0.0f, 1.0f).xxx));
+    sdr = faceforward(sdr, sdr, -tbn[2]);
     sdr = normalize(fmix(reflect(dcts(ray.cdirect.xy), tbn[2]), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
     sdr = faceforward(sdr, sdr, -tbn[2]);
+
     ray.cdirect.xy = lcts(sdr);
     ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));

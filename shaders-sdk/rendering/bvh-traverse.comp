@@ -173,7 +173,7 @@ void deferTriangles(in int tri) {
 void doIntersection() {
     BOOL_ near = BOOL_(deftri.x >= 0);
     vec2 uv = vec2(0.f.xx);
-    float d = intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv.xy, near.x, predist);
+    float d = SSC(near) ? intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv.xy, near.x, predist) : INFINITY;
 
     float _nearhit = predist;
     predist = min(predist, d);

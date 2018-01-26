@@ -101,13 +101,7 @@ namespace SatelliteExample {
         std::shared_ptr<rt::Pipeline> raysp;
 
         glm::dmat4 project() {
-#ifdef USE_CAD_SYSTEM
             return glm::lookAt(eye, view, glm::dvec3(0.0f, 0.0f, 1.0f));
-#elif USE_180_SYSTEM
-            return glm::lookAt(eye, view, glm::dvec3(0.0f, -1.0f, 0.0f));
-#else
-            return glm::lookAt(eye, view, glm::dvec3(0.0f, 1.0f, 0.0f));
-#endif
         }
 
         void setRays(std::shared_ptr<rt::Pipeline>& r) {

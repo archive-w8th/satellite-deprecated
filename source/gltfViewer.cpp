@@ -387,7 +387,7 @@ namespace SatelliteExample {
 
         // process ray tracing
         glm::mat4 perspective = glm::perspective(glm::radians(60.f), float(canvasWidth) / float(canvasHeight), 0.0001f, 10000.f);
-        glm::mat4 lookAt = glm::lookAt(glm::vec3(cam->eye), glm::vec3(cam->view), glm::vec3(0.f, 1.f, 0.f));
+        glm::mat4 lookAt = glm::lookAt(glm::vec3(cam->eye), glm::vec3(cam->view), glm::vec3(0.f, 0.f, 1.f));
         rays->generate(perspective, lookAt);
 
         rays->setMaterialSet(materialManager);

@@ -22,7 +22,7 @@ vec4 readEnv(in vec3 r) {
 
 
 vec4 readEnv(in vec2 ds) {
-    return texture(skybox[0], fma(ds.yx * vec2(1.f,2.f) / PI + vec2(0.f,-1.f), vec2(0.5), vec2(0.5)));
+    return texture(skybox[0], fma(ds * vec2(1.f,2.f) / PI + vec2(0.f,-1.f), vec2(0.5), vec2(0.5)));
 }
 
 

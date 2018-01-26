@@ -101,7 +101,7 @@ namespace SatelliteExample {
         std::shared_ptr<rt::Pipeline> raysp;
 
         glm::dmat4 project() {
-            return glm::lookAt(eye, view, glm::dvec3(0.0f, 0.0f, 1.0f));
+            return glm::lookAtRH(eye, view, glm::dvec3(0.0f, 0.0f, 1.0f));
         }
 
         void setRays(std::shared_ptr<rt::Pipeline>& r) {

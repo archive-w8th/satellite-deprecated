@@ -558,12 +558,11 @@ mat3 make_stream_projection(in vec3 normal){
 
 // get cartesian from direction (for packing)
 vec2 lcts(in vec3 direct){
-    //direct.xyz = direct.xzy; // prefer Y-based representation
-    return vec2(acos(direct.z), atan(direct.y, direct.x));
+    return vec2(atan(direct.y, direct.x), acos(direct.z));
 }
 
 vec3 dcts(in vec2 hr) {
-    return normalize(vec3(sin(hr.x)*cos(hr.y), sin(hr.x)*sin(hr.y), cos(hr.x)));//.xzy;
+    return normalize(vec3(cos(hr.x)*sin(hr.y), sin(hr.x)*sin(hr.y), cos(hr.y)));
 }
 
 

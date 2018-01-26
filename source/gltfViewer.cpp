@@ -324,7 +324,7 @@ namespace SatelliteExample {
 
         // matrix with scaling
         glm::dmat4 matrix(1.0);
-        matrix *= glm::scale(glm::dvec3(mscale))*glm::scale(glm::dvec3(1.f, -1.f, 1.f)); // invert Z coordinate
+        matrix *= glm::scale(glm::dvec3(mscale))*glm::scale(glm::dvec3(1.f, 1.f, 1.f)); // invert Z coordinate
 
         // loading/setup meshes 
         intersector->clearTribuffer();

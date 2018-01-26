@@ -14,9 +14,7 @@ float computeFresnel(in vec3 normal, in vec3 indc, in float n1, in float n2) {
 
 
 vec3 lightCenter(in int i) {
-    vec3 playerCenter = vec3(0.0f);
-    vec3 lvec = normalize(lightUniform.lightNode[i].lightVector.xyz) * (lightUniform.lightNode[i].lightVector.y < 0.0f ? -1.0f : 1.0f);
-    return fma(lvec, vec3(lightUniform.lightNode[i].lightVector.w), (lightUniform.lightNode[i].lightOffset.xyz + playerCenter.xyz));
+    return fma(normalize(lightUniform.lightNode[i].lightVector.xyz), vec3(lightUniform.lightNode[i].lightVector.w), (lightUniform.lightNode[i].lightOffset.xyz));
 }
 
 

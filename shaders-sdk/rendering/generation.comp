@@ -89,8 +89,8 @@ void main()
                     txfi.color = 0.f.xxxx; // debug white
                     texelBuf.nodes[idx] = txfi;
 
-                    //coord.xy = coord.yx;
-                    //coord.y = 1.f - coord.y; // correct coordinates
+                    // compute shaders have very strange ("linear unknown") coordinate system
+                    coord.x = 1.f - coord.x;
 
                     vec4 orig = vec4(0.f, 0.0f, 0.f, 1.0f);
                     vec4 dir = vec4(0.f);

@@ -113,11 +113,14 @@ namespace NSM {
 
             // build global boundary
             boundPrimitives.dispatch = [&]() {
+                auto cCmd = createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(64) });
+
                 auto commandBuffer = getCommandBuffer(device, true);
                 commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { descriptorSets[0], clientDescriptorSets[0] }, nullptr);
                 commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, boundPrimitives.pipeline);
                 commandBuffer.dispatch(32, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
+
+                flushCommandBuffers(device, std::vector<vk::CommandBuffer>{ {cCmd, commandBuffer}}, true);
             };
 
             // link childrens
@@ -310,7 +313,7 @@ namespace NSM {
         }
 
         void TriangleHierarchy::clearTribuffer() {
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(7), 1 }, true);
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(7), 1 }), true);
             isDirty = false;
         }
 
@@ -348,12 +351,16 @@ namespace NSM {
             if (!isDirty) return;
 
             // because we not setting triangle count in uniform when loading that geometry, we should update this value manually on device
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, geometryBlockUniform.buffer, { strided<uint32_t>(7), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }, true); // 
+            // planned deferred/async copy support
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, geometryBlockUniform.buffer, { strided<uint32_t>(7), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); // 
+
 
             // get triangle count from staging 
             std::vector<uint32_t> triangleCount(1);
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(7), 0, strided<uint32_t>(1) }, false); // copy to staging
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(7), 0, strided<uint32_t>(1) }), false); // copy to staging
             getBufferSubData(generalLoadingBuffer, triangleCount, 0);
+
+
             if (triangleCount[0] <= 0) return; // no need to build BVH
 
             // bvh potentially builded
@@ -389,12 +396,10 @@ namespace NSM {
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
                 syncUniforms();
             }
-
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(64) }, true);
             boundPrimitives.dispatch();
 
             // get boundary
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(64) }, false);
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(64) }), false);
 
             // receive boundary
             std::vector<glm::vec4> bounds(64);
@@ -418,25 +423,27 @@ namespace NSM {
                 syncUniforms();
             }
 
-            // calculate boundary 
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, {
-                offsetof(GeometryUniformStruct, transform),
-                offsetof(BVHBlockUniform, transform),
-                strided<glm::mat4>(2)
-                }, true);
 
-            // calculate leafs and boundings of members
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) }, true); // reset BVH leafs counters
+            flushCommandBuffers(device, std::vector<vk::CommandBuffer>{{
+                createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, {
+                    offsetof(GeometryUniformStruct, transform),
+                    offsetof(BVHBlockUniform, transform),
+                    strided<glm::mat4>(2)
+                }),
+                createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) })
+            }}, true);
+
+
             aabbCalculate.dispatch();
 
-            // get leaf count from staging
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }, false); // copy to staging
+            // get leaf count from staging 
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }), false); // copy to staging
             getBufferSubData(generalLoadingBuffer, triangleCount, 0);
             bvhBlockData[0].leafCount = triangleCount[0];
             if (triangleCount[0] <= 0) return;
 
             // need update geometry uniform optimization matrices, and sort morton codes
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }, true);
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true);
             radixSort->sort(mortonCodesBuffer, leafsIndicesBuffer, triangleCount[0]); // do radix sort
 
             // debug code
@@ -450,7 +457,7 @@ namespace NSM {
             }
 
             // reset BVH counters (and copy to uniform)
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(6) }, true);
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(6) }), true);
 
             auto copyCounterCommand = getCommandBuffer(device, true);
             memoryCopyCmd(copyCounterCommand, countersBuffer, countersBuffer, { 5 * sizeof(int32_t), 4 * sizeof(int32_t), sizeof(int32_t) });

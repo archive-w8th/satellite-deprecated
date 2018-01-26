@@ -187,7 +187,7 @@ namespace NSM {
 
             // getting counters values
             std::vector<int32_t> counters(8);
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) }, false);
+            auto copyCmd = createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) }); flushCommandBuffer(device, copyCmd, false);
             getBufferSubData(generalLoadingBuffer, counters, 0);
 
             counters[AVAILABLE_COUNTER] = counters[AVAILABLE_COUNTER] >= 0 ? counters[AVAILABLE_COUNTER] : 0;
@@ -212,17 +212,17 @@ namespace NSM {
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(CLEANING_COUNTER), sizeof(uint32_t) });
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(PREPARING_BLOCK_COUNTER), sizeof(uint32_t) });
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(INTERSECTIONS_COUNTER), sizeof(uint32_t) });
-            flushCommandBuffer(device, command, true);
 
-            // swap indices
+            // batching commands
+            std::vector<vk::CommandBuffer> cmds;
+            cmds.push_back(command);
             if (rayBlockData[0].samplerUniform.blockCount > 0) {
-                copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, indicesSwap[1], indicesSwap[0], { 0, 0, strided<uint32_t>(rayBlockData[0].samplerUniform.blockCount) }, true);
+                cmds.push_back(createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, indicesSwap[1], indicesSwap[0], { 0, 0, strided<uint32_t>(rayBlockData[0].samplerUniform.blockCount) }));
             }
-
-            // swap availables
             if (includeCount > 0) {
-                copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) }, true); // move unused to preparing
+                cmds.push_back(createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) })); // move unused to preparing
             }
+            flushCommandBuffers(device, cmds, true);
         }
 
         void Pipeline::initBuffers() {
@@ -382,7 +382,7 @@ namespace NSM {
 
         void Pipeline::clearRays() {
             rayBlockData[0].samplerUniform.iterationCount = 0;
-            copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }, true);
+            flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }), true);
         }
 
         void Pipeline::resizeCanvas(uint32_t width, uint32_t height) {

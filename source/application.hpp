@@ -801,14 +801,13 @@ namespace SatelliteExample {
 
         {
             auto texture = rays->getRawImage();
-            copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
+            flushCommandBuffer(currentContext->device, createCopyCmd<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
                 .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
                 .setBufferOffset(0)
                 .setBufferRowLength(width)
                 .setBufferImageHeight(height)
-                .setImageSubresource(texture->subresourceLayers), false);
-            //getBufferSubData(tstage, imageData, 0);
+                .setImageSubresource(texture->subresourceLayers)), false);
         }
 
         {

@@ -82,7 +82,7 @@ namespace NSM {
 
         intptr_t BufferSpace::copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset) {
             if (size > 0) {
-                copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }, true);
+                flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }), true);
             }
             return offset;
         }

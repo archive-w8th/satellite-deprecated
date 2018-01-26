@@ -95,13 +95,13 @@ namespace SatelliteExample {
         bool monteCarlo = true;
 
     public:
-        glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f);
-        glm::dvec3 view = glm::dvec3(0.0f, 2.0f, 0.0f);
+        glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f).xzy();
+        glm::dvec3 view = glm::dvec3(0.0f, 2.0f, 0.0f).xzy();
         glm::dvec2 mposition;
         std::shared_ptr<rt::Pipeline> raysp;
 
         glm::dmat4 project() {
-            return glm::lookAtRH(eye, view, glm::dvec3(0.0f, 0.0f, 1.0f));
+            return glm::lookAtRH(eye, view, glm::dvec3(0.0f, 0.0f, -1.0f));
         }
 
         void setRays(std::shared_ptr<rt::Pipeline>& r) {
@@ -172,15 +172,15 @@ namespace SatelliteExample {
             vi.x -= diff / 100.0f;
         }
         void topBottom(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
-            ca.y += diff / 100.0f;
-            vi.y += diff / 100.0f;
+            ca.y -= diff / 100.0f;
+            vi.y -= diff / 100.0f;
         }
         void forwardBackward(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
             ca.z -= diff / 100.0f;
             vi.z -= diff / 100.0f;
         }
         void rotateY(glm::dvec3 &vi, const double &diff) {
-            glm::dmat4 rot = glm::rotate(-diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(1.0f, 0.0f, 0.0f));
+            glm::dmat4 rot = glm::rotate( diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(1.0f, 0.0f, 0.0f));
             vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
         }
         void rotateX(glm::dvec3 &vi, const double &diff) {

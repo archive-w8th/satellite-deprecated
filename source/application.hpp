@@ -96,13 +96,13 @@ namespace SatelliteExample {
         bool monteCarlo = true;
 
     public:
-        glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f).xzy();
-        glm::dvec3 view = glm::dvec3(0.0f, 2.0f, 0.0f).xzy();
+        glm::dvec3 eye  = glm::dvec3(0.0, 6.0, 6.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
+        glm::dvec3 view = glm::dvec3(0.0, 8.0, 12.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
         glm::dvec2 mposition;
         std::shared_ptr<rt::Pipeline> raysp;
 
         glm::dmat4 project() {
-            return glm::lookAtRH(eye, view, glm::dvec3(0.0f, 0.0f, -1.0f)); // need rotated coordinate system in 180 degree (Vulkan API)
+            return glm::lookAt(eye, view, glm::dvec3(0.0f, 0.0f, -1.0f));
         }
 
         void setRays(std::shared_ptr<rt::Pipeline>& r) {

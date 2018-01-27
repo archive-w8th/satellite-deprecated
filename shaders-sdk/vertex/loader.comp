@@ -220,7 +220,6 @@ void main(){
 
                 vertice[i] = divW(mult4(meshUniform.transform, vec4(vertice[i].xyz,1.f)));
                 normal[i] = mult4(meshUniform.transformInv, vec4(normal[i].xyz, 0.0f)).xyz;
-                texcoord[i].y = 1.0f-texcoord[i].y;
             }
 
             // adapt quads to triangles

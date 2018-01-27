@@ -386,7 +386,7 @@ namespace SatelliteExample {
         intersector->buildBVH();
 
         // process ray tracing 
-        glm::mat4 perspective = glm::perspectiveFovRH(glm::radians(60.f), float(canvasWidth), float(canvasHeight), 0.0001f, 10000.f);
+        glm::mat4 perspective = glm::perspectiveFovLH(glm::radians(60.f), float(canvasWidth), float(canvasHeight), 0.0001f, 10000.f); // ray tracing better pickup coordinates at LH for RH dimension
         glm::mat4 lookAt = glm::lookAtRH(glm::vec3(cam->eye), glm::vec3(cam->view), glm::vec3(0.f, 0.f, -1.f));
         rays->generate(perspective, lookAt);
 

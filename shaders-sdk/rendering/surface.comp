@@ -137,6 +137,7 @@ vec3 getNormalMapping(in int binding, vec2 texcoordi) {
         normal = faceforward(bump, normal, bump);
     } else {
         normal = normalize(fmix(vec3(0.0f, 0.0f, 1.0f), fma(tc, vec3(2.0f), vec3(-1.0f)), vec3(1.0f)));
+        normal.y *= -1.f;
     }
     return normal;
 }

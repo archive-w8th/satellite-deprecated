@@ -45,7 +45,6 @@ namespace SatelliteExample {
         cil::CImg<float> image(bgTexName.c_str());
         uint32_t width = image.width(), height = image.height();
         image.channels(0, 3);
-        image.mirror("y");
         image.permute_axes("cxyz");
         
 
@@ -97,8 +96,8 @@ namespace SatelliteExample {
         bool monteCarlo = true;
 
     public:
-        glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f).xzy()*glm::dvec3(1.f, -1.f, 1.f);
-        glm::dvec3 view = glm::dvec3(0.0f, 2.0f, 0.0f).xzy()*glm::dvec3(1.f, -1.f, 1.f);
+        glm::dvec3 eye = glm::dvec3(0.0f, 6.0f, 6.0f).xzy();
+        glm::dvec3 view = glm::dvec3(0.0f, 2.0f, 0.0f).xzy();
         glm::dvec2 mposition;
         std::shared_ptr<rt::Pipeline> raysp;
 
@@ -143,25 +142,25 @@ namespace SatelliteExample {
 
             if (map.keys[ControlMap::kA] && isFocus)
             {
-                this->leftRight(ca, vi, diff);
+                this->leftRight(ca, vi, -diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if (map.keys[ControlMap::kD] && isFocus)
             {
-                this->leftRight(ca, vi, -diff);
+                this->leftRight(ca, vi, diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if ((map.keys[ControlMap::kE] || map.keys[ControlMap::kSpc]) && isFocus)
             {
-                this->topBottom(ca, vi, diff);
+                this->topBottom(ca, vi, -diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if ((map.keys[ControlMap::kQ] || map.keys[ControlMap::kSft] || map.keys[ControlMap::kC]) && isFocus)
             {
-                this->topBottom(ca, vi, -diff);
+                this->topBottom(ca, vi, diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
@@ -174,19 +173,19 @@ namespace SatelliteExample {
             vi.x += diff / 100.0f;
         }
         void topBottom(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
-            ca.y -= diff / 100.0f;
-            vi.y -= diff / 100.0f;
+            ca.y += diff / 100.0f;
+            vi.y += diff / 100.0f;
         }
         void forwardBackward(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
-            ca.z -= diff / 100.0f;
-            vi.z -= diff / 100.0f;
+            ca.z += diff / 100.0f;
+            vi.z += diff / 100.0f;
         }
         void rotateY(glm::dvec3 &vi, const double &diff) {
-            glm::dmat4 rot = glm::rotate( diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(1.0f, 0.0f, 0.0f));
+            glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(-1.0f, 0.0f, 0.0f));
             vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
         }
         void rotateX(glm::dvec3 &vi, const double &diff) {
-            glm::dmat4 rot = glm::rotate( diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(0.0f, 1.0f, 0.0f));
+            glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(0.0f, 1.0f, 0.0f));
             vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
         }
     };
@@ -837,7 +836,7 @@ namespace SatelliteExample {
 
         {
             cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);
-            image.permute_axes("yzcx").mirror("y");
+            image.permute_axes("yzcx");
             image.get_shared_channel(3).fill(1.f);
             image.save_exr(name.c_str());
 

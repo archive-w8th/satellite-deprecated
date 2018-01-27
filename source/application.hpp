@@ -96,8 +96,8 @@ namespace SatelliteExample {
         bool monteCarlo = true;
 
     public:
-        glm::dvec3 eye  = glm::dvec3(0.0, 6.0, 6.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
-        glm::dvec3 view = glm::dvec3(0.0, 8.0, 12.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
+        glm::dvec3 eye  = glm::dvec3(0.0, 6.0, 0.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
+        glm::dvec3 view = glm::dvec3(0.0, 6.0 + (6.0 - 2.0), 6.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
         glm::dvec2 mposition;
         std::shared_ptr<rt::Pipeline> raysp;
 

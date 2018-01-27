@@ -75,6 +75,7 @@ float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
 ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
 int deftri = int(-1), idx = 0, bstackCount = 0, deferredPtr = -1;
 bool mergeRestCmd = false, awaitFlag = false;
+ivec2 speculativeIdx = ivec2(-1,-1);
 #define validBoxIn validBox
 
 
@@ -84,18 +85,28 @@ shared int indeferredStack[WORK_SIZE][STACK_SIZE];
 #define deferredStackExt nodeCache[rayID].indeferredStackExt
 #define deferredStack indeferredStack[LT_IDX]
 
+
 int loadStack(in int STI) {
     int VALUE = int(-1);
-    if (STI < STACK_SIZE && STI >= 0) { 
-        VALUE = exchange(deferredStack[STI], -1);
-    } else 
-    if (STI < STACK_SIZE_SM && STI >= 0) {
-        VALUE = exchange(deferredStackExt[STI - STACK_SIZE], -1);
+    if (speculativeIdx.y >= 0 && speculativeIdx.x == STI) { // predictable
+        VALUE = exchange(speculativeIdx.y, -1); speculativeIdx.x = -1;
+    } else { speculativeIdx = ivec2(-1, -1); // speculative not predicted 
+        if (STI < STACK_SIZE && STI >= 0) { 
+            VALUE = exchange(deferredStack[STI], -1);
+        } else 
+        if (STI < STACK_SIZE_SM && STI >= 0) {
+            VALUE = exchange(deferredStackExt[STI - STACK_SIZE], -1);
+        }
     }
     return VALUE;
 }
 
+
 void storeStack(in int STI, in int VALUE) {
+    if (speculativeIdx.y < 0) {
+        speculativeIdx = ivec2(STI, VALUE); // store for speculation
+    }
+    
     if (STI < STACK_SIZE && STI >= 0) {
         deferredStack[STI] = VALUE;
     } else 
@@ -103,6 +114,7 @@ void storeStack(in int STI, in int VALUE) {
         deferredStackExt[STI - STACK_SIZE] = VALUE;
     }
 }
+
 #endif
 
 
@@ -159,6 +171,7 @@ void beginTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = int(-1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = -1, awaitFlag = false;
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
+    speculativeIdx = ivec2(-1, -1);
 }
 
 //#define _ADD(m,k) atomicAdd(m,k)

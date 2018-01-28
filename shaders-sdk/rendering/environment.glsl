@@ -16,7 +16,9 @@ layout ( binding = 0, set = 1 ) uniform sampler2D skybox[1];
 
 
 vec4 readEnv(in vec2 ds) {
-    return texture(skybox[0], fma(ds / PI, vec2(-0.5f, 1.0f), vec2(0.75f, 0.f)));
+    vec2 tx2 = ((ds / PI - vec2(0.5f, 0.0f)) * vec2(0.5f, 1.0f));
+    tx2.y = 1.f-tx2.y;
+    return texture(skybox[0], tx2);
 }
 
 

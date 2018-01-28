@@ -1,6 +1,5 @@
 #ifndef _SHADINGLIB_H
 #define _SHADINGLIB_H
-
 #define GAP (PZERO*2.f)
 
 
@@ -14,13 +13,12 @@ float computeFresnel(in vec3 normal, in vec3 indc, in float n1, in float n2) {
 
 
 vec3 lightCenter(in int i) {
-    return fma(normalize(lightUniform.lightNode[i].lightVector.xyz), vec3(lightUniform.lightNode[i].lightVector.w), (lightUniform.lightNode[i].lightOffset.xyz));
+    return fma(normalize(lightUniform.lightNode[i].lightVector.xyz), lightUniform.lightNode[i].lightVector.www, lightUniform.lightNode[i].lightOffset.xyz);
 }
 
 
 vec3 sLight(in int i) {
     return fma(randomDirectionInSphere(), vec3(lightUniform.lightNode[i].lightColor.w - 0.0001f), lightCenter(i));
-    //return lightUniform.lightNode[i].lightRandomizedOrigin.xyz;
 }
 
 

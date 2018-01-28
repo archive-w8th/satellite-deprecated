@@ -67,7 +67,7 @@ namespace SatelliteExample {
         }
 
         // create sampler for combined
-        texture->descriptorInfo.sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
+        texture->descriptorInfo.sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
         return texture;
     }
 
@@ -96,13 +96,16 @@ namespace SatelliteExample {
         bool monteCarlo = true;
 
     public:
-        glm::dvec3 eye  = glm::dvec3(0.0, 6.0, 0.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
-        glm::dvec3 view = glm::dvec3(0.0, 6.0 + (6.0 - 2.0), 6.0).xzy()*glm::dvec3(1.0, -1.0, 1.0);
+        glm::dvec3 dir = glm::normalize(glm::dvec3(0.0, -1.0, 0.01));
+        glm::dvec3 eye = glm::dvec3(0.0, 4.0, 0.0);
+        glm::dvec3 view = glm::dvec3(0.0, 0.0, 0.0);
+        
         glm::dvec2 mposition;
         std::shared_ptr<rt::Pipeline> raysp;
 
         glm::dmat4 project() {
-            return glm::lookAt(eye, view, glm::dvec3(0.0f, 0.0f, -1.0f));
+            view = eye + dir;
+            return glm::lookAt(eye, view, glm::dvec3(0.0f, 1.0f, 0.0f));
         }
 
         void setRays(std::shared_ptr<rt::Pipeline>& r) {
@@ -113,15 +116,13 @@ namespace SatelliteExample {
             glm::dmat4 viewm = project();
             glm::dmat4 unviewm = glm::inverse(viewm);
             glm::dvec3 ca = (viewm * glm::dvec4(eye, 1.0f)).xyz();
-            glm::dvec3 vi = (viewm * glm::dvec4(view, 1.0f)).xyz();
-
+            glm::dvec3 vi = glm::normalize((glm::dvec4(dir, 0.0) * unviewm).xyz());
             bool isFocus = true;
 
             if (map.mouseleft && isFocus)
             {
                 glm::dvec2 mpos = glm::dvec2(position) - mposition;
-                double diffX = mpos.x;
-                double diffY = mpos.y;
+                double diffX = mpos.x, diffY = mpos.y;
                 if (glm::abs(diffX) > 0.0) this->rotateX(vi, diffX);
                 if (glm::abs(diffY) > 0.0) this->rotateY(vi, diffY);
                 if (monteCarlo) raysp->clearSampling();
@@ -130,62 +131,60 @@ namespace SatelliteExample {
 
             if (map.keys[ControlMap::kW] && isFocus)
             {
-                this->forwardBackward(ca, vi, diff);
+                this->forwardBackward(ca, -diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if (map.keys[ControlMap::kS] && isFocus)
             {
-                this->forwardBackward(ca, vi, -diff);
+                this->forwardBackward(ca, diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if (map.keys[ControlMap::kA] && isFocus)
             {
-                this->leftRight(ca, vi, -diff);
+                this->leftRight(ca, -diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if (map.keys[ControlMap::kD] && isFocus)
             {
-                this->leftRight(ca, vi, diff);
+                this->leftRight(ca, diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if ((map.keys[ControlMap::kE] || map.keys[ControlMap::kSpc]) && isFocus)
             {
-                this->topBottom(ca, vi, -diff);
+                this->topBottom(ca, diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
             if ((map.keys[ControlMap::kQ] || map.keys[ControlMap::kSft] || map.keys[ControlMap::kC]) && isFocus)
             {
-                this->topBottom(ca, vi, diff);
+                this->topBottom(ca, -diff);
                 if (monteCarlo) raysp->clearSampling();
             }
 
+            dir = glm::normalize((glm::dvec4(vi, 0.0) * viewm).xyz());
             eye = (unviewm * glm::dvec4(ca, 1.0f)).xyz();
-            view = (unviewm * glm::dvec4(vi, 1.0f)).xyz();
+            view = eye + dir;
         }
 
-        void leftRight(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
+        void leftRight(glm::dvec3 &ca, const double &diff) {
             ca.x += diff / 100.0f;
-            vi.x += diff / 100.0f;
         }
-        void topBottom(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
+        void topBottom(glm::dvec3 &ca, const double &diff) {
             ca.y += diff / 100.0f;
-            vi.y += diff / 100.0f;
         }
-        void forwardBackward(glm::dvec3 &ca, glm::dvec3 &vi, const double &diff) {
+        void forwardBackward(glm::dvec3 &ca, const double &diff) {
             ca.z += diff / 100.0f;
-            vi.z += diff / 100.0f;
         }
         void rotateY(glm::dvec3 &vi, const double &diff) {
             glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(-1.0f, 0.0f, 0.0f));
             vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
         }
         void rotateX(glm::dvec3 &vi, const double &diff) {
-            glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(0.0f, 1.0f, 0.0f));
+            glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(0.0f, -1.0f, 0.0f));
             vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
         }
     };

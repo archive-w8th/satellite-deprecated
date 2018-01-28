@@ -28,10 +28,5 @@ vec4 filtered(in vec2 tx) {
 
 void main() {
     vec2 ctx = vcoord.xy * vec2(1.f,0.5f) + vec2(0.f,0.5f);
-    vec3 color = filtered(ctx).xyz;
-
-    //color = pow(color, 1.f/1.2f.xxx);
-    //color = fromLinear(color);
-    
-    outFragColor = vec4(color.xyz, 1.0f);
+    outFragColor = vec4(fromLinear(filtered(ctx)).xyz, 1.0f);
 }

@@ -56,7 +56,7 @@ void main() {
                         albedo += texelBuf.nodes[ts].albedo, normal += texelBuf.nodes[ts].normal;
                         
                         if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
-                            prevc = toLinear(imageLoad(presampled, cid));
+                            prevc = imageLoad(presampled, cid);
                             prevc.xyz *= prevc.w;
                         }
                         
@@ -99,11 +99,11 @@ void main() {
             imageStore(normalbuf, cid, mix(normal * 0.5f + 0.5f, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
             imageStore(albedobuf, cid, mix(albedo              , imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
 
-            vec4 xsample = toLinear(imageLoad(presampled, cid)); // get previous (reprojected) sample
+            vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
 
             imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
-            imageStore(presampled, cid, fromLinear(vec4(xsample))); // store in current projection
+            imageStore(presampled, cid, vec4(xsample)); // store in current projection
         }
     }
 }

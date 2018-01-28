@@ -7,6 +7,5 @@ layout ( location = 0 ) out vec2 vcoord;
 
 void main() {
     gl_Position = vec4(cpositions[gl_VertexIndex].xy, 0.0f, 1.0f);
-    gl_Position.y *= -1.f;
     vcoord = cpositions[gl_VertexIndex].xy*0.5f.xx+0.5f.xx;
 }

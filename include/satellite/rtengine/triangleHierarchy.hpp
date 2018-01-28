@@ -32,11 +32,11 @@ namespace NSM {
 
             // texel storage of geometry
             TextureType vertexTexelStorage, texcoordTexelStorage, normalsTexelStorage, modsTexelStorage;
-            BufferType  materialIndicesStorage, orderIndicesStorage;
+            BufferType vertexLinearStorage, materialIndicesStorage, orderIndicesStorage;
 
             // where will loading geometry data
             TextureType vertexTexelWorking, texcoordTexelWorking, normalsTexelWorking, modsTexelWorking;
-            BufferType materialIndicesWorking, orderIndicesWorking;
+            BufferType vertexLinearWorking, materialIndicesWorking, orderIndicesWorking;
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
             std::vector<vk::DescriptorSet> descriptorSets, clientDescriptorSets, loaderDescriptorSets;

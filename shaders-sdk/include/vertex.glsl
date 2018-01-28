@@ -10,6 +10,7 @@ layout ( binding = 10, rgba32f, set = 0 ) uniform image2D vertex_texture_out;
 layout ( binding = 11, rgba32f, set = 0 ) uniform image2D normal_texture_out;
 layout ( binding = 12, rgba32f, set = 0 ) uniform image2D texcoords_texture_out;
 layout ( binding = 13, rgba32f, set = 0 ) uniform image2D modifiers_texture_out;
+layout ( std430, binding = 9, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
 #else
 layout ( binding = 10, set = 1 ) uniform sampler2D vertex_texture;
 layout ( binding = 11, set = 1 ) uniform sampler2D normal_texture;
@@ -21,6 +22,7 @@ layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { UBLANEF_ b
 layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
 layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
 layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
+layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
 #endif
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -70,11 +72,15 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
     const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
     IF (valid) {
         // gather patterns
-        vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
+        //vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
+        const int itri = tri*9;
         mat3 ABC = mat3(
-            SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
-            SGATHER(vertex_texture, ntri, 1)._SWIZV - orig.y,
-            SGATHER(vertex_texture, ntri, 2)._SWIZV - orig.z
+            //SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
+            //SGATHER(vertex_texture, ntri, 1)._SWIZV - orig.y,
+            //SGATHER(vertex_texture, ntri, 2)._SWIZV - orig.z
+            vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]) - orig.x,
+            vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]) - orig.y,
+            vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]) - orig.z
         ) * M;
 
         // PURE watertight triangle intersection (our, GPU-GLSL adapted version)

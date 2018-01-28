@@ -233,6 +233,7 @@ void main(){
             {
                 vorders[tidc] = ordr;
                 materials[tidc] = matID;
+                
                 for (int i=0;i<3;i++) {
                     ivec2 mosaicCoord = mosaicIdc(gatherMosaic(getUniformCoord(tidc)), i);
                     mosaicCoord.x = mosaicCoord.x % isize.x;
@@ -245,6 +246,11 @@ void main(){
                     ISTORE(vertex_texture_out, mosaicCoord, vec4(vertice[i]));
                     ISTORE(texcoords_texture_out, mosaicCoord, vec4(texcoord[i]));
                     ISTORE(modifiers_texture_out, mosaicCoord, vec4(mods[i]));
+
+                    // interleave vertex for intersection
+                    lvtx[tidc*9+3*0+i] = vertice[i].x;
+                    lvtx[tidc*9+3*1+i] = vertice[i].y;
+                    lvtx[tidc*9+3*2+i] = vertice[i].z;
                 }
             }
 
@@ -265,6 +271,11 @@ void main(){
                     ISTORE(vertex_texture_out, mosaicCoord, vec4(vertice[mi]));
                     ISTORE(texcoords_texture_out, mosaicCoord, vec4(texcoord[mi]));
                     ISTORE(modifiers_texture_out, mosaicCoord, vec4(mods[mi]));
+
+                    // interleave vertex for intersection
+                    lvtx[tidc*9+3*0+i] = vertice[mi].x;
+                    lvtx[tidc*9+3*1+i] = vertice[mi].y;
+                    lvtx[tidc*9+3*2+i] = vertice[mi].z;
                 }
             }
 

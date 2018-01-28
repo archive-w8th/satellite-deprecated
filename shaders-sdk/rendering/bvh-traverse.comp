@@ -297,34 +297,20 @@ void includeChain(inout vec4 intersection) {
     // initial hit
     HitRework hitp; 
     hitp.next = -1;
-    //hitp.uvt = vec4(vec2(0.0f), INFINITY, intBitsToFloat(-1));
 
     // reuse old chains (i.e. override)
     int hid = nodeCache[rayID].info.nextHt; if (hid > 0) hitp = hits[hid-1];
     nodeCache[rayID].info.nextHt = hitp.next > 0 ? hitp.next : -1; // next linked ID
 
     // allocate new hit if chain is none
-    if (hid == -1 || hid <= 0) hid = atomicIncHT(TRUE_)+1;
+    if (hid <= 0) hid = atomicIncHT(TRUE_)+1;
 
     // create new hit element with default properties
     if (hid > 0) {
         hitp = hits[hid-1];
-        hitp.bitfield = 0;
-        hitp.materialID = 0;
         hitp.uvt = intersection;
         hitp.next = nodeCache[rayID].info.nextHt; // for future overriding
         hitp.ray = int(getGeneralNodeId());
-        hitp.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
-        hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
-        hitp.emission = packHalf2(vec4(0.f));
-        hitp.normalHeight = vec4(0.0f);
-        hitp.tangent = vec4(0.0f);
-        HitActived(hitp, TRUE_);
-        
-        // interpolate by mesh (merged to dedicated shader)
-        //interpolateMeshData(hitp); 
-
-        // store hit result
         hits[hid-1] = hitp;
 
         // link previous element (or header) with current

@@ -144,21 +144,23 @@ uvec2 _writeColor(inout uvec2 rwby, in vec4 color){
 
 
 struct HitRework {
-     vec4 uvt; // UV, distance, triangle
+    // getting under intersections
+     vec4 uvt; // UV, distance, triangle (base data)
+
+    // surface shaders and interpolators
      vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
-     vec4 tangent; // also have 4th extra slot
-     vec4 bitangent; // TODO: extend structure size
+     vec4 tangent; // 
+     vec4 bitangent; // 
      vec4 texcoord; // critical texcoords 
 
-    uvec2 metallicRoughness;
-    uvec2 unk16;
-    uvec2 emission;
-    uvec2 albedo;
+    // textured data
+    uvec2 metallicRoughness, unk16;
+    uvec2 emission, albedo;
 
     // integer metadata
     uint bitfield; 
      int ray; // ray index
-     int materialID;
+     int materialID; // may not necessary 
      int next;
 };
 

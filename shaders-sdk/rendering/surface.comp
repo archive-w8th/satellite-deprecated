@@ -296,6 +296,15 @@ void main() {
         IFALL(overflow) break;
         {
             HitRework hit = hits[globalID];
+            hit.bitfield = 0;
+            hit.materialID = 0;
+            hit.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
+            hit.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
+            hit.emission = packHalf2(vec4(0.f));
+            hit.normalHeight = vec4(0.0f);
+            hit.tangent = vec4(0.0f);
+            HitActived(hit, TRUE_);
+            
             viewVec = dcts(ray.cdirect.xy);
 
             interpolateMeshData(hit);

@@ -23,9 +23,6 @@ out vec2 v_texCoord;
 out flat float v_orientation;
 
 
-float precIssue(in float a) { return max(abs(a), 0.0001f) * mix(-1, 1, a >= 0); }
-
-
 void main(void) {
     int i;
     

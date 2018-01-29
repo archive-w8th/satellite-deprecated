@@ -85,13 +85,16 @@ float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0
 
 
+float precIssue (in float a) { if (isnan(a)) a = 0.f; if (isinf(a)) a = 1.f; return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
+
+
 
 // vector math utils
 float sqlen(in vec3 a) { return dot(a, a); }
 float sqlen(in vec2 a) { return dot(a, a); }
 float sqlen(in float v) { return v * v; }
 int modi(in int a, in int b) { return (a % b + b) % b; }
-vec4 divW(in vec4 aw) { return aw / aw.w; }
+vec4 divW(in vec4 aw) { return aw / precIssue(aw.w); }
 vec3 rotate_vector( in vec4 quat, in vec3 vec ) { return vec + 2.0 * cross( cross( vec, quat.xyz ) + quat.w * vec, quat.xyz ); }
 vec4 rotation_quat( in vec3 axis, in float half_angle ) { return vec4(axis * sin(half_angle), cos(half_angle)); }
 

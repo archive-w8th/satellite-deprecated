@@ -169,10 +169,6 @@ vec3 viewVec = vec3(0.f);
 float vSgn = 1.f;
 
 
-float precIssue (in float a) { if (isnan(a)) a = 0.f; if (isinf(a)) a = 10000.f; return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
-
-
-
 
 const float parallaxScale = 0.02f;
 const float minLayers = 10, maxLayers = 20;

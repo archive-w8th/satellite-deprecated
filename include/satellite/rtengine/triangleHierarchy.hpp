@@ -65,7 +65,7 @@ namespace NSM {
             void loadGeometry(std::shared_ptr<VertexInstance>& vertexInstance);
             void syncUniforms();
             void markDirty();
-            void buildBVH();
+            void buildBVH(glm::dmat4 optproj);
 
             vk::DescriptorSet getClientDescriptorSet();
 

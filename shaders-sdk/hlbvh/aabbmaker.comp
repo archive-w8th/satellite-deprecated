@@ -33,9 +33,9 @@ void main() {
                 fetchMosaic(vertex_texture, msc, 2)
             );
 
-            triverts[0] = mult4(bvhBlock.creatorUniform.transform, triverts[0]);
-            triverts[1] = mult4(bvhBlock.creatorUniform.transform, triverts[1]);
-            triverts[2] = mult4(bvhBlock.creatorUniform.transform, triverts[2]);
+            triverts[0] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[0]));
+            triverts[1] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[1]));
+            triverts[2] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[2]));
 
             vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
             if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {

@@ -381,14 +381,15 @@ namespace SatelliteExample {
         // load materials to GPU
         materialManager->loadToVGA();
 
+        glm::dmat4 perspView = glm::perspectiveFov(glm::radians(60.0), double(canvasWidth), double(canvasHeight), 0.0001, 10000.0); // ray tracing better pickup coordinates at LH for RH dimension
+        glm::dmat4 modelView = glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)); // need rotated coordinate system in 180 degree (Vulkan API)
+
         // build BVH in device
         intersector->markDirty();
-        intersector->buildBVH();
+        intersector->buildBVH(glm::dmat4(1.0));
 
         // process ray tracing 
-        glm::mat4 perspective = glm::perspectiveFov(glm::radians(60.f), float(canvasWidth), float(canvasHeight), 0.0001f, 10000.f); // ray tracing better pickup coordinates at LH for RH dimension
-        glm::mat4 lookAt = glm::lookAt(glm::vec3(cam->eye), glm::vec3(cam->view), glm::vec3(0.f, 1.f, 0.f)); // need rotated coordinate system in 180 degree (Vulkan API)
-        rays->generate(perspective, lookAt);
+        rays->generate(perspView, modelView);
 
         rays->setMaterialSet(materialManager);
         rays->setTextureSet(textureManager);

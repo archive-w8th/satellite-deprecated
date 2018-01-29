@@ -581,7 +581,7 @@ namespace NSM {
             reloadQueuedRays();
         }
 
-        void Pipeline::generate(const glm::mat4 &persp, const glm::mat4 &frontSide) {
+        void Pipeline::generate(const glm::dmat4 &persp, const glm::dmat4 &frontSide) {
             clearRays();
 
             const size_t num_seeds = 16;

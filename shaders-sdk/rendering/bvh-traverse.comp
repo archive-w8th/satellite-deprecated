@@ -88,9 +88,9 @@ shared int indeferredStack[WORK_SIZE][STACK_SIZE];
 
 int loadStack(in int STI) {
     int VALUE = int(-1);
-    if (speculativeIdx.y >= 0 && speculativeIdx.x == STI) { // predictable
-        VALUE = exchange(speculativeIdx.y, -1); speculativeIdx.x = -1;
-    } else { speculativeIdx = ivec2(-1, -1); // speculative not predicted 
+    if (speculativeIdx.x == STI && speculativeIdx.y >= 0) { // predictable
+        VALUE = speculativeIdx.y;
+    } else {
         if (STI < STACK_SIZE && STI >= 0) { 
             VALUE = exchange(deferredStack[STI], -1);
         } else 
@@ -98,12 +98,13 @@ int loadStack(in int STI) {
             VALUE = exchange(deferredStackExt[STI - STACK_SIZE], -1);
         }
     }
+    speculativeIdx = ivec2(-1,-1);
     return VALUE;
 }
 
 
 void storeStack(in int STI, in int VALUE) {
-    if (speculativeIdx.y < 0) {
+    if (speculativeIdx.x < 0) {
         speculativeIdx = ivec2(STI, VALUE); // store for speculation
     }
     

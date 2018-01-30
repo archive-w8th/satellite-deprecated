@@ -497,7 +497,7 @@ namespace SatelliteExample {
                         .setDepthClampEnable(false)
                         .setRasterizerDiscardEnable(false)
                         .setPolygonMode(vk::PolygonMode::eFill)
-                        .setCullMode(vk::CullModeFlagBits::eNone)
+                        .setCullMode(vk::CullModeFlagBits::eBack)
                         .setFrontFace(vk::FrontFace::eCounterClockwise)
                         .setDepthBiasEnable(false)
                         .setDepthBiasConstantFactor(0)
@@ -836,6 +836,7 @@ namespace SatelliteExample {
         {
             cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);
             image.permute_axes("yzcx");
+            image.mirror("y");
             image.get_shared_channel(3).fill(1.f);
             image.save_exr(name.c_str());
 

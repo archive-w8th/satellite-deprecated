@@ -14,6 +14,7 @@ namespace NSM {
             const size_t WARPED_WIDTH = 2048;
             const size_t _WIDTH = 6144;
             const size_t _BVH_WIDTH = 2048;
+            const size_t ATTRIBUTE_EXTENT = 4;
 
             DeviceQueueType device;
 
@@ -31,11 +32,11 @@ namespace NSM {
             BufferType generalStagingBuffer, generalLoadingBuffer;
 
             // texel storage of geometry
-            TextureType vertexTexelStorage, texcoordTexelStorage, normalsTexelStorage, modsTexelStorage;
+            TextureType attributeTexelStorage; //vertexTexelStorage, texcoordTexelStorage, normalsTexelStorage, modsTexelStorage;
             BufferType vertexLinearStorage, materialIndicesStorage, orderIndicesStorage;
 
             // where will loading geometry data
-            TextureType vertexTexelWorking, texcoordTexelWorking, normalsTexelWorking, modsTexelWorking;
+            TextureType attributeTexelWorking; //vertexTexelWorking, texcoordTexelWorking, normalsTexelWorking, modsTexelWorking;
             BufferType vertexLinearWorking, materialIndicesWorking, orderIndicesWorking;
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;

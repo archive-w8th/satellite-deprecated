@@ -6,16 +6,10 @@
 #ifdef VERTEX_FILLING
 layout ( std430, binding = 7, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
 layout ( std430, binding = 8, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
-layout ( binding = 10, rgba32f, set = 0 ) uniform image2D vertex_texture_out;
-layout ( binding = 11, rgba32f, set = 0 ) uniform image2D normal_texture_out;
-layout ( binding = 12, rgba32f, set = 0 ) uniform image2D texcoords_texture_out;
-layout ( binding = 13, rgba32f, set = 0 ) uniform image2D modifiers_texture_out;
+layout ( binding = 10, rgba32f, set = 0 ) uniform image2D attrib_texture_out;
 layout ( std430, binding = 9, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
 #else
-layout ( binding = 10, set = 1 ) uniform sampler2D vertex_texture;
-layout ( binding = 11, set = 1 ) uniform sampler2D normal_texture;
-layout ( binding = 12, set = 1 ) uniform sampler2D texcoords_texture;
-layout ( binding = 13, set = 1 ) uniform sampler2D modifiers_texture;
+layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
 #ifndef BVH_CREATION
 layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { UBLANEF_ bvhBoxes[][4]; };
 #endif
@@ -24,6 +18,15 @@ layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorde
 layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
 layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
 #endif
+
+
+const int ATTRIB_EXTENT = 4;
+
+// attribute formating
+const int NORMAL_TID = 0;
+const int TEXCOORD_TID = 1;
+const int COLOR_TID = 2; // unused
+const int MODF_TID = 3; // at now no supported 
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 //#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
@@ -44,6 +47,9 @@ const int WARPED_WIDTH = 2048;
 const ivec2 mit[3] = {ivec2(0,1), ivec2(1,1), ivec2(1,0)};
 
 ivec2 mosaicIdc(in ivec2 mosaicCoord, in int idc) {
+#ifdef VERTEX_FILLING
+    mosaicCoord.x %= int(imageSize(attrib_texture_out).x);
+#endif
     return mosaicCoord + mit[idc];
 }
 
@@ -69,7 +75,7 @@ ivec2 getUniformCoord(in uint indice) {
 float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
     float T = INFINITY; BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
     const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
-    const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
+    //const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
     IF (valid) {
         // gather patterns
         //vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);

@@ -224,10 +224,14 @@ HitRework interpolateMeshData(inout HitRework res) {
     int tri = floatBitsToInt(res.uvt.w);
     BOOL_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & BOOL_(tri != LONGEST);
     IFANY (validInterpolant) {
-        ivec2 triv = gatherMosaic(getUniformCoord(tri));
 
         // transposed
-        mat3x3 triverts = mat3x3(fetchMosaic(vertex_texture, triv, 0).xyz, fetchMosaic(vertex_texture, triv, 1).xyz, fetchMosaic(vertex_texture, triv, 2).xyz);
+        const int itri = tri*9;
+        mat3x3 triverts = transpose(mat3x3(
+            vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
+            vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
+            vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
+        ));
 
         vec3 vmx = max(max(triverts[2], triverts[1]), triverts[0]);
         vec3 vmn = min(min(triverts[2], triverts[1]), triverts[0]);
@@ -242,25 +246,22 @@ HitRework interpolateMeshData(inout HitRework res) {
         vec3 deltaPos0 = triverts[1] - triverts[0];
         vec3 deltaPos1 = triverts[2] - triverts[0];
 
-        //vSgn = -sign(dot(normal, viewVec));
-        //normal *= vSgn;
-
-        // gather texcoord
+        
+        
         vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
-        vec2 sz = 1.f / textureSize(vertex_texture, 0);
-        vec2 trig = fma(vec2(triv), sz, sz * 0.9999f);
-        normal = faceforward(normalize(vs * mat3x3(SGATHER(normal_texture, trig, 0)._SWIZV, SGATHER(normal_texture, trig, 1)._SWIZV, SGATHER(normal_texture, trig, 2)._SWIZV)), -normal, normal);
+        vec2 sz = 1.f / textureSize(attrib_texture, 0);
 
-        // gather
-        mat2x3 texcoords = mat2x3(SGATHER(texcoords_texture, trig, 0)._SWIZV, SGATHER(texcoords_texture, trig, 1)._SWIZV);
-        mat3x2 txds = transpose(texcoords);
+        // gather normal 
+        vec2 trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
+        normal = faceforward(normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV)), -normal, normal);
 
-        txds[0].y = 1.f-txds[0].y;
-        txds[1].y = 1.f-txds[1].y;
-        txds[2].y = 1.f-txds[2].y;
+        // gather texcoord 
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+TEXCOORD_TID))), sz, sz * 0.9999f);
+        mat2x3 texcoords = mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
 
+        
+        mat3x2 txds = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
-
         if (all(lessThan(abs(dlts[0]), 0.0001f.xx))) dlts[0] = vec2( 1.f,  0.f);
         if (all(lessThan(abs(dlts[1]), 0.0001f.xx))) dlts[1] = vec2( 0.f, -1.f);
 

@@ -226,7 +226,8 @@ void main(){
             }
 
             // adapt quads to triangles
-            const ivec2 isize = ivec2(imageSize(vertex_texture_out)); const int istride = mode == 1 ? 2 : 1;
+            //const ivec2 isize = ivec2(imageSize(vertex_texture_out)); 
+            const int istride = mode == 1 ? 2 : 1;
             int ordr = int(globalID*istride), tidc = tcounterInc(TRUE_, istride);
             vec3 offsetnormal = normalize(cross(vertice[1].xyz - vertice[0].xyz, vertice[2].xyz - vertice[0].xyz));
 
@@ -234,23 +235,22 @@ void main(){
                 vorders[tidc] = ordr;
                 materials[tidc] = matID;
                 
+                ivec2 NORMAL_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+NORMAL_TID));
+                ivec2 TEXCOORD_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+TEXCOORD_TID));
+
                 for (int i=0;i<3;i++) {
-                    ivec2 mosaicCoord = mosaicIdc(gatherMosaic(getUniformCoord(tidc)), i);
-                    mosaicCoord.x = mosaicCoord.x % isize.x;
-                    //mosaicCoord.y = mosaicCoord.y % isize.y; // may have risks
-                    if (mlength(abs(normal[i])) >= 0.0001f && meshUniform.normalAccessor != -1) {
-                        ISTORE(normal_texture_out, mosaicCoord, vec4(normalize(normal[i]), 1.0f));
-                    } else {
-                        ISTORE(normal_texture_out, mosaicCoord, vec4(normalize(offsetnormal.xyz), 1.0f));
-                    }
-                    ISTORE(vertex_texture_out, mosaicCoord, vec4(vertice[i]));
-                    ISTORE(texcoords_texture_out, mosaicCoord, vec4(texcoord[i]));
-                    ISTORE(modifiers_texture_out, mosaicCoord, vec4(mods[i]));
+                    const int mi = i;
+
+                    vec3 nrml = offsetnormal.xyz;
+                    if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) nrml = normal[mi];
+                    
+                    ISTORE(attrib_texture_out, mosaicIdc(NORMAL_TXF, i), vec4(normalize(nrml), 0.0f));
+                    ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
 
                     // interleave vertex for intersection
-                    lvtx[tidc*9+3*0+i] = vertice[i].x;
-                    lvtx[tidc*9+3*1+i] = vertice[i].y;
-                    lvtx[tidc*9+3*2+i] = vertice[i].z;
+                    lvtx[tidc*9+3*0+i] = vertice[mi].x;
+                    lvtx[tidc*9+3*1+i] = vertice[mi].y;
+                    lvtx[tidc*9+3*2+i] = vertice[mi].z;
                 }
             }
 
@@ -258,19 +258,18 @@ void main(){
                 tidc += 1;
                 vorders[tidc] = ordr;
                 materials[tidc] = matID;
+
+                ivec2 NORMAL_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+NORMAL_TID));
+                ivec2 TEXCOORD_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+TEXCOORD_TID));
+
                 for (int i=0;i<3;i++) {
                     const int mi = m[i];
-                    ivec2 mosaicCoord = mosaicIdc(gatherMosaic(getUniformCoord(tidc)), i);
-                    mosaicCoord.x = mosaicCoord.x % isize.x;
-                    //mosaicCoord.y = mosaicCoord.y % isize.y; // may have risks
-                    if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) {
-                        ISTORE(normal_texture_out, mosaicCoord, vec4(normalize(normal[mi]), 1.0f));
-                    } else {
-                        ISTORE(normal_texture_out, mosaicCoord, vec4(normalize(offsetnormal.xyz), 1.0f));
-                    }
-                    ISTORE(vertex_texture_out, mosaicCoord, vec4(vertice[mi]));
-                    ISTORE(texcoords_texture_out, mosaicCoord, vec4(texcoord[mi]));
-                    ISTORE(modifiers_texture_out, mosaicCoord, vec4(mods[mi]));
+
+                    vec3 nrml = offsetnormal.xyz;
+                    if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) nrml = normal[mi];
+                    
+                    ISTORE(attrib_texture_out, mosaicIdc(NORMAL_TXF, i), vec4(normalize(nrml), 0.0f));
+                    ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
 
                     // interleave vertex for intersection
                     lvtx[tidc*9+3*0+i] = vertice[mi].x;

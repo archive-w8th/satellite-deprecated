@@ -30,7 +30,14 @@ bbox getMinMaxPrimitive(in uint idx) {
     triverts[0] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[0]));
     triverts[1] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[1]));
     triverts[2] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[2]));
-    return calcTriBox(triverts);
+
+    vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
+    bbox outp = bbox(100000.f.xxxx, -100000.f.xxxx);
+    if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
+        outp = calcTriBox(triverts);
+    }
+
+    return outp;
 }
 
 bbox bboxunion(in bbox b1, in bbox b2) {

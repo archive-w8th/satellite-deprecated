@@ -42,7 +42,9 @@ void main() {
             vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
             if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
                 bbox bounding = calcTriBox(triverts);
-                vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.333333333f;
+                vec4 bcenter = tcenter;
+
+                // view based 
                 {
                     int to = atomicIncAABB(TRUE_);
                     MortoncodesIndices[to] = int(to);

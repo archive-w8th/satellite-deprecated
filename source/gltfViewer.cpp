@@ -406,6 +406,7 @@ namespace SatelliteExample {
 
 
 const int32_t baseWidth = 640, baseHeight = 360;
+//const int32_t baseWidth = 960, baseHeight = 540;
 
 
 // main? 

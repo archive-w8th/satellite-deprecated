@@ -131,11 +131,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
 
     // bounce mini-config
-#ifdef USE_SIMPLIFIED_MODE
     const int caustics_bounces = 0, reflection_bounces = 1;
-#else
-    const int caustics_bounces = 0, reflection_bounces = 2;
-#endif
 
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
     RayBounce(ray, min(RayType(ray) == 1 ? caustics_bounces : reflection_bounces, max(RayBounce(ray)-1, 0)));

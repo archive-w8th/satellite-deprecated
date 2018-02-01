@@ -3,12 +3,12 @@
 
 #define BVH_CREATION
 #include "../include/constants.glsl"
+#include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/vertex.glsl"
 #include "../include/morton.glsl"
-#include "../include/mathlib.glsl"
-#include "../include/ballotlib.glsl"
 #include "./includes.glsl"
 
 initAtomicIncFunction(aabbcount[0], atomicIncAABB, int)

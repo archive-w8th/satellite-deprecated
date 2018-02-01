@@ -385,8 +385,9 @@ namespace SatelliteExample {
         glm::dmat4 modelView = glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)); // need rotated coordinate system in 180 degree (Vulkan API)
 
         // build BVH in device
-        intersector->markDirty();
+        
         //intersector->buildBVH(glm::inverse(modelView));
+        intersector->markDirty();
         intersector->buildBVH(glm::dmat4(1.0));
 
         // process ray tracing 

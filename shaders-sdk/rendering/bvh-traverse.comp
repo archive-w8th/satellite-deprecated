@@ -140,7 +140,7 @@ void beginTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     BOOL_ vldbx = valid;
     IF (vldbx) {
         // use such function for economy registers
-        float near = float(INFINITY), far = float(INFINITY);
+        float near = float(-INFINITY), far = float(INFINITY);
         vldbx &= intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(
             vec2(-1.0001f,1.0001f),
             vec2(-1.0001f,1.0001f),

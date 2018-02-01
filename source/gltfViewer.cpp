@@ -386,6 +386,7 @@ namespace SatelliteExample {
 
         // build BVH in device
         intersector->markDirty();
+        //intersector->buildBVH(glm::inverse(modelView));
         intersector->buildBVH(glm::dmat4(1.0));
 
         // process ray tracing 

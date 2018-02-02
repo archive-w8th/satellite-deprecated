@@ -518,8 +518,8 @@ BVEC2_ intersectCubeDual(inout FMAT3X4_ origin, inout FMAT3X4_ dr, inout BVEC3_ 
     tFar  += 0.0001f.xx;
 #endif
 
-    near = tNear, far = tFar;
-
+    const vec2 inf = vec2(INFINITY);
+    near = mix(inf, vec2(tNear), isCube), far = mix(inf, vec2(tFar), isCube);
     return isCube;
 /*
     FVEC2_ 

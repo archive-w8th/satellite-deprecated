@@ -56,9 +56,11 @@ namespace NSM {
 
 
         struct BVHBlockUniform {
-            glm::mat4 transform;
-            glm::mat4 transformInv;
-            int leafCount;
+            glm::mat4 transform = glm::mat4(1.f);
+            glm::mat4 transformInv = glm::mat4(1.f);
+            glm::mat4 projection = glm::mat4(1.f);
+            glm::mat4 projectionInv = glm::mat4(1.f);
+            int leafCount = 0;
         };
 
         struct MaterialUniformStruct {
@@ -90,6 +92,8 @@ namespace NSM {
         struct GeometryUniformStruct {
             glm::mat4 transform = glm::mat4(1.f);
             glm::mat4 transformInv = glm::mat4(1.f);
+            glm::mat4 projection = glm::mat4(1.f);
+            glm::mat4 projectionInv = glm::mat4(1.f);
 
             int materialID = 0;
             int triangleCount = 1;

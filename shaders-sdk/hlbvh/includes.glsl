@@ -43,8 +43,10 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer BuildCounters {
 
 
 struct BVHCreatorUniformStruct {
-    mat4 transform;
-    mat4 transformInv;
+    mat4x4 transform;
+    mat4x4 transformInv;
+    mat4x4 projection; // rudiment
+    mat4x4 projectionInv;
     int leafCount;
 };
 

@@ -419,7 +419,7 @@ namespace NSM {
                 createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, {
                     offsetof(GeometryUniformStruct, transform),
                     offsetof(BVHBlockUniform, transform),
-                    strided<glm::mat4>(2)
+                    strided<glm::mat4>(4)
                 }),
                 createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) })
             }}, true);

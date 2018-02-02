@@ -98,12 +98,10 @@ bbox compactBoxByTriangle(in bbox abox, in mat3x4 triverts){
         result.mx = max(points[i], result.mx);
     }
 
+    // clip box by original 
     result.mn = max(result.mn, abox.mn);
     result.mx = min(result.mx, abox.mx);
     
-    result.mn -= 0.0001f;
-    result.mx += 0.0001f;
-
     return result;
 }
 
@@ -139,7 +137,7 @@ void main() {
                 vec4 bcenter = tcenter;
 
                 // compaction of box
-                //bounding = compactBoxByTriangle(bounding, triverts);
+                bounding = compactBoxByTriangle(bounding, triverts);
 
                 // view based 
                 {

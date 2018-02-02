@@ -63,5 +63,7 @@ bbox calcTriBox(in mat3x4 triverts) {
     result.mn = min(min(triverts[0], triverts[1]), triverts[2]);
     result.mx = max(max(triverts[0], triverts[1]), triverts[2]);
 #endif
+    result.mn -= 0.00001f;
+    result.mx += 0.00001f;
     return result;
 }

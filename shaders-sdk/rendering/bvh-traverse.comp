@@ -76,6 +76,8 @@ ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
 int deftri = int(-1), idx = 0, bstackCount = 0, deferredPtr = -1;
 bool mergeRestCmd = false, awaitFlag = false;
 ivec2 speculativeIdx = ivec2(-1,-1);
+vec4 lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
+
 #define validBoxIn validBox
 
 
@@ -173,6 +175,7 @@ void beginTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
     nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
     speculativeIdx = ivec2(-1, -1);
+    lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
 }
 
 //#define _ADD(m,k) atomicAdd(m,k)
@@ -194,7 +197,7 @@ void doIntersection() {
     IF (lessF(predist, _nearhit)) { bstackCount = 0; }
 
     near &= lessF(d, INFINITY) & lessEqualF(d, predist);
-    IF (near.x) nodeCache[rayID].bakedStack[_ADD(bstackCount, 1)] = vec4(uv.xy, d.x, intBitsToFloat(deftri.x));
+    IF (near.x) lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(deftri.x));
 
     awaitFlag = false, deftri.x = -1;
 }
@@ -258,6 +261,7 @@ void checkChildNodes() {
     }
 }
 
+/*
 void reorderTriangles() {
     int cnt = max(min(bstackCount, BAKED_STACK_SIZE), 0);
     
@@ -291,7 +295,7 @@ void reorderTriangles() {
 
     // resolve for stage
     bstackCount = cleanBakedStackCount;
-}
+}*/
 
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
@@ -322,10 +326,13 @@ void includeChain(inout vec4 intersection) {
 
 void choiceBaked() {
     //mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1)); // intersect rest triangles
-    if (bstackCount > 0) {
-        reorderTriangles();
-        for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }
-    }
+    //if (bstackCount > 0) {
+    //    reorderTriangles();
+    //    for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }
+    //}
+
+    //includeChain(nodeCache[rayID].bakedStack[i]);
+    IF (lessF(lastIntersection.z, INFINITY)) includeChain(lastIntersection);
 }
 
 LOCAL_SIZE_LAYOUT;

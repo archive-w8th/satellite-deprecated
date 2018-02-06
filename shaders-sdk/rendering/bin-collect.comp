@@ -44,7 +44,7 @@ void main() {
                         if (nid < R_BLOCK_SIZE) {
                             int texel = blockBins[globalID].texels[nid]-1;
                             vec4 color = f16_f32(rayBlockNodes[idx][nid].data.dcolor);
-                            _writeColor(rayBlockNodes[idx][nid].data.dcolor, 0.f.xxxx);
+                            WriteColor(rayBlockNodes[idx][nid].data.dcolor, 0.f.xxxx);
                             if (texel >= 0) texelBuf.nodes[texel].color.xyz += color.xyz;
                         }
                     }

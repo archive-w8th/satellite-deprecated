@@ -65,7 +65,7 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
 
     directRay.cdirect.xy = lcts(ldirect);
     directRay.origin.xyz = fma(ldirect.xyz, vec3(GAP), directRay.origin.xyz);
-    _writeColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
+    WriteColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
 
     IF (lessF(dot(ldirect.xyz, tbn[2]), 0.f)) {
         RayActived(directRay, FALSE_); // wrong direction, so invalid
@@ -77,7 +77,7 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
 #endif
 
     // inactived can't be shaded
-    IF (not(RayActived(directRay))) _writeColor(directRay.dcolor, 0.f.xxxx);
+    IF (not(RayActived(directRay))) WriteColor(directRay.dcolor, 0.f.xxxx);
 
     return directRay;
 }
@@ -91,7 +91,7 @@ vec3 normalOrient(in vec3 runit, in mat3 tbn){
 
 
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
-    _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
+    WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
 
     const int diffuse_reflections = 2;
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
@@ -105,7 +105,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     if (RayType(ray) != 2) RayType(ray, 1);
 
     // inactived can't be shaded
-    IF (not(RayActived(ray))) _writeColor(ray.dcolor, 0.f.xxxx);
+    IF (not(RayActived(ray))) WriteColor(ray.dcolor, 0.f.xxxx);
 
     return ray;
 }
@@ -118,8 +118,8 @@ RayRework promised(in RayRework ray, in mat3 tbn) {
 
 
 RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
-    _writeColor(ray.dcolor, max(f16_f32(ray.dcolor) * vec4(color,1.f), vec4(0.0f)));
-    _writeColor(ray.dcolor, RayType(ray) == 2 ? 0.0f.xxxx : f16_f32(ray.dcolor));
+    WriteColor(ray.dcolor, max(f16_f32(ray.dcolor) * vec4(color,1.f), vec4(0.0f)));
+    WriteColor(ray.dcolor, RayType(ray) == 2 ? 0.0f.xxxx : f16_f32(ray.dcolor));
     ray.origin.xyz = fma(dcts(ray.cdirect.xy), vec3(GAP), ray.origin.xyz);
     RayBounce(ray, 0);
     RayActived(ray, FALSE_);
@@ -128,7 +128,7 @@ RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
 
 
 RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refly) {
-    _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
+    WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
 
     // bounce mini-config
     const int caustics_bounces = 0, reflection_bounces = 1;
@@ -146,7 +146,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
 
     // inactived can't be shaded
-    IF (not(RayActived(ray))) _writeColor(ray.dcolor, 0.f.xxxx);
+    IF (not(RayActived(ray))) WriteColor(ray.dcolor, 0.f.xxxx);
 
     return ray;
 }
@@ -172,10 +172,10 @@ RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inio
 #endif
 
     ray.origin.xyz = fma(refrDir, vec3(GAP), ray.origin.xyz);
-    _writeColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
+    WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
 
     // inactived can't be shaded
-    IF (not(RayActived(ray))) _writeColor(ray.dcolor, 0.f.xxxx);
+    IF (not(RayActived(ray))) WriteColor(ray.dcolor, 0.f.xxxx);
 
     return ray;
 }

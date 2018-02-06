@@ -65,7 +65,7 @@ void main()
                 RayActived(currentRay, FALSE_);
 
                 // default colors of rays
-                _writeColor(currentRay.dcolor, vec4(0.f.xxx, 0));
+                WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
                 // get 2D index
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
@@ -118,7 +118,7 @@ void main()
                     
                     // set default bitset
                     currentRay.dcolor = uvec2((0u).xx);
-                    _writeColor(currentRay.dcolor, vec4(1.f.xxx, 0));
+                    WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
 
                     RayActived(currentRay, TRUE_);
                     RayType(currentRay, 3); // primary rays

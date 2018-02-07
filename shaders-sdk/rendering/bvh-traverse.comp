@@ -5,8 +5,7 @@
 
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
-#define DISCARD_SHARED_CACHING // store rays in registers if possible
-//#define STACKLESS_BVH
+//#define DISCARD_SHARED_CACHING // store rays in registers if possible
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -16,29 +15,15 @@
 #include "../include/mathlib.glsl"
 #include "../include/vertex.glsl"
 
-#ifndef EXTENDED_SHARED_CACHE_SUPPORT
-const int STACK_SIZE = 8;
-const int EXT_STACK_SIZE = 24;
-#else // extended shared cache
-const int STACK_SIZE = 16;
-const int EXT_STACK_SIZE = 16;
-#endif
-
-const int BAKED_STACK_SIZE = 1;
-const int ESTIMATE_BATCH = WARP_SIZE;
-const int STACK_SIZE_SM = EXT_STACK_SIZE + STACK_SIZE;
 
 struct BlockCacheInfo {
-    int indiceCount; // count of indices in traverse
-    int triCount; // count of triangle pairs
-    ivec2 padding0;
+    ivec4 reserved;
 };
 
-// as minimum 16kb + 16 byte per block
 struct BlockCache {
     BlockCacheInfo info;
-    ivec2 triangles[WARP_SIZE*2]; // ~16kb
 };
+
 
 
 struct NodeCacheInfo {
@@ -48,11 +33,8 @@ struct NodeCacheInfo {
     int nextHt;
 };
 
-// as minimum 384 byte per node
 struct NodeCache {
     NodeCacheInfo info;
-    int indeferredStackExt[EXT_STACK_SIZE];
-    vec4 bakedStack[BAKED_STACK_SIZE];
 };
 
 
@@ -117,7 +99,6 @@ void doIntersection() {
     vec2 uv = vec2(0.f.xx);
     float d = intersectTriangle(currentRay.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
 
-    
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) {
         traverseState.bvhSpace.cutOut = d * traverseState.distMult - traverseState.diffOffset;
@@ -137,6 +118,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     nodeCache[rayID].info.prevHt = -1;
     nodeCache[rayID].info.chainID = -1;
 
+    // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.bitStack = 0ul;
     traverseState.defTriangleID = -1;
@@ -179,11 +161,13 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     ));
     traverseState.geometrySpace.lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
 
+
     // begin of traverse BVH 
-    for (int hi=0;hi<1024;hi++) {
+    const int max_iteraction = 8192;
+    for (int hi=0;hi<max_iteraction;hi++) {
         if (traverseState.idx < 0) break; // if traverse can't live
 
-        for (int li=0;li<1024;li++) {
+        for (;hi<max_iteraction;hi++) {
             bool _continue = false;
             ivec4 comp4 = traverseState.idx >= 0 ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0) : (-1).xxxx;
             
@@ -191,6 +175,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
             if (comp4.x != comp4.y) {
                 vec2 nears = INFINITY.xx, fars = INFINITY.xx; int _cmp = comp4.x >> 1;
 
+                // intersect boxes
                 BVEC2_ childIntersect = BVEC2_((traverseState.idx >= 0).xx);
                 childIntersect &= BOOL_(comp4.x != comp4.y).xx; // base on fact 
                 childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, FMAT3X4_(
@@ -198,15 +183,13 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                     UNPACK_LANE_(bvhBoxes[_cmp][1]),
                     UNPACK_LANE_(bvhBoxes[_cmp][2])
                 ), nears, fars);
-
-                bool nearFirst = nears.x <= nears.y;
                 childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
 
+                // any child node 
                 IF (any(childIntersect)) {
                     traverseState.bitStack <<= 1;
                     IF (all(childIntersect)) {
-                        traverseState.bitStack |= 1;
-                        traverseState.idx = nearFirst ? comp4.x : comp4.y;
+                        traverseState.bitStack |= 1, traverseState.idx = SSC(lessEqualF(nears.x, nears.y)) ? comp4.x : comp4.y;
                     } else {
                         traverseState.idx = SSC(childIntersect.x) ? comp4.x : comp4.y;
                     }
@@ -230,14 +213,13 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 // go to parents so far as possible 
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
-                    if (traverseState.idx >= 0) {
-                        traverseState.idx = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z, traverseState.bitStack >>= 1;
-                    }
+                    traverseState.bitStack >>= 1;
+                    traverseState.idx = traverseState.idx >= 0 ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z : -1;
                 }
 
                 // goto to sibling or break travers
                 if (traverseState.bitStack!=0ul && traverseState.idx >= 0) {
-                    traverseState.idx += (traverseState.idx%2==0?1:-1)*int(traverseState.bitStack&1ul); traverseState.bitStack &= ~1ul;
+                    traverseState.idx += traverseState.idx%2==0?1:-1; traverseState.bitStack &= ~1ul;
                 } else {
                     traverseState.idx = -1;
                 }
@@ -253,7 +235,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     }
 
     // if has any intersection, include to result list
-    IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY)) {
+    IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f)) {
         includeChain(traverseState.geometrySpace.lastIntersection);
     }
 }

@@ -353,15 +353,18 @@ BOOL_ all(in BVEC2_ b){return b.x&b.y;}
 BOOL_ not(in BOOL_ b){return TRUE_^b;}
 BVEC2_ not(in BVEC2_ b){return TRUE2_^b;}
 
+
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-bool SSC(in BOOL_ b){return (b&TRUE_)==TRUE_;}
-bvec2 SSC(in BVEC2_ b){return equal(b&TRUE2_,TRUE2_);}
-bvec4 SSC(in BVEC4_ b){return equal(b&TRUE_.xxxx,TRUE_.xxxx);}
+bool SSC(in BOOL_ b){return bool(b&TRUE_);}
+bvec2 SSC(in BVEC2_ b){return bvec2(b&TRUE_.xx);}
+bvec4 SSC(in BVEC4_ b){return bvec4(b&TRUE_.xxxx);}
 #else
 bool SSC(in BOOL_ b){return bool(b);}
 bvec2 SSC(in BVEC2_ b){return bvec2(b);}
 bvec4 SSC(in BVEC4_ b){return bvec4(b);}
 #endif
+
+
 bool SSC(in bool b){return b;}
 bvec2 SSC(in bvec2 b){return b;}
 bvec4 SSC(in bvec4 b){return b;}

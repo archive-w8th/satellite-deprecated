@@ -1,7 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-//#define USE_SIMPLIFIED_MODE
+#define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
@@ -121,7 +121,9 @@ void invokeSurface(inout bool overflow) {
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) < 0.00001f || overflow) RayActived(rayTemplate, FALSE_);
+    if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f || overflow) {
+        RayActived(rayTemplate, FALSE_);
+    }
     IF (not(RayActived(rayTemplate)) & BOOL_(!overflow)) WriteColor(rayTemplate.dcolor, 0.f.xxxx);
 }
 
@@ -168,12 +170,10 @@ void envShading(inout bool skipping) {
     }
 
     // resolve and valiate ray
-    //IF (RayActived(currentRay)) {
-        currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit[0].uvt.zzz, currentRay.origin.xyz);
-    //}
+    currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit[0].uvt.zzz, currentRay.origin.xyz);
 
     // wrong ray?
-    if (wasHit == -1 && SSC(RayActived(currentRay))) {
+    if ((SSC(greaterEqualF(compositedHit[0].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay))) {
         RayActived(currentRay, FALSE_);
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
         skipping = true;

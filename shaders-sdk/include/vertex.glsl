@@ -73,33 +73,36 @@ ivec2 getUniformCoord(in uint indice) {
 
 #ifndef VERTEX_FILLING
 float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
-    float T = INFINITY; BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
-    const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
-    //const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
-    IFANY (valid) {
-        // gather patterns
-        //vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
-        const int itri = tri*9;
-        mat3 ABC = mat3(
-            //SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
-            //SGATHER(vertex_texture, ntri, 1)._SWIZV - orig.y,
-            //SGATHER(vertex_texture, ntri, 2)._SWIZV - orig.z
-            vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]) - orig.x,
-            vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]) - orig.y,
-            vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]) - orig.z
-        ) * M;
-
-        // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
-        // http://jcgt.org/published/0002/01/05/paper.pdf
-        vec3 UVW_ = D[axis] * inverse(ABC);
-        valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
+    float T = INFINITY;
+    //IFANY (_valid) {
+        BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
+        const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
+        //const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
         IFANY (valid) {
-            float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.00001f)*(det>=0.f?1:-1));
-            UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
-            T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
-            T = mix(INFINITY, T, greaterEqualF(T, 0.0f) & valid);
+            // gather patterns
+            //vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
+            const int itri = tri*9;
+            mat3 ABC = mat3(
+                //SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
+                //SGATHER(vertex_texture, ntri, 1)._SWIZV - orig.y,
+                //SGATHER(vertex_texture, ntri, 2)._SWIZV - orig.z
+                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]) - orig.x,
+                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]) - orig.y,
+                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]) - orig.z
+            ) * M;
+
+            // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
+            // http://jcgt.org/published/0002/01/05/paper.pdf
+            vec3 UVW_ = D[axis] * inverse(ABC);
+            valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
+            IFANY (valid) {
+                float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.00001f)*(det>=0.f?1:-1));
+                UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
+                T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
+                T = mix(INFINITY, T, greaterEqualF(T, 0.0f) & valid);
+            }
         }
-    }
+    //}
     return T;
 }
 #endif

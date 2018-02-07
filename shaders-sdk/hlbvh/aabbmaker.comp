@@ -14,9 +14,6 @@
 initAtomicIncFunction(aabbcount[0], atomicIncAABB, int)
 
 LOCAL_SIZE_LAYOUT;
-//LOCAL_SIZE_LINEAR_LAYOUT;
-
-
 
 
 vec2 intersectCube(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 cubeMax) {

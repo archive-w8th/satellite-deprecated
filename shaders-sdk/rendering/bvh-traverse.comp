@@ -64,239 +64,6 @@ layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { BlockCa
 // pointer in global cache
 int rayID = 0;
 
-// watertight intersection
-int axis = 2; mat3 M; 
-
-// offload cache
-//FVEC3_ origined = FTYPE_(0.f).xxx, divident = FTYPE_(0.f).xxx;
-FMAT3X4_ origined, divident;
-BVEC3_ bsgn = FALSE_.xxx; BOOL_ validBox = FALSE_;
-float dirlenInv = 1.f, toffset = 0.f, predist = INFINITY;
-ivec2 esc = ivec2(-1, -1), lastesc = ivec2(-1, -1);
-int deftri = int(-1), idx = 0, bstackCount = 0, deferredPtr = -1;
-bool mergeRestCmd = false, awaitFlag = false;
-ivec2 speculativeIdx = ivec2(-1,-1);
-vec4 lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
-
-#define validBoxIn validBox
-
-
-
-#ifndef STACKLESS_BVH
-shared int indeferredStack[WORK_SIZE][STACK_SIZE];
-#define deferredStackExt nodeCache[rayID].indeferredStackExt
-#define deferredStack indeferredStack[LT_IDX]
-
-
-int loadStack(in int STI) {
-    int VALUE = int(-1);
-    if (speculativeIdx.x == STI && speculativeIdx.y >= 0) { // predictable
-        VALUE = speculativeIdx.y;
-    } else {
-        if (STI < STACK_SIZE && STI >= 0) { 
-            VALUE = exchange(deferredStack[STI], -1);
-        } else 
-        if (STI < STACK_SIZE_SM && STI >= 0) {
-            VALUE = exchange(deferredStackExt[STI - STACK_SIZE], -1);
-        }
-    }
-    speculativeIdx = ivec2(-1,-1);
-    return VALUE;
-}
-
-
-void storeStack(in int STI, in int VALUE) {
-    speculativeIdx = ivec2(STI, VALUE); // store for speculation
-    
-    if (STI < STACK_SIZE && STI >= 0) {
-        deferredStack[STI] = VALUE;
-    } else 
-    if (STI < STACK_SIZE_SM && STI >= 0) {
-        deferredStackExt[STI - STACK_SIZE] = VALUE;
-    }
-}
-
-#endif
-
-
-// some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
-// 
-void beginTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
-    direct = normalize(direct);
-
-    // test constants
-    vec3 
-        torig = -divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f))).xyz,
-        torigTo = divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin+direct, 1.0f))).xyz,
-        dirproj = torigTo+torig;
-
-
-    dirlenInv = 1.f / max(length(dirproj), 0.00001f), toffset = 0.f, dirproj *= dirlenInv;
-    dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
-
-    // limitation of distance
-    predist = nodeCache[rayID].info.nextHt > 0 ? hits[nodeCache[rayID].info.nextHt-1].uvt.z : INFINITY;
-    bsgn = (BVEC3_(sign(dirproj)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
-    
-    // test with root (unit) node
-    BOOL_ vldbx = valid;
-    IF (vldbx) {
-        // use such function for economy registers
-        float near = float(-INFINITY), far = float(INFINITY);
-        vldbx &= intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(
-            vec2(-1.0001f,1.0001f),
-            vec2(-1.0001f,1.0001f),
-            vec2(-1.0001f,1.0001f)
-        ), near, far).x;
-        toffset = max(near.x, 0.f), vldbx &= lessF(near.x * dirlenInv, INFINITY), 
-        
-        origined = outerProduct(FVEC4_(1,1,1,1), FVEC3_(fma(torig,dirproj,-toffset.xxx))), 
-        divident = outerProduct(FVEC4_(1,1,1,1), FVEC3_(dirproj));
-    }
-
-    // calculate longest axis
-    {
-        axis = 2;
-        vec3 drs = abs(direct);
-        if (drs.y >= drs.x && drs.y > drs.z) axis = 1;
-        if (drs.x >= drs.z && drs.x > drs.y) axis = 0;
-        if (drs.z >= drs.y && drs.z > drs.x) axis = 2;
-    }
-
-    // calculate affine matrices
-    vec4 vm = vec4(-direct, 1.f) / (axis == 0 ? direct.x : (axis == 1 ? direct.y : direct.z));
-    M = transpose(mat3(
-        axis == 0 ? vm.wyz : vec3(1.f,0.f,0.f),
-        axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
-        axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
-    ));
-
-    idx = 0, esc = ivec2(-1, 0), lastesc = ivec2(-1, -1), deftri = int(-1), bstackCount = 0, validBoxIn = BOOL_(vldbx), deferredPtr = -1, awaitFlag = false;
-    nodeCache[rayID].info.chainID = nodeCache[rayID].info.nextHt;
-    nodeCache[rayID].info.prevHt = -1; // reset previous for avoid depth bug (multi-BVH)
-    speculativeIdx = ivec2(-1, -1);
-    lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
-}
-
-//#define _ADD(m,k) atomicAdd(m,k)
-//#define _ADD(m,k) add(m,k)
-#define _ADD(m,k) min(m++,BAKED_STACK_SIZE-1)
-
-void deferTriangles(in int tri) {
-    deftri = tri;
-}
-
-// intersection stage per traverse phase
-void doIntersection() {
-    BOOL_ near = BOOL_(deftri.x >= 0);
-    vec2 uv = vec2(0.f.xx);
-    float d = intersectTriangle(currentRay.origin.xyz, M, axis, deftri.x, uv.xy, near.x, predist);
-
-    float _nearhit = predist;
-    predist = min(predist, d);
-    IF (lessF(predist, _nearhit)) { bstackCount = 0; }
-
-    near &= lessF(d, INFINITY) & lessEqualF(d, predist);
-    IF (near.x) lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(deftri.x));
-
-    awaitFlag = false, deftri.x = -1;
-}
-
-// planned block optimized system
-void checkChildNodes() {
-    if ( bool(validBox) && !awaitFlag ) { // traverse BVH, but don't traverse when deferred triangles
-        int found = -1;
-
-        BVEC2_ overlapsGeneral = BVEC2_(validBox) & BVEC2_(idx >= 0);
-        bool leftNear = true;
-
-        // initial box intersection
-        const vec2 inf2 = vec2(INFINITY);
-        vec2 nears = inf2, fars = inf2;
-
-        // calculate boxes intersections
-        ivec4 comp4 = texelFetch(bvhStorage, bvhLinear2D(idx), 0);
-
-        // if is leaf and has triangle, do locking when already deferred 
-        if (deftri.x >= 0) { if (comp4.x == comp4.y && comp4.w >= 0) awaitFlag = true; }
-
-        if (!awaitFlag) {
-            if (comp4.x != comp4.y) { // test boxes (if not leafs)
-                int _cmp = comp4.x >> 1;
-
-                // do dual box intersection (claymore style)
-                overlapsGeneral &= intersectCubeDual(origined, divident, bsgn, FMAT3X4_(
-                    UNPACK_LANE_(bvhBoxes[_cmp][0]),
-                    UNPACK_LANE_(bvhBoxes[_cmp][1]),
-                    UNPACK_LANE_(bvhBoxes[_cmp][2])
-                ), nears, fars);
-                
-                // correct near dist and mark order by distances
-                leftNear = bool(lessEqualF(nears.x, nears.y)), nears = (nears+toffset) * dirlenInv;
-
-                // validate intersection
-                overlapsGeneral &= BVEC2_(lessThanEqual(abs(nears), vec2(INFINITY-PRECERR))) & BVEC2_(lessThan(nears, vec2(predist)));
-            } else {
-                deferTriangles(comp4.w);
-                overlapsGeneral &= FALSE_.xx;
-            }
-
-            // choice child nodes by nears
-            IF (any(overlapsGeneral)) {
-                bool leftOrder = SSC(all(overlapsGeneral)) ? leftNear.x : SSC(overlapsGeneral.x);
-                ivec2 nodepdata = mix((-1).xx, comp4.xy, overlapsGeneral);
-                nodepdata.xy = leftOrder ? nodepdata.xy : nodepdata.yx, found = nodepdata.x;
-                IF (all(overlapsGeneral) & BOOL_(nodepdata.y >= 0)) {
-                    storeStack(min(++deferredPtr, STACK_SIZE_SM-1), nodepdata.y);
-                }
-                deferredPtr = min(deferredPtr, STACK_SIZE_SM-1);
-            }
-
-            { // unified child/parent/another switcher
-                bool _ssc = found >= 0;
-                int ptr = deferredPtr; deferredPtr = max(deferredPtr-(_ssc ? 0 : 1), -1);
-                esc.x = idx, idx = _ssc ? found : loadStack(ptr), validBoxIn &= BOOL_(idx >= 0 && idx != esc.x), idx = mix(-1, idx, validBox);
-            }
-        }
-    }
-}
-
-/*
-void reorderTriangles() {
-    int cnt = max(min(bstackCount, BAKED_STACK_SIZE), 0);
-    
-    if (cnt > 1) {
-        for (int iround = 1; iround < cnt; iround++) {
-            for (int index = 0; index < cnt - iround; index++) {
-                
-                // choice from both
-                mat2x4 bakedPair = mat2x4(nodeCache[rayID].bakedStack[index], nodeCache[rayID].bakedStack[index+1]); // cache
-
-                // swap or not
-                ivec2 pairIdx = mix(ivec2(0, 1), ivec2(1, 0), (BOOL_(floatBitsToInt(bakedPair[0].w) <= floatBitsToInt(bakedPair[1].w)) & lessF(bakedPair[0].z, bakedPair[1].z)).xx );
-                if (pairIdx.x != 0) nodeCache[rayID].bakedStack[index  ] = bakedPair[pairIdx.x];
-                if (pairIdx.y != 1) nodeCache[rayID].bakedStack[index+1] = bakedPair[pairIdx.y];
-            }
-        }
-    }
-
-    cnt -= 1; // shift cnt
-
-    // select only unique triangle ID's
-    int cleanBakedStackCount = 0; // initial clean list
-    for (int iround = 0; iround < cnt; iround++) { if (iround >= cnt) break;
-        if (floatBitsToInt(nodeCache[rayID].bakedStack[iround+1].w) != floatBitsToInt(nodeCache[rayID].bakedStack[iround].w)) {
-            nodeCache[rayID].bakedStack[cleanBakedStackCount++] = nodeCache[rayID].bakedStack[iround];
-        }
-    }
-
-    // copy last primitive
-    if (cnt >= 0) nodeCache[rayID].bakedStack[cleanBakedStackCount++] = nodeCache[rayID].bakedStack[cnt];
-
-    // resolve for stage
-    bstackCount = cleanBakedStackCount;
-}*/
-
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
     // initial hit
@@ -324,16 +91,175 @@ void includeChain(inout vec4 intersection) {
     }
 }
 
-void choiceBaked() {
-    //mergeRestCmd = true; intersectLeafs2(ivec2(-1,-1)); // intersect rest triangles
-    //if (bstackCount > 0) {
-    //    reorderTriangles();
-    //    for (int i=0;i<bstackCount;i++) { includeChain(nodeCache[rayID].bakedStack[i]); }
-    //}
+struct GeometrySpace {
+    int axis; mat3 iM; //float lastDist; 
+    vec4 lastIntersection;
+};
 
-    //includeChain(nodeCache[rayID].bakedStack[i]);
-    IF (lessF(lastIntersection.z, INFINITY)) includeChain(lastIntersection);
+struct BVHSpace {
+    FMAT3X4_ minusOrig, directInv; BVEC3_ boxSide;
+    float cutOut;
+};
+
+struct BvhTraverseState {
+    uint64_t bitStack;
+    int idx, defTriangleID;
+    float distMult, diffOffset;
+    bool liveState;
+
+    GeometrySpace geometrySpace;
+    BVHSpace bvhSpace;
+} traverseState;
+
+
+
+void doIntersection() {
+    BOOL_ near = BOOL_(traverseState.defTriangleID >= 0);
+    vec2 uv = vec2(0.f.xx);
+    float d = intersectTriangle(currentRay.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
+
+    
+    float _nearhit = traverseState.geometrySpace.lastIntersection.z;
+    IF (lessF(d, _nearhit)) {
+        traverseState.bvhSpace.cutOut = d * traverseState.distMult - traverseState.diffOffset;
+    }
+    
+    // validate hit 
+    near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
+    IF (near.x) traverseState.geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID.x));
+
+    // reset triangle ID 
+    traverseState.defTriangleID = -1;
 }
+
+
+
+void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
+    nodeCache[rayID].info.prevHt = -1;
+    nodeCache[rayID].info.chainID = -1;
+
+    traverseState.idx = 0;
+    traverseState.bitStack = 0ul;
+    traverseState.defTriangleID = -1;
+    traverseState.distMult = 1.f;
+    traverseState.diffOffset = 0.f;
+    traverseState.liveState = SSC(valid);
+    traverseState.bvhSpace.cutOut = INFINITY;
+    
+    // test constants
+    vec3 
+        torig = -divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f))).xyz,
+        torigTo = divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin+direct, 1.0f))).xyz,
+        dirproj = torigTo+torig;
+    
+    float dirlenInv = 1.f / max(length(dirproj), 0.00001f), toffset = 0.f;
+    dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
+
+    // limitation of distance
+    BVEC3_ bsgn = (BVEC3_(sign(dirproj)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
+
+    // bvh space precalculations 
+    traverseState.bvhSpace.directInv = FMAT3X4_(dirproj.xxxx, dirproj.yyyy, dirproj.zzzz); torig *= dirproj;
+    traverseState.bvhSpace.minusOrig = FMAT3X4_(torig.xxxx, torig.yyyy, torig.zzzz);
+    traverseState.bvhSpace.boxSide = bsgn;
+    traverseState.distMult = dirlenInv;
+    traverseState.diffOffset = toffset;
+
+    { // calculate longest axis
+        vec3 drs = abs(direct); traverseState.geometrySpace.axis = 2;
+        if (drs.y >= drs.x && drs.y > drs.z) traverseState.geometrySpace.axis = 1;
+        if (drs.x >= drs.z && drs.x > drs.y) traverseState.geometrySpace.axis = 0;
+        if (drs.z >= drs.y && drs.z > drs.x) traverseState.geometrySpace.axis = 2;
+    }
+
+    // calculate affine matrices
+    vec4 vm = vec4(-direct, 1.f) / (traverseState.geometrySpace.axis == 0 ? direct.x : (traverseState.geometrySpace.axis == 1 ? direct.y : direct.z));
+    traverseState.geometrySpace.iM = transpose(mat3(
+        traverseState.geometrySpace.axis == 0 ? vm.wyz : vec3(1.f,0.f,0.f),
+        traverseState.geometrySpace.axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
+        traverseState.geometrySpace.axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
+    ));
+    traverseState.geometrySpace.lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
+
+    // begin of traverse BVH 
+    for (int hi=0;hi<1024;hi++) {
+        if (!traverseState.liveState) break; // if traverse can't live
+
+        for (int li=0;li<1024;li++) {
+            
+            bool _continue = false;
+            ivec4 comp4 = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0);
+            
+            // if not leaf 
+            if (comp4.x != comp4.y) {
+                vec2 nears = INFINITY.xx, fars = INFINITY.xx; int _cmp = comp4.x >> 1;
+
+                BVEC2_ childIntersect = BVEC2_(traverseState.liveState.xx);
+                childIntersect &= BOOL_(comp4.x != comp4.y).xx; // base on fact 
+                childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, FMAT3X4_(
+                    UNPACK_LANE_(bvhBoxes[_cmp][0]),
+                    UNPACK_LANE_(bvhBoxes[_cmp][1]),
+                    UNPACK_LANE_(bvhBoxes[_cmp][2])
+                ), nears, fars);
+
+                bool nearFirst = nears.x <= nears.y;
+                childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
+
+                IF (any(childIntersect)) {
+                    traverseState.bitStack <<= 1;
+                    IF (all(childIntersect)) {
+                        traverseState.bitStack |= 1;
+                        traverseState.idx = nearFirst ? comp4.x : comp4.y;
+                    } else {
+                        traverseState.idx = SSC(childIntersect.x) ? comp4.x : comp4.y;
+                    }
+                    _continue = true;
+                }
+                
+            } else  
+            
+            // if leaf, defer for intersection 
+            if (comp4.x == comp4.y) {
+                if (traverseState.defTriangleID < 0) {
+                    traverseState.defTriangleID = comp4.w;
+                } else {
+                    _continue = true;
+                }
+            }
+
+            if (!_continue) {
+                
+                // go to parents so far as possible 
+                for (int bi=0;bi<64;bi++) {
+                    if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
+                    traverseState.idx = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z, traverseState.bitStack >>= 1;
+                }
+
+                // goto to sibling or break traverse
+                if (traverseState.bitStack!=0ul) {
+                    traverseState.idx += (traverseState.idx%2==0?1:-1)*int(traverseState.bitStack&1ul); traverseState.bitStack &= ~1ul;
+                } else {
+                    traverseState.liveState = false;
+                }
+
+            } _continue = false;
+
+            // pause, because found intersection 
+            IFALL (traverseState.defTriangleID >= 0 || !traverseState.liveState) break; // pause traversing
+        }
+
+        // do intersection of found geometry
+        doIntersection();
+    }
+
+    // if has any intersection, include to result list
+    IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY)) {
+        includeChain(traverseState.geometrySpace.lastIntersection);
+    }
+}
+
+
+
 
 LOCAL_SIZE_LAYOUT;
 
@@ -354,26 +280,14 @@ void main() {
         overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
         nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
         
-        // global traversing
-        beginTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));
-
-#define L_MAX_ITERATION 8192
-        for (int iteration=0;iteration<L_MAX_ITERATION;iteration++) {
-            if (!anyInvoc(bool(validBox))) break; // if all invocs expiried, don't traverse next
-            for (;iteration<L_MAX_ITERATION;iteration++) {
-                //if (!anyInvoc(bool(validBox) && !awaitFlag)) break;
-                if (!anyInvoc(bool(validBox) && deftri.x < 0)) break; // don't sure by await flag
-                checkChildNodes(); // traverse BVH
-            }
-            doIntersection(); // do intersection (WARP optimized)
-        }
-        choiceBaked(); // sort of intersections
+        // do BVH traversing 
+        doBvhTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));
 
         // resolve intersection
         int chainID = nodeCache[rayID].info.chainID;
         if (chainID > 0 && SSC(not(overflow))) {
-            currentRay.origin.w = intBitsToFloat(chainID);
-            storeRay();
+            currentRay.origin.w = intBitsToFloat(chainID); storeRay();
         }
+
     }
 }

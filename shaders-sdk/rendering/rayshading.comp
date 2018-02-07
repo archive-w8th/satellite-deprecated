@@ -31,32 +31,25 @@ struct SurfaceUnpacked {
      vec4 albedo;
 };
 
-HitRework firstHit;
 SurfaceUnpacked compositedHit[1];
-int layers = 1; // support only one layer
-int currentLayer = 0;
 int wasHit = -1;
-int proceduralID = -1;
 #define hasProcedural (proceduralID != -1)
 
 
 #define hit firstHit
 
-
-
-float randomed(in float r){
-    return random() < r ? 1.f : 0.f;
-}
+float randomed(in float r){ return random() < r ? 1.f : 0.f; }
 
 void invokeSurface(inout bool overflow) {
     // initial hit
+    HitRework firstHit;
     HitActived(firstHit, FALSE_); firstHit.next = -1;
-    currentLayer = 0, layers = 1, wasHit = -1, proceduralID = -1;
+    wasHit = -1;
 
     // initial composition
     compositedHit[0].uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
     compositedHit[0].emission = vec4(0.f);
-    compositedHit[0].albedo = vec4(0.f);
+    compositedHit[0].albedo = vec4(0.f,0.f,0.f,0.f);
     compositedHit[0].normalHeight = vec4(0.f);
     compositedHit[0].metallicRoughness = vec4(0.f);
     compositedHit[0].tangent = vec4(0.f);
@@ -92,39 +85,16 @@ void invokeSurface(inout bool overflow) {
         compositedHit[0].bitangent = firstHit.bitangent;
     }
 
-/*
-    // layers composition
-    int searchLayer = 0;
-    int hitID = firstHit.next-1;
-    for (int i=0;i<8;i++) {
-        if (hitID < 0) break;
-        IF (not(equalF(compositedHit[searchLayer].uvt.z, hit.uvt.z))) { searchLayer = layers++; break; } // unsupported
-        if (HitActived(hit) == 0) { hitID = hit.next; continue; } // if not actived 
-
-        // composite decals
-        vec4 albedo = unpackHalf(hit.albedo);
-        vec4 ralpha = randomed(clamp(albedo.w, 0.f, 1.f)).xxxx;
-
-        compositedHit[searchLayer].uvt = hit.uvt;
-        compositedHit[searchLayer].albedo = composite(compositedHit[searchLayer].albedo, albedo);
-        compositedHit[searchLayer].normalHeight = fmix(compositedHit[searchLayer].normalHeight, hit.normalHeight, ralpha);
-        compositedHit[searchLayer].metallicRoughness.xy = fmix(compositedHit[searchLayer].metallicRoughness.xy, f16_f32(hit.metallicRoughness).xy, ralpha.xx);
-        compositedHit[searchLayer].emission = fmix(compositedHit[searchLayer].emission, unpackHalf(hit.emission), ralpha);
-        compositedHit[searchLayer].tangent = fmix(compositedHit[searchLayer].tangent, hit.tangent, ralpha);
-        compositedHit[searchLayer].bitangent = fmix(compositedHit[searchLayer].bitangent, hit.bitangent, ralpha);
-
-        // already filled layer
-        if (compositedHit[searchLayer].albedo.a > 0.99999f) break;
-        hitID = hit.next-1;
-    }*/
+    IF (greaterEqualF(compositedHit[0].uvt.z, INFINITY-0.0001f)) wasHit = -1;
 }
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
+    BOOL_ beenActived = RayActived(rayTemplate);
     if (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f || overflow) {
         RayActived(rayTemplate, FALSE_);
     }
-    IF (not(RayActived(rayTemplate)) & BOOL_(!overflow)) WriteColor(rayTemplate.dcolor, 0.f.xxxx);
+    IF (beenActived & not(RayActived(rayTemplate))) WriteColor(rayTemplate.dcolor, 0.f.xxxx);
 }
 
 
@@ -163,7 +133,7 @@ void envShading(inout bool skipping) {
 
     // apply background
     vec4 color = vec4(0.0f); EnvironmentShader(color, currentRay); //color.xyz = toLinear(max(color.xyz, vec3(0.f)));
-    if ((SSC(greaterEqualF(compositedHit[0].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay)) && RayType(currentRay) != 2) {
+    if (wasHit == -1 && SSC(RayActived(currentRay)) && RayType(currentRay) != 2) {
         WriteColor(currentRay.dcolor, f16_f32(currentRay.dcolor) * vec4(color.xyz, 1.f));
         RayActived(currentRay, FALSE_);
         skipping = true;
@@ -173,7 +143,7 @@ void envShading(inout bool skipping) {
     currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit[0].uvt.zzz, currentRay.origin.xyz);
 
     // wrong ray?
-    if ((SSC(greaterEqualF(compositedHit[0].uvt.z, INFINITY)) || wasHit == -1) && SSC(RayActived(currentRay))) {
+    if (wasHit == -1 && SSC(RayActived(currentRay))) {
         RayActived(currentRay, FALSE_);
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
         skipping = true;
@@ -242,8 +212,6 @@ void main() {
                     accquireNode(nid); overflow = overflow || currentBlockNode < 0;
                     IFALL(overflow) break;
                     invokeSurface(overflow);
-                    
-                    // rest rays shading
                     envShading(overflow);
                     
                     // constants
@@ -268,7 +236,7 @@ void main() {
                     vec3 speccolor = fmix(freflcolor, diffcolor.xyz, metallic.xxx);
                     
                     // coefficents
-                    float prom = clamp01(1.f - diffcolor.a); // transmission power
+                    float prom = clamp01(1.f - diffcolor.w); // transmission power
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
 #ifdef USE_SIMPLIFIED_MODE
@@ -282,7 +250,6 @@ void main() {
 
                     // inactive or shadows disallowed to shading
                     int overwriteBlock = currentBlock; bool confirmed = false;
-                    if (hasProcedural) { prom = 1.f; confirmed = true; }
 
                     // binarize/quantize 
                     float qprom = random() < prom ? 1.f : 0.f;
@@ -323,7 +290,7 @@ void main() {
                         // emissions
                         rayTemplate = emissive(currentRay, _emission + _fake_diffuse, tbn);
                         if (overflow || RayType(currentRay) == 2) WriteColor(rayTemplate.dcolor, vec4(0.f.xxxx));
-                        invalidateRay(rayTemplate, true);
+                        invalidateRay(rayTemplate, overflow);
                         createBlockOnce(emissionBlock, !overflow && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
                     }
@@ -357,7 +324,7 @@ void main() {
                         // emissions
                         rayTemplate = emissive(currentRay, _emission, tbn);
                         if (overflow || RayType(currentRay) == 2) WriteColor(rayTemplate.dcolor, 0.f.xxxx);
-                        invalidateRay(rayTemplate, true);
+                        invalidateRay(rayTemplate, overflow);
                         createBlockOnce(emissionBlock, !overflow && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f);
                         storeRay(emissionBlock, rayTemplate);
                     }

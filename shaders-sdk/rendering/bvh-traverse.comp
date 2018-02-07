@@ -92,7 +92,7 @@ void includeChain(inout vec4 intersection) {
 }
 
 struct GeometrySpace {
-    int axis; mat3 iM; //float lastDist; 
+    int axis; mat3 iM;
     vec4 lastIntersection;
 };
 
@@ -102,11 +102,10 @@ struct BVHSpace {
 };
 
 struct BvhTraverseState {
-    uint64_t bitStack;
     int idx, defTriangleID;
     float distMult, diffOffset;
-    bool liveState;
 
+    uint64_t bitStack;
     GeometrySpace geometrySpace;
     BVHSpace bvhSpace;
 } traverseState;
@@ -138,12 +137,11 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     nodeCache[rayID].info.prevHt = -1;
     nodeCache[rayID].info.chainID = -1;
 
-    traverseState.idx = 0;
+    traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.bitStack = 0ul;
     traverseState.defTriangleID = -1;
     traverseState.distMult = 1.f;
     traverseState.diffOffset = 0.f;
-    traverseState.liveState = SSC(valid);
     traverseState.bvhSpace.cutOut = INFINITY;
     
     // test constants
@@ -183,17 +181,17 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 
     // begin of traverse BVH 
     for (int hi=0;hi<1024;hi++) {
-        if (!traverseState.liveState) break; // if traverse can't live
+        if (traverseState.idx < 0) break; // if traverse can't live
 
         for (int li=0;li<1024;li++) {
             bool _continue = false;
-            ivec4 comp4 = traverseState.liveState ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0) : (-1).xxxx;
+            ivec4 comp4 = traverseState.idx >= 0 ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0) : (-1).xxxx;
             
             // if not leaf 
             if (comp4.x != comp4.y) {
                 vec2 nears = INFINITY.xx, fars = INFINITY.xx; int _cmp = comp4.x >> 1;
 
-                BVEC2_ childIntersect = BVEC2_(traverseState.liveState.xx);
+                BVEC2_ childIntersect = BVEC2_((traverseState.idx >= 0).xx);
                 childIntersect &= BOOL_(comp4.x != comp4.y).xx; // base on fact 
                 childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
@@ -232,7 +230,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 // go to parents so far as possible 
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
-                    if (traverseState.idx >= 0 && traverseState.liveState) {
+                    if (traverseState.idx >= 0) {
                         traverseState.idx = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z, traverseState.bitStack >>= 1;
                     }
                 }
@@ -241,13 +239,13 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 if (traverseState.bitStack!=0ul && traverseState.idx >= 0) {
                     traverseState.idx += (traverseState.idx%2==0?1:-1)*int(traverseState.bitStack&1ul); traverseState.bitStack &= ~1ul;
                 } else {
-                    traverseState.liveState = false;
+                    traverseState.idx = -1;
                 }
 
             } _continue = false;
 
             // pause, because found intersection 
-            IFALL (traverseState.defTriangleID >= 0 || !traverseState.liveState) break; // pause traversing
+            IFALL (traverseState.defTriangleID >= 0 || traverseState.idx < 0) break; // pause traversing
         }
 
         // do intersection of found geometry

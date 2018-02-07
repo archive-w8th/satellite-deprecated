@@ -186,9 +186,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
         if (!traverseState.liveState) break; // if traverse can't live
 
         for (int li=0;li<1024;li++) {
-            
             bool _continue = false;
-            ivec4 comp4 = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0);
+            ivec4 comp4 = traverseState.liveState ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0) : (-1).xxxx;
             
             // if not leaf 
             if (comp4.x != comp4.y) {
@@ -227,16 +226,19 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 }
             }
 
+            
             if (!_continue) {
                 
                 // go to parents so far as possible 
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
-                    traverseState.idx = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z, traverseState.bitStack >>= 1;
+                    if (traverseState.idx >= 0 && traverseState.liveState) {
+                        traverseState.idx = texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z, traverseState.bitStack >>= 1;
+                    }
                 }
 
-                // goto to sibling or break traverse
-                if (traverseState.bitStack!=0ul) {
+                // goto to sibling or break travers
+                if (traverseState.bitStack!=0ul && traverseState.idx >= 0) {
                     traverseState.idx += (traverseState.idx%2==0?1:-1)*int(traverseState.bitStack&1ul); traverseState.bitStack &= ~1ul;
                 } else {
                     traverseState.liveState = false;

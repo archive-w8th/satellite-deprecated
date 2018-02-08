@@ -72,10 +72,10 @@ namespace NSM {
             std::vector<vk::DescriptorSetLayoutBinding> sampleImgSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // sampling image buffer
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // filtered sampled
-                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // previous sampled image
-                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // clear samples flags
-                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // normal buffer
-                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // albedo buffer
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // clear samples flags
+                //vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // depth buffer
+                //vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // normal buffer
+                //vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // albedo buffer
             };
 
             // textures for surfaces 
@@ -395,25 +395,25 @@ namespace NSM {
             destroyTexture(accumulationImage);
             destroyTexture(filteredImage);
             destroyTexture(flagsImage);
-            destroyTexture(depthImage);
-            destroyTexture(normalImage);
-            destroyTexture(albedoImage);
+            //destroyTexture(depthImage);
+            //destroyTexture(normalImage);
+            //destroyTexture(albedoImage);
 
             accumulationImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
             filteredImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
             flagsImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
-            depthImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-            normalImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-            albedoImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            //depthImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            //normalImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            //albedoImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&depthImage->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPImageInfo(&normalImage->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPImageInfo(&albedoImage->descriptorInfo),
+                    //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&depthImage->descriptorInfo),
+                    //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPImageInfo(&normalImage->descriptorInfo),
+                    //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPImageInfo(&albedoImage->descriptorInfo),
             }, nullptr);
 
             clearSampling();
@@ -513,14 +513,13 @@ namespace NSM {
             copyDesc.dstSubresource = accumulationImage->subresourceLayers;
             memoryCopyCmd(copyCommand, accumulationImage, accumulationImage, copyDesc);
 
-            copyDesc.srcSubresource = depthImage->subresourceLayers;
-            copyDesc.dstSubresource = depthImage->subresourceLayers;
-            memoryCopyCmd(copyCommand, depthImage, depthImage, copyDesc);
+            //copyDesc.srcSubresource = depthImage->subresourceLayers;
+            //copyDesc.dstSubresource = depthImage->subresourceLayers;
+            //memoryCopyCmd(copyCommand, depthImage, depthImage, copyDesc);
 
             copyDesc.srcSubresource = flagsImage->subresourceLayers;
             copyDesc.dstSubresource = flagsImage->subresourceLayers;
             memoryCopyCmd(copyCommand, flagsImage, flagsImage, copyDesc);
-
 
             copyDesc.srcOffset = { 0, 0, 0 };
             copyDesc.dstOffset = { 0, 0, 0 };

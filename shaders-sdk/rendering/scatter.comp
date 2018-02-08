@@ -9,11 +9,13 @@
 layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
 layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
 layout ( binding = 2, set = 1, r32i ) uniform iimage2D sampleflags;
-layout ( binding = 3, set = 1, rgba32f ) uniform image2D currdepth;
 
 // additional buffers
+#ifdef ENABLE_ADDITIONAL_BUFFERS
+layout ( binding = 3, set = 1, rgba32f ) uniform image2D currdepth;
 layout ( binding = 4, set = 1, rgba32f ) uniform image2D normalbuf;
 layout ( binding = 5, set = 1, rgba32f ) uniform image2D albedobuf;
+#endif
 
 LOCAL_SIZE_LINEAR_LAYOUT;
 
@@ -91,18 +93,21 @@ void main() {
                 imageStore(presampled, cid, vec4(0.f));
                 imageStore(presampled, cid + ivec2(0, whs.y), vec4(0.f));
 
+#ifdef ENABLE_ADDITIONAL_BUFFERS
                 // additional buffers (for filters)
                 imageStore(normalbuf, cid, vec4(0.f));
                 imageStore(albedobuf, cid, vec4(0.f));
+#endif
             }
 
+#ifdef ENABLE_ADDITIONAL_BUFFERS
             imageStore(normalbuf, cid, mix(normal * 0.5f + 0.5f, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
             imageStore(albedobuf, cid, mix(albedo              , imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
+            imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
+#endif
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
-
-            imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
             imageStore(presampled, cid, vec4(xsample)); // store in current projection
         }
     }

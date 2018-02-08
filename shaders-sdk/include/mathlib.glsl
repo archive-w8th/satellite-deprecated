@@ -501,6 +501,7 @@ BVEC2_ intersectCubeDual(inout FMAT3X4_ origin, inout FMAT3X4_ dr, inout BVEC3_ 
         fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].zwxy, dr[2], origin[2])
     );
 
+    /*
     BVEC2_ isCube = BVEC2_(TRUE_.xx);
     FVEC2_ tNear = tMinMax[0].xy, tFar = tMinMax[0].zw;
     
@@ -511,6 +512,18 @@ BVEC2_ intersectCubeDual(inout FMAT3X4_ origin, inout FMAT3X4_ dr, inout BVEC3_ 
     isCube &= BVEC2_(lessThanEqual(tNear, tMinMax[2].zw)) & BVEC2_(greaterThanEqual(tFar, tMinMax[2].xy));
     tNear = mix(tNear, tMinMax[2].xy, greaterThanEqual(tMinMax[2].xy, tNear));
      tFar = mix(tFar , tMinMax[2].zw,    lessThanEqual(tMinMax[2].zw, tFar ));
+    */
+
+    FVEC2_ 
+#if (defined(ENABLE_AMD_INSTRUCTION_SET))
+    tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
+    tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
+#else
+    tFar  = min(min(tMinMax[0].zw, tMinMax[1].zw), tMinMax[2].zw),
+    tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
+#endif
+
+    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));
 
     // precise error correct
 #ifdef AMD_F16_BVH
@@ -524,31 +537,6 @@ BVEC2_ intersectCubeDual(inout FMAT3X4_ origin, inout FMAT3X4_ dr, inout BVEC3_ 
     const vec2 inf = vec2(INFINITY);
     near = mix(inf, vec2(tNear), isCube), far = mix(inf, vec2(tFar), isCube);
     return isCube;
-/*
-    FVEC2_ 
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
-    tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
-#else
-    tFar  = min(min(tMinMax[0].zw, tMinMax[1].zw), tMinMax[2].zw),
-    tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
-#endif
-
-    // precise error correct
-#ifdef AMD_F16_BVH
-    tNear -= 0.001hf.xx;
-#else
-    tNear -= 0.0001f.xx;
-#endif
-
-    // validate hit
-    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));
-
-    // resolve hit
-    const vec2 inf = vec2(INFINITY);
-    near = mix(inf, vec2(tNear), isCube), far = mix(inf, vec2(tFar), isCube);
-    return isCube;
-    */
 }
 
 

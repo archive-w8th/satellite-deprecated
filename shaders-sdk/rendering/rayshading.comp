@@ -29,9 +29,8 @@ struct SurfaceUnpacked {
     // color parameters
      vec4 emission;
      vec4 albedo;
-};
+} compositedHit;
 
-SurfaceUnpacked compositedHit[1];
 int wasHit = -1;
 #define hasProcedural (proceduralID != -1)
 
@@ -43,16 +42,15 @@ float randomed(in float r){ return random() < r ? 1.f : 0.f; }
 void invokeSurface(inout bool overflow) {
     // initial hit
     HitRework firstHit;
-    HitActived(firstHit, FALSE_); firstHit.next = -1;
-    wasHit = -1;
+    HitActived(firstHit, FALSE_); firstHit.next = -1; wasHit = -1;
 
     // initial composition
-    compositedHit[0].uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
-    compositedHit[0].emission = vec4(0.f);
-    compositedHit[0].albedo = vec4(0.f,0.f,0.f,0.f);
-    compositedHit[0].normalHeight = vec4(0.f);
-    compositedHit[0].metallicRoughness = vec4(0.f);
-    compositedHit[0].tangent = vec4(0.f);
+    compositedHit.uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
+    compositedHit.emission = vec4(0.f);
+    compositedHit.albedo = vec4(0.f,0.f,0.f,0.f);
+    compositedHit.normalHeight = vec4(0.f);
+    compositedHit.metallicRoughness = vec4(0.f);
+    compositedHit.tangent = vec4(0.f);
 
     // if hit was had
     float hitIDbinary = currentRay.origin.w;
@@ -76,16 +74,16 @@ void invokeSurface(inout bool overflow) {
     
     // if any found
     IF (HitActived(firstHit)) {
-        compositedHit[0].uvt = firstHit.uvt;
-        compositedHit[0].albedo = f16_f32(firstHit.albedo);
-        compositedHit[0].emission = f16_f32(firstHit.emission);
-        compositedHit[0].metallicRoughness.xy = f16_f32(hit.metallicRoughness).xy;
-        compositedHit[0].normalHeight = firstHit.normalHeight;
-        compositedHit[0].tangent = firstHit.tangent;
-        compositedHit[0].bitangent = firstHit.bitangent;
+        compositedHit.uvt = firstHit.uvt;
+        compositedHit.albedo = f16_f32(firstHit.albedo);
+        compositedHit.emission = f16_f32(firstHit.emission);
+        compositedHit.metallicRoughness.xy = f16_f32(hit.metallicRoughness).xy;
+        compositedHit.normalHeight = firstHit.normalHeight;
+        compositedHit.tangent = firstHit.tangent;
+        compositedHit.bitangent = firstHit.bitangent;
     }
 
-    IF (greaterEqualF(compositedHit[0].uvt.z, INFINITY-0.0001f)) wasHit = -1;
+    IF (greaterEqualF(compositedHit.uvt.z, INFINITY-0.0001f)) wasHit = -1;
 }
 
 
@@ -120,7 +118,7 @@ void envShading(inout bool skipping) {
             float md = 1.0f;
             float dt = intersectSphere(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), lightCenter(i).xyz, lightUniform.lightNode[i].lightColor.w + GAP);
             float t = md * dt;
-            IF (lessF(dt, INFINITY) & lessEqualF(t, compositedHit[0].uvt.z)) lc = i;
+            IF (lessF(dt, INFINITY) & lessEqualF(t, compositedHit.uvt.z)) lc = i;
         }
     }
 
@@ -140,7 +138,7 @@ void envShading(inout bool skipping) {
     }
 
     // resolve and valiate ray
-    currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit[0].uvt.zzz, currentRay.origin.xyz);
+    currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit.uvt.zzz, currentRay.origin.xyz);
 
     // wrong ray?
     if (wasHit == -1 && SSC(RayActived(currentRay))) {
@@ -222,15 +220,15 @@ void main() {
                     const vec3 min_fresnel_color = toLinear(vec3(1.f));
 
                     // get normals
-                    vec3 surfacenormal = compositedHit[0].normalHeight.xyz;
+                    vec3 surfacenormal = compositedHit.normalHeight.xyz;
                     vec3 normal = faceforward(surfacenormal, dcts(currentRay.cdirect.xy), surfacenormal);
-                    mat3 tbn = mat3(compositedHit[0].tangent.xyz, compositedHit[0].bitangent.xyz, normal.xyz);
+                    mat3 tbn = mat3(compositedHit.tangent.xyz, compositedHit.bitangent.xyz, normal.xyz);
 
                     // get texture composition data
-                    vec4 diffcolor = compositedHit[0].albedo;
-                    vec4 emiscolor = compositedHit[0].emission;
-                    float refly = compositedHit[0].metallicRoughness.x; // roughness
-                    float metallic = sqrt(compositedHit[0].metallicRoughness.y); // metallic
+                    vec4 diffcolor = compositedHit.albedo;
+                    vec4 emiscolor = compositedHit.emission;
+                    float refly = compositedHit.metallicRoughness.x; // roughness
+                    float metallic = sqrt(compositedHit.metallicRoughness.y); // metallic
 
                     vec3 freflcolor = fmix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(dcts(currentRay.cdirect.xy), normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
                     vec3 speccolor = fmix(freflcolor, diffcolor.xyz, metallic.xxx);

@@ -91,6 +91,8 @@ void includeChain(inout vec4 intersection) {
     // initial hit
     HitRework hitp; 
     hitp.next = -1;
+    hitp.uvt = vec4(0.f.xx, INFINITY, FINT_NULL);
+    hitp.ray = -1;
 
 /*
     // reuse old chains (i.e. override)
@@ -107,7 +109,7 @@ void includeChain(inout vec4 intersection) {
     if (hid > 0) {
         hitp = hits[hid-1];
         hitp.uvt = intersection;
-        hitp.next = nodeCache[rayID].info.nextHt; // for future overriding
+        hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
         hitp.ray = int(getGeneralNodeId());
         hits[hid-1] = hitp;
 
@@ -331,7 +333,7 @@ void main() {
 
         // begin traverse (save to caches)
         overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
-        nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
+        //nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
         
         // do BVH traversing 
         doBvhTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));

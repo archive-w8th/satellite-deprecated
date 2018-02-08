@@ -256,7 +256,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 IF (any(childIntersect)) {
                     ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
                     traverseState.idx = ordered.x;
-                    IF (all(childIntersect)) {
+                    IF (all(childIntersect) & BOOL_(ordered.y > 0)) {
                         if (!stackIsFull()) storeStack(ordered.y);
                     }
                     _continue = true;

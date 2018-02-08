@@ -41,8 +41,7 @@ float randomed(in float r){ return random() < r ? 1.f : 0.f; }
 
 void invokeSurface(inout bool overflow) {
     // initial hit
-    HitRework firstHit;
-    HitActived(firstHit, FALSE_); firstHit.next = -1; wasHit = -1;
+    HitRework firstHit; firstHit.bitfield = 0; HitActived(firstHit, FALSE_); wasHit = -1;
 
     // initial composition
     compositedHit.uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
@@ -53,27 +52,11 @@ void invokeSurface(inout bool overflow) {
     compositedHit.tangent = vec4(0.f);
 
     // if hit was had
-    float hitIDbinary = currentRay.origin.w;
-    wasHit = overflow ? -1 : floatBitsToInt(hitIDbinary);
-    if (wasHit != -1 && wasHit > 0) {
-        firstHit = hits[wasHit-1];
-    } else {
-        wasHit = -1;
-    }
-
-    // search first actived
-    int i = 0;
-    while (HitActived(firstHit) == FALSE_ && i < 8 && firstHit.next != -1) { // search possible layer
-        firstHit = hits[firstHit.next-1]; i++;
-    }
+    wasHit = overflow ? -1 : floatBitsToInt(currentRay.origin.w)-1;
+    if (wasHit >= 0) firstHit = hits[wasHit];
 
     // if not found
-    IF (not(HitActived(firstHit))) { // if none, make as transparent
-        firstHit.next = -1; wasHit = -1;
-    }
-    
-    // if any found
-    IF (HitActived(firstHit)) {
+    IF (HitActived(firstHit)) { // if none, make as transparent
         compositedHit.uvt = firstHit.uvt;
         compositedHit.albedo = f16_f32(firstHit.albedo);
         compositedHit.emission = f16_f32(firstHit.emission);
@@ -81,9 +64,13 @@ void invokeSurface(inout bool overflow) {
         compositedHit.normalHeight = firstHit.normalHeight;
         compositedHit.tangent = firstHit.tangent;
         compositedHit.bitangent = firstHit.bitangent;
+    } else {
+        wasHit = -1;
     }
 
-    IF (greaterEqualF(compositedHit.uvt.z, INFINITY-0.0001f)) wasHit = -1;
+    IF (greaterEqualF(compositedHit.uvt.z, INFINITY-0.0001f)) {
+        wasHit = -1;
+    }
 }
 
 
@@ -238,6 +225,7 @@ void main() {
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
 #ifdef USE_SIMPLIFIED_MODE
+                    spca = 0.f; // disable reflection for debug performance 
                     refly = 0.f; // performance debug
 #endif
 

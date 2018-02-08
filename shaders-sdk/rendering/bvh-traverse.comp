@@ -104,19 +104,12 @@ void includeChain(inout vec4 intersection) {
 */
 
     int hid = atomicIncHT(TRUE_)+1;
-
-    // create new hit element with default properties
-    if (hid > 0) {
-        hitp = hits[hid-1];
-        hitp.uvt = intersection;
-        hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
-        hitp.ray = int(getGeneralNodeId());
-        hits[hid-1] = hitp;
-
-        // link previous element (or header) with current
-        int prvh = exchange(nodeCache[rayID].info.prevHt, hid);
-        if (prvh == -1) { nodeCache[rayID].info.chainID = hid; } else { exchange(hits[prvh-1].next, hid); }
-    }
+    hitp = hits[hid-1];
+    hitp.uvt = intersection;
+    hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
+    hitp.ray = int(getGeneralNodeId());
+    hits[hid-1] = hitp;
+    currentRay.origin.w = intBitsToFloat(hid);
 }
 
 struct GeometrySpace {
@@ -191,7 +184,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     traverseState.bvhSpace.directInv = FMAT3X4_(dirproj.xxxx, dirproj.yyyy, dirproj.zzzz); torig *= dirproj;
     traverseState.bvhSpace.minusOrig = FMAT3X4_(torig.xxxx, torig.yyyy, torig.zzzz);
     traverseState.bvhSpace.boxSide = bsgn;
-    traverseState.distMult = dirlenInv;
+    //traverseState.distMult = dirlenInv;
+    traverseState.distMult = 1.f/dirlenInv;
     traverseState.diffOffset = toffset;
 
     { // calculate longest axis
@@ -248,11 +242,11 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 /*
                 // any child node (stackless)
                 IF (any(childIntersect)) {
-                    traverseState.bitStack <<= 1;
+                    raverseState.bitStack <<= 1;
+                    ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
+                    traverseState.idx = ordered.x;
                     IF (all(childIntersect)) {
-                        traverseState.bitStack |= 1, traverseState.idx = SSC(lessEqualF(nears.x, nears.y)) ? comp4.x : comp4.y;
-                    } else {
-                        traverseState.idx = SSC(childIntersect.x) ? comp4.x : comp4.y;
+                        traverseState.bitStack |= 1
                     }
                     _continue = true;
                 }
@@ -260,11 +254,10 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 
                 // any child node 
                 IF (any(childIntersect)) {
+                    ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
+                    traverseState.idx = ordered.x;
                     IF (all(childIntersect)) {
-                        ivec2 ordered = SSC(lessEqualF(nears.x, nears.y)) ? comp4.xy : comp4.yx;
-                        traverseState.idx = ordered.x; if (!stackIsFull()) storeStack(ordered.y);
-                    } else {
-                        traverseState.idx = SSC(childIntersect.x) ? comp4.x : comp4.y;
+                        if (!stackIsFull()) storeStack(ordered.y);
                     }
                     _continue = true;
                 }
@@ -344,16 +337,13 @@ void main() {
 
         // begin traverse (save to caches)
         overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
-        //nodeCache[rayID].info.nextHt = floatBitsToInt(currentRay.origin.w);
-        
+
         // do BVH traversing 
         doBvhTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));
 
-        // resolve intersection
-        int chainID = nodeCache[rayID].info.chainID;
-        if (chainID > 0 && SSC(not(overflow))) {
-            currentRay.origin.w = intBitsToFloat(chainID); storeRay();
+        // save result if present
+        IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & BOOL_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
+            storeRay();
         }
-
     }
 }

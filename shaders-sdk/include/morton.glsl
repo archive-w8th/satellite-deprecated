@@ -13,7 +13,7 @@ uint64_t splitBy3(in uint a){
 }
 
 uint64_t encodeMorton3_64(in uvec3 a) {
-    return (splitBy3(a.x) | (splitBy3(a.z) << 1) | (splitBy3(a.y) << 2));
+    return (splitBy3(a.x) | (splitBy3(a.y) << 1) | (splitBy3(a.z) << 2));
 }
 
 #endif

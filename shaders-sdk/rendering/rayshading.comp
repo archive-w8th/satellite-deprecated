@@ -1,7 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-#define USE_SIMPLIFIED_MODE
+//#define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
@@ -225,8 +225,8 @@ void main() {
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
                     float emis = clamp01(mlength(emiscolor.xyz)); // emission power
 #ifdef USE_SIMPLIFIED_MODE
-                    spca = 0.f; // disable reflection for debug performance 
-                    refly = 0.f; // performance debug
+                    //spca = 0.f; // disable reflection for debug performance 
+                    //refly = 0.f; // performance debug
 #endif
 
                     // diffuse and specular colors (based on priorities)
@@ -290,7 +290,6 @@ void main() {
                         confirmNode(overwriteBlock, confirmed = RayActived(rayTemplate) == 1 && !overflow);
 
                         // reflection rays
-                        //if (RayType(currentRay) == 3) confirmed = true; 
                         rayTemplate = reflection(currentRay, _specular * qspca * (1.f - qprom), tbn, refly);
                         if (RayType(currentRay) == 2) RayActived(rayTemplate, FALSE_); // incompatible with shadows
                         invalidateRay(rayTemplate, overflow);

@@ -42,3 +42,5 @@ external/vk-sdk/
 */FindCUDA/
 */FindCUDA.*
 */FindOptiX.*
+
+*.spv

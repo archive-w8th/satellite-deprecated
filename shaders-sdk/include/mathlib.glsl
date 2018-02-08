@@ -501,19 +501,6 @@ BVEC2_ intersectCubeDual(inout FMAT3X4_ origin, inout FMAT3X4_ dr, inout BVEC3_ 
         fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].zwxy, dr[2], origin[2])
     );
 
-    /*
-    BVEC2_ isCube = BVEC2_(TRUE_.xx);
-    FVEC2_ tNear = tMinMax[0].xy, tFar = tMinMax[0].zw;
-    
-    isCube &= BVEC2_(lessThanEqual(tNear, tMinMax[1].zw)) & BVEC2_(greaterThanEqual(tFar, tMinMax[1].xy));
-    tNear = mix(tNear, tMinMax[1].xy, greaterThanEqual(tMinMax[1].xy, tNear));
-     tFar = mix(tFar , tMinMax[1].zw,    lessThanEqual(tMinMax[1].zw, tFar ));
-
-    isCube &= BVEC2_(lessThanEqual(tNear, tMinMax[2].zw)) & BVEC2_(greaterThanEqual(tFar, tMinMax[2].xy));
-    tNear = mix(tNear, tMinMax[2].xy, greaterThanEqual(tMinMax[2].xy, tNear));
-     tFar = mix(tFar , tMinMax[2].zw,    lessThanEqual(tMinMax[2].zw, tFar ));
-    */
-
     FVEC2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
     tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),

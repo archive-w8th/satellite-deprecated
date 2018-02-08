@@ -12,30 +12,27 @@ namespace NSM {
         };
 
         struct RayRework {
-            //glm::vec3 origin = glm::vec3(0.f); int hit = -1; // index of hit chain
-            //glm::vec3 direct = glm::vec3(0.f); int bitfield = 0; // up to 32-bits
-            glm::vec4 origin = glm::vec4(0.f);
-            glm::vec4 direct = glm::vec4(0.f);
-            glm::vec4 color = glm::vec4(0.f);
-            glm::vec4 final = glm::vec4(0.f);
+            glm::vec4 a, b;
         };
 
         struct HitRework {
-            glm::vec4 uvt; // UV, distance, triangle
+            // getting under intersections
+            glm::vec4 uvt; // UV, distance, triangle (base data)
+
+            // surface shaders and interpolators
             glm::vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
-            glm::vec4 tangent; // also have 4th extra slot
-            glm::vec4 bitangent; // TODO: extend structure size
+            glm::vec4 tangent; // 
+            glm::vec4 bitangent; // 
             glm::vec4 texcoord; // critical texcoords 
 
-            glm::uvec2 metallicRoughness;
-            glm::uvec2 unk16;
-            glm::uvec2 emission;
-            glm::uvec2 albedo;
+            // textured data
+            glm::uvec2 metallicRoughness, unk16;
+            glm::uvec2 emission, albedo;
 
             // integer metadata
-            int bitfield;
+            glm::uint bitfield;
             int ray; // ray index
-            int materialID;
+            int materialID; // may not necessary 
             int next;
         };
 

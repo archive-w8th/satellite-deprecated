@@ -5,7 +5,7 @@
 
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
-//#define DISCARD_SHARED_CACHING // store rays in registers if possible
+#define DISCARD_SHARED_CACHING // store rays in registers if possible
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -33,18 +33,58 @@ struct NodeCacheInfo {
     int nextHt;
 };
 
+const int localStackSize = 8;
+const int extendedStackSize = 24;
+
 struct NodeCache {
     NodeCacheInfo info;
+    int extendedStack[extendedStackSize];
 };
 
+// use shared local memory stack
+shared int localStack[WORK_SIZE][localStackSize];
+
+// plain pointers
+int stackPtr = 0, rayID = 0;
 
 
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { BlockCache blockCache[]; };
 
 
-// pointer in global cache
-int rayID = 0;
+
+
+int loadStack(){
+    int ptr = --stackPtr; int val = -1;
+    if (ptr >= 0) {
+        if (ptr >= localStackSize) {
+            val = nodeCache[rayID].extendedStack[ptr - localStackSize];
+        } else {
+            val = localStack[LT_IDX][ptr];
+        }
+    }
+    return val;
+}
+
+void storeStack(in int val){
+    int ptr = stackPtr++;
+    if (ptr < (extendedStackSize+localStackSize)) {
+        if (ptr >= localStackSize) {
+            nodeCache[rayID].extendedStack[ptr - localStackSize] = val;
+        } else {
+            localStack[LT_IDX][ptr] = val;
+        }
+    }
+}
+
+bool stackIsFull(){
+    return stackPtr >= (extendedStackSize+localStackSize);
+}
+
+bool stackIsEmpty(){
+    return stackPtr <= 0;
+}
+
 
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
@@ -52,12 +92,16 @@ void includeChain(inout vec4 intersection) {
     HitRework hitp; 
     hitp.next = -1;
 
+/*
     // reuse old chains (i.e. override)
     int hid = nodeCache[rayID].info.nextHt; if (hid > 0) hitp = hits[hid-1];
     nodeCache[rayID].info.nextHt = hitp.next > 0 ? hitp.next : -1; // next linked ID
 
     // allocate new hit if chain is none
     if (hid <= 0) hid = atomicIncHT(TRUE_)+1;
+*/
+
+    int hid = atomicIncHT(TRUE_)+1;
 
     // create new hit element with default properties
     if (hid > 0) {
@@ -125,6 +169,9 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     traverseState.distMult = 1.f;
     traverseState.diffOffset = 0.f;
     traverseState.bvhSpace.cutOut = INFINITY;
+
+    // reset stack
+    stackPtr = 0;
     
     // test constants
     vec3 
@@ -185,7 +232,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 ), nears, fars);
                 childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
 
-                // any child node 
+/*
+                // any child node (stackless)
                 IF (any(childIntersect)) {
                     traverseState.bitStack <<= 1;
                     IF (all(childIntersect)) {
@@ -195,6 +243,19 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                     }
                     _continue = true;
                 }
+*/
+
+                // any child node 
+                IF (any(childIntersect)) {
+                    IF (all(childIntersect)) {
+                        ivec2 ordered = SSC(lessEqualF(nears.x, nears.y)) ? comp4.xy : comp4.yx;
+                        traverseState.idx = ordered.x; if (!stackIsFull()) storeStack(ordered.y);
+                    } else {
+                        traverseState.idx = SSC(childIntersect.x) ? comp4.x : comp4.y;
+                    }
+                    _continue = true;
+                }
+                
                 
             } else  
             
@@ -207,7 +268,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 }
             }
 
-            
+            /* // stackless 
             if (!_continue) {
                 
                 // go to parents so far as possible 
@@ -224,6 +285,16 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                     traverseState.idx = -1;
                 }
 
+            } _continue = false;
+            */
+
+            // stacked 
+            if (!_continue) {
+                if (!stackIsEmpty()) {
+                    traverseState.idx = loadStack();
+                } else {
+                    traverseState.idx = -1;
+                }
             } _continue = false;
 
             // pause, because found intersection 

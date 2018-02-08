@@ -135,7 +135,7 @@ void main() {
 
                 // compaction of box
                 bounding = compactBoxByTriangle(bounding, triverts);
-                vec4 bcenter = (bounding.mn + bounding.mx) * 0.5f;
+                vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
 
 
                 // view based 

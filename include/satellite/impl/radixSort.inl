@@ -158,6 +158,7 @@ namespace NSM {
             permuteCommand.end();
 
 
+            // stepped radix sort
             std::vector<vk::SubmitInfo> buildSubmitInfos;
             for (int j = 0; j < stepCount; j++) {
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&copyBuffers[j])); // copy header
@@ -168,12 +169,9 @@ namespace NSM {
 
 
             // submit radix sort
-            vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
-            device->mainQueue->queue.submit(buildSubmitInfos, fence);
-
-
-            // asynchronous await for cleans
             std::async([=](){
+                vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
+                device->mainQueue->queue.submit(buildSubmitInfos, fence);
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 device->logical.destroyFence(fence);
                 device->logical.freeCommandBuffers(device->commandPool, copyBuffers);

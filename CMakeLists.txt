@@ -57,6 +57,8 @@ set (CMAKE_MODULE_PATH
 
 set(ENABLE_OPTIX_DENOISER OFF CACHE BOOL "Enable support of OptiX denoiser (be aware with NVidia EULA)")
 
+find_package(Vulkan QUIET)
+
 # search package as optional
 if (ENABLE_OPTIX_DENOISER) 
 find_package(CUDA QUIET)
@@ -65,7 +67,7 @@ endif()
 
 
 set (LIBS 
-    vulkan-1
+	${Vulkan_LIBRARY} 
     glfw3 
     libpng16_static
     jpeg

@@ -239,19 +239,16 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 ), nears, fars);
                 childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
 
-/*
+#ifdef USE_STACKLESS_BVH
                 // any child node (stackless)
                 IF (any(childIntersect)) {
-                    raverseState.bitStack <<= 1;
+                    traverseState.bitStack <<= 1ul;
                     ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
                     traverseState.idx = ordered.x;
-                    IF (all(childIntersect)) {
-                        traverseState.bitStack |= 1
-                    }
+                    IF (all(childIntersect)) traverseState.bitStack |= 1ul;
                     _continue = true;
                 }
-*/
-
+#else
                 // any child node 
                 IF (any(childIntersect)) {
                     ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
@@ -261,8 +258,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                     }
                     _continue = true;
                 }
-                
-                
+#endif
             } else  
             
             // if leaf, defer for intersection 
@@ -274,7 +270,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 }
             }
 
-            /* // stackless 
+#ifdef USE_STACKLESS_BVH
+            // stackless 
             if (!_continue) {
                 
                 // go to parents so far as possible 
@@ -292,8 +289,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 }
 
             } _continue = false;
-            */
-
+#else
             // stacked 
             if (!_continue) {
                 if (!stackIsEmpty()) {
@@ -302,6 +298,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                     traverseState.idx = -1;
                 }
             } _continue = false;
+#endif
 
             // pause, because found intersection 
             IFALL (traverseState.defTriangleID >= 0 || traverseState.idx < 0) break; // pause traversing

@@ -12,7 +12,7 @@
 #include "../include/ballotlib.glsl"
 
 // paging optimized tiling
-const int R_BLOCK_WIDTH = 32;
+const int R_BLOCK_WIDTH = 64;
 const int R_BLOCK_HEIGHT = 32;
 
 // performance optimized tiling

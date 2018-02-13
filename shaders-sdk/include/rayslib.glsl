@@ -216,14 +216,13 @@ void storeRay(in int block, inout RayRework ray) {
     if (block >= 0 && currentBlockNode >= 0) rayBlockNodes[block][currentBlockNode].data = ray;
 }
 
-
 #ifndef SIMPLIFIED_RAY_MANAGMENT
 // confirm for processing
 void confirmNode(in int block, in bool actived){
     if (rayBlocks[block].info.indiceCount < currentBlockSize && actived && block >= 0) { // don't overflow
         int idx = atomicIncCM(block, TRUE_);
         rayBlocks[block].preparing[idx] = IDCTYPE(currentBlockNode+1);
-        unorderedRays[atomicIncTT(TRUE_)] = int(getGeneralNodeId(block))+1;
+        //unorderedRays[atomicIncTT(TRUE_)] = int(getGeneralNodeId(block))+1; // disable unordering
     }
 }
 

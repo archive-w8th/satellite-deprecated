@@ -26,6 +26,7 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%generation.comp    -o %OU
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%bvh-traverse.comp  -o %OUTDIR%%RNDR%bvh-traverse.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%surface.comp       -o %OUTDIR%%RNDR%surface.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%rayshading.comp    -o %OUTDIR%%RNDR%rayshading.comp.spv
+start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%unordered.comp     -o %OUTDIR%%RNDR%unordered.comp.spv
 
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%build-new.comp     -o %OUTDIR%%HLBV%build-new.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%aabbmaker.comp     -o %OUTDIR%%HLBV%aabbmaker.comp.spv
@@ -40,6 +41,8 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%RDXI%pfx-work.comp      -o %OU
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%GENG%pixel.frag         -o %OUTDIR%%GENG%pixel.frag.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%GENG%vertex.vert        -o %OUTDIR%%GENG%vertex.vert.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%GENG%vertex.vert        -o %OUTDIR%%GENG%vertex16i.vert.spv -DENABLE_INT16_LOADING
+
+
 
 :: --ccp not supported by that renderer 
 

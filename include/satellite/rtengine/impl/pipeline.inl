@@ -130,7 +130,8 @@ namespace NSM {
             surfacePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(surfaceDescriptorsLayout.data()).setSetLayoutCount(surfaceDescriptorsLayout.size()));
             rayShadingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayShadingDescriptorsLayout.data()).setSetLayoutCount(rayShadingDescriptorsLayout.size()));
 
-            // create pipelines
+            // create pipelines 
+            unorderedFormer.pipeline = createCompute(device, shadersPathPrefix + "/rendering/unordered.comp.spv", rayTracingPipelineLayout, pipelineCache);
             rayGeneration.pipeline = createCompute(device, shadersPathPrefix + "/rendering/generation.comp.spv", rayTracingPipelineLayout, pipelineCache);
             bvhTraverse.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bvh-traverse.comp.spv", rayTraversePipelineLayout, pipelineCache);
             surfaceShadingPpl.pipeline = createCompute(device, shadersPathPrefix + "/rendering/surface.comp.spv", surfacePipelineLayout, pipelineCache);
@@ -663,11 +664,17 @@ namespace NSM {
         void Pipeline::traverse(std::shared_ptr<TriangleHierarchy>& hierarchy) {
             auto vdescs = hierarchy->getClientDescriptorSet();
 
+            // unordered former
+            auto unrdrCommandBuffer = getCommandBuffer(device, true);
+            unrdrCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayShadingPipelineLayout, 0, rayShadingDescriptors, nullptr);
+            unrdrCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, unorderedFormer.pipeline);
+            unrdrCommandBuffer.dispatch(INTENSIVITY, 1, 1);
+
             // traverse BVH
-            auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], vdescs }, nullptr);
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
-            commandBuffer.dispatch(INTENSIVITY, 1, 1);
+            auto bvhCommandBuffer = getCommandBuffer(device, true);
+            bvhCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, { rayTracingDescriptors[0], vdescs }, nullptr);
+            bvhCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
+            bvhCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 
             // copy to surfaces
             auto copyCommand = getCommandBuffer(device, true);
@@ -684,7 +691,8 @@ namespace NSM {
             srfCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 
             // push commands
-            flushCommandBuffer(device, commandBuffer, true);
+            flushCommandBuffer(device, unrdrCommandBuffer, true);
+            flushCommandBuffer(device, bvhCommandBuffer, true);
             flushCommandBuffer(device, copyCommand, true);
             flushCommandBuffer(device, srfCommandBuffer, true);
         }

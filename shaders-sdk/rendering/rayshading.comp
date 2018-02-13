@@ -138,9 +138,6 @@ void envShading(inout bool skipping) {
     cleanRay(currentRay);
 }
 
-
-LOCAL_SIZE_LAYOUT;
-
 int createBlockOnce(inout int block, in bool minimalCondition){
     if (block < 0 && anyInvoc(block < 0 && minimalCondition)) {
         int activeLane = firstActive();
@@ -158,6 +155,9 @@ int createBlockOnce(inout int block, in bool minimalCondition){
 }
 
 //#include "./ocean-dlc.glsl"
+
+
+LOCAL_SIZE_LAYOUT;
 
 void main() {
     #define wsize RAY_BLOCK samplerUniform.blockCount

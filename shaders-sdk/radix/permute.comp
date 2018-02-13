@@ -18,42 +18,39 @@ void main() {
     LF_IDX = gl_LocalInvocationID.x / WARP_SIZE_RT;
     LC_IDX = gl_WorkGroupID.y + LF_IDX * gl_WorkGroupSize.y;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
-    uint WSZ = WARP_SIZE_RT;
 
-    IFANY (gl_WorkGroupID.y < AFFINITION) {
+    // set prefix sum (planned distribute threads) 
+    for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
+        UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
+        localHistogram[radice] = PrefixSum[radice + gl_WorkGroupID.x * RADICES];
+    }
+    memoryBarrier(); barrier();
 
-        // calculate blocks
-        blocks_info blocks = get_blocks_info(NumKeys);
-        uint bcount = min(blocks.count, 16384);
+    // calculate blocks
+    blocks_info blocks = get_blocks_info(NumKeys);
+    uint bcount = min(blocks.count, 16384);
+    WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
+    for ( uint wk = 0; wk < bcount; wk++ ) {
+        BVEC_WARP validAddress = addr < NumKeys;
+        IFALL(!validAddress) break;
 
-        // barrier-less, WARP-optimized histogram calculation
+        //memoryBarrier(); barrier();
+        if (LF_IDX == 0) {
+            key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
+        }
+        memoryBarrier(); barrier();
+
+        // WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
-            WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
             if (radice >= RADICES) break;
-
-            // copy to local histogram
-            localHistogram[radice] = PrefixSum[radice + gl_WorkGroupID.x * RADICES]; // clear histogram of block
-
-            // use SIMD lanes for calculate histograms
-            for ( uint wk = 0; wk < bcount; wk++ ) {
-                BVEC_WARP validAddress = addr < NumKeys && gl_WorkGroupID.y < AFFINITION;
-                IFALL(!validAddress) break;
-
-                memoryBarrier(); barrier();
-                if (LF_IDX == 0) {
-                    key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
-                }
-                memoryBarrier(); barrier();
-
-                // compressive putting
-                if (key == radice && validAddress) {
-                    WPTR offset = WPTR(countOffset(radice, TRUE_));
-                    KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr];
-                }
-
-                addr += WARP_SIZE_RT;
+            if (key == radice && validAddress) { 
+                WPTR offset = WPTR(countOffset(radice, TRUE_)); 
+                KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr]; 
+                break;
             }
         }
+
+        addr += WARP_SIZE_RT;
     }
 }

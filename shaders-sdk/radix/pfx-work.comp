@@ -42,8 +42,7 @@ void main() {
     LC_IDX = gl_LocalInvocationID.x / WARP_SIZE_RT;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
 
-    // 
-    IFALL (gl_WorkGroupID.y < AFFINITION) {
+    IFALL (gl_WorkGroupID.y < 1) {
         
         // calculate prefix-sums of all work groups
         localHistogram[LT_IDX] = 0;

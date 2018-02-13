@@ -3,7 +3,6 @@
 
 #include "./includes.glsl"
 
-//layout (local_size_x = WARP_SIZE, local_size_y = WRK_SIZE) in;
 layout (local_size_x = BLOCK_SIZE) in;
 
 shared uint localHistogram[RADICES];
@@ -19,45 +18,44 @@ void main() {
     LF_IDX = gl_LocalInvocationID.x / WARP_SIZE_RT;
     LC_IDX = gl_WorkGroupID.y + LF_IDX * gl_WorkGroupSize.y;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
-    uint WSZ = WARP_SIZE_RT;
-    
-    IFANY (gl_WorkGroupID.y < AFFINITION) {
 
-        // calculate blocks
-        blocks_info blocks = get_blocks_info(NumKeys);
-        uint bcount = min(blocks.count, 16384);
-        
-        // barrier-less, WARP-optimized histogram calculation
+    // clear histogram of block (planned distribute threads) 
+    for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
+        localHistogram[rk + LC_IDX] = 0;
+    }
+    memoryBarrier(); barrier();
+
+    // use SIMD lanes for calculate histograms
+    blocks_info blocks = get_blocks_info(NumKeys);
+    uint bcount = min(blocks.count, 16384);
+    WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
+    for ( uint wk = 0; wk < bcount; wk++ ) {
+        BVEC_WARP validAddress = addr < NumKeys;
+        IFALL(!validAddress) break;
+
+        //memoryBarrier(); barrier();
+        if (LF_IDX == 0) {
+            key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
+        }
+        memoryBarrier(); barrier();
+
+        // WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
-            WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
             if (radice >= RADICES) break;
+            if (key == radice && validAddress) { countHistogram(radice, TRUE_); break; }
+        }
 
-            // clear histogram of block
-            localHistogram[radice] = 0;
+        addr += WARP_SIZE_RT;
+    }
 
-            // use SIMD lanes for calculate histograms
-            for ( uint wk = 0; wk < bcount; wk++ ) {
-                BVEC_WARP validAddress = addr < NumKeys && gl_WorkGroupID.y < AFFINITION;
-                IFALL(!validAddress) break;
-
-                memoryBarrier(); barrier();
-                if (LF_IDX == 0) {
-                    key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
-                }
-                memoryBarrier(); barrier();
-
-                if (key == radice && validAddress) {
-                    countHistogram(radice, TRUE_);
-                }
-                
-                addr += WARP_SIZE_RT;
-            }
-
-            // planned WARP-based copy
+    // resolve histograms (planned distribute threads) 
+    memoryBarrier(); barrier();
+    for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
+        UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
+        if (radice < RADICES) {
             PrefixSum[radice + RADICES * gl_WorkGroupID.x] = localHistogram[radice];
             Histogram[radice + RADICES * gl_WorkGroupID.x] = localHistogram[radice];
         }
-
     }
 }

@@ -18,9 +18,7 @@ uint LF_IDX = 0;
 // general work groups
 #define BLOCK_SIZE (WARP_SIZE * RADICES / AFFINITION) // how bigger block size, then more priority going to radices (i.e. BLOCK_SIZE / WARP_SIZE)
 #define BLOCK_SIZE_RT (gl_WorkGroupSize.x)
-
-#define WRK_SIZE (BLOCK_SIZE/WARP_SIZE)
-#define WRK_SIZE_RT (gl_WorkGroupSize.x / WARP_SIZE_RT)
+#define WRK_SIZE_RT (gl_WorkGroupSize.x / WARP_SIZE_RT * gl_WorkGroupSize.y)
 
 #define UVEC_WARP uint
 #define BVEC_WARP bool

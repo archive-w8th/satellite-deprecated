@@ -440,8 +440,9 @@ namespace NSM {
             // debug code
             {
                 //std::vector<uint64_t> mortons(triangleCount[0]);
-                //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }, false);
+                //flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
                 //getBufferSubData(generalLoadingBuffer, mortons, 0);
+
                 //std::vector<uint32_t> mortons(triangleCount[0]);
                 //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, leafsIndicesBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(triangleCount[0]) }, false);
                 //getBufferSubData(generalLoadingBuffer, mortons, 0);

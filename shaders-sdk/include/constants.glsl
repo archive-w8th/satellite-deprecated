@@ -68,16 +68,12 @@
 // Platform-oriented compute
 #ifndef WORK_SIZE
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#define WORK_SIZE 128
+#define WORK_SIZE 64
 #else
-#define WORK_SIZE 128
+#define WORK_SIZE 32
 #endif
 #endif
 #define LOCAL_SIZE_LAYOUT layout ( local_size_x = WORK_SIZE ) in
-
-// Linear compute
-#define WORK_SIZE_LINEAR 128
-#define LOCAL_SIZE_LINEAR_LAYOUT layout ( local_size_x = WORK_SIZE_LINEAR ) in
 
 // Math Constants
 #define PHI 1.6180339887498948482

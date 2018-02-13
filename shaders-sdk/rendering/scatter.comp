@@ -17,7 +17,7 @@ layout ( binding = 4, set = 1, rgba32f ) uniform image2D normalbuf;
 layout ( binding = 5, set = 1, rgba32f ) uniform image2D albedobuf;
 #endif
 
-LOCAL_SIZE_LINEAR_LAYOUT;
+LOCAL_SIZE_LAYOUT;
 
 void main() {
     vec2 wh = vec2(RAY_BLOCK samplerUniform.sceneRes.xy);

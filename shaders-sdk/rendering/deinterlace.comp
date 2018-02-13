@@ -42,7 +42,7 @@ vec4 checkerFetch(in ivec2 tx, in int lod) {
     return (RAY_BLOCK cameraUniform.interlace == 1 ? fmix(mif, ct, 0.5f.xxxx) : ct);
 }
 
-LOCAL_SIZE_LINEAR_LAYOUT;
+LOCAL_SIZE_LAYOUT;
 
 void main() {
     int it = int(gl_GlobalInvocationID.x);

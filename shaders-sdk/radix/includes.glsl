@@ -58,8 +58,6 @@ layout (std430, binding = 28, set = 0 ) restrict buffer PrefixBlock {uint Prefix
 
 struct blocks_info { uint count; uint offset; };
 blocks_info get_blocks_info(in uint n) {
-    //uint block_count = n > 0 ? ((n - 1) / (BLOCK_SIZE * gl_NumWorkGroups.x) + 1) : 0;
-    //return blocks_info(block_count, gl_WorkGroupID.x * BLOCK_SIZE * block_count);
     uint block_count = n > 0 ? ((n - 1) / (WARP_SIZE_RT * gl_NumWorkGroups.x) + 1) : 0;
     return blocks_info(block_count, gl_WorkGroupID.x * WARP_SIZE_RT * block_count);
 }

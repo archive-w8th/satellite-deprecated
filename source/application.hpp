@@ -16,6 +16,7 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include <functional>
+#include <sstream>
 
 #include "satellite/rtengine/rtengine.hpp"
 #include "satellite/appBase.hpp"
@@ -777,8 +778,16 @@ namespace SatelliteExample {
 
             // calculate FPS
             if (timeAccumulate > 1000.0) {
-                std::string windowTitle = title + " - " + std::to_string(int(glm::round(tDiff))) + "ms of frame time (" + std::to_string(1000.0 / tDiff) + "fps)";
-                glfwSetWindowTitle(applicationWindow.window, windowTitle.c_str());
+                std::stringstream ststream;
+                ststream << 
+                    title << 
+                    " - " << 
+                    std::to_string(int(glm::round(tDiff))) << 
+                    "ms of frame time (0x" << 
+                    std::hex << 
+                    int(floor(1000.00001 / tDiff)) << 
+                    " fps)";
+                glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
                 timeAccumulate = 0.0;
             }
 

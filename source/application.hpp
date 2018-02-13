@@ -782,10 +782,9 @@ namespace SatelliteExample {
                 ststream << 
                     title << 
                     " - " << 
-                    std::to_string(int(glm::round(tDiff))) << 
-                    "ms of frame time (0x" << 
-                    std::hex << 
-                    int(floor(1000.00001 / tDiff)) << 
+                    int(glm::ceil(tDiff)) << 
+                    "ms of frame time (" << 
+                    int(glm::ceil(999.999 / tDiff)) << 
                     " fps)";
                 glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
                 timeAccumulate = 0.0;

@@ -131,15 +131,16 @@ void main() {
             vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
             if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
                 bbox bounding = calcTriBox(triverts);
-                //vec4 bcenter = tcenter;
-
-                // compaction of box
-                bounding = compactBoxByTriangle(bounding, triverts);
-                vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
-
-
+                
                 // view based 
-                {
+                IF (
+                    greaterEqualF(bounding.mx.x, -1.f) & lessEqualF(bounding.mn.x, 1.f) & 
+                    greaterEqualF(bounding.mx.y, -1.f) & lessEqualF(bounding.mn.y, 1.f) & 
+                    greaterEqualF(bounding.mx.z, -1.f) & lessEqualF(bounding.mn.z, 1.f)
+                ) {
+                    bounding = compactBoxByTriangle(bounding, triverts);
+                    vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
+
                     int to = atomicIncAABB(TRUE_);
                     MortoncodesIndices[to] = int(to);
 #ifdef INT64_MORTON

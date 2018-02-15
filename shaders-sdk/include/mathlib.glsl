@@ -375,12 +375,11 @@ bvec4 SSC(in bvec4 b){return b;}
 
 // inprecise comparsion functions
 const float PRECERR = PZERO;
-BOOL_ lessEqualF(in float a, in float b) { return BOOL_(a<b+PRECERR); }
-BOOL_ lessF(in float a, in float b) { return BOOL_(a<b-PRECERR); }
-BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(a+PRECERR>b); }
-BOOL_ greaterF(in float a, in float b) { return BOOL_(a-PRECERR>b); }
-BOOL_ equalF(in float a, in float b) { return BOOL_(abs(a-b) < PRECERR); }
-
+BOOL_ lessEqualF   (in float a, in float b) { return BOOL_(   (a-b) <=  PRECERR); }
+BOOL_ lessF        (in float a, in float b) { return BOOL_(   (a-b) <  -PRECERR); }
+BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(   (a-b) >= -PRECERR); }
+BOOL_ greaterF     (in float a, in float b) { return BOOL_(   (a-b) >   PRECERR); }
+BOOL_ equalF       (in float a, in float b) { return BOOL_(abs(a-b) <=  PRECERR); }
 
 
 // selection product

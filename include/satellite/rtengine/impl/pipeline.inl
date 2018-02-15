@@ -431,8 +431,7 @@ namespace NSM {
         void Pipeline::reallocRays(uint32_t width, uint32_t height) {
             const bool IS_INTERLACED = false;
 
-            //const size_t BLOCK_WIDTH = 32, BLOCK_HEIGHT = 16;
-            const size_t BLOCK_WIDTH = 64, BLOCK_HEIGHT = 32;
+            const size_t BLOCK_WIDTH = 32, BLOCK_HEIGHT = 32;
             const size_t BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
             const size_t BLOCK_NODES_SIZE = 64 * BLOCK_SIZE;
             const size_t BLOCK_INDICES_SIZE = 8 * BLOCK_SIZE + 64;

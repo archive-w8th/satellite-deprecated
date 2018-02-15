@@ -154,9 +154,9 @@ void main() {
 #endif
 
 #ifdef USE_F32_BVH
-#define PRECB 0.00005f
+#define PRECB 0.00001f
 #else
-#define PRECB 0.0005f
+#define PRECB 0.0001f
 #endif
                     
                     UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-PRECB), mx = UBLANEF_UNPACKED_(bounding.mx+PRECB);

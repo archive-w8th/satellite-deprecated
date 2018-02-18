@@ -10,10 +10,29 @@
 #include "../include/random.glsl"
 #include "../include/mathlib.glsl"
 
-LOCAL_SIZE_LAYOUT;
-
 
 const int _SEED_ID = 15;
+
+
+int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
+    if (anyInvoc(block < 0 && minimalCondition)) {
+        int activeLane = firstActive();
+        if (LANE_IDX == activeLane) { block = createBlock(binID); } block = readLane(block, activeLane);
+        for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+            int nid = tb + int(LANE_IDX);
+            rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
+            WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
+            RayActived(rayBlockNodes[block][nid].data, FALSE_);
+            RayBounce(rayBlockNodes[block][nid].data, 0);
+            rayBlocks[block].indices[nid] = IDCTYPE(-1);
+        }
+    }
+    return block;
+}
+
+
+LOCAL_SIZE_LAYOUT;
+
 
 void main()
 {
@@ -42,11 +61,8 @@ void main()
         IFALL(overflow) break;
         if (!overflow) { 
             // create unique tile per WARP
-            int blockID = 0;
-            if (LANE_IDX == 0) blockID = createBlock(binID);
-            blockID = readLane(blockID, 0);
-
-            // accquire
+            int blockID = -1;
+            createBlockOnce(blockID, true, binID);
             accquirePlainBlock(blockID); 
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
 
@@ -126,7 +142,9 @@ void main()
                     RayDiffBounce(currentRay, 2);
 
                     if (RAY_BLOCK cameraUniform.interlace == 1) {
-                        if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) RayActived(currentRay, FALSE_);
+                        if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) {
+                            RayActived(currentRay, FALSE_);
+                        }
                     }
                 }
                 
@@ -138,8 +156,9 @@ void main()
                 copyBlockIndices(currentBlock, tb + int(LANE_IDX));
             }
 
-            if (LANE_IDX == 0) confirmBlock(blockID);
-            //if (LANE_IDX == 0) flushBlock(blockID);
+            if (LANE_IDX == 0) {
+                confirmBlock(blockID);
+            }
         }
     }
 }

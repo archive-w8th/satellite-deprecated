@@ -1,7 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-//#define USE_SIMPLIFIED_MODE
+#define USE_SIMPLIFIED_MODE
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
@@ -172,43 +172,38 @@ int createBlockOnce(inout int block, in bool minimalCondition){
 }
 
 
-void invokeBlockForNodes(inout RayRework rayTemplate, in int occupyCriteriaID, inout int outNewBlock, inout int prevNonOccupiedBlock, inout bool mergable, const bool overrideOccupy) {
+void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock, in bool repage) {
     invalidateRay(rayTemplate, false);
     
     bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
-    
-    createBlockOnce(outNewBlock, occupyCriteria && !mergable); 
-    if (outNewBlock >= 0) prevNonOccupiedBlock = outNewBlock;
+    createBlockOnce(outNewBlock, occupyCriteria && (repage || prevNonOccupiedBlock >= 0));
+    prevNonOccupiedBlock = outNewBlock >= 0 ? outNewBlock : prevNonOccupiedBlock;
     
     if (occupyCriteria) storeRay(prevNonOccupiedBlock, rayTemplate);
     confirmNode(prevNonOccupiedBlock, SSC(RayActived(rayTemplate)));
-
-    if ( !anyInvoc(overrideOccupy)) {
-        mergable = mergable && (prevNonOccupiedBlock != outNewBlock);
-    }
 }
 
 
 void emitBlock(in int block) {
     if (anyInvoc(block >= 0)) {
-        
         bool hasIllumination = false;
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) { 
-            int bidx = int(tb + LANE_IDX), idx = rayBlocks[block].preparing[bidx];
-            if (bidx >= 0 && bidx < rayBlocks[block].info.indiceCount) {
-                rayBlocks[block].indices[bidx] = IDCTYPE(idx);
-            } else {
-                rayBlocks[block].indices[bidx] = IDCTYPE(-1);
+            int bidx = int(tb + LANE_IDX), idx = bidx;//, idx = rayBlocks[block].indices[bidx];
+            if (idx >= 0) {
+                bool hasIlm = mlength(f16_f32(rayBlockNodes[block][idx].data.dcolor).xyz) > 0.00001f && !SSC(RayActived(rayBlockNodes[block][idx].data));
+                hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
             }
-            hasIllumination = hasIllumination || anyInvoc(hasIllumination || 
-                (idx >= 0 && block >= 0 ? 
-                mlength(f16_f32(rayBlockNodes[block][idx].data.dcolor).xyz) > 0.00001f && !SSC(RayActived(rayBlockNodes[block][idx].data)) : 
-                false));
         }
         hasIllumination = hasIllumination || anyInvoc(hasIllumination);
 
+        // copy indicing
+        for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) { 
+            int bidx = int(tb + LANE_IDX), idx = rayBlocks[block].preparing[bidx];
+            rayBlocks[block].indices[bidx] = IDCTYPE( bidx >= 0 && bidx < rayBlocks[block].info.indiceCount ? idx : -1);
+        }
+
         // confirm block or flush
-        if (LANE_IDX == 0) {
+        if (LANE_IDX == firstActive()) {
             if (rayBlocks[block].info.indiceCount > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
                 confirmBlock(block); 
             } else { 
@@ -293,40 +288,57 @@ void main() {
                     
                     // binarize/quantize 
                     float qprom = random() < prom ? 1.f : 0.f;
+#ifdef USE_SIMPLIFIED_MODE
+                    float qspca = RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f);
+#else
                     float qspca = random() < spca ? 1.f : 0.f;
+#endif
 
                     // emit that ray 
-                    int overwriteBlock = currentBlock; bool mergable = true;
+                    int overwriteBlock = -1;
 
                     { // environment and transparent rays 
                         RayRework envShadedRay = promised(envShading(currentRay, overflow), tbn);
                         WriteColor(envShadedRay.dcolor, f16_f32(envShadedRay.dcolor) * (RayType(currentRay) == 2 ? prom : qprom) ); // shadows dims 
-                        invokeBlockForNodes(envShadedRay, 2, currentBlock, overwriteBlock, mergable, true);
+                        invokeBlockForNodes(envShadedRay, currentBlock, overwriteBlock, false);
                     }
                     
                     // don't do shading if shadowed 
                     if (rayState == 5 || rayState == 1) { prom = 1.f, qprom = 1.f; };
 
+#ifdef USE_SIMPLIFIED_MODE
+                    { // reflection rays
+                        RayRework rayTemplate = reflection(currentRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
+                        invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock, false);
+                    }
+
+                    { // simple shading
+                        vec3 lightVec = sLight(0) - currentRay.origin.xyz;
+                        vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 1.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f)) + emiscolor.xyz;
+                        RayRework rayTemplate = emissive(currentRay, fake_diffusion * (1.f - qspca) * (1.f - qprom), tbn);
+                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock, false);
+                    }
+#else
                     { // diffuse rays
                         RayRework rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
-                        invokeBlockForNodes(rayTemplate, 0, diffuseBlock, overwriteBlock, mergable, true);
+                        invokeBlockForNodes(rayTemplate, diffuseBlock, overwriteBlock, false);
                     }
 
                     { // reflection rays
                         RayRework rayTemplate = reflection(currentRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
-                        invokeBlockForNodes(rayTemplate, 0, reflectionBlock, overwriteBlock, mergable, true);
+                        invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock, false);
+                    }
+
+                    { // shadow rays
+                        RayRework rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
+                        invokeBlockForNodes(rayTemplate, shadowBlock, overwriteBlock, false);
                     }
 
                     { // emissions
                         RayRework rayTemplate = emissive(currentRay, emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom), tbn);
-                        invokeBlockForNodes(rayTemplate, 1, emissionBlock, overwriteBlock, mergable, true);
+                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock, false);
                     }
-
-                    { // shadow rays
-                        mergable = false;
-                        RayRework rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
-                        invokeBlockForNodes(rayTemplate, 0, shadowBlock, overwriteBlock, mergable, true);
-                    }
+#endif
                 }
             }
 

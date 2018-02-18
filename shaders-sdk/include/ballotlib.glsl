@@ -245,7 +245,7 @@ int readFLane(in int val) { return readFLane(val, 0); }
 
   int firstActive() { return readFLane(int(LANE_IDX)); }
   int firstActive(in UVEC_BALLOT_WARP wps) { return lsb(wps); }
-
+//int firstActive() { return firstActive(ballotHW(TRUE_)); }
 
 
 int mcount64(in UVEC_BALLOT_WARP bits){

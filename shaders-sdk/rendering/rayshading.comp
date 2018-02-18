@@ -185,6 +185,11 @@ void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, ino
         confirmNode(prevNonOccupiedBlock, SSC(RayActived(rayTemplate)));
         prevNonOccupiedBlock = -1;
     }
+
+    // reset merging queue
+    IFALL (prevNonOccupiedBlock >= 0) {
+        prevNonOccupiedBlock = -1;
+    }
 }
 
 
@@ -330,6 +335,7 @@ void main() {
 // continuous blocks?
                     // if have bad lights, ban it
                     IF (not(RayActived(enrollRay))) { WriteColor(enrollRay.dcolor, 0.0f.xxxx); }
+                    overwriteBlock = -1;
 
                     { // transparent rays 
                         RayRework transpRay = promised(enrollRay, tbn);

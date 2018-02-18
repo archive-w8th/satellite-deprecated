@@ -111,8 +111,9 @@ HitRework interpolateMeshData(inout HitRework res) {
         // calculate texcoord delta 
         mat3x2 txds = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
         mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
-        if (all(lessThan(abs(dlts[0]), 0.0001f.xx))) dlts[0] = vec2( 1.f,  0.f);
-        if (all(lessThan(abs(dlts[1]), 0.0001f.xx))) dlts[1] = vec2( 0.f, -1.f);
+        if (all(lessThan(abs(dlts[0]), 0.00001f.xx)) && all(lessThan(abs(dlts[1]), 0.00001f.xx))) {
+            dlts[0] = vec2( 1.f, 0.f ), dlts[1] = vec2( 0.f, 1.f );
+        }
 
         // get delta vertex 
         const int itri = tri*9;

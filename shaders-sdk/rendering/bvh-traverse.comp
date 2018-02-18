@@ -267,8 +267,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     // begin of traverse BVH 
     const int max_iteraction = 8192;
     for (int hi=0;hi<max_iteraction;hi++) {
-        //IFALL (traverseState.idx < 0) break; // if traverse can't live
-        if (traverseState.idx < 0) break;
+        IFALL (traverseState.idx < 0) break; // if traverse can't live
 
         for (;hi<max_iteraction;hi++) {
             bool _continue = false;
@@ -354,7 +353,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
         }
 
         // do intersection of found geometry
-        if (traverseState.defTriangleID >= 0) {
+        IFANY (traverseState.defTriangleID >= 0) {
             doIntersection();
         }
     }

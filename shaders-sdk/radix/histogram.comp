@@ -42,8 +42,9 @@ void main() {
         // WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
-            if (radice >= RADICES) break;
-            if (key == radice && validAddress) { countHistogram(radice, TRUE_); break; }
+            bool owned = key == radice && validAddress;
+            if (owned) countHistogram(radice, TRUE_);
+            IFALL (radice >= RADICES || owned) break;
         }
 
         addr += WARP_SIZE_RT;

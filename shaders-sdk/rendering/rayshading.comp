@@ -162,6 +162,7 @@ int createBlockOnce(inout int block, in bool minimalCondition){
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
+            rayBlockNodes[block][nid].data.origin.w = 0;
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
@@ -172,15 +173,18 @@ int createBlockOnce(inout int block, in bool minimalCondition){
 }
 
 
-void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock, in bool repage) {
+void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock) {
     invalidateRay(rayTemplate, false);
     
     bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
-    createBlockOnce(outNewBlock, occupyCriteria && (repage || prevNonOccupiedBlock >= 0));
+    createBlockOnce(outNewBlock, occupyCriteria && prevNonOccupiedBlock < 0);
     prevNonOccupiedBlock = outNewBlock >= 0 ? outNewBlock : prevNonOccupiedBlock;
-    
-    if (occupyCriteria) storeRay(prevNonOccupiedBlock, rayTemplate);
-    confirmNode(prevNonOccupiedBlock, SSC(RayActived(rayTemplate)));
+
+    if (occupyCriteria) {
+        storeRay(prevNonOccupiedBlock, rayTemplate);
+        confirmNode(prevNonOccupiedBlock, SSC(RayActived(rayTemplate)));
+        prevNonOccupiedBlock = -1;
+    }
 }
 
 
@@ -189,18 +193,13 @@ void emitBlock(in int block) {
         bool hasIllumination = false;
         for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) { 
             int bidx = int(tb + LANE_IDX), idx = bidx;//, idx = rayBlocks[block].indices[bidx];
+            rayBlocks[block].indices[bidx] = rayBlocks[block].preparing[bidx];
             if (idx >= 0) {
                 bool hasIlm = mlength(f16_f32(rayBlockNodes[block][idx].data.dcolor).xyz) > 0.00001f && !SSC(RayActived(rayBlockNodes[block][idx].data));
                 hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
             }
         }
         hasIllumination = hasIllumination || anyInvoc(hasIllumination);
-
-        // copy indicing
-        for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) { 
-            int bidx = int(tb + LANE_IDX), idx = rayBlocks[block].preparing[bidx];
-            rayBlocks[block].indices[bidx] = IDCTYPE( bidx >= 0 && bidx < rayBlocks[block].info.indiceCount ? idx : -1);
-        }
 
         // confirm block or flush
         if (LANE_IDX == firstActive()) {
@@ -242,7 +241,7 @@ void main() {
             if (invld) { currentBlock = -1; continue; }
             
             resetBlockIndiceCounter(currentBlock);
-            int shadowBlock = -1, emissionBlock = -1, diffuseBlock = -1, reflectionBlock = -1;
+            int shadowBlock = -1, emissionBlock = -1, diffuseBlock = -1, reflectionBlock = -1, transparentBlock = currentBlock, envBlock = -1;
 
             // invoke block data
             if (!invld) {
@@ -257,6 +256,11 @@ void main() {
 
                     // get surface information
                     int rayState = invokeSurface(overflow);
+
+
+                    
+
+
 
                     // constants
                     const float IOR = 1.400f;
@@ -296,58 +300,69 @@ void main() {
 
                     // emit that ray 
                     int overwriteBlock = -1;
+                    RayRework enrollRay = envShading(currentRay, overflow);
 
-                    { // environment and transparent rays 
-                        RayRework envShadedRay = promised(envShading(currentRay, overflow), tbn);
-                        WriteColor(envShadedRay.dcolor, f16_f32(envShadedRay.dcolor) * (RayType(currentRay) == 2 ? prom : qprom) ); // shadows dims 
-                        invokeBlockForNodes(envShadedRay, currentBlock, overwriteBlock, false);
+// emission blocks? 
+                    { // environment (finish) rays
+                        RayRework envRay = enrollRay;
+                        WriteColor(envRay.dcolor, f16_f32(envRay.dcolor) * qprom ); // shadows dims 
+                        IF (RayActived(envRay)) WriteColor(envRay.dcolor, 0.0f.xxxx); // any actives inaccessible
+                        RayActived(envRay, FALSE_);
+                        invokeBlockForNodes(envRay, envBlock, overwriteBlock);
                     }
                     
-                    // don't do shading if shadowed 
-                    if (rayState == 5 || rayState == 1) { prom = 1.f, qprom = 1.f; };
-
 #ifdef USE_SIMPLIFIED_MODE
-                    { // reflection rays
-                        RayRework rayTemplate = reflection(currentRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
-                        invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock, false);
-                    }
-
                     { // simple shading
-                        vec3 lightVec = sLight(0) - currentRay.origin.xyz;
+                        vec3 lightVec = sLight(0) - enrollRay.origin.xyz;
                         vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 1.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f)) + emiscolor.xyz;
-                        RayRework rayTemplate = emissive(currentRay, fake_diffusion * (1.f - qspca) * (1.f - qprom), tbn);
-                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock, false);
+                        RayRework rayTemplate = emissive(enrollRay, fake_diffusion * (1.f - qspca) * (1.f - qprom), tbn);
+                        IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
+                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
                     }
-#else
-                    { // diffuse rays
-                        RayRework rayTemplate = diffuse(currentRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
-                        invokeBlockForNodes(rayTemplate, diffuseBlock, overwriteBlock, false);
+#else    
+                    { // emissions
+                        RayRework rayTemplate = emissive(enrollRay, emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom), tbn);
+                        IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
+                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
+                    }
+#endif
+
+// continuous blocks?
+                    // if have bad lights, ban it
+                    IF (not(RayActived(enrollRay))) { WriteColor(enrollRay.dcolor, 0.0f.xxxx); }
+
+                    { // transparent rays 
+                        RayRework transpRay = promised(enrollRay, tbn);
+                        WriteColor(transpRay.dcolor, f16_f32(transpRay.dcolor) * (RayType(enrollRay) == 2 ? prom : qprom) ); // shadows dims 
+                        invokeBlockForNodes(transpRay, transparentBlock, overwriteBlock);
                     }
 
                     { // reflection rays
-                        RayRework rayTemplate = reflection(currentRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
-                        invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock, false);
+                        RayRework rayTemplate = reflection(enrollRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
+                        invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock);
+                    }
+
+#ifndef USE_SIMPLIFIED_MODE
+                    { // diffuse rays
+                        RayRework rayTemplate = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
+                        invokeBlockForNodes(rayTemplate, diffuseBlock, overwriteBlock);
                     }
 
                     { // shadow rays
-                        RayRework rayTemplate = directLight(0, currentRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
-                        invokeBlockForNodes(rayTemplate, shadowBlock, overwriteBlock, false);
-                    }
-
-                    { // emissions
-                        RayRework rayTemplate = emissive(currentRay, emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom), tbn);
-                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock, false);
+                        RayRework rayTemplate = directLight(0, enrollRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
+                        invokeBlockForNodes(rayTemplate, shadowBlock, overwriteBlock);
                     }
 #endif
                 }
             }
 
             {
+                emitBlock(transparentBlock);
                 emitBlock(emissionBlock);
                 emitBlock(reflectionBlock);
                 emitBlock(diffuseBlock);
                 emitBlock(shadowBlock);
-                emitBlock(currentBlock);
+                emitBlock(envBlock);
             }
             
         }

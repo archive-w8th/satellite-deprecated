@@ -43,12 +43,12 @@ void main() {
         // WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
-            if (radice >= RADICES) break;
-            if (key == radice && validAddress) { 
+            bool owned = key == radice && validAddress;
+            if (owned) {
                 WPTR offset = WPTR(countOffset(radice, TRUE_)); 
-                KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr]; 
-                break;
+                KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr];
             }
+            IFALL (radice >= RADICES || owned) break;
         }
 
         addr += WARP_SIZE_RT;

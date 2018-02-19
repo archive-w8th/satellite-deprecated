@@ -48,7 +48,7 @@ void main() {
                 WPTR offset = WPTR(countOffset(radice, TRUE_)); 
                 KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr];
             }
-            IFALL (radice >= RADICES || owned) break;
+            IFALL (radice >= RADICES || owned || !validAddress) break;
         }
 
         addr += WARP_SIZE_RT;

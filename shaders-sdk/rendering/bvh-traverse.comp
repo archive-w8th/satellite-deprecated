@@ -373,7 +373,7 @@ LOCAL_SIZE_LAYOUT;
 void main() {
     //int wsize = arcounter.tT;
     #define wsize arcounter.tT
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 100000);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
     rayID = (int(gl_WorkGroupID.x) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x));
 
     int wgs = int(gl_NumWorkGroups);

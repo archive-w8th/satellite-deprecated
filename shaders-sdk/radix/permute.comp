@@ -28,7 +28,7 @@ void main() {
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
-    uint bcount = min(blocks.count, 16384);
+    uint bcount = min(blocks.count, 65536);
     WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
     for ( uint wk = 0; wk < bcount; wk++ ) {
         BVEC_WARP validAddress = addr < NumKeys;

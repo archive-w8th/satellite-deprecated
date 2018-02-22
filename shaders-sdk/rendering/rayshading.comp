@@ -339,7 +339,13 @@ void main() {
 
                     { // transparent rays 
                         RayRework transpRay = promised(enrollRay, tbn);
-                        WriteColor(transpRay.dcolor, f16_f32(transpRay.dcolor) * (RayType(enrollRay) == 2 ? prom : qprom) ); // shadows dims 
+
+                        vec4 tcolor = f16_f32(transpRay.dcolor) * (RayType(enrollRay) == 2 ? prom : qprom);
+#ifdef USE_MULTIPLICANT_TRANSPARENCY
+                        tcolor.xyz *= diffcolor.xyz;
+#endif
+
+                        WriteColor( transpRay.dcolor, tcolor ); // shadows dims 
                         invokeBlockForNodes(transpRay, transparentBlock, overwriteBlock);
                     }
 

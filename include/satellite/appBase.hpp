@@ -504,9 +504,11 @@ namespace NSM {
 
             // get supported present mode, but prefer mailBox
             auto presentMode = vk::PresentModeKHR::eImmediate;
-            for (auto& pm : surfacePresentModes) {
-                if ((pm == vk::PresentModeKHR::eMailbox || pm == vk::PresentModeKHR::eFifo || pm == vk::PresentModeKHR::eFifoRelaxed || pm == vk::PresentModeKHR::eImmediate) && device->physical.getSurfaceSupportKHR(device->queues[1]->familyIndex, surface)) {
-                    presentMode = pm; break;
+            std::vector<vk::PresentModeKHR> priorityModes = { vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoRelaxed, vk::PresentModeKHR::eFifo };
+            for (auto &pm : priorityModes) {
+                if (presentMode != vk::PresentModeKHR::eImmediate) break;
+                for (auto& sfm : surfacePresentModes) {
+                    if (pm == sfm) { presentMode = pm; break; }
                 }
             }
 

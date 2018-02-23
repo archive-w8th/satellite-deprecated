@@ -397,7 +397,7 @@ namespace SatelliteExample {
         rays->setTextureSet(textureManager);
 
         for (int32_t j = 0; j < depth; j++) {
-            if (rays->getRayCount() <= 0) break;
+            if (rays->getRayCount() <= 1) break;
             rays->traverse(intersector);
             rays->rayShading(); // low level function for change rays
         }

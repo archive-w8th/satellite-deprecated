@@ -208,8 +208,8 @@ void emitBlock(in int block) {
 
         // confirm block or flush
         if (LANE_IDX == firstActive()) {
-            if (rayBlocks[block].info.indiceCount > 0 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
-                confirmBlock(block); 
+            if (rayBlocks[block].info.indiceCount > 1 && RAY_BLOCK samplerUniform.iterationCount < (MAX_DEPTH-1)) { 
+                confirmBlock(block);
             } else { 
                 flushBlock(block, hasIllumination); 
             }

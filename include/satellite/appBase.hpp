@@ -22,35 +22,78 @@ namespace NSM {
 
         // instance extensions
         std::vector<const char*> wantedExtensions = {
-            VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME,
-            VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-            VK_KHR_SURFACE_EXTENSION_NAME
+            "VK_GOOGLE_display_timing",
+            "VK_KHR_incremental_present",
+            "VK_KHR_swapchain",
+            "VK_KHR_surface",
+            "VK_KHR_display",
+            "VK_KHR_display_swapchain",
+            "VK_EXT_swapchain_colorspace",
+            "VK_EXT_debug_marker",
+            "VK_EXT_debug_report",
+            "VK_AMD_gpa_interface",
+            "VK_AMD_buffer_marker",
+            "VK_AMD_wave_limits",
+            "VK_AMD_gpu_shader_half_float_fetch",
         };
 
         // default device extensions
         std::vector<const char*> wantedDeviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
-            VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME,
-            VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME,
-            VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
-            VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME,
-            VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME,
-            VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
+            "VK_GOOGLE_display_timing",
 
-            // AMD extensions
-            VK_AMD_GPU_SHADER_HALF_FLOAT_EXTENSION_NAME,
-            VK_AMD_GPU_SHADER_INT16_EXTENSION_NAME,
-            VK_AMD_GCN_SHADER_EXTENSION_NAME,
-            VK_AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME,
-            VK_AMD_TEXTURE_GATHER_BIAS_LOD_EXTENSION_NAME,
-            VK_AMD_SHADER_BALLOT_EXTENSION_NAME,
-            VK_AMD_SHADER_INFO_EXTENSION_NAME
+            "VK_EXT_swapchain_colorspace",
+            "VK_EXT_direct_mode_display",
+            "VK_EXT_debug_marker",
+            "VK_EXT_debug_report",
+            "VK_EXT_sample_locations",
+            "VK_EXT_shader_subgroup_vote",
+            "VK_EXT_shader_subgroup_ballot",
+            "VK_EXT_external_memory_host",
+            "VK_EXT_conservative_rasterization",
+            "VK_EXT_hdr_metadata",
+            "VK_EXT_queue_family_foreign",
+            "VK_EXT_sampler_filter_minmax",
+
+            "VK_AMD_gpa_interface",
+            "VK_AMD_buffer_marker",
+            "VK_AMD_shader_info",
+            "VK_AMD_wave_limits",
+            "VK_AMD_shader_ballot",
+            "VK_AMD_texture_gather_bias_lod",
+            "VK_AMD_shader_image_load_store_lod",
+            "VK_AMD_gcn_shader",
+            "VK_AMD_shader_trinary_minmax",
+            "VK_AMD_gpu_shader_int16",
+            "VK_AMD_gpu_shader_half_float",
+            "VK_AMD_gpu_shader_half_float_fetch",
+            "VK_AMD_draw_indirect_count",
+
+            "VK_KHR_dedicated_allocation",
+            "VK_KHR_incremental_present",
+            "VK_KHR_push_descriptor",
+            "VK_KHR_swapchain",
+            "VK_KHR_sampler_ycbcr_conversion",
+            "VK_KHR_image_format_list",
+            "VK_KHR_16bit_storage",
+            "VK_KHR_sampler_mirror_clamp_to_edge",
+            "VK_KHR_shader_draw_parameters",
+            "VK_KHR_storage_buffer_storage_class",
+            "VK_KHR_variable_pointers",
+            "VK_KHR_relaxed_block_layout",
+            "VK_KHR_display"
+            "VK_KHR_display_swapchain"
+
+            "VK_KHR_get_memory_requirements2",
+            "VK_KHR_get_physical_device_properties2",
+            "VK_KHR_get_surface_capabilities2",
+            "VK_KHR_bind_memory2",
+            "VK_KHR_maintenance1",
+            "VK_KHR_maintenance2",
         };
 
         // instance layers
         std::vector<const char*> wantedLayers = {
-            "VK_LAYER_LUNARG_assistant_layer",
+            //"VK_LAYER_LUNARG_assistant_layer",
             //"VK_LAYER_LUNARG_parameter_validation",
             //"VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_core_validation",
@@ -61,7 +104,7 @@ namespace NSM {
 
         // default device layers
         std::vector<const char*> wantedDeviceValidationLayers = {
-            "VK_LAYER_LUNARG_assistant_layer",
+            //"VK_LAYER_LUNARG_assistant_layer",
             //"VK_LAYER_LUNARG_parameter_validation",
             //"VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_core_validation",
@@ -167,32 +210,45 @@ namespace NSM {
             std::vector<DevQueueType> queues;
 
             float priority = 0.0f;
-            uint32_t computeFamilyIndex = 0, graphicsFamilyIndex = 0;
+            uint32_t computeFamilyIndex = -1, graphicsFamilyIndex = -1;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
 
-            // 
+
+            // compute/graphics queue 
             for (auto& queuefamily : gpuQueueProps) {
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute | vk::QueueFlagBits::eGraphics)) { // compute/graphics queue
+                computeFamilyIndex++;
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute)) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), computeFamilyIndex, 1, &priority));
                     queues.push_back(std::make_shared<DevQueue>(DevQueue{ computeFamilyIndex, vk::Queue{} }));
                     break;
                 }
-                computeFamilyIndex++;
             }
 
-            // 
-            for (auto& queuefamily : gpuQueueProps) {
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics)) { // graphics/presentation queue
-                    if (graphicsFamilyIndex != computeFamilyIndex) queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), graphicsFamilyIndex, 1, &priority));
-                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ graphicsFamilyIndex, vk::Queue{} }));
-                    break;
-                }
+
+            // graphics/presentation queue
+            for (auto& queuefamily : gpuQueueProps) { 
                 graphicsFamilyIndex++;
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu.getSurfaceSupportKHR(graphicsFamilyIndex, applicationWindow.surface)) {
+                    if (graphicsFamilyIndex != computeFamilyIndex) {
+                        queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), graphicsFamilyIndex, 1, &priority));
+                        queues.push_back(std::make_shared<DevQueue>(DevQueue{ graphicsFamilyIndex, vk::Queue{} }));
+                        break;
+                    }
+                }
             }
 
-            // assign presentation 
-            if (graphicsFamilyIndex == computeFamilyIndex) queues[1] = queues[0];
 
+            // make graphics queue same as compute
+            if (graphicsFamilyIndex == computeFamilyIndex || graphicsFamilyIndex == -1 || queues.size() <= 1) {
+                queues.push_back(queues[0]);
+            }
+
+
+            // assign presentation (may not working)
+            if (graphicsFamilyIndex == -1) {
+                std::cerr << "Device may not support presentation" << std::endl;
+                graphicsFamilyIndex = computeFamilyIndex;
+            }
 
 
             // pre-declare logical device 
@@ -242,6 +298,11 @@ namespace NSM {
                 deviceQueuePtr->descriptorPool = deviceQueuePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
                 deviceQueuePtr->fence = createFence(deviceQueuePtr, false);
                 deviceQueuePtr->initialized = true;
+
+
+
+                
+
             }
 
             return std::move(deviceQueuePtr);
@@ -273,6 +334,9 @@ namespace NSM {
 
             const std::vector<vk::Format> preferredFormats = { vk::Format::eA2R10G10B10UnormPack32, vk::Format::eA2B10G10R10UnormPack32, vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm };
             vk::Format surfaceColorFormat = surfaceFormats.size() == 1 && surfaceFormats[0].format == vk::Format::eUndefined ? vk::Format::eR8G8B8A8Unorm : surfaceFormats[0].format;
+
+
+
 
             // search preferred surface format support
             bool surfaceFormatFound = false;

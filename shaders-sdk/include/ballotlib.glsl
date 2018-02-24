@@ -327,20 +327,12 @@ T fname(in uint WHERE, in BOOL_ _value) {\
 
 
 
-bool allInvoc(in bool bc){
-    //return countInvocs(bc) >= countInvocs(true);
-    return allInvocations(bc);
-}
 
-bool anyInvoc(in bool bc){
-    //return countInvocs(bc) > 0;
-    return anyInvocation(bc);
-}
 
 
 
 bool allInvoc(in BOOL_ bc){
-    //return countInvocs(bc) >= countInvocs(true);
+    //return countInvocs(bc) >= countInvocs(TRUE_);
     return allInvocations(SSC(bc));
 }
 
@@ -348,6 +340,18 @@ bool anyInvoc(in BOOL_ bc){
     //return countInvocs(bc) > 0;
     return anyInvocation(SSC(bc));
 }
+
+
+
+bool allInvoc(in bool bc){
+    return allInvoc(BOOL_(bc));
+}
+
+bool anyInvoc(in bool bc){
+    return anyInvoc(BOOL_(bc));
+}
+
+
 
 #define IFALL(b)if(allInvoc(b))
 #define IFANY(b)if(anyInvoc(b))

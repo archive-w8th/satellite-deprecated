@@ -3,17 +3,27 @@
 
 
 
-#extension GL_AMD_gcn_shader : enable
-#extension GL_AMD_gpu_shader_half_float : enable
-#extension GL_AMD_shader_trinary_minmax : enable
-#extension GL_AMD_texture_gather_bias_lod : enable
-#extension GL_AMD_shader_ballot : enable
-#extension GL_AMD_shader_image_load_store_lod : enable
-#extension GL_AMD_gpu_shader_int16 : enable 
-#extension GL_ARB_gpu_shader_int64 : enable
-#extension GL_ARB_shader_ballot : require
-#extension GL_ARB_shader_group_vote : enable
-#extension GL_EXT_shader_image_load_formatted : enable
+    // data format extensions
+    #extension GL_AMD_gcn_shader : enable
+    #extension GL_AMD_gpu_shader_half_float : enable
+    #extension GL_AMD_gpu_shader_half_float_fetch : enable
+    #extension GL_AMD_gpu_shader_int16 : enable 
+    #extension GL_ARB_gpu_shader_int64 : require
+
+    // intrinsics extensions
+    #extension GL_AMD_shader_trinary_minmax : enable
+    
+    // texture extensions
+    #extension GL_AMD_texture_gather_bias_lod : enable
+    #extension GL_AMD_shader_image_load_store_lod : enable
+    #extension GL_EXT_shader_image_load_formatted : enable
+
+    // wave operations
+    #extension GL_AMD_shader_ballot : enable
+    #extension GL_ARB_shader_ballot : require
+    #extension GL_ARB_shader_group_vote : require
+    
+    
 
 
 
@@ -42,12 +52,10 @@
 #endif
 
 
-
-
 // enable required GAPI extensions
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#define ENABLE_AMD_INT16
-#define ENABLE_AMD_INT16_CONDITION
+    #define ENABLE_AMD_INT16
+    #define ENABLE_AMD_INT16_CONDITION
 #endif
 
 #ifndef ENABLE_AMD_INSTRUCTION_SET

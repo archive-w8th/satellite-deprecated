@@ -352,7 +352,9 @@ namespace SatelliteExample {
             }
 
             // choice device
-            if (gpuID >= physicalDevices.size()) gpuID = physicalDevices.size() - 1;
+            if (gpuID >= physicalDevices.size()) {
+                gpuID = physicalDevices.size() - 1;
+            }
             if (gpuID < 0 || gpuID == -1) gpuID = 0;
             auto& gpu = physicalDevices[gpuID];
 

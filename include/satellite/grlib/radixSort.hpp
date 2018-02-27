@@ -1,9 +1,9 @@
 #pragma once
 
-#include "./utils.hpp"
+#include "../utils.hpp"
 
 namespace NSM {
-    namespace rt {
+    namespace gr {
 
         class RadixSort {
         protected:

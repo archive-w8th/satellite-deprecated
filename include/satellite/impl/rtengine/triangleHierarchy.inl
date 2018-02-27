@@ -9,7 +9,7 @@ namespace NSM {
             this->device = _device;
 
             // create radix sort (planned dedicated sorter)
-            radixSort = std::shared_ptr<RadixSort>(new RadixSort(device, shadersPathPrefix));
+            radixSort = std::shared_ptr<gr::RadixSort>(new gr::RadixSort(device, shadersPathPrefix));
 
 
             // descriptor set bindings

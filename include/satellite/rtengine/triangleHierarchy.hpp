@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../radixSort.hpp"
+#include "../grlib/radixSort.hpp"
 #include "./structs.hpp"
 #include "./vertexInstance.hpp"
 
@@ -9,7 +9,7 @@ namespace NSM {
 
         class TriangleHierarchy {
         protected:
-            std::shared_ptr<RadixSort> radixSort;
+            std::shared_ptr<gr::RadixSort> radixSort;
             const size_t INTENSIVITY = 512;
             const size_t WARPED_WIDTH = 2048;
             const size_t _WIDTH = 6144;

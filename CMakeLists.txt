@@ -8,27 +8,29 @@ if (COMPILER_ID MATCHES "MSVC")
 endif()
 
 set(SOURCES_LIST 
-    "./external/include/*/*.hpp"
-    "./external/include/*/*.hh"
-    "./external/include/*/*.h"
-    "./external/include/*/*/*.hpp"
-    "./external/include/*/*/*.hh"
-    "./external/include/*/*/*.h"
-    "./external/include/*.hpp"
-    "./external/include/*.hh"
-    "./external/include/*.h"
-    "./external/imgui/*.hpp"
-    "./external/imgui/*.hh"
-    "./external/imgui/*.h"
-    "./external/imgui/imgui_draw.cpp"
-    "./external/imgui/imgui.cpp"
-    "./include/satellite/*.hpp"
-    "./include/satellite/*.inl"
-    "./include/satellite/*/*.hpp"
-    "./include/satellite/*/*.inl"
-    "./include/satellite/*/*/*.hpp"
-    "./include/satellite/*/*/*.inl"
-    "./source/*.hpp"
+    "./testapps/include/*/*.hpp"
+    "./testapps/include/*/*.hh"
+    "./testapps/include/*/*.h"
+    "./testapps/include/*/*/*.hpp"
+    "./testapps/include/*/*/*.hh"
+    "./testapps/include/*/*/*.h"
+    "./testapps/include/*.hpp"
+    "./testapps/include/*.hh"
+    "./testapps/include/*.h"
+    "./testapps/imgui/*.hpp"
+    "./testapps/imgui/*.hh"
+    "./testapps/imgui/*.h"
+    "./testapps/imgui/imgui_draw.cpp"
+    "./testapps/imgui/imgui.cpp"
+    "./testapps/source/*.hpp"
+    
+    "./include/*/*.hpp"
+    "./include/*/*.inl"
+    "./include/*/*/*.hpp"
+    "./include/*/*/*.inl"
+    "./include/*/*/*/*.hpp"
+    "./include/*/*/*/*.inl"
+    
 )
 
 set (DEFINES
@@ -45,8 +47,8 @@ set (DEFINES
 )
 
 set (DEP_DIR "${PROJECT_SOURCE_DIR}")
-set (LIB_DIR "${CMAKE_MODULE_PATH}/lib"     "${DEP_DIR}/lib"     "${DEP_DIR}/external/lib"     "${DEP_DIR}/external/vk-sdk/lib"     "${DEP_DIR}/external/vk-sdk/bin")
-set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/external/include" "${DEP_DIR}/external/vk-sdk/include" "${DEP_DIR}/external/imgui" "${PROJECT_SOURCE_DIR}")
+set (LIB_DIR "${CMAKE_MODULE_PATH}/lib"     "${DEP_DIR}/lib"     "${DEP_DIR}/testapps/lib")
+set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/testapps/include" "${DEP_DIR}/testapps/imgui" "${PROJECT_SOURCE_DIR}")
 
 set (CMAKE_MODULE_PATH 
     "${DEP_DIR}/modules" 
@@ -63,7 +65,6 @@ find_package(CUDA QUIET)
 find_package(OptiX QUIET)
 endif()
 
-
 set (LIBS 
 	${Vulkan_LIBRARY} 
     glfw3 
@@ -72,7 +73,6 @@ set (LIBS
     jpeg-static
     zlibstatic
 )
-
 
 # if OptiX was has
 if (OptiX_INSTALL_DIR AND ENABLE_OPTIX_DENOISER) 
@@ -83,11 +83,6 @@ if (ENABLE_OPTIX_DENOISER)
 set (DEFINES ${DEFINES} -DOPTIX_DENOISER_HACK)
 endif()
 endif()
-
-
-
-
-
 
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_STANDARD 17)
@@ -116,7 +111,7 @@ link_directories(${LIB_DIR})
 include_directories(${INCLUDE_LIST})
 file (GLOB RSOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${SOURCES_LIST})
 
-add_executable(${APPLICATION_NAME} source/gltfViewer.cpp ${RSOURCES})
+add_executable(${APPLICATION_NAME} testapps/source/gltfViewer.cpp ${RSOURCES})
 target_link_libraries(${APPLICATION_NAME} ${LIBS})
 
 foreach(source IN LISTS RSOURCES)

@@ -22,5 +22,3 @@
 * GLM 
 * Vulkan API (and Vulkan-Hpp)
 * Vulkan memory allocator
-
-BUT! All deps is not "Release" stage. 

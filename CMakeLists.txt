@@ -78,8 +78,8 @@ set (LIBS
 	${Vulkan_LIBRARY} 
     glfw3 
     libpng16_static
-    jpeg
-    jpeg-static
+    turbojpeg
+    turbojpeg-static
     zlibstatic
 )
 

@@ -1,9 +1,9 @@
 /* jconfig.vc --- jconfig.h for Microsoft Visual C++ on Windows 95 or NT. */
 /* see jconfig.txt for explanations */
 
-#define JPEG_LIB_VERSION 62
-#define LIBJPEG_TURBO_VERSION 1.5.3
-#define LIBJPEG_TURBO_VERSION_NUMBER 1005003
+#define JPEG_LIB_VERSION 80
+#define LIBJPEG_TURBO_VERSION 1.5.4
+#define LIBJPEG_TURBO_VERSION_NUMBER 1005004
 #define C_ARITH_CODING_SUPPORTED
 #define D_ARITH_CODING_SUPPORTED
 #define MEM_SRCDST_SUPPORTED

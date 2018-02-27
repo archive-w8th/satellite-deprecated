@@ -1,7 +1,7 @@
 //#pragma once
 
 #include "../../utils.hpp"
-#include "../materialSet.hpp"
+#include "../../rtengine/materialSet.hpp"
 
 namespace NSM {
     namespace rt {

@@ -1,28 +1,21 @@
 #pragma once
 
-#include <iomanip>
-#include "imgui.h"
 
-#ifdef OS_WIN
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#endif
 
-#ifdef OS_LNX
-#define GLFW_EXPOSE_NATIVE_X11
-#define GLFW_EXPOSE_NATIVE_GLX
-#endif
 
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
+
 #include <functional>
 #include <sstream>
+#include <iomanip>
 
-#include "satellite/rtengine/rtengine.hpp"
-#include "satellite/appBase.hpp"
-#include "satellite/guiEngine.hpp"
-#include "satellite/ambientIO.hpp"
 #include "args.hxx"
+#include "imgui.h"
+
+#include "satellite/rtengine.hpp"
+#include "satellite/appBase.hpp"
+#include "service/ambientIO.hpp"
+
+
 
 
 

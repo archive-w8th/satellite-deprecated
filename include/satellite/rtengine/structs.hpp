@@ -1,8 +1,5 @@
 #pragma once
 
-//#include "../utils.hpp"
-#include "glm/glm.hpp"
-
 namespace NSM {
     namespace rt {
 

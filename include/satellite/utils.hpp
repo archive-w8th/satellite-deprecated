@@ -9,6 +9,7 @@
 #include <random>
 #include <map>
 
+
 #include "glm/glm.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -17,11 +18,11 @@
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/transform.hpp"
 #include "glm/gtc/random.hpp"
+#include "half.hpp"
 
 
-#ifdef USE_FREEIMAGE
-#include "FreeImage.h"
-#endif
+#include "./vkutils/vkStructures.hpp"
+#include "./vkutils/vkUtils.hpp"
 
 
 #ifdef USE_CIMG
@@ -31,12 +32,6 @@
 #define cimg_use_jpeg
 #include "CImg.h"
 #endif
-
-
-
-#include <half.hpp>
-#include "./vkutils/vkStructures.hpp"
-#include "./vkutils/vkUtils.hpp"
 
 
 

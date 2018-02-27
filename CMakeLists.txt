@@ -46,6 +46,15 @@ set (DEFINES
     -DNSM=ste
 )
 
+if(MSVC OR MSVS OR MSYS OR MINGW)
+    set(DEFINES ${DEFINES} -DOS_WIN) 
+endif()
+
+if(UNIX AND NOT APPLE)
+    set(DEFINES ${DEFINES} -DOS_LNX) 
+endif()
+
+
 set (DEP_DIR "${PROJECT_SOURCE_DIR}")
 set (LIB_DIR "${CMAKE_MODULE_PATH}/lib"     "${DEP_DIR}/lib"     "${DEP_DIR}/testapps/lib")
 set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/testapps/include" "${DEP_DIR}/testapps/imgui" "${PROJECT_SOURCE_DIR}")

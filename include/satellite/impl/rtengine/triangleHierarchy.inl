@@ -1,6 +1,6 @@
 //#pragma once
 
-#include "../triangleHierarchy.hpp"
+#include "../../rtengine/triangleHierarchy.hpp"
 
 namespace NSM {
     namespace rt {

@@ -1,7 +1,7 @@
 //#pragma once
 
 #include "../../utils.hpp"
-#include "../pipeline.hpp"
+#include "../../rtengine/pipeline.hpp"
 
 namespace NSM {
     namespace rt {

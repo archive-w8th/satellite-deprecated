@@ -1,13 +1,14 @@
-﻿#include "Windows.h"
+﻿#pragma once
 
-#include "satellite/vkutils/vkUtils.hpp"
-#include "satellite/ambientIO.hpp"
+
+
 #include "application.hpp"
+
 
 
 // implement our engine in same as application
 #define RT_ENGINE_IMPLEMENT 
-#include "satellite/rtengine/rtengine.hpp"
+#include "satellite/rtengine.hpp"
 
 
 // load tinygltf in same implementation as application

@@ -1,19 +1,15 @@
-# Satellite 
+# Satellite OEM
 
-> Ray tracing based render engine. We optimizing for sort of games and interactive applications. 
+> Ray tracing source codes and SDK for making render and game engines (DIY). 
+> 27.02.2018 we ending support as "engine", and requalifying as "make engine by yourself"
 
-### Features
+### Features from carton box
 
-* Speed of light structure traversing
-* Optimized BVH builder for dynamic scenes
-* Tile based ray and shading managment 
-* Full support of 3D dimension 
-* Support of all sort projections (in our shaders only matrix and panoramic)
-* Open source and free 
-
-### Videos
-
-* Coming soon new videos...
+* Simple vertex data loader for accelerator builder
+* Optimized HLBVH acceleration structure 
+* Optimized radix-sort (64/4-bits)
+* Optimized ray tracing pipeline (tile-based)
+* One testing example application (source code)
 
 ### Contacts 
 

@@ -6,6 +6,7 @@
 
 ### Features from carton box
 
+* Based on Vulkan API (compute purpose)
 * Simple vertex data loader for accelerator builder
 * Optimized HLBVH acceleration structure 
 * Optimized radix-sort (64/4-bits)

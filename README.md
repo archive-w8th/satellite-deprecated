@@ -2,7 +2,7 @@
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
-**27.02.2018** We ending support as "engine", and requalifying as "make engine by yourself"
+**27.02.2018**: We ending support as "engine", and requalifying as "make engine by yourself"
 
 ### Features from carton box
 

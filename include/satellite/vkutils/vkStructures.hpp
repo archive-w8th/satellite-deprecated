@@ -48,6 +48,7 @@ namespace NSM {
         vk::FormatProperties colorFormatProperties;
     };
 
+
     // framebuffer with command buffer and fence
     struct Framebuffer {
         vk::Framebuffer frameBuffer;
@@ -55,6 +56,7 @@ namespace NSM {
         vk::Fence waitFence;
         vk::Semaphore semaphore;
     };
+
 
     // buffer with memory
     struct Buffer {
@@ -66,6 +68,7 @@ namespace NSM {
         vk::Buffer buffer;
         vk::DescriptorBufferInfo descriptorInfo;
     };
+
 
     // texture
     struct Texture {
@@ -85,12 +88,32 @@ namespace NSM {
     };
 
 
+    // sampler
+    struct Sampler {
+        bool initialized = false;
+        DeviceQueueType device;
+        vk::Sampler sampler;
+        vk::DescriptorImageInfo descriptorInfo;
+    };
 
 
-    // use alias
+    
+    // shared pointer for objects
     using BufferType = std::shared_ptr<Buffer>;
     using TextureType = std::shared_ptr<Texture>;
+    using SamplerType = std::shared_ptr<Sampler>;
 
+
+    
+    struct TextureCombined {
+        TextureType texture;
+        SamplerType sampler;
+        vk::DescriptorBufferInfo descriptorInfo;
+        vk::DescriptorBufferInfo& combine() { // TODO for implement
+
+            return descriptorInfo;
+        }
+    };
 
 
 

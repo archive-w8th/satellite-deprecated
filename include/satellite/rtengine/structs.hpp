@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../utils.hpp"
+
 namespace NSM {
     namespace rt {
 
@@ -185,17 +187,15 @@ namespace NSM {
             float alpharef = 0.0f;
             float unk0f = 0.0f;
 
-            uint32_t diffusePart = 0;
-            uint32_t specularPart = 0;
-            uint32_t bumpPart = 0;
-            uint32_t emissivePart = 0;
+            uint32_t diffuseTexture = 0, diffuseSampler = 0;
+            uint32_t specularTexture = 0, specularSampler = 0;
+            uint32_t bumpTexture = 0, bumpSampler = 0;
+            uint32_t emissiveTexture = 0, emissiveSampler = 0;
 
             int32_t flags = 0;
             int32_t alphafunc = 0;
             int32_t binding = 0;
             int32_t bitfield = 0;
-
-            glm::ivec4 iModifiers0 = glm::ivec4(0);
         };
 
 

@@ -29,17 +29,15 @@ struct Material {
      float alpharef;
      float unk0f;
 
-      int diffusePart;
-      int specularPart;
-      int bumpPart;
-      int emissivePart;
+     uint diffuseTexture, diffuseSampler;
+     uint specularTexture, specularSampler;
+     uint bumpTexture, bumpSampler;
+     uint emissiveTexture, emissiveSampler;
 
      int flags;
      int alphafunc;
      int binding;
      int bitfield;
-
-     ivec4 iModifiers0;
 };
 
 const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 16;
@@ -52,76 +50,114 @@ layout ( binding = 0, set = 2 ) uniform texture2D textures[MAX_TEXTURES];
 layout ( binding = 1, set = 2 ) uniform sampler samplers[MAX_SAMPLERS];
 
 
+// legacy functions (in 2017 years been testing in Neverball and Minecraft)
+bool haveProp(in Material material, in int prop) { return (material.flags & prop) > 0; }
+bool haveProp(in int flags, in int prop) { return (flags & prop) > 0; }
 
-bool haveProp(in Material material, in int prop) {
-    return (material.flags & prop) > 0;
+
+// validate texture object
+bool validateTexture(in uint binding) {
+    int _binding = int(binding)-1;
+    return _binding >= 0 && _binding < MAX_TEXTURES && textureSize(sampler2D(textures[_binding], samplers[0]), 0).x > 0;
 }
 
-bool haveProp(in int flags, in int prop) {
-    return (flags & prop) > 0;
-}
-
-bool validateTexture(in int binding) {
-    int _binding = binding-1;
-    return binding > 0 && binding != LONGEST && binding <= MAX_TEXTURES && textureSize(sampler2D(textures[_binding], samplers[0]), 0).x > 0;
-}
-
-vec4 fetchTexture(in int binding, in vec2 texcoord) {
-    int _binding = binding-1;
-    vec4 result = texture(sampler2D(textures[_binding], samplers[0]), texcoord);
+// reserved sampler based versions
+vec4 fetchTexture(in uint binding, in uint samplerId, in vec2 texcoord) {
+    int _binding = int(binding)-1, _sampler = int(samplerId)-1;
+    vec4 result = texture(sampler2D(textures[_binding], samplers[_sampler]), texcoord);
     result = mix(result, vec4(0.f), or(isnan(result), isinf(result)));
     return result;
 }
 
-vec4 fetchTexture(in int binding, in vec2 texcoord, in ivec2 offset) {
-    int _binding = binding-1;
-    vec4 result = texture(sampler2D(textures[_binding], samplers[0]), texcoord + vec2(offset) / textureSize(sampler2D(textures[_binding], samplers[0]), 0));
+vec4 fetchTexture(in uint binding, in uint samplerId, in vec2 texcoord, in ivec2 offset) {
+    int _binding = int(binding)-1, _sampler = int(samplerId)-1;
+    vec4 result = texture(sampler2D(textures[_binding], samplers[_sampler]), texcoord + vec2(offset) / textureSize(sampler2D(textures[_binding], samplers[_sampler]), 0));
     result = mix(result, vec4(0.f), or(isnan(result), isinf(result)));
     return result;
 }
 
+
+
+
+vec4 fetchTexture(in uint binding, in vec2 texcoord) {
+    return fetchTexture(binding, 1u, texcoord);
+}
+
+vec4 fetchTexture(in uint binding, in vec2 texcoord, in ivec2 offset) {
+    return fetchTexture(binding, 1u, texcoord, offset);
+}
+
+
+
+
+// specular
 vec4 fetchSpecular(in Material mat, in vec2 texcoord) {
     vec4 specular = mat.specular;
-    if (validateTexture(mat.specularPart)) {
-        specular = fetchTexture(mat.specularPart, texcoord);
+    if (validateTexture(mat.specularTexture)) {
+        specular = fetchTexture(mat.specularTexture, texcoord);
     }
     return specular;
 }
 
+
+// emission
 vec4 fetchEmissive(in Material mat, in vec2 texcoord) {
     vec4 emission = vec4(0.0f);
-    if (validateTexture(mat.emissivePart)) {
-        emission = fetchTexture(mat.emissivePart, texcoord);
+    if (validateTexture(mat.emissiveTexture)) {
+        emission = fetchTexture(mat.emissiveTexture, texcoord);
     }
     return emission;
 }
 
+
+// does not support tranmission texture at moment
 vec4 fetchTransmission(in Material mat, in vec2 texcoord) {
     return mat.transmission;
 }
 
+
+// diffuse color 
+vec4 fetchDiffuse(in Material mat, in vec2 texcoord) {
+    vec4 result = max(vec4(mat.diffuse.xyz, 1.f), vec4(0.f));
+    if (validateTexture(mat.diffuseTexture)) {
+        result = fetchTexture(mat.diffuseTexture, texcoord);
+    }
+    return result;
+}
+
+
+
+
+
+// raw normal
 vec4 fetchNormal(in Material mat, in vec2 texcoord) {
     vec4 nmap = vec4(0.5f, 0.5f, 1.0f, 1.0f);
-    if (validateTexture(mat.bumpPart)) {
-        nmap = fetchTexture(mat.bumpPart, vec2(texcoord.x, texcoord.y));
+    if (validateTexture(mat.bumpTexture)) {
+        nmap = fetchTexture(mat.bumpTexture, vec2(texcoord.x, texcoord.y));
     }
     return nmap;
 }
 
+
+// raw normal
 vec4 fetchNormal(in Material mat, in vec2 texcoord, in ivec2 offset) {
     vec4 nmap = vec4(0.5f, 0.5f, 1.0f, 1.0f);
-    if (validateTexture(mat.bumpPart)) {
-        nmap = fetchTexture(mat.bumpPart, vec2(texcoord.x, texcoord.y), offset);
+    if (validateTexture(mat.bumpTexture)) {
+        nmap = fetchTexture(mat.bumpTexture, vec2(texcoord.x, texcoord.y), offset);
     }
     return nmap;
 }
 
 
-vec3 getUVH(in int binding, in vec2 texcoord){
+
+vec3 getUVH(in uint binding, in vec2 texcoord){
     return vec3(texcoord, fetchTexture(binding, texcoord).x);
 }
 
-vec3 getNormalMapping(in int binding, vec2 texcoordi) {
+
+
+// generated normal mapping
+vec3 getNormalMapping(in uint binding, vec2 texcoordi) {
     vec3 tc = fetchTexture(binding, texcoordi).xyz;
     vec3 normal = vec3(0.0f, 0.0f, 1.0f);
     IF (equalF(tc.x, tc.y) & equalF(tc.x, tc.z)) {
@@ -142,13 +178,7 @@ vec3 getNormalMapping(in int binding, vec2 texcoordi) {
     return normal;
 }
 
-vec4 fetchDiffuse(in Material mat, in vec2 texcoord) {
-    vec4 result = max(vec4(mat.diffuse.xyz, 1.f), vec4(0.f));
-    if (validateTexture(mat.diffusePart)) {
-        result = fetchTexture(mat.diffusePart, texcoord);
-    }
-    return result;
-}
+
 
 
 struct Textured {
@@ -159,8 +189,8 @@ struct Textured {
 } textured;
 
 
+
 #define material submats[matID]
-//#define hit hits[globalID]
 #define ray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE].data
 
 LOCAL_SIZE_LAYOUT;
@@ -309,19 +339,19 @@ void main() {
                 IFALL(wasTextured) break;
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
                     // do parallax mapping
-                    if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
-                    if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
-                    if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
-                    if (validateTexture(material.emissivePart)) textured.emissive = fetchTexture(material.emissivePart, texcoord);
+                    if (validateTexture(material.bumpTexture)) textured.bump.xyz = getNormalMapping(material.bumpTexture, texcoord);
+                    if (validateTexture(material.diffuseTexture)) textured.diffuse = fetchTexture(material.diffuseTexture, texcoord);
+                    if (validateTexture(material.specularTexture)) textured.specular = fetchTexture(material.specularTexture, texcoord);
+                    if (validateTexture(material.emissiveTexture)) textured.emissive = fetchTexture(material.emissiveTexture, texcoord);
                     wasTextured = true;
                 }
             }
 #else
             // do parallax mapping
-            if (validateTexture(material.diffusePart)) textured.diffuse = fetchTexture(material.diffusePart, texcoord);
-            if (validateTexture(material.specularPart)) textured.specular = fetchTexture(material.specularPart, texcoord);
-            if (validateTexture(material.emissivePart)) textured.emissive = fetchTexture(material.emissivePart, texcoord);
-            if (validateTexture(material.bumpPart)) textured.bump.xyz = getNormalMapping(material.bumpPart, texcoord);
+            if (validateTexture(material.diffuseTexture)) textured.diffuse = fetchTexture(material.diffuseTexture, texcoord);
+            if (validateTexture(material.specularTexture)) textured.specular = fetchTexture(material.specularTexture, texcoord);
+            if (validateTexture(material.emissiveTexture)) textured.emissive = fetchTexture(material.emissiveTexture, texcoord);
+            if (validateTexture(material.bumpTexture)) textured.bump.xyz = getNormalMapping(material.bumpTexture, texcoord);
 #endif
 
             vec4 diffuse = textured.diffuse; diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));

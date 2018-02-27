@@ -635,8 +635,37 @@ namespace NSM {
             }, nullptr);
         }
 
+
+
+        void Pipeline::setSamplerSet(std::shared_ptr<SamplerSet>& samplerSet) {
+            if (!samplerSet || !samplerSet->haveSamplers()) return;
+
+            // fill by textures
+            std::vector<vk::DescriptorImageInfo> images;
+            auto textures = samplerSet->getSamplers();
+
+            // push descriptors
+            for (int i = 0; i < MAX_SURFACE_IMAGES; i++) {
+                if (i >= textures.size()) break;
+                images.push_back(textures[i]->descriptorInfo);
+            }
+
+            // update descriptors 
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                vk::WriteDescriptorSet()
+                    .setDstSet(surfaceDescriptors[2])
+                    .setDstBinding(1)
+                    .setDstArrayElement(0)
+                    .setDescriptorCount(images.size())
+                    .setDescriptorType(vk::DescriptorType::eSampler)
+                    .setPImageInfo(images.data())
+            }, nullptr);
+        }
+
+
+
         void Pipeline::setTextureSet(std::shared_ptr<TextureSet>& textureSet) {
-            if (!textureSet->haveTextures()) return;
+            if (!textureSet || !textureSet->haveTextures()) return;
 
             // fill by textures
             std::vector<vk::DescriptorImageInfo> images;

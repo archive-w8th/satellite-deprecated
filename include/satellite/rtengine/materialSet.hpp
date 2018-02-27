@@ -1,7 +1,6 @@
 #pragma once
 
 #include "./structs.hpp"
-#include "./textureSet.hpp"
 
 namespace NSM {
     namespace rt {
@@ -10,7 +9,6 @@ namespace NSM {
         protected:
             DeviceQueueType device;
             std::vector<VirtualMaterial> materials;
-            std::shared_ptr<TextureSet> textureSet;
             BufferType countBuffer;
             BufferType materialBuffer;
             BufferType materialStaging;

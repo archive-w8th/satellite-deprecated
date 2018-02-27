@@ -3,6 +3,8 @@
 #include "./structs.hpp"
 #include "./triangleHierarchy.hpp"
 #include "./materialSet.hpp"
+#include "./textureSet.hpp"
+#include "./samplerSet.hpp"
 
 namespace NSM {
     namespace rt {
@@ -103,8 +105,11 @@ namespace NSM {
             void collectSamples();
             void rayShading();
             void generate(const glm::dmat4 &persp, const glm::dmat4 &frontSide);
+
+            void setSamplerSet(std::shared_ptr<SamplerSet>& samplerSet);
             void setTextureSet(std::shared_ptr<TextureSet>& textureSet);
             void setMaterialSet(std::shared_ptr<MaterialSet>& materialSet);
+
             void traverse(std::shared_ptr<TriangleHierarchy>& hierarchy);
 
             uint32_t getCanvasWidth();

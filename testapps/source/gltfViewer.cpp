@@ -57,6 +57,7 @@ namespace SatelliteExample {
         std::shared_ptr<CameraController> cam;
         std::shared_ptr<rt::MaterialSet> materialManager;
         std::shared_ptr<rt::TextureSet> textureManager;
+        std::shared_ptr<rt::SamplerSet> samplerManager;
 
         // experimental GUI
         bool show_test_window = true, show_another_window = false;
@@ -132,6 +133,7 @@ namespace SatelliteExample {
         // init material system
         materialManager = std::shared_ptr<rt::MaterialSet>(new rt::MaterialSet(device));
         textureManager = std::shared_ptr<rt::TextureSet>(new rt::TextureSet(device));
+        samplerManager = std::shared_ptr<rt::SamplerSet>(new rt::SamplerSet(device));
 
         // load env map 
         auto cbmap = loadCubemap(bgTexName, device);
@@ -164,7 +166,7 @@ namespace SatelliteExample {
             // diffuse?
 
             int32_t texId = getTextureIndex(material.values["baseColorTexture"].json_double_value);
-            submat.diffusePart = texId >= 0 ? rtTextures[texId] : 0;
+            submat.diffuseTexture = texId >= 0 ? rtTextures[texId] : 0;
 
             if (material.values["baseColorFactor"].number_array.size() >= 3) {
                 submat.diffuse = glm::vec4(glm::make_vec3(&material.values["baseColorFactor"].number_array[0]), 1.0f);
@@ -175,7 +177,7 @@ namespace SatelliteExample {
 
             // metallic roughness
             texId = getTextureIndex(material.values["metallicRoughnessTexture"].json_double_value);
-            submat.specularPart = texId >= 0 ? rtTextures[texId] : 0;
+            submat.specularTexture = texId >= 0 ? rtTextures[texId] : 0;
             submat.specular = glm::vec4(1.0f);
 
             if (material.values["metallicFactor"].number_array.size() >= 1) {
@@ -196,11 +198,11 @@ namespace SatelliteExample {
 
             // emissive texture
             texId = getTextureIndex(material.additionalValues["emissiveTexture"].json_double_value);
-            submat.emissivePart = texId >= 0 ? rtTextures[texId] : 0;
+            submat.emissiveTexture = texId >= 0 ? rtTextures[texId] : 0;
 
             // normal map
             texId = getTextureIndex(material.additionalValues["normalTexture"].json_double_value);
-            submat.bumpPart = texId >= 0 ? rtTextures[texId] : 0;
+            submat.bumpTexture = texId >= 0 ? rtTextures[texId] : 0;
 
             // load material
             materialManager->addMaterial(submat);
@@ -396,12 +398,15 @@ namespace SatelliteExample {
         intersector->markDirty();
         intersector->buildBVH(glm::dmat4(1.0));
 
-        // process ray tracing 
-        rays->generate(perspView, modelView);
 
+        // bind materials and textures
         rays->setMaterialSet(materialManager);
         rays->setTextureSet(textureManager);
+        rays->setSamplerSet(samplerManager);
 
+
+        // process ray tracing 
+        rays->generate(perspView, modelView);
         for (int32_t j = 0; j < depth; j++) {
             if (rays->getRayCount() <= 1) break;
             rays->traverse(intersector);

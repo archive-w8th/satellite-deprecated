@@ -19,7 +19,6 @@ namespace NSM {
         MaterialSet::MaterialSet(MaterialSet& another) {
             device = another.device;
             materials = another.materials;
-            textureSet = another.textureSet;
             countBuffer = another.countBuffer;
             materialBuffer = another.materialBuffer;
             materialStaging = another.materialStaging;
@@ -30,7 +29,6 @@ namespace NSM {
         MaterialSet::MaterialSet(MaterialSet&& another) {
             device = std::move(another.device);
             materials = std::move(another.materials);
-            textureSet = std::move(another.textureSet);
             countBuffer = std::move(another.countBuffer);
             materialBuffer = std::move(another.materialBuffer);
             materialStaging = std::move(another.materialStaging);

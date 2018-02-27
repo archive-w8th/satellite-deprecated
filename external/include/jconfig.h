@@ -1,7 +1,7 @@
 /* jconfig.vc --- jconfig.h for Microsoft Visual C++ on Windows 95 or NT. */
 /* see jconfig.txt for explanations */
 
-#define JPEG_LIB_VERSION 80
+#define JPEG_LIB_VERSION 62
 #define LIBJPEG_TURBO_VERSION 1.5.3
 #define LIBJPEG_TURBO_VERSION_NUMBER 1005003
 #define C_ARITH_CODING_SUPPORTED
@@ -17,7 +17,7 @@
  * We do not support run-time selection of data precision, sorry.
  */
 
-#define BITS_IN_JSAMPLE  12      /* use 8 or 12 */
+#define BITS_IN_JSAMPLE  8      /* use 8 or 12 */
 
 #define HAVE_UNSIGNED_CHAR
 #define HAVE_UNSIGNED_SHORT

@@ -1,15 +1,19 @@
 ﻿#include "Windows.h"
-#include <tiny_gltf.h>
 
 #include "satellite/vkutils/vkUtils.hpp"
 #include "satellite/ambientIO.hpp"
 #include "application.hpp"
 
 
-// load implementations
+// implement our engine in same as application
 #define RT_ENGINE_IMPLEMENT 
 #include "satellite/rtengine/rtengine.hpp"
-#include "satellite/impl/radixSort.inl"
+
+
+// load tinygltf in same implementation as application
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include <tiny_gltf.h>
 
 
 // application space itself

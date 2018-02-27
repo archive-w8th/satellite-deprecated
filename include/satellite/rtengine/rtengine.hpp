@@ -7,13 +7,12 @@
 #include "./materialSet.hpp"
 #include "./vertexInstance.hpp"
 #include "./vertexSubnodes.hpp"
+#include "../utils.hpp"
 
 // for C++ files, or implementations
 #ifdef RT_ENGINE_IMPLEMENT
-// dependency
-#include "../utils.hpp"
-
-// implementations
+#include "../impl/utils.inl"
+#include "../impl/radixSort.inl"
 #include "./impl/pipeline.inl"
 #include "./impl/triangleHierarchy.inl"
 #include "./impl/textureSet.inl"

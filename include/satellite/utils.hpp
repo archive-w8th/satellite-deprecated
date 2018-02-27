@@ -18,20 +18,27 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/gtc/random.hpp"
 
+
 #ifdef USE_FREEIMAGE
 #include "FreeImage.h"
 #endif
 
+
 #ifdef USE_CIMG
-#define cimg_use_tinyexr
+#include "tinyexr.h"
+#define cimg_plugin "CImg/tinyexr_plugin.hpp"
 #define cimg_use_png
 #define cimg_use_jpeg
-#include "CImg.h"
+#include "CImg/CImg.h"
 #endif
+
+
 
 #include <half.hpp>
 #include "./vkutils/vkStructures.hpp"
 #include "./vkutils/vkUtils.hpp"
+
+
 
 #ifndef NSM
 #define NSM ste

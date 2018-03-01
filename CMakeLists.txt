@@ -24,10 +24,13 @@ set(SOURCES_LIST
     "./testapps/imgui/imgui.cpp"
     "./testapps/source/*.hpp"
     
+    "./include/*/*.h"
     "./include/*/*.hpp"
     "./include/*/*.inl"
+    "./include/*/*/*.h"
     "./include/*/*/*.hpp"
     "./include/*/*/*.inl"
+    "./include/*/*/*/*.h"
     "./include/*/*/*/*.hpp"
     "./include/*/*/*/*.inl"
     

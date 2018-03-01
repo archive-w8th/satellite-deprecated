@@ -48,7 +48,6 @@ namespace SatelliteExample {
 
         {
             auto command = getCommandBuffer(device, true);
-            imageBarrier(command, texture);
             bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
             memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })

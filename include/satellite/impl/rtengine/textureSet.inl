@@ -83,7 +83,6 @@ namespace NSM {
             // purple-black square
             {
                 auto command = getCommandBuffer(device, true);
-                imageBarrier(command, texture);
                 bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(uint8_t), 0);
                 memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                     .setImageExtent({ width, height, 1 })
@@ -127,10 +126,6 @@ namespace NSM {
             // create texture
             auto texture = createTexture(device, vk::ImageType::e2D, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eB8G8R8A8Unorm, 1);
             auto tstage = createBuffer(device, imageData.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-            auto command = getCommandBuffer(device, true);
-            imageBarrier(command, texture);
-            flushCommandBuffer(device, command, true);
 
             // purple-black square
             bufferSubData(tstage, imageData);

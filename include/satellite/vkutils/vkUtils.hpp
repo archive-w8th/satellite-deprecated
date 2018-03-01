@@ -215,76 +215,76 @@ namespace NSM {
     // create texture object
     auto createTexture(const DeviceQueueType& deviceQueue, vk::ImageViewType imageViewType, vk::ImageLayout layout, vk::Extent3D size, vk::ImageUsageFlags usage, vk::Format format = vk::Format::eR8G8B8A8Unorm, uint32_t mipLevels = 1, VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
         std::shared_ptr<Texture> texture(new Texture);
-
-        // link device
         texture->device = deviceQueue;
-
-        // use this layout
         texture->layout = layout;
-        texture->initialLayout = vk::ImageLayout::ePreinitialized;//vk::ImageLayout::eUndefined;
+        texture->initialLayout = vk::ImageLayout::eUndefined;
 
+
+        // init image dimensional type
         vk::ImageType imageType = vk::ImageType::e2D;
         bool isCubemap = false;
         switch (imageViewType) {
-        case vk::ImageViewType::e1D: imageType = vk::ImageType::e1D; break;
-        case vk::ImageViewType::e1DArray: imageType = vk::ImageType::e2D; break;
-        case vk::ImageViewType::e2D: imageType = vk::ImageType::e2D; break;
-        case vk::ImageViewType::e2DArray: imageType = vk::ImageType::e3D; break;
-        case vk::ImageViewType::e3D: imageType = vk::ImageType::e3D; break;
-        case vk::ImageViewType::eCube: imageType = vk::ImageType::e3D; isCubemap = true; break;
-        case vk::ImageViewType::eCubeArray: imageType = vk::ImageType::e3D; isCubemap = true; break;
+            case vk::ImageViewType::e1D: imageType = vk::ImageType::e1D; break;
+            case vk::ImageViewType::e1DArray: imageType = vk::ImageType::e2D; break;
+            case vk::ImageViewType::e2D: imageType = vk::ImageType::e2D; break;
+            case vk::ImageViewType::e2DArray: imageType = vk::ImageType::e3D; break;
+            case vk::ImageViewType::e3D: imageType = vk::ImageType::e3D; break;
+            case vk::ImageViewType::eCube: imageType = vk::ImageType::e3D; isCubemap = true; break;
+            case vk::ImageViewType::eCubeArray: imageType = vk::ImageType::e3D; isCubemap = true; break;
         };
+
+
 
         // image memory descriptor 
         auto imageInfo = vk::ImageCreateInfo();
         imageInfo.initialLayout = texture->initialLayout;
         imageInfo.imageType = imageType;
         imageInfo.sharingMode = vk::SharingMode::eExclusive;
-        imageInfo.arrayLayers = 1;
+        imageInfo.arrayLayers = 1; // unsupported
         imageInfo.tiling = vk::ImageTiling::eOptimal;
         imageInfo.extent = { size.width, size.height, size.depth * (isCubemap ? 6 : 1) };
         imageInfo.format = format;
         imageInfo.mipLevels = mipLevels;
         imageInfo.pQueueFamilyIndices = &deviceQueue->mainQueue->familyIndex;
         imageInfo.queueFamilyIndexCount = 1;
-        imageInfo.samples = vk::SampleCountFlagBits::e1;
+        imageInfo.samples = vk::SampleCountFlagBits::e1; // at now not supported MSAA
         imageInfo.usage = usage;
 
-        VmaAllocationCreateInfo allocCreateInfo = {};
-        allocCreateInfo.usage = usageType;
 
-        VkImage _image;
-        vmaCreateImage(deviceQueue->allocator, &(VkImageCreateInfo)imageInfo, &allocCreateInfo, &_image, &texture->allocation, &texture->allocationInfo);
-        texture->image = _image, texture->format = format;
+        // create image with allocation
+        VmaAllocationCreateInfo allocCreateInfo = {}; allocCreateInfo.usage = usageType;
+        vmaCreateImage(deviceQueue->allocator, &(VkImageCreateInfo)imageInfo, &allocCreateInfo, (VkImage*)&texture->image, &texture->allocation, &texture->allocationInfo);
+
 
         // subresource range
-        texture->subresourceRange.levelCount = 1;
         texture->subresourceRange.levelCount = 1;
         texture->subresourceRange.layerCount = 1;
         texture->subresourceRange.baseMipLevel = 0;
         texture->subresourceRange.baseArrayLayer = 0;
         texture->subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 
+
         // subresource layers
-        texture->subresourceLayers.layerCount = texture->subresourceRange.levelCount;
+        texture->subresourceLayers.layerCount = texture->subresourceRange.layerCount;
         texture->subresourceLayers.baseArrayLayer = texture->subresourceRange.baseArrayLayer;
         texture->subresourceLayers.aspectMask = texture->subresourceRange.aspectMask;
         texture->subresourceLayers.mipLevel = texture->subresourceRange.baseMipLevel;
 
-        // create image view
-        auto imageViewInfo = vk::ImageViewCreateInfo();
-        imageViewInfo.subresourceRange = texture->subresourceRange;
-        imageViewInfo.viewType = imageViewType;
-        imageViewInfo.components = vk::ComponentMapping();
-        imageViewInfo.image = texture->image;
-        imageViewInfo.format = format;
-        imageViewInfo.components = vk::ComponentMapping(vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA);
-        texture->view = deviceQueue->logical.createImageView(imageViewInfo);
 
         // descriptor for usage
+        texture->view = deviceQueue->logical.createImageView(
+            vk::ImageViewCreateInfo()
+                .setSubresourceRange(texture->subresourceRange)
+                .setViewType(imageViewType)
+                .setComponents(vk::ComponentMapping(vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA))
+                .setImage(texture->image)
+                .setFormat(format)
+        );
         texture->descriptorInfo = vk::DescriptorImageInfo(nullptr, texture->view, texture->layout);
         texture->initialized = true;
 
+
+        // do layout transition
         auto commandBuffer = getCommandBuffer(deviceQueue, true);
         imageBarrier(commandBuffer, texture); // transit to new layouts
         flushCommandBuffer(deviceQueue, commandBuffer, true);
@@ -303,7 +303,7 @@ namespace NSM {
 
 
     // create buffer function
-    auto createBuffer(const DeviceQueueType& deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType, vk::SharingMode sharingMode = vk::SharingMode::eExclusive) {
+    auto createBuffer(const DeviceQueueType& deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType) {
         std::shared_ptr<Buffer> buffer(new Buffer);
 
         // link with device
@@ -313,17 +313,16 @@ namespace NSM {
             vk::BufferCreateFlags(),
             bufferSize,
             usageBits,
-            sharingMode,
+            vk::SharingMode::eExclusive,
             1, &deviceQueue->mainQueue->familyIndex
         );
 
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usageType;
-        if (usageType != VMA_MEMORY_USAGE_GPU_ONLY) allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        if (usageType != VMA_MEMORY_USAGE_GPU_ONLY) { allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT; }
 
-        VkBuffer _buffer;
-        vmaCreateBuffer(deviceQueue->allocator, &(VkBufferCreateInfo)binfo, &allocCreateInfo, &_buffer, &buffer->allocation, &buffer->allocationInfo);
-        buffer->buffer = _buffer; // risen back a buffer
+        vmaCreateBuffer(deviceQueue->allocator, &(VkBufferCreateInfo)binfo, &allocCreateInfo,    
+            (VkBuffer*)&buffer->buffer, &buffer->allocation, &buffer->allocationInfo);
 
         // add state descriptor info
         buffer->descriptorInfo = vk::DescriptorBufferInfo(buffer->buffer, 0, bufferSize);

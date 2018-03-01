@@ -115,6 +115,7 @@ namespace NSM {
             //"VK_LAYER_LUNARG_parameter_validation",
             //"VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_core_validation",
+
             "VK_LAYER_AMD_switchable_graphics",
             "VK_LAYER_GOOGLE_threading",
             "VK_LAYER_NV_optimus"
@@ -126,6 +127,7 @@ namespace NSM {
             //"VK_LAYER_LUNARG_parameter_validation",
             //"VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_core_validation",
+
             "VK_LAYER_AMD_switchable_graphics",
             "VK_LAYER_GOOGLE_threading",
             "VK_LAYER_NV_optimus",
@@ -299,11 +301,17 @@ namespace NSM {
                 deviceQueuePtr->commandPool = createCommandPool(deviceQueuePtr);
 
 
-                // create allocator
+                // create allocator 
                 VmaAllocatorCreateInfo allocatorInfo = {};
                 allocatorInfo.physicalDevice = deviceQueuePtr->physical;
                 allocatorInfo.device = deviceQueuePtr->logical;
+                allocatorInfo.preferredLargeHeapBlockSize = 65536; // 64kb
+                allocatorInfo.flags = 
+                    VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT || 
+                    VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT;
                 vmaCreateAllocator(&allocatorInfo, &deviceQueuePtr->allocator);
+
+
 
                 // pool sizes, and create descriptor pool 
                 std::vector<vk::DescriptorPoolSize> psizes = {

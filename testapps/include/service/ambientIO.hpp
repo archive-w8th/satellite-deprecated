@@ -41,14 +41,6 @@ namespace ambientIO {
     }
 
 
-
-
-
-
-
-
-
-
     // user (coder) friend functions
     void addMouseMoveCallback(std::function<void(GLFWwindow*, double, double)> cb) {
         Listeners::mouseMoveFunctions.push_back(cb);
@@ -119,10 +111,5 @@ namespace ambientIO {
             io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
             io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
         });
-
-        // TODO: 
-        //  mousewheel support
-        //  
-
     }
 };

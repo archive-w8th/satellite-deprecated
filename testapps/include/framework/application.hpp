@@ -9,12 +9,10 @@
 #include <iomanip>
 
 #include "args.hxx"
-#include "imgui.h"
 
 #include "satellite/rtengine.hpp"
 #include "satellite/appBase.hpp"
 #include "service/ambientIO.hpp"
-
 
 using U_MEM_HANDLE = uint8_t * ;
 
@@ -313,17 +311,9 @@ namespace SatelliteExample {
             auto deviceQueue = createDevice(gpu); // create default graphical device
             auto renderpass = createRenderpass(deviceQueue, applicationWindow.surfaceFormat);
 
-            // create GUI rendering engine 
-            //grengine = std::shared_ptr<GuiRenderEngine>(new GuiRenderEngine(deviceQueue, renderpass, shaderPack));
-
-
-
-
-
             // create dedicated buffer zones
             memoryBufferToHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
             memoryBufferFromHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
 
             // init ray tracer
             rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(deviceQueue, shaderPack));
@@ -335,7 +325,6 @@ namespace SatelliteExample {
 
             {
                 auto app = this;
-                //auto geg = this->grengine;
                 auto& cb = this->currentBuffer;
                 auto& sfz = this->applicationWindow.surfaceSize;
 
@@ -356,10 +345,6 @@ namespace SatelliteExample {
                 ambientIO::addMouseMoveCallback([app](GLFWwindow* window, double x, double y) {
                     if (app) app->mouseMove(x, y);
                 });
-
-                //ambientIO::addGuiDrawListCallback([geg, app, &cb, &sfz](ImDrawData* imData) {
-                //    if (geg && app) geg->renderOn(app->getFramebuffers()[cb], sfz, imData);
-                //});
             }
 
             // init or prerender data
@@ -565,7 +550,7 @@ namespace SatelliteExample {
         this->initVulkan(argc, argv, wind);
 
         double timeAccumulate = 0.0001;
-        ImGuiIO& io = ImGui::GetIO();
+        //ImGuiIO& io = ImGui::GetIO();
         bool safe_polling = true;
 
         auto tIdle = std::chrono::high_resolution_clock::now();
@@ -684,10 +669,8 @@ namespace SatelliteExample {
 
     // mouse moving and pressing
     void PathTracerApplication::mousePress(const int32_t& button) {
-        ImGuiIO& io = ImGui::GetIO();
-        if (button == GLFW_MOUSE_BUTTON_LEFT && !io.WantCaptureMouse) kmap.mouseleft = true;
+        if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = true;
     }
-
 
     void PathTracerApplication::mouseRelease(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = false; }
     void PathTracerApplication::mouseMove(const double& x, const double& y) { mousepos.x = x, mousepos.y = y; }

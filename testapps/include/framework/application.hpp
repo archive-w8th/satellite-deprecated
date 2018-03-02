@@ -16,18 +16,7 @@
 #include "service/ambientIO.hpp"
 
 
-
-
-
-
-#ifdef OPTIX_DENOISER_HACK
-#include "optixu/optixpp.h"
 using U_MEM_HANDLE = uint8_t * ;
-#else
-using U_MEM_HANDLE = uint8_t * ;
-#endif
-
-
 
 
 namespace SatelliteExample {
@@ -250,22 +239,8 @@ namespace SatelliteExample {
         // base sizing (for buffers)
         int32_t baseWidth = 1, baseHeight = 1;
 
-
         BufferType memoryBufferToHost;
         BufferType memoryBufferFromHost;
-
-
-#ifdef OPTIX_DENOISER_HACK
-        optix::CommandList commandListWithDenoiser;
-        optix::Context context = 0;
-        optix::PostprocessingStage denoiserStage;
-        optix::Buffer denoisedBuffer;
-        optix::Buffer inputBuffer; // TODO: albedo, normals support
-        optix::Buffer trainingDataBuffer; // training AI buffer
-
-        optix::Buffer albedoBuffer;
-        optix::Buffer normalBuffer;
-#endif
 
 
         virtual void updateSwapchains() {
@@ -302,28 +277,6 @@ namespace SatelliteExample {
                             .setPImageInfo(&vk::DescriptorImageInfo().setImageLayout(image->layout).setImageView(image->view).setSampler(sampler)),
                     }, nullptr);
                 }
-
-#ifdef OPTIX_DENOISER_HACK
-                if (denoisedBuffer) denoisedBuffer->destroy();
-                if (inputBuffer) inputBuffer->destroy();
-                if (commandListWithDenoiser) commandListWithDenoiser->destroy();
-
-                // create buffer for processing
-                denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-                inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-                albedoBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-                normalBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-
-                denoiserStage->queryVariable("input_albedo_buffer")->set(albedoBuffer);
-                denoiserStage->queryVariable("input_normal_buffer")->set(normalBuffer);
-                denoiserStage->queryVariable("input_buffer")->set(inputBuffer);
-                denoiserStage->queryVariable("output_buffer")->set(denoisedBuffer);
-
-                // denoise command
-                commandListWithDenoiser = context->createCommandList();
-                commandListWithDenoiser->appendPostprocessingStage(denoiserStage, canvasWidth, canvasHeight);
-                commandListWithDenoiser->finalize();
-#endif
 
             }
         }
@@ -379,41 +332,6 @@ namespace SatelliteExample {
             glfwGetWindowContentScale(wind, &windowScale, nullptr);
             this->resizeBuffers(baseWidth * superSampling, baseHeight * superSampling);
             this->resize(canvasWidth, canvasHeight);
-
-
-
-
-
-#ifdef OPTIX_DENOISER_HACK
-            context = optix::Context::create();
-
-            // TODO support of albedo/color
-            denoiserStage = context->createBuiltinPostProcessingStage("DLDenoiser");
-            denoiserStage->declareVariable("blend")->setFloat(0.f);
-
-            // create buffer for processing
-            denoisedBuffer = context->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-            inputBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-            albedoBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-            normalBuffer = context->createBuffer(RT_BUFFER_INPUT_OUTPUT, RT_FORMAT_FLOAT4, canvasWidth, canvasHeight);
-
-            // initial buffers
-            denoiserStage->declareVariable("input_albedo_buffer")->set(albedoBuffer);
-            denoiserStage->declareVariable("input_normal_buffer")->set(normalBuffer);
-            denoiserStage->declareVariable("input_buffer")->set(inputBuffer);
-            denoiserStage->declareVariable("output_buffer")->set(denoisedBuffer);
-            
-            // denoise command
-            commandListWithDenoiser = context->createCommandList();
-            commandListWithDenoiser->appendPostprocessingStage(denoiserStage, canvasWidth, canvasHeight);
-            commandListWithDenoiser->finalize();
-
-
-            
-#endif
-
-
-
 
             {
                 auto app = this;
@@ -701,8 +619,7 @@ namespace SatelliteExample {
 
 
     void PathTracerApplication::saveHdr(std::string name) {
-        auto width = rays->getCanvasWidth();
-        auto height = rays->getCanvasHeight();
+        auto width = rays->getCanvasWidth(), height = rays->getCanvasHeight();
         std::vector<float> imageData(width * height * 4);
 
         {
@@ -717,29 +634,8 @@ namespace SatelliteExample {
         }
 
         {
-#ifdef OPTIX_DENOISER_HACK
-            auto inp_data = inputBuffer->map(); // to denoiser before
-#else
-            auto inp_data = imageData.data(); // directly to outputs
-#endif
-
-        // merge to 
-            getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)inp_data, sizeof(float) * width * height * 4, 0);
-
-            // process denoising
-#ifdef OPTIX_DENOISER_HACK
-            inputBuffer->unmap();
-
-            // execute denoising
-            commandListWithDenoiser->execute();
-
-            // get denoised data
-            memcpy(imageData.data(), denoisedBuffer->map(), sizeof(float) * width * height * 4);
-            denoisedBuffer->unmap();
-#endif
+            getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)imageData.data(), sizeof(float) * width * height * 4, 0);
         }
-
-
 
         {
             cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);
@@ -747,18 +643,6 @@ namespace SatelliteExample {
             image.mirror("y");
             image.get_shared_channel(3).fill(1.f);
             image.save_exr(name.c_str());
-
-            /*
-            // copy HDR data
-            FIBITMAP * btm = FreeImage_AllocateT(FIT_RGBAF, width, height);
-            for (int r = 0; r < height; r++) {
-                auto row = FreeImage_GetScanLine(btm, r);
-                memcpy(row, imageData.data() + r * 4 * width, width * sizeof(float) * 4);
-            }
-
-            // save HDR
-            FreeImage_Save(FIF_EXR, btm, name.c_str(), EXR_FLOAT | EXR_PIZ);
-            FreeImage_Unload(btm);*/
         }
     }
 

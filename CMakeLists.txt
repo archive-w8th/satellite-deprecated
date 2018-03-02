@@ -67,7 +67,7 @@ set (CMAKE_MODULE_PATH
     "${CMAKE_MODULE_PATH}/modules" 
     "${PROJECT_SOURCE_DIR}/modules/" )
 
-set(ENABLE_OPTIX_DENOISER OFF CACHE BOOL "Enable support of OptiX denoiser (be aware with NVidia EULA)")
+#set(ENABLE_OPTIX_DENOISER OFF CACHE BOOL "Enable support of OptiX denoiser (be aware with NVidia EULA)")
 
 find_package(Vulkan QUIET)
 

@@ -565,10 +565,6 @@ namespace SatelliteExample {
                 context->renderpass = renderpass;
                 context->swapchain = createSwapchain(deviceQueue, applicationWindow.surface, applicationWindow.surfaceFormat);
                 context->framebuffers = createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass, applicationWindow.surfaceFormat);
-                //for (int i = 0; i < context->framebuffers.size(); i++) {
-                //    auto commandBuffer = getCommandBuffer(context->device, true); commandBuffer.end();
-                //    context->framebuffers[i].commandBuffer = commandBuffer;
-                //}
 
                 auto app = this;
                 auto& window = this->applicationWindow;
@@ -652,6 +648,9 @@ namespace SatelliteExample {
 
         double timeAccumulate = 0.0;
         ImGuiIO& io = ImGui::GetIO();
+        bool safe_polling = true;
+
+        auto tStart = std::chrono::high_resolution_clock::now();
         while (!glfwWindowShouldClose(applicationWindow.window)) {
             glfwPollEvents();
 
@@ -676,110 +675,32 @@ namespace SatelliteExample {
                 needToUpdate = true;
             }
 
-            // measure render begin time
-            auto tStart = std::chrono::high_resolution_clock::now();
-
             // update swapchain (if need)
             this->updateSwapchains();
 
-            // do ray tracing
-            this->process();
+            // accumulate time of frame
+            timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
 
-#ifdef OPTIX_DENOISER_HACK
-            {
-                auto width = rays->getCanvasWidth();
-                auto height = rays->getCanvasHeight();
-                auto texture = rays->getRawImage();
-                auto albedo = rays->getAlbedoImage();
-                auto normal = rays->getNormalImage();
+            if (timeAccumulate >= 1000.f / 300.f) { // save polled frame rendering
+                timeAccumulate = 0.0f;
 
-                auto device = currentContext->device;
-                auto toloadtex = memoryBufferFromHost;
-                auto fromtex = memoryBufferToHost;
-                auto filtered = rays->getFilteredImage();
+                // do ray tracing
+                auto tStart = std::chrono::high_resolution_clock::now();
+                this->process();
 
-                // copy normal buffer to denoiser
-                copyMemoryProxy<TextureType&, BufferType&, vk::BufferImageCopy>(device, normal, fromtex, vk::BufferImageCopy()
-                    .setImageExtent({ width, height, 1 })
-                    .setImageOffset({ 0, 0, 0 }) // copy ready (rendered) image
-                    .setBufferOffset(0)
-                    .setBufferRowLength(width)
-                    .setBufferImageHeight(height)
-                    .setImageSubresource(normal->subresourceLayers), 
-                [=]() {getBufferSubData(fromtex, (U_MEM_HANDLE)normalBuffer->map(), sizeof(float) * width * height * 4, 0); normalBuffer->unmap();
+                // show ray traced result
+                currentContext->draw();
 
-                    // load to denoiser
-                    copyMemoryProxy<const TextureType&, const BufferType&, vk::BufferImageCopy>(device, albedo, fromtex, vk::BufferImageCopy()
-                        .setImageExtent({ width, height, 1 })
-                        .setImageOffset({ 0, 0, 0 }) // copy ready (rendered) image
-                        .setBufferOffset(0)
-                        .setBufferRowLength(width)
-                        .setBufferImageHeight(height)
-                        .setImageSubresource(albedo->subresourceLayers),
-                    [=]() {getBufferSubData(fromtex, (U_MEM_HANDLE)albedoBuffer->map(), sizeof(float) * width * height * 4, 0); albedoBuffer->unmap();
-
-                        // load to denoiser
-                        copyMemoryProxy<const TextureType&, const BufferType&, vk::BufferImageCopy>(device, texture, fromtex, vk::BufferImageCopy()
-                            .setImageExtent({ width, height, 1 })
-                            .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
-                            .setBufferOffset(0)
-                            .setBufferRowLength(width)
-                            .setBufferImageHeight(height)
-                            .setImageSubresource(texture->subresourceLayers),
-                        [=]() {getBufferSubData(fromtex, (U_MEM_HANDLE)inputBuffer->map(), sizeof(float) * width * height * 4, 0); inputBuffer->unmap();
-
-                            // execute denoising
-                            commandListWithDenoiser->execute();
-
-                            // rise back denoise result (for show)
-                            vk::CommandBuffer _cmd{};
-                            bufferSubData(_cmd, toloadtex, (const U_MEM_HANDLE)denoisedBuffer->map(), sizeof(float) * width * height * 4, 0);
-                            denoisedBuffer->unmap();
-                            copyMemoryProxy<const BufferType&, const TextureType&, vk::BufferImageCopy>(device, toloadtex, filtered, vk::BufferImageCopy()
-                                .setImageExtent({ width, height, 1 })
-                                .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
-                                .setBufferOffset(0)
-                                .setBufferRowLength(width)
-                                .setBufferImageHeight(height)
-                                .setImageSubresource(filtered->subresourceLayers), true);
-                        });
-                    });
-                });
-            }
-#endif
-
-
-
-            // measure render end time
-            auto tEnd = std::chrono::high_resolution_clock::now();
-            auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
-            timeAccumulate += tDiff;
-
-            // GUI IO set sizing and scaling 
-            io.DisplaySize = ImVec2(float(windowWidth), float(windowHeight));
-            io.DisplayFramebufferScale = ImVec2(windowScale, windowScale);
-            io.DeltaTime = tDiff / 1000.0;
-
-            // show results
-            //ImGui::NewFrame();
-            handleGUI();
-            currentContext->draw();
-
-            // calculate FPS
-            if (timeAccumulate > 1000.0) {
-                std::stringstream ststream;
-                ststream << 
-                    title << 
-                    " - " << 
-                    int(glm::ceil(tDiff)) << 
-                    "ms of frame time (" << 
-                    int(glm::ceil(999.999 / tDiff)) << 
-                    " fps)";
-                glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
-                timeAccumulate = 0.0;
+                { // when rendering in save polling, register render time
+                    auto tRenderTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+                    std::stringstream ststream;
+                    ststream << title << " - " << int(glm::round(tRenderTime)) << "ms of render time (" << int(glm::round(999.999 / tRenderTime)) << " fps)";
+                    glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
+                }
             }
 
-            //currentContext->device->logical.waitIdle();
+            // register polling end time
+            tStart = std::chrono::high_resolution_clock::now();
         }
 
         // wait device if anything work in 

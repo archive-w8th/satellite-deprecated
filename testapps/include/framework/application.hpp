@@ -678,25 +678,20 @@ namespace SatelliteExample {
             // update swapchain (if need)
             this->updateSwapchains();
 
-            // accumulate time of frame
-            timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
-
-            if (timeAccumulate >= 1000.f / 300.f) { // save polled frame rendering
-                timeAccumulate = 0.0f;
-
-                // do ray tracing
+            { // compute ray tracing with measurement
                 auto tStart = std::chrono::high_resolution_clock::now();
-                this->process();
+                this->process(); // do ray tracing
+                auto tRenderTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+                std::stringstream ststream;
+                ststream << title << " - " << int(glm::round(tRenderTime)) << "ms of ray tracing time";
+                glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
+            }
 
-                // show ray traced result
-                currentContext->draw();
-
-                { // when rendering in save polling, register render time
-                    auto tRenderTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
-                    std::stringstream ststream;
-                    ststream << title << " - " << int(glm::round(tRenderTime)) << "ms of render time (" << int(glm::round(999.999 / tRenderTime)) << " fps)";
-                    glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
-                }
+            // save polled frame rendering
+            timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+            if (timeAccumulate >= 1000.f / 480.f) {
+                timeAccumulate = 0.0f;
+                currentContext->draw(); // show ray traced result
             }
 
             // register polling end time

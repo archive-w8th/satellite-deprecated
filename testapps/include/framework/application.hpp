@@ -201,12 +201,12 @@ namespace SatelliteExample {
 
         ControlMap kmap;
 
+
+        std::string title = "TestApp";
+
         // current context of application
         //std::shared_ptr<GuiRenderEngine> grengine;
         std::shared_ptr<GraphicsContext> currentContext;
-
-        // application window title
-        const std::string title = "Satellite";
 
         // declared pipelines for application
         vk::Pipeline trianglePipeline;

@@ -433,7 +433,7 @@ int main(const int argc, const char ** argv)
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // create application window (planned to merge)
-    GLFWwindow* window = glfwCreateWindow(baseWidth, baseHeight, "Sample unbiased renderer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(baseWidth, baseHeight, "Running...", NULL, NULL);
     if (!window) { glfwTerminate(); exit(EXIT_FAILURE); }
 
     // use ambient static event provider

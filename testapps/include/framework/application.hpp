@@ -646,11 +646,11 @@ namespace SatelliteExample {
 
         this->initVulkan(argc, argv, wind);
 
-        double timeAccumulate = 0.0;
+        double timeAccumulate = 0.0001;
         ImGuiIO& io = ImGui::GetIO();
         bool safe_polling = true;
 
-        auto tStart = std::chrono::high_resolution_clock::now();
+        auto tIdle = std::chrono::high_resolution_clock::now();
         while (!glfwWindowShouldClose(applicationWindow.window)) {
             glfwPollEvents();
 
@@ -679,7 +679,7 @@ namespace SatelliteExample {
             this->updateSwapchains();
 
             { // compute ray tracing with measurement
-                auto tStart = std::chrono::high_resolution_clock::now();
+                auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
                 this->process(); // do ray tracing
                 auto tRenderTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
                 std::stringstream ststream;
@@ -688,14 +688,9 @@ namespace SatelliteExample {
             }
 
             // save polled frame rendering
-            timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
-            if (timeAccumulate >= 1000.f / 480.f) {
-                timeAccumulate = 0.0f;
-                currentContext->draw(); // show ray traced result
-            }
-
-            // register polling end time
-            tStart = std::chrono::high_resolution_clock::now();
+            timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tIdle).count();
+            tIdle = std::chrono::high_resolution_clock::now(); // register polling end time 
+            if (timeAccumulate >= 1000.0 / 60.0) { timeAccumulate = 0.0001; currentContext->draw(); }// show ray traced result
         }
 
         // wait device if anything work in 

@@ -57,8 +57,12 @@ void main() {
                     IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
                         albedo += texelBuf.nodes[ts].albedo, normal += texelBuf.nodes[ts].normal;
                         
-                        if (imageLoad(sampleflags, cid).x < 1) { // planned based on previous
-                            prevc = imageLoad(presampled, cid);
+#ifndef MOTION_BLUR
+                        if (imageLoad(sampleflags, cid).x < 1) 
+#endif
+
+                        { // planned based on previous
+                            prevc = imageLoad(presampled, cid + ivec2(0, whs.y));
                             prevc.xyz *= prevc.w;
                         }
                         
@@ -88,10 +92,8 @@ void main() {
         
         if (samplecount > 0) {
             if (imageLoad(sampleflags, cid).x > 0) {
-                vec4 xsample = imageLoad(presampled, cid);
                 imageStore(sampleflags, cid, ivec4(0));
                 imageStore(presampled, cid, vec4(0.f));
-                imageStore(presampled, cid + ivec2(0, whs.y), vec4(0.f));
 
 #ifdef ENABLE_ADDITIONAL_BUFFERS
                 // additional buffers (for filters)

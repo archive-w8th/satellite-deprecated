@@ -555,45 +555,73 @@ namespace SatelliteExample {
 
         auto tIdle = std::chrono::high_resolution_clock::now();
         while (!glfwWindowShouldClose(applicationWindow.window)) {
-            glfwPollEvents();
+            double pollEventsTime = 0.0;
+            double sizingTime = 0.0;
+            double sysUpdateTime = 0.0;
+            double rayTracingTime = 0.0;
+            double showTime = 0.0;
 
-            int32_t oldWidth = windowWidth, oldHeight = windowHeight;
-            float oldScale = windowScale;
-
-            // DPI scaling for Windows
-            {
-                glfwGetWindowSize(applicationWindow.window, &windowWidth, &windowHeight); // get as base width and height
-                windowWidth /= windowScale, windowHeight /= windowScale;
-                glfwGetWindowContentScale(applicationWindow.window, &windowScale, nullptr);
+            { // poll events
+                auto tStart = std::chrono::high_resolution_clock::now();
+                glfwPollEvents();
+                pollEventsTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
             }
 
-            // rescale window by DPI
-            if (oldScale != windowScale) glfwSetWindowSize(applicationWindow.window, windowWidth * windowScale, windowHeight * windowScale);
+            { // resize GLFW buffers (when needs)
+                auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
 
-            // on resizing (include DPI scaling)
-            if (oldWidth != windowWidth || oldHeight != windowHeight) {
-                glfwGetFramebufferSize(applicationWindow.window, &canvasWidth, &canvasHeight);
-                applicationWindow.surfaceSize.width = canvasWidth;
-                applicationWindow.surfaceSize.height = canvasHeight;
-                needToUpdate = true;
+                int32_t oldWidth = windowWidth, oldHeight = windowHeight;
+                float oldScale = windowScale;
+
+                // DPI scaling for Windows
+                {
+                    glfwGetWindowSize(applicationWindow.window, &windowWidth, &windowHeight); // get as base width and height
+                    windowWidth /= windowScale, windowHeight /= windowScale;
+                    glfwGetWindowContentScale(applicationWindow.window, &windowScale, nullptr);
+                }
+
+                // rescale window by DPI
+                if (oldScale != windowScale) glfwSetWindowSize(applicationWindow.window, windowWidth * windowScale, windowHeight * windowScale);
+
+                // on resizing (include DPI scaling)
+                if (oldWidth != windowWidth || oldHeight != windowHeight) {
+                    glfwGetFramebufferSize(applicationWindow.window, &canvasWidth, &canvasHeight);
+                    applicationWindow.surfaceSize.width = canvasWidth;
+                    applicationWindow.surfaceSize.height = canvasHeight;
+                    needToUpdate = true;
+                }
+
+                sizingTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
             }
 
-            // update swapchain (if need)
-            this->updateSwapchains();
+            { // update swapchain (if need)
+                auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
+                this->updateSwapchains();
+                sysUpdateTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+            }
 
             { // compute ray tracing with measurement
                 auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
                 this->process(); // do ray tracing
-                auto tRenderTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
-                std::stringstream ststream;
-                ststream << title << " - " << int(glm::round(tRenderTime)) << "ms of ray tracing time";
-                glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
+                rayTracingTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
             }
 
             // save polled frame rendering
             timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tIdle).count();
             tIdle = std::chrono::high_resolution_clock::now(); // register polling end time 
-            if (timeAccumulate >= 1000.0 / 60.0) { timeAccumulate = 0.0001; currentContext->draw(); }// show ray traced result
+
+            if (timeAccumulate >= 1000.0 / 60.0) { // show result by polling
+                timeAccumulate = 0.0001;
+                
+                auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
+                currentContext->draw();
+                showTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
+            }
+
+             // showing timing results in details
+            std::stringstream ststream;
+            ststream << title << " - " << int(glm::round(rayTracingTime)) << "ms of ray tracing time, " << int(glm::round(showTime)) << "ms of present time, " << int(glm::round(pollEventsTime + sizingTime + sysUpdateTime)) << "ms of other times";
+            glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
         }
 
         // wait device if anything work in 

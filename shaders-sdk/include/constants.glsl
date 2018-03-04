@@ -6,7 +6,7 @@
     // data format extensions
     #extension GL_AMD_gcn_shader : enable
     #extension GL_AMD_gpu_shader_half_float : enable
-    #extension GL_AMD_gpu_shader_half_float_fetch : enable
+    //#extension GL_AMD_gpu_shader_half_float_fetch : enable
     #extension GL_AMD_gpu_shader_int16 : enable 
     #extension GL_ARB_gpu_shader_int64 : require
 
@@ -44,11 +44,9 @@
 #define DIRECT_LIGHT_ENABLED
 
 // sampling options
-#define MOTION_BLUR
+//#define MOTION_BLUR
 #ifndef SAMPLES_LOCK
-#define SAMPLES_LOCK 8
-//#define SAMPLES_LOCK 32 // required when using motion blur
-//#define SAMPLES_LOCK 2048 // monte-carlo
+#define SAMPLES_LOCK 4
 #endif
 
 

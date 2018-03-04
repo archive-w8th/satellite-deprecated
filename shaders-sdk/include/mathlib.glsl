@@ -475,8 +475,8 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 #endif
 
     // precise error correct
-    //tFar += PZERO;
     tNear -= 0.0001f;
+    tFar  += 0.0001f;
 
     // validate hit
     BOOL_ isCube = BOOL_(tFar>tNear) & BOOL_(tFar>0.f) & BOOL_(abs(tNear) <= INFINITY-PRECERR);

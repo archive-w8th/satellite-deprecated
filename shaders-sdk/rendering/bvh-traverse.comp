@@ -42,7 +42,22 @@ struct NodeCache {
 };
 
 // use shared local memory stack
+//#ifndef AMD_F16_BVH
+#define LOCAL_STACK localStack[LT_IDX]
 shared int localStack[WORK_SIZE][localStackSize];
+//#else 
+//int LOCAL_STACK[localStackSize];
+//#endif
+
+
+// use shared memory for boxes
+//#ifdef AMD_F16_BVH
+//shared FMAT3X4_ cachedBoxes[WORK_SIZE];
+//#define CACHED_BOX cachedBoxes[LT_IDX]
+//#else 
+FMAT3X4_ CACHED_BOX;
+//#endif
+
 
 // plain pointers
 int stackPtr = 0, rayID = 0;
@@ -59,9 +74,7 @@ int loadStack(){
     if (ptr >= 0) {
         if (ptr >= localStackSize) {
             val = nodeCache[rayID].extendedStack[ptr - localStackSize];
-        } else {
-            val = localStack[LT_IDX][ptr];
-        }
+        } else { val = LOCAL_STACK[ptr]; }
     }
     return val;
 }
@@ -71,9 +84,7 @@ void storeStack(in int val){
     if (ptr < (extendedStackSize+localStackSize)) {
         if (ptr >= localStackSize) {
             nodeCache[rayID].extendedStack[ptr - localStackSize] = val;
-        } else {
-            localStack[LT_IDX][ptr] = val;
-        }
+        } else { LOCAL_STACK[ptr] = val; }
     }
 }
 
@@ -132,7 +143,7 @@ void doIntersection() {
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) {
-        traverseState.bvhSpace.cutOut = d * traverseState.distMult - traverseState.diffOffset;
+        traverseState.bvhSpace.cutOut = d * traverseState.distMult;
     }
     
     // validate hit 
@@ -166,20 +177,15 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
         torigTo = divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin+direct, 1.0f))).xyz,
         dirproj = torigTo+torig;
     
-    float dirlenInv = 1.f / max(length(dirproj), 0.00001f), toffset = 0.f;
+    float dirlenInv = 1.f / max(length(dirproj), 0.00001f);
     dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
     BVEC3_ bsgn = (BVEC3_(sign(dirproj)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
 
     // bvh space precalculations 
-    traverseState.bvhSpace.directInv = FMAT3X4_(dirproj.xxxx, dirproj.yyyy, dirproj.zzzz); torig *= dirproj;
-    traverseState.bvhSpace.minusOrig = FMAT3X4_(torig.xxxx, torig.yyyy, torig.zzzz);
     traverseState.bvhSpace.boxSide = bsgn;
-    //traverseState.distMult = dirlenInv;
-    traverseState.distMult = 1.f/dirlenInv;
-    traverseState.diffOffset = toffset;
-
+    
     { // calculate longest axis
         vec3 drs = abs(direct); traverseState.geometrySpace.axis = 2;
         if (drs.y >= drs.x && drs.y > drs.z) traverseState.geometrySpace.axis = 1;
@@ -196,17 +202,24 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     ));
     traverseState.geometrySpace.lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
 
+    // precalc origin
+    torig *= dirproj;
 
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
     IF (not(intersectCubeF32Single(torig, dirproj, bsgn, mat3x2(
-        -1.0001f, 1.000f, 
-        -1.0001f, 1.000f, 
-        -1.0001f, 1.000f
+        -1.0001f, 1.0001f, 
+        -1.0001f, 1.0001f, 
+        -1.0001f, 1.0001f
     ), near, far))) {
         traverseState.idx = -1;
     }
 
+    float toffset = max(near, 0.f); torig -= toffset;
+    traverseState.bvhSpace.directInv = FMAT3X4_(dirproj.xxxx, dirproj.yyyy, dirproj.zzzz);
+    traverseState.bvhSpace.minusOrig = FMAT3X4_(torig.xxxx, torig.yyyy, torig.zzzz);
+    traverseState.distMult = 1.f/dirlenInv;
+    traverseState.diffOffset = toffset;
 
     // begin of traverse BVH 
     const int max_iteraction = 8192;
@@ -219,16 +232,22 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
             
             // if not leaf 
             if (comp4.x != comp4.y) {
-                vec2 nears = INFINITY.xx, fars = INFINITY.xx; int _cmp = comp4.x >> 1;
+                vec2 nears = INFINITY.xx, fars = INFINITY.xx; 
 
                 // intersect boxes
                 BVEC2_ childIntersect = BVEC2_((traverseState.idx >= 0).xx);
                 childIntersect &= BOOL_(comp4.x != comp4.y).xx; // base on fact 
-                childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, FMAT3X4_(
+
+                // load 32-byte bounding box
+                int _cmp = comp4.x >> 1;
+
+                CACHED_BOX = FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
                     UNPACK_LANE_(bvhBoxes[_cmp][1]),
                     UNPACK_LANE_(bvhBoxes[_cmp][2])
-                ), nears, fars);
+                );
+
+                childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, CACHED_BOX, nears, fars); nears += traverseState.diffOffset.xx;
                 childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
 
 #ifdef USE_STACKLESS_BVH

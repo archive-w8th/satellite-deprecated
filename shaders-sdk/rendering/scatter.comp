@@ -75,7 +75,7 @@ void main() {
                             prevc.xyz += color.xyz;
                             prevc.xyz /= next;
 #ifdef MOTION_BLUR
-                            prevc.w = min(next, SAMPLES_LOCK-1);
+                            prevc.w = min(next, SAMPLES_LOCK);
 #else
                             prevc.w = next;
 #endif

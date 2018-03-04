@@ -54,8 +54,8 @@ float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist)
 RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 tbn) {
     RayActived(directRay, RayType(directRay) == 2 ? FALSE_ : RayActived(directRay));
     RayTargetLight(directRay, i);
-    RayDiffBounce(directRay, min(1, max(RayDiffBounce(directRay)-1,0)));
-    RayBounce(directRay, min(RayBounce(directRay), 1)); // incompatible with reflections and diffuses
+    RayDiffBounce(directRay, min(1,max(RayDiffBounce(directRay)-(RayType(directRay)==3?0:1),0)));
+        RayBounce(directRay, min(1,max(    RayBounce(directRay)-(RayType(directRay)==3?0:0),0))); // incompatible with reflections and diffuses
     RayType(directRay, 2);
 
     vec3 lpath = sLight(i) - directRay.origin.xyz;
@@ -93,9 +93,9 @@ vec3 normalOrient(in vec3 runit, in mat3 tbn){
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
 
-    const int diffuse_reflections = 2;
+    const int diffuse_reflections = 1; // faster mode
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
-    RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-1,0)));
+    RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
     sdr = faceforward(sdr, sdr, -tbn[2]);
@@ -134,7 +134,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     const int caustics_bounces = 0, reflection_bounces = 1;
 
     if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
-    RayBounce(ray, min(RayType(ray) == 1 ? caustics_bounces : reflection_bounces, max(RayBounce(ray)-1, 0)));
+    RayBounce(ray, min(RayType(ray)==1?caustics_bounces:reflection_bounces, max(RayBounce(ray) - (RayType(ray)==3?0:1), 0)));
 
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
     sdr = faceforward(sdr, sdr, -tbn[2]);
@@ -160,12 +160,12 @@ RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inio
 #ifdef REFRACTION_SKIP_SUN
     IF (not(isShadowed | directDirc)) {
         ray.cdirect.xy = lcts(refrDir);
-        RayBounce(ray, max(RayBounce(ray)-1, 0));
+        RayBounce(ray, max(RayBounce(ray)-(RayType(ray)==3?0:1), 0));
     }
 #else
     IF (not(directDirc)) { // if can't be directed
         ray.cdirect.xy = lcts(refrDir);
-        RayBounce(ray, max(RayBounce(ray)-1, 0));
+        RayBounce(ray, max(RayBounce(ray)-(RayType(ray)==3?0:1), 0));
         if ( isShadowed) RayActived(ray, FALSE_); // trying to refract shadows will fails
         if (!isShadowed) RayType(ray, 0); // can be lighted by direct
     }

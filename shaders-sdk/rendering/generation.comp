@@ -138,6 +138,8 @@ void main()
 
                     RayActived(currentRay, TRUE_);
                     RayType(currentRay, 3); // primary rays
+
+                    // reserved bounces
                     RayBounce(currentRay, 3);
                     RayDiffBounce(currentRay, 2);
 

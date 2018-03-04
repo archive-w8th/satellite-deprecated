@@ -46,7 +46,7 @@
 // sampling options
 //#define MOTION_BLUR
 #ifndef SAMPLES_LOCK
-#define SAMPLES_LOCK 4
+#define SAMPLES_LOCK 1
 #endif
 
 

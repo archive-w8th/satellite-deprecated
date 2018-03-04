@@ -98,7 +98,7 @@ int invokeSurface(inout bool overflow) {
 
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (overflow || SSC(RayActived(rayTemplate)) && (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.0000099f)) {
+    if (overflow || SSC(RayActived(rayTemplate)) && (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f)) {
         RayActived(rayTemplate, FALSE_);
         WriteColor(rayTemplate.dcolor, 0.f.xxxx); // no mechanism for detect emission
     }
@@ -298,6 +298,8 @@ void main() {
                     
                     // binarize/quantize 
                     float qprom = random() < prom ? 1.f : 0.f;
+
+                    
 #ifdef USE_SIMPLIFIED_MODE
                     float qspca = RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f);
 #else
@@ -308,7 +310,7 @@ void main() {
                     int overwriteBlock = -1;
                     RayRework enrollRay = envShading(currentRay, overflow);
 
-// emission blocks? 
+// all environment and lighting blocks to finishing
                     { // environment (finish) rays
                         RayRework envRay = enrollRay;
                         WriteColor(envRay.dcolor, f16_f32(envRay.dcolor) * qprom ); // shadows dims 
@@ -317,8 +319,8 @@ void main() {
                         invokeBlockForNodes(envRay, envBlock, overwriteBlock);
                     }
                     
-#ifdef USE_SIMPLIFIED_MODE
-                    { // simple shading
+#ifdef USE_SIMPLIFIED_MODE // fake diffuse (beginner shading mode)
+                    { // simple shading + possible emissions
                         vec3 lightVec = sLight(0) - enrollRay.origin.xyz;
                         vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 1.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f)) + emiscolor.xyz;
                         RayRework rayTemplate = emissive(enrollRay, fake_diffusion * (1.f - qspca) * (1.f - qprom), tbn);
@@ -326,12 +328,13 @@ void main() {
                         invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
                     }
 #else    
-                    { // emissions
+                    { // PBR emissions
                         RayRework rayTemplate = emissive(enrollRay, emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom), tbn);
                         IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
                         invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
                     }
 #endif
+
 
 // continuous blocks?
                     // if have bad lights, ban it
@@ -348,6 +351,12 @@ void main() {
 
                         WriteColor( transpRay.dcolor, tcolor ); // shadows dims 
                         invokeBlockForNodes(transpRay, transparentBlock, overwriteBlock);
+                    }
+
+
+                    // if incedent ray is diffuse or shadowed, don't distribute indirect light directly (it can be approximated, for example, VCT)
+                    if (RayType(enrollRay) == 1 || RayType(enrollRay) == 2) {
+                        diffcolor *= 0.f.xxxx;
                     }
 
                     { // reflection rays
@@ -369,7 +378,7 @@ void main() {
                 }
             }
 
-            {
+            { // confirm or emit blocks
                 emitBlock(transparentBlock);
                 emitBlock(emissionBlock);
                 emitBlock(reflectionBlock);

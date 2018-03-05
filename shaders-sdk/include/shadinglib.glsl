@@ -95,7 +95,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
     RayDL(ray, FALSE_); // diffuse indirects can't be illuminated directly (except some cases)
 
-    const int diffuse_reflections = 2; // faster mode
+    const int diffuse_reflections = 1; // faster mode
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 

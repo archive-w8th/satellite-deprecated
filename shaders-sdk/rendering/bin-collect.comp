@@ -44,10 +44,11 @@ void main() {
                         if (nid < R_BLOCK_SIZE) {
                             int texel = blockBins[globalID].texels[nid]-1;
                             vec4 color = f16_f32(rayBlockNodes[idx][nid].data.dcolor);
-                            WriteColor(rayBlockNodes[idx][nid].data.dcolor, 0.f.xxxx);
                             if (texel >= 0 && !SSC(RayActived(rayBlockNodes[idx][nid].data)) && mlength(color.xyz) >= 0.00001f) {
                                 texelBuf.nodes[texel].color.xyz += color.xyz;
                             }
+                            WriteColor(rayBlockNodes[idx][nid].data.dcolor, 0.f.xxxx);
+                            RayActived(rayBlockNodes[idx][nid].data, FALSE_);
                         }
                     }
                     int preidx = readLane(idx >= 0 ? rayBlocks[idx].info.next : -1, 0); 

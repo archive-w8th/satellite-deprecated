@@ -175,20 +175,21 @@ int createBlockOnce(inout int block, in bool minimalCondition){
 
 void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock) {
     invalidateRay(rayTemplate, false);
-    
     bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
-    createBlockOnce(outNewBlock, occupyCriteria && prevNonOccupiedBlock < 0);
-    prevNonOccupiedBlock = outNewBlock >= 0 ? outNewBlock : prevNonOccupiedBlock;
 
+    IFANY (outNewBlock >= 0) { // if old block (reusing)
+        occupyCriteria = occupyCriteria && !confirmNodeOccupied(outNewBlock);
+    } else {
+        createBlockOnce(outNewBlock, occupyCriteria && confirmNodeOccupied(prevNonOccupiedBlock));
+    }
+
+    // select, where to write
+    prevNonOccupiedBlock = occupyCriteria && outNewBlock >= 0 ? outNewBlock : prevNonOccupiedBlock;
+
+    // occupy these block
     if (occupyCriteria) {
         storeRay(prevNonOccupiedBlock, rayTemplate);
         confirmNode(prevNonOccupiedBlock, SSC(RayActived(rayTemplate)));
-        prevNonOccupiedBlock = -1;
-    }
-
-    // reset merging queue
-    IFALL (prevNonOccupiedBlock >= 0) {
-        prevNonOccupiedBlock = -1;
     }
 }
 
@@ -246,7 +247,7 @@ void main() {
             if (invld) { currentBlock = -1; continue; }
             
             resetBlockIndiceCounter(currentBlock);
-            int shadowBlock = -1, emissionBlock = -1, diffuseBlock = -1, reflectionBlock = -1, transparentBlock = currentBlock, envBlock = -1;
+            int shadowBlock = -1, emissionBlock = -1, diffuseBlock = -1, reflectionBlock = -1, transparentBlock = -1, envBlock = currentBlock;
 
             // invoke block data
             if (!invld) {
@@ -390,6 +391,7 @@ void main() {
             }
 
             { // confirm or emit blocks
+                //emitBlock(currentBlock);
                 emitBlock(transparentBlock);
                 emitBlock(emissionBlock);
                 emitBlock(reflectionBlock);

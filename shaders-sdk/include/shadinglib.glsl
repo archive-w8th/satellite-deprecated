@@ -57,6 +57,7 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
     RayDiffBounce(directRay, min(1,max(RayDiffBounce(directRay)-(RayType(directRay)==3?0:1),0)));
         RayBounce(directRay, min(1,max(    RayBounce(directRay)-(RayType(directRay)==3?0:0),0))); // incompatible with reflections and diffuses
     RayType(directRay, 2);
+    RayDL(directRay, TRUE_); // always illuminated by sunlight
 
     vec3 lpath = sLight(i) - directRay.origin.xyz;
     vec3 ldirect = normalize(lpath);
@@ -92,8 +93,9 @@ vec3 normalOrient(in vec3 runit, in mat3 tbn){
 
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
+    RayDL(ray, FALSE_); // diffuse indirects can't be illuminated directly (except some cases)
 
-    const int diffuse_reflections = 1; // faster mode
+    const int diffuse_reflections = 2; // faster mode
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 
@@ -133,8 +135,9 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     // bounce mini-config
     const int caustics_bounces = 0, reflection_bounces = 1;
 
-    if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
+    if (RayType(ray) == 1 ) RayDL(ray, TRUE_); // allow to caustics light
     RayBounce(ray, min(RayType(ray)==1?caustics_bounces:reflection_bounces, max(RayBounce(ray) - (RayType(ray)==3?0:1), 0)));
+    if (RayType(ray) != 2) RayType(ray, 0); // reflection ray transfer (primary)
 
     vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed.x), tbn);
     sdr = faceforward(sdr, sdr, -tbn[2]);
@@ -156,6 +159,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
 RayRework refraction(in RayRework ray, in vec3 color, in mat3 tbn, in float inior, in float outior, in float glossiness) {
     vec3 refrDir = normalize(  refract( dcts(ray.cdirect.xy) , tbn[2], inior / outior)  );
     BOOL_ directDirc = equalF(inior, outior), isShadowed = BOOL_(RayType(ray) == 2);
+    //if (RayType(ray) == 1 ) RayDL(ray, TRUE_); // allow to caustics light
 
 #ifdef REFRACTION_SKIP_SUN
     IF (not(isShadowed | directDirc)) {

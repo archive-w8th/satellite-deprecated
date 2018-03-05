@@ -339,7 +339,7 @@ void main() {
 // continuous blocks?
                     // if have bad lights, ban it
                     IF (not(RayActived(enrollRay))) { WriteColor(enrollRay.dcolor, 0.0f.xxxx); }
-                    overwriteBlock = -1;
+                    
 
                     { // transparent rays 
                         RayRework transpRay = promised(enrollRay, tbn);
@@ -349,28 +349,39 @@ void main() {
                         tcolor.xyz *= diffcolor.xyz;
 #endif
 
+                        overwriteBlock = -1;
                         WriteColor( transpRay.dcolor, tcolor ); // shadows dims 
                         invokeBlockForNodes(transpRay, transparentBlock, overwriteBlock);
                     }
 
 
                     // if incedent ray is diffuse or shadowed, don't distribute indirect light directly (it can be approximated, for example, VCT)
-                    if (RayType(enrollRay) == 1 || RayType(enrollRay) == 2) {
-                        diffcolor *= 0.f.xxxx;
+                    bool deepIndirectIlluminated = false;
+                    if (RayType(enrollRay) == 1) {
+                        diffcolor *= 0.f.xxxx; deepIndirectIlluminated = true;
                     }
 
-                    { // reflection rays
+
+                    { // if diffuse indirection was deeper, it can be faster approximated
+                        // emitApproximateDeepIndirect(enrollRay, deepIndirectIlluminated);
+                    }
+
+
+                    { // reflection rays from surface
+                        //overwriteBlock = -1;
                         RayRework rayTemplate = reflection(enrollRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
                         invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock);
                     }
 
 #ifndef USE_SIMPLIFIED_MODE
-                    { // diffuse rays
+                    { // diffuse rays from surface
+                        //overwriteBlock = -1;
                         RayRework rayTemplate = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
                         invokeBlockForNodes(rayTemplate, diffuseBlock, overwriteBlock);
                     }
 
-                    { // shadow rays
+                    { // shadow rays from surface
+                        //overwriteBlock = -1;
                         RayRework rayTemplate = directLight(0, enrollRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
                         invokeBlockForNodes(rayTemplate, shadowBlock, overwriteBlock);
                     }

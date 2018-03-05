@@ -115,7 +115,7 @@ struct bbox {
 // {3 ..7 }[5] - stream/light system id
 // {8 ..10}[3] - bounce index, 3-bit (reflection, refraction)
 // {11..13}[3] - bounce index, 3-bit (diffuse)
-
+// {14    }[1] - can lighten by sunlights
 
 
 // possible structure in 32-byte presentation 
@@ -171,6 +171,7 @@ const ivec2 TYPE = ivec2(B16FT+1, 2);
 const ivec2 TARGET_LIGHT = ivec2(B16FT+3, 5);
 const ivec2 BOUNCE = ivec2(B16FT+8, 3);
 const ivec2 DBOUNCE = ivec2(B16FT+11, 3);
+const ivec2 RAY_DL = ivec2(B16FT+14, 1);
 
 
 int parameteri(const ivec2 parameter, inout uint bitfield) {
@@ -243,9 +244,13 @@ void RayType(inout RayRework ray, in int type) {
 
 
 
-// criteria-based 
+// restore law about direct light and caustics
 BOOL_ RayDL(inout RayRework ray) {
-    return BOOL_(RayType(ray) == 2);
+    return parameterb(RAY_DL, RAY_BITFIELD_);
+}
+
+void RayDL(inout RayRework ray, in BOOL_ dl) {
+    parameterb(RAY_DL, RAY_BITFIELD_, dl);
 }
 
 

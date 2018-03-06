@@ -334,10 +334,10 @@ namespace SatelliteExample {
 
         bvhStore = std::shared_ptr<rt::HieararchyStorage>(new rt::HieararchyStorage(device, shaderPack));
         bvhStore->allocatePrimitiveReserve(1024 * 2048);
-        bvhStore->allocateNodeReserve(2048 * 2048);
+        bvhStore->allocateNodeReserve(1024 * 2048);
 
         bvhBuilder = std::shared_ptr<rt::HieararchyBuilder>(new rt::HieararchyBuilder(device, shaderPack));
-        bvhBuilder->allocateNodeReserve(2048 * 2048);
+        bvhBuilder->allocateNodeReserve(1024 * 2048);
         bvhBuilder->setHieararchyOutput(bvhStore);
         bvhBuilder->setPrimitiveSource(geometryCollector);
 

@@ -213,7 +213,7 @@ void storeRay(in int block, inout RayRework ray) {
 // confirm if current block not occupied somebody else
 bool confirmNodeOccupied(in int block){
     bool occupied = false;
-    if (block >= 0 && block != currentBlock) {
+    if (block >= 0) {
         if (SSC(RayActived(rayBlockNodes[block][currentBlockNode].data)) || 
            !SSC(RayActived(rayBlockNodes[block][currentBlockNode].data)) && mlength(f16_f32(rayBlockNodes[block][currentBlockNode].data.dcolor).xyz) > 0.00001) 
         {

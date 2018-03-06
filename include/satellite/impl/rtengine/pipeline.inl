@@ -383,7 +383,7 @@ namespace NSM
             const size_t ALLOC_MULT = 16;
 
             size_t wrsize = width * height;
-            size_t rayLimit = std::min((wrsize * ALLOC_MULT) / (IS_INTERLACED ? 2l : 1l), 4096ull * 4096ull);
+            size_t rayLimit = std::min((wrsize * ALLOC_MULT) / (IS_INTERLACED ? 2l : 1l), 4096ull * 8192ull);
             size_t blockLimit = tiled(rayLimit, BLOCK_SIZE);
             rayBlockData[0].samplerUniform.sceneRes = { float(width), float(height) };
             rayBlockData[0].samplerUniform.blockBinCount = tiled(width, BLOCK_WIDTH) * tiled(height, BLOCK_HEIGHT);

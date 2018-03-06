@@ -2,69 +2,70 @@
 
 #include "./structs.hpp"
 
-namespace NSM {
-    namespace rt {
+namespace NSM
+{
+namespace rt
+{
 
+template <int BINDING, class STRUCTURE>
+class BufferComposer
+{
+protected:
+  friend class BufferComposer<BINDING, STRUCTURE>;
 
+public:
+  BufferComposer(BufferComposer<BINDING, STRUCTURE> &another);
+  BufferComposer(BufferComposer<BINDING, STRUCTURE> &&another);
+  BufferComposer(DeviceQueueType &device, const size_t bsize = 1024 * 128);
+  int32_t addElement(STRUCTURE accessorDesc);
+  BufferType getBuffer();
 
-        template<int BINDING, class STRUCTURE>
-        class BufferComposer {
-        protected:
-            friend class BufferComposer<BINDING, STRUCTURE>;
+  void resetStack() { data.resize(0); }
 
-        public:
-            BufferComposer(BufferComposer<BINDING, STRUCTURE>& another);
-            BufferComposer(BufferComposer<BINDING, STRUCTURE>&& another);
-            BufferComposer(DeviceQueueType& device, const size_t bsize = 1024 * 128);
-            int32_t addElement(STRUCTURE accessorDesc);
-            BufferType getBuffer();
+protected:
+  BufferType cache;
+  BufferType stager;
+  std::vector<STRUCTURE> data;
+  DeviceQueueType device;
+};
 
-            void resetStack() { data.resize(0); }
+class BufferSpace
+{
+public:
+  BufferSpace(DeviceQueueType &device, const size_t space);
+  BufferType getDataBuffer();
+  BufferType getRegionsBuffer();
+  int32_t addRegionDesc(BufferRegion accessorDesc);
 
-        protected:
-            BufferType cache;
-            BufferType stager;
-            std::vector<STRUCTURE> data;
-            DeviceQueueType device;
-        };
+  intptr_t copyGPUBuffer(BufferType external, const size_t size);
+  intptr_t copyGPUBuffer(BufferType external, const size_t size,
+                         const intptr_t offset);
 
+  intptr_t copyHostBuffer(const uint8_t *external, const size_t size);
+  intptr_t copyHostBuffer(const uint8_t *external, const size_t size,
+                          const intptr_t offset);
 
+  template <class T>
+  intptr_t copyHostBuffer(const std::vector<T> external, const intptr_t offset);
 
-        class BufferSpace {
-        public:
-            BufferSpace(DeviceQueueType& device, const size_t space);
-            BufferType getDataBuffer();
-            BufferType getRegionsBuffer();
-            int32_t addRegionDesc(BufferRegion accessorDesc);
+  intptr_t getLastKnownOffset();
 
-            intptr_t copyGPUBuffer(BufferType external, const size_t size);
-            intptr_t copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset);
+  void resetRegionStack() { regions.resize(0); }
+  void resetOffsetCounter() { lastKnownOffset = 0; }
 
-            intptr_t copyHostBuffer(const uint8_t * external, const size_t size);
-            intptr_t copyHostBuffer(const uint8_t * external, const size_t size, const intptr_t offset);
+protected:
+  std::vector<BufferRegion> regions;
+  BufferType regionsStage;
+  BufferType regionsBuffer;
+  BufferType dataStage;
+  BufferType dataBuffer;
+  DeviceQueueType device;
+  intptr_t lastKnownOffset = 0;
+};
 
-            template<class T>
-            intptr_t copyHostBuffer(const std::vector<T> external, const intptr_t offset);
+using BufferViewSet = BufferComposer<3, VirtualBufferView>;
+using DataAccessSet = BufferComposer<4, VirtualDataAccess>;
+using DataBindingSet = BufferComposer<5, VirtualBufferBinding>;
 
-            intptr_t getLastKnownOffset();
-
-            void resetRegionStack() { regions.resize(0); }
-            void resetOffsetCounter() { lastKnownOffset = 0; }
-
-        protected:
-            std::vector<BufferRegion> regions;
-            BufferType regionsStage;
-            BufferType regionsBuffer;
-            BufferType dataStage;
-            BufferType dataBuffer;
-            DeviceQueueType device;
-            intptr_t lastKnownOffset = 0;
-        };
-
-
-        using BufferViewSet = BufferComposer<3, VirtualBufferView>;
-        using DataAccessSet = BufferComposer<4, VirtualDataAccess>;
-        using DataBindingSet = BufferComposer<5, VirtualBufferBinding>;
-
-    }
-}
+} // namespace rt
+} // namespace NSM

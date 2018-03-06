@@ -1,0 +1,116 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "/usr/include",
+                "/usr/local/include",
+                "${workspaceRoot}",
+                "${workspaceRoot}/../",
+                "${workspaceRoot}/../glm",
+                "${workspaceRoot}/../vulkan",
+                "${workspaceRoot}/../../testapps/include",
+                "${workspaceRoot}/rtengine",
+                "."
+            ],
+            "defines": [],
+            "intelliSenseMode": "clang-x64",
+            "browse": {
+                "path": [
+                    "/usr/include",
+                    "/usr/local/include",
+                    "${workspaceRoot}",
+                    "${workspaceRoot}/../",
+                    "${workspaceRoot}/../glm",
+                    "${workspaceRoot}/../vulkan",
+                    "${workspaceRoot}/../../testapps/include",
+                    "${workspaceRoot}/rtengine",
+                    "."
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            },
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ]
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "/usr/include",
+                "/usr/local/include",
+                "${workspaceRoot}",
+                "${workspaceRoot}/../",
+                "${workspaceRoot}/../glm",
+                "${workspaceRoot}/../vulkan",
+                "${workspaceRoot}/../../testapps/include",
+                "${workspaceRoot}/rtengine",
+                "."
+            ],
+            "defines": [],
+            "intelliSenseMode": "clang-x64",
+            "browse": {
+                "path": [
+                    "/usr/include",
+                    "/usr/local/include",
+                    "${workspaceRoot}",
+                    "${workspaceRoot}/../",
+                    "${workspaceRoot}/../glm",
+                    "${workspaceRoot}/../vulkan",
+                    "${workspaceRoot}/../../testapps/include",
+                    "${workspaceRoot}/rtengine",
+                    "."
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
+        },
+        {
+            "name": "Win32",
+            "includePath": [
+                "C:/VulkanSDK/1.0.68.0/Include",
+                "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.13.26128/include/*",
+                "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.13.26128/atlmfc/include/*",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/um",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/ucrt",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/shared",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/winrt",
+                "${workspaceRoot}",
+                "${workspaceRoot}/../",
+                "${workspaceRoot}/../glm",
+                "${workspaceRoot}/../vulkan",
+                "${workspaceRoot}/../../testapps/include",
+                "${workspaceRoot}/rtengine",
+                "."
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "intelliSenseMode": "msvc-x64",
+            "browse": {
+                "path": [
+                    "C:/VulkanSDK/1.0.68.0/Include",
+                    "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.13.26128/include/*",
+                    "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.13.26128/atlmfc/include/*",
+                    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/um",
+                    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/ucrt",
+                    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/shared",
+                    "C:/Program Files (x86)/Windows Kits/10/Include/10.0.16299.0/winrt",
+                    "${workspaceRoot}",
+                    "${workspaceRoot}/../",
+                    "${workspaceRoot}/../glm",
+                    "${workspaceRoot}/../vulkan",
+                    "${workspaceRoot}/../../testapps/include",
+                    "${workspaceRoot}/rtengine",
+                    "."
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
+        }
+    ],
+    "version": 3
+}

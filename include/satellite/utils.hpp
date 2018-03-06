@@ -1,29 +1,27 @@
 #pragma once
 
-#define RAY_TRACING_ENGINE
-
-#include <vector>
-#include <iostream>
 #include <chrono>
+#include <fstream>
+#include <functional>
+#include <future>
+#include <iostream>
+#include <stdexcept>
+#include <memory>
 #include <array>
-#include <random>
 #include <map>
+#include <random>
+#include <vector>
+#include <algorithm>
 
-
-#include "glm/glm.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/component_wise.hpp"
-#include "glm/gtx/rotate_vector.hpp"
-#include "glm/gtc/quaternion.hpp"
-#include "glm/gtx/transform.hpp"
-#include "glm/gtc/random.hpp"
-#include "half.hpp"
-
-
-#include "./vkutils/vkStructures.hpp"
-#include "./vkutils/vkUtils.hpp"
-
+#include <half.hpp> // force include half's
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/random.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/component_wise.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/transform.hpp>
 
 #ifdef USE_CIMG
 #include "tinyexr.h"
@@ -33,52 +31,51 @@
 #include "CImg.h"
 #endif
 
-
-
 #ifndef NSM
 #define NSM ste
 #endif
 
-
-
-namespace NSM {
-    auto randm() {
-        auto dvc = std::mt19937(std::random_device()());
-        return std::uniform_int_distribution<int>(0, 2147483647)(dvc);
-    }
-
-    auto randm(const int max) {
-        auto dvc = std::mt19937(std::random_device()());
-        return std::uniform_int_distribution<int>(0, max)(dvc);
-    }
-
-
-    auto randf() {
-        auto dvc = std::mt19937(std::random_device()());
-        return std::uniform_real_distribution<float>(0.f, 1.f)(dvc);
-    }
-
-
-
-    template<typename T> auto sgn(T val) {
-        return (T(0) < val) - (val < T(0));
-    }
-
-    static int32_t tiled(int32_t sz, int32_t gmaxtile) {
-        //return (int32_t)ceil((double)sz / (double)gmaxtile);
-        return sz <= 0 ? 0 : (sz / gmaxtile + sgn(sz%gmaxtile));
-    }
-
-    static double milliseconds() {
-        auto duration = std::chrono::high_resolution_clock::now();
-        double millis = std::chrono::duration_cast<std::chrono::nanoseconds>(duration.time_since_epoch()).count() / 1000000.0;
-        return millis;
-    }
-
-    template<class T>
-    size_t strided(size_t sizeo) {
-        return sizeof(T) * sizeo;
-    }
-
-    const int32_t zero[1] = { 0 };
+namespace NSM
+{
+auto randm()
+{
+  auto dvc = std::mt19937(std::random_device()());
+  return std::uniform_int_distribution<int>(0, 2147483647)(dvc);
 }
+
+auto randm(const int max)
+{
+  auto dvc = std::mt19937(std::random_device()());
+  return std::uniform_int_distribution<int>(0, max)(dvc);
+}
+
+auto randf()
+{
+  auto dvc = std::mt19937(std::random_device()());
+  return std::uniform_real_distribution<float>(0.f, 1.f)(dvc);
+}
+
+template <typename T>
+auto sgn(T val) { return (T(0) < val) - (val < T(0)); }
+
+static int32_t tiled(int32_t sz, int32_t gmaxtile)
+{
+  // return (int32_t)ceil((double)sz / (double)gmaxtile);
+  return sz <= 0 ? 0 : (sz / gmaxtile + sgn(sz % gmaxtile));
+}
+
+static double milliseconds()
+{
+  auto duration = std::chrono::high_resolution_clock::now();
+  double millis = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                      duration.time_since_epoch())
+                      .count() /
+                  1000000.0;
+  return millis;
+}
+
+template <class T>
+size_t strided(size_t sizeo) { return sizeof(T) * sizeo; }
+
+const int32_t zero[1] = {0};
+} // namespace NSM

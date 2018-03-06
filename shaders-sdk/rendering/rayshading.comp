@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 //#define USE_SIMPLIFIED_MODE
+//#define USE_MULTIPLICANT_TRANSPARENCY
 
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
@@ -331,6 +332,9 @@ void main() {
                             WriteColor(transpRay.dcolor, 0.0f.xxxx);
                         }
                         invokeBlockForNodes(transpRay, transparentBlock, overwriteBlock);
+
+                        // if transparent ray no came
+                        if (!SSC(RayActived(transpRay)) && qprom > 0.9999f) { qprom = prom; }
                     }
                     
                     { // reflection rays from surface
@@ -339,7 +343,7 @@ void main() {
                         IF (not(RayActived(rayTemplate))) { WriteColor(rayTemplate.dcolor, 0.0f.xxxx); }
                         invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock);
 
-                        // if no sense of reflection rays, we can fully occupy by diffuse
+                        // if specular ray no came
                         if (!SSC(RayActived(rayTemplate)) && qspca > 0.9999f) { qspca = spca; }
                     }
 

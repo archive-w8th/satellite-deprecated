@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 
 #include "../../../rtengine/geometry/hierarchyStorage.hpp"
 
@@ -60,10 +61,10 @@ void HieararchyStorage::init(DeviceQueueType &device)
         geometryBlockUniform.staging = createBuffer(device, strided<GeometryBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
         // descriptor templates
-        auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+        auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
         device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                                                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo)},
-                                             nullptr);
+            vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo)
+        }, nullptr);
     }
 }
 
@@ -77,13 +78,13 @@ void HieararchyStorage::allocatePrimitiveReserve(size_t primitiveCount)
     vertexLinearStorage = createBuffer(device, strided<float>(primitiveCount * 2 * 9), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
     // descriptor templates
-    auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+    auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
     device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eSampledImage).setDstBinding(10).setPBufferInfo(&attributeTexelStorage->descriptorInfo),
+        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eSampledImage).setDstBinding(10).setPImageInfo(&attributeTexelStorage->descriptorInfo),
         vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesStorage->descriptorInfo),
-        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo), 
-        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&vertexLinearStorage->descriptorInfo), 
-    nullptr);
+        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo),
+        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&vertexLinearStorage->descriptorInfo),
+    }, nullptr);
 }
 
 void HieararchyStorage::allocateNodeReserve(size_t nodeCount)
@@ -94,20 +95,20 @@ void HieararchyStorage::allocateNodeReserve(size_t nodeCount)
         bvhBoxStorage = createBuffer(device, strided<glm::mat4>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
         // descriptor templates
-        auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+        auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
         device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
             vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhBoxStorage->descriptorInfo),
-            vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eSampledImage).setDstBinding(5).setPBufferInfo(&bvhMetaStorage->descriptorInfo),
-        nullptr);
+            vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eSampledImage).setDstBinding(5).setPImageInfo(&bvhMetaStorage->descriptorInfo),
+        }, nullptr);
 }
 
-void HieararchyStorage::syncUniforms()
-{
+//void HieararchyStorage::syncUniforms()
+//{
             // insafe at now, no support loading from hosts
             //auto command = getCommandBuffer(device, true);
             //bufferSubData(command, geometryBlockUniform.staging, geometryBlockData, 0);
             //memoryCopyCmd(command, geometryBlockUniform.staging, geometryBlockUniform.buffer, {0, 0, strided<GeometryBlockUniform>(1)});
             //flushCommandBuffer(device, command, true);
-}
+//}
 }
 } // namespace NSM

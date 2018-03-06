@@ -2,8 +2,7 @@
 
 
 // framework for test apps
-#include "framework/application.hpp"
-
+#include "../include/framework/application.hpp"
 
 // implement our engine in same as application
 #define RT_ENGINE_IMPLEMENT 
@@ -53,8 +52,14 @@ namespace SatelliteExample {
         std::string model_input = "";
         std::string directory = ".";
         std::string bgTexName = "background.jpg";
-        std::shared_ptr<rt::TriangleHierarchy> intersector;
+
         std::shared_ptr<CameraController> cam;
+
+        std::shared_ptr<rt::HieararchyStorage> bvhStore;
+        std::shared_ptr<rt::HieararchyBuilder> bvhBuilder;
+        std::shared_ptr<rt::GeometryAccumulator> geometryCollector;
+
+
         std::shared_ptr<rt::MaterialSet> materialManager;
         std::shared_ptr<rt::TextureSet> textureManager;
         std::shared_ptr<rt::SamplerSet> samplerManager;
@@ -324,8 +329,17 @@ namespace SatelliteExample {
 #endif
 
         // create geometry intersector
-        intersector = std::shared_ptr<rt::TriangleHierarchy>(new rt::TriangleHierarchy(device, shaderPack));
-        intersector->allocate(1024 * 2048);
+        geometryCollector = std::shared_ptr<rt::GeometryAccumulator>(new rt::GeometryAccumulator(device, shaderPack));
+        geometryCollector->allocatePrimitiveReserve(1024 * 2048);
+
+        bvhStore = std::shared_ptr<rt::HieararchyStorage>(new rt::HieararchyStorage(device, shaderPack));
+        bvhStore->allocatePrimitiveReserve(1024 * 2048);
+        bvhStore->allocateNodeReserve(2048 * 2048);
+
+        bvhBuilder = std::shared_ptr<rt::HieararchyBuilder>(new rt::HieararchyBuilder(device, shaderPack));
+        bvhBuilder->allocateNodeReserve(2048 * 2048);
+        bvhBuilder->setHieararchyOutput(bvhStore);
+        bvhBuilder->setPrimitiveSource(geometryCollector);
 
         // init timing state
         time = glfwGetTime() * 1000.f, diff = 0;
@@ -335,7 +349,7 @@ namespace SatelliteExample {
         matrix *= glm::scale(glm::dvec3(mscale))*glm::scale(glm::dvec3(1.f, 1.f, 1.f)); // invert Z coordinate
 
         // loading/setup meshes 
-        intersector->clearTribuffer();
+        geometryCollector->resetAccumulationCounter();
 
 #ifdef EXPERIMENTAL_GLTF
         // load meshes
@@ -352,7 +366,7 @@ namespace SatelliteExample {
                 for (int p = 0; p < mesh.size(); p++) { // load every primitive
                     std::shared_ptr<rt::VertexInstance>& geom = mesh[p];
                     geom->setTransform(transform); // here is bottleneck with host-GPU exchange
-                    intersector->loadGeometry(geom);
+                    geometryCollector->pushGeometry(geom);
                 }
             }
             else
@@ -392,24 +406,19 @@ namespace SatelliteExample {
         glm::dmat4 perspView = glm::perspectiveFov(glm::radians(60.0), double(canvasWidth), double(canvasHeight), 0.0001, 10000.0); // ray tracing better pickup coordinates at LH for RH dimension
         glm::dmat4 modelView = glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)); // need rotated coordinate system in 180 degree (Vulkan API)
 
-        // build BVH in device
-        
-        //intersector->buildBVH(glm::inverse(modelView));
-        intersector->markDirty();
-        intersector->buildBVH(glm::dmat4(1.0));
-
+        // build BVH in device (with linked data)
+        bvhBuilder->build(glm::dmat4(1.0));
 
         // bind materials and textures
         rays->setMaterialSet(materialManager);
         rays->setTextureSet(textureManager);
         rays->setSamplerSet(samplerManager);
 
-
         // process ray tracing 
         rays->generate(perspView, modelView);
         for (int32_t j = 0; j < depth; j++) {
             if (rays->getRayCount() <= 1) break;
-            rays->traverse(intersector);
+            rays->traverse(bvhStore); // TODO: linking bvh storage too 
             rays->rayShading(); // low level function for change rays
         }
         rays->collectSamples();

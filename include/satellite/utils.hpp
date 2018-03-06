@@ -37,45 +37,45 @@
 
 namespace NSM
 {
-auto randm()
-{
-  auto dvc = std::mt19937(std::random_device()());
-  return std::uniform_int_distribution<int>(0, 2147483647)(dvc);
-}
+    auto randm()
+    {
+        auto dvc = std::mt19937(std::random_device()());
+        return std::uniform_int_distribution<int>(0, 2147483647)(dvc);
+    }
 
-auto randm(const int max)
-{
-  auto dvc = std::mt19937(std::random_device()());
-  return std::uniform_int_distribution<int>(0, max)(dvc);
-}
+    auto randm(const int max)
+    {
+        auto dvc = std::mt19937(std::random_device()());
+        return std::uniform_int_distribution<int>(0, max)(dvc);
+    }
 
-auto randf()
-{
-  auto dvc = std::mt19937(std::random_device()());
-  return std::uniform_real_distribution<float>(0.f, 1.f)(dvc);
-}
+    auto randf()
+    {
+        auto dvc = std::mt19937(std::random_device()());
+        return std::uniform_real_distribution<float>(0.f, 1.f)(dvc);
+    }
 
-template <typename T>
-auto sgn(T val) { return (T(0) < val) - (val < T(0)); }
+    template <typename T>
+    auto sgn(T val) { return (T(0) < val) - (val < T(0)); }
 
-static int32_t tiled(int32_t sz, int32_t gmaxtile)
-{
-  // return (int32_t)ceil((double)sz / (double)gmaxtile);
-  return sz <= 0 ? 0 : (sz / gmaxtile + sgn(sz % gmaxtile));
-}
+    static int32_t tiled(int32_t sz, int32_t gmaxtile)
+    {
+        // return (int32_t)ceil((double)sz / (double)gmaxtile);
+        return sz <= 0 ? 0 : (sz / gmaxtile + sgn(sz % gmaxtile));
+    }
 
-static double milliseconds()
-{
-  auto duration = std::chrono::high_resolution_clock::now();
-  double millis = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                      duration.time_since_epoch())
-                      .count() /
-                  1000000.0;
-  return millis;
-}
+    static double milliseconds()
+    {
+        auto duration = std::chrono::high_resolution_clock::now();
+        double millis = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            duration.time_since_epoch())
+            .count() /
+            1000000.0;
+        return millis;
+    }
 
-template <class T>
-size_t strided(size_t sizeo) { return sizeof(T) * sizeo; }
+    template <class T>
+    size_t strided(size_t sizeo) { return sizeof(T) * sizeo; }
 
-const int32_t zero[1] = {0};
+    const int32_t zero[1] = { 0 };
 } // namespace NSM

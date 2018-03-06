@@ -1,9 +1,5 @@
 #pragma once
 
-
-
-
-
 #include <functional>
 #include <sstream>
 #include <iomanip>
@@ -16,18 +12,15 @@
 
 using U_MEM_HANDLE = uint8_t * ;
 
-
 namespace SatelliteExample {
-
-    using namespace ste;
-
+    using namespace NSM;
 
     TextureType loadCubemap(std::string bgTexName, DeviceQueueType& device) {
         cil::CImg<float> image(bgTexName.c_str());
         uint32_t width = image.width(), height = image.height();
         image.channels(0, 3);
         image.permute_axes("cxyz");
-        
+
 
         // create texture
         auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
@@ -79,7 +72,7 @@ namespace SatelliteExample {
         glm::dvec3 dir = glm::normalize(glm::dvec3(0.0, -1.0, 0.01));
         glm::dvec3 eye = glm::dvec3(0.0, 4.0, 0.0);
         glm::dvec3 view = glm::dvec3(0.0, 0.0, 0.0);
-        
+
         glm::dvec2 mposition;
         std::shared_ptr<rt::Pipeline> raysp;
 
@@ -512,7 +505,7 @@ namespace SatelliteExample {
                         flushCommandBuffer(currentContext->device, commandBuffer, vk::SubmitInfo()
                             .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
                             .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
-                            .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), [&](){});
+                            .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), [&]() {});
                     }
 
                     // present for displaying of this image
@@ -612,13 +605,13 @@ namespace SatelliteExample {
 
             if (timeAccumulate >= 1000.0 / 60.0) { // show result by polling
                 timeAccumulate = 0.0001;
-                
+
                 auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
                 currentContext->draw();
                 showTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
             }
 
-             // showing timing results in details
+            // showing timing results in details
             std::stringstream ststream;
             ststream << title << " - " << int(glm::round(rayTracingTime)) << "ms of ray tracing time, " << int(glm::round(showTime)) << "ms of present time, " << int(glm::round(pollEventsTime + sizingTime + sysUpdateTime)) << "ms of other times";
             glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());

@@ -288,7 +288,7 @@ void main() {
                     float metallic = sqrt(compositedHit.metallicRoughness.y); // metallic
 
                     vec3 freflcolor = fmix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(dcts(currentRay.cdirect.xy), normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
-                    vec3 speccolor = fmix(freflcolor, diffcolor.xyz, metallic.xxx);
+                    vec3 speccolor = fmix(freflcolor * mix(1.f.xxx, diffcolor.xyz, 0.04f.xxx), diffcolor.xyz, metallic.xxx);
                     
                     // coefficents
                     float prom = clamp01(1.f - diffcolor.w); // transmission power
@@ -301,11 +301,11 @@ void main() {
                     float qprom = random() < prom ? 1.f : 0.f;
 
                     
-#ifdef USE_SIMPLIFIED_MODE
+//#ifdef USE_SIMPLIFIED_MODE
                     float qspca = RayType(currentRay) == 3 ? spca : (random() < spca ? 1.f : 0.f);
-#else
-                    float qspca = random() < spca ? 1.f : 0.f;
-#endif
+//#else
+//                    float qspca = random() < spca ? 1.f : 0.f;
+//#endif
 
                     // emit that ray 
                     int overwriteBlock = -1;
@@ -362,11 +362,9 @@ void main() {
                         diffcolor *= 0.f.xxxx; deepIndirectIlluminated = true;
                     }
 
-
                     { // if diffuse indirection was deeper, it can be faster approximated
                         // emitApproximateDeepIndirect(enrollRay, deepIndirectIlluminated);
                     }
-
 
                     { // reflection rays from surface
                         //overwriteBlock = -1;
@@ -376,7 +374,7 @@ void main() {
 
 #ifndef USE_SIMPLIFIED_MODE
                     { // diffuse rays from surface
-                        //overwriteBlock = -1;
+                        overwriteBlock = -1;
                         RayRework rayTemplate = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
                         invokeBlockForNodes(rayTemplate, diffuseBlock, overwriteBlock);
                     }

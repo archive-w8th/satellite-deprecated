@@ -3,12 +3,16 @@
 #include "./structs.hpp"
 #include "../grlib/radixSort.hpp"
 #include "./vertexInstance.hpp"
+#include "./geometry/geometryAccumulator.hpp"
+#include "./geometry/hierarchyBuilder.hpp"
+#include "./geometry/hierarchyStorage.hpp"
 
 namespace NSM
 {
 namespace rt
 {
 
+/*
 class TriangleHierarchy
 {
   protected:
@@ -89,5 +93,7 @@ class TriangleHierarchy
         init(device);
     }
 };
+*/
+
 } // namespace rt
 } // namespace NSM

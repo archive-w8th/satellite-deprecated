@@ -12,8 +12,7 @@
 #define phaseMie(a) (.0348151 / pow(1.5625 - 1.5*a,1.5))
 #define absorb(a) (1. - pow(atmosphereColor, vec3(1./(a))))
 
-layout ( binding = 0, set = 1 ) uniform sampler2D skybox[1];
-
+layout ( binding = 20, set = 0 ) uniform sampler2D skybox[1]; // united state with ray tracing
 
 vec4 readEnv(in vec2 ds) {
     vec2 tx2 = ((ds / PI - vec2(0.5f,0.0f)) * vec2(0.5f,1.0f));

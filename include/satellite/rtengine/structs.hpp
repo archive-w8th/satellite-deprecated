@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./structs.hpp"
+#include "../gapi.hpp"
 
 namespace NSM
 {

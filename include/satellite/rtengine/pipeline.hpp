@@ -74,14 +74,10 @@ class Pipeline
 
     // vk::DescriptorPool descriptorPool;
 
-    std::vector<vk::DescriptorSet> rayShadingDescriptors, rayTracingDescriptors,
-        samplingDescriptors, surfaceDescriptors;
+    std::vector<vk::DescriptorSet> rayTracingDescriptors, rayTraverseDescriptors, samplingDescriptors, surfaceDescriptors;
+    std::vector<vk::DescriptorSetLayout> rayTracingDescriptorsLayout, rayTraverseDescriptorsLayout, samplingDescriptorsLayout, surfaceDescriptorsLayout;
 
-    std::vector<vk::DescriptorSetLayout> rayShadingDescriptorsLayout,
-        rayTracingDescriptorsLayout, rayTraverseDescriptorsLayout,
-        samplingDescriptorsLayout, surfaceDescriptorsLayout;
-
-    vk::PipelineLayout rayShadingPipelineLayout, rayTracingPipelineLayout,
+    vk::PipelineLayout rayTracingPipelineLayout,
         rayTraversePipelineLayout, samplingPipelineLayout, surfacePipelineLayout;
 
     double starttime = 0.f;
@@ -115,8 +111,7 @@ class Pipeline
     void setSamplerSet(std::shared_ptr<SamplerSet> &samplerSet);
     void setTextureSet(std::shared_ptr<TextureSet> &textureSet);
     void setMaterialSet(std::shared_ptr<MaterialSet> &materialSet);
-
-    void traverse(std::shared_ptr<TriangleHierarchy> &hierarchy);
+    void traverse(std::shared_ptr<HieararchyStorage> &hierarchy);
 
     uint32_t getCanvasWidth();
     uint32_t getCanvasHeight();

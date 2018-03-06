@@ -9,7 +9,6 @@ namespace rt
 
 void Pipeline::syncUniforms()
 {
-
     auto command = getCommandBuffer(device, true);
     bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
     bufferSubData(command, lightUniform.staging, lightUniformData, 0);
@@ -22,24 +21,16 @@ void Pipeline::syncUniforms()
 
 void Pipeline::initDescriptorSets()
 {
-
-    // descriptor set connectors for externals
+    // descriptor set layout of foreign storage (planned to sharing this structure by C++17)
     std::vector<vk::DescriptorSetLayoutBinding> clientDescriptorSetLayoutBindings = {
         vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // attribute (alpha footage)
-        //vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // normal
-        //vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // texcoord
-        //vk::DescriptorSetLayoutBinding(13, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // modifiers
-        //vk::DescriptorSetLayoutBinding(14, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // reserved (may colors)
-
-        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // BVH boxes
-        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // materials
-        vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // orders
-        vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // geometryUniform
-
-        vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // BVH metadata
-        vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // reserved
-
-        vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // vertex linear buffer
+        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // BVH boxes
+        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // materials
+        vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // orders
+        vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // geometryUniform
+        vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // BVH metadata
+        vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // reserved
+        vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // vertex linear buffer
     };
 
     // ray tracing unified descriptors
@@ -57,9 +48,6 @@ void Pipeline::initDescriptorSets()
         vk::DescriptorSetLayoutBinding(9, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // hits buffer
         vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // unordered indexing
 
-        // surface binding set
-        //vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // surface material set
-
         // uniform set
         vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // LightUniform
         vk::DescriptorSetLayoutBinding(13, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // RayBlockUniform
@@ -67,51 +55,45 @@ void Pipeline::initDescriptorSets()
 
         // BVH cache binding set
         vk::DescriptorSetLayoutBinding(16, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-        vk::DescriptorSetLayoutBinding(17, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr)};
+        vk::DescriptorSetLayoutBinding(17, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr)
+
+        // environment map for ray tracing
+        vk::DescriptorSetLayoutBinding(20, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // environment map
+    };
+
+    // surfaces descriptor layouts
+    std::vector<vk::DescriptorSetLayoutBinding> surfaceImgSetLayoutBindings = {
+        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, MAX_SURFACE_IMAGES, vk::ShaderStageFlagBits::eCompute, nullptr), // textures
+        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eSampler, 16, vk::ShaderStageFlagBits::eCompute, nullptr),                      // samplers for textures
+        vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr)};
 
     // images for sampling
     std::vector<vk::DescriptorSetLayoutBinding> sampleImgSetLayoutBindings = {
         vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // sampling image buffer
         vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // filtered sampled
         vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // clear samples flags
-        //vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // depth buffer
-        //vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // normal buffer
-        //vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // albedo buffer
-    };
-
-    // textures for surfaces
-    std::vector<vk::DescriptorSetLayoutBinding> surfaceImgSetLayoutBindings = {
-        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, MAX_SURFACE_IMAGES, vk::ShaderStageFlagBits::eCompute, nullptr), // textures
-        vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eSampler, 16, vk::ShaderStageFlagBits::eCompute, nullptr),                      // samplers for textures
-        vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr)};
-
-    // ray shading environment
-    std::vector<vk::DescriptorSetLayoutBinding> shadingDescSetLayoutBindings = {
-        vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // environment map
     };
 
     // prepare pools and sets
     std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
         device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
         device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())),
-        device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size())),
         device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(surfaceImgSetLayoutBindings.data()).setBindingCount(surfaceImgSetLayoutBindings.size())),
-        device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(shadingDescSetLayoutBindings.data()).setBindingCount(shadingDescSetLayoutBindings.size()))};
+        device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size())),
+    };
     auto descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
 
     // layouts
     rayTracingDescriptorsLayout = {descriptorSetLayouts[0]};
     rayTraverseDescriptorsLayout = {descriptorSetLayouts[0], descriptorSetLayouts[1]};
-    samplingDescriptorsLayout = {descriptorSetLayouts[0], descriptorSetLayouts[2]};
-    surfaceDescriptorsLayout = {descriptorSetLayouts[0], descriptorSetLayouts[1], descriptorSetLayouts[3]};
-    rayShadingDescriptorsLayout = {descriptorSetLayouts[0], descriptorSetLayouts[4]};
+    samplingDescriptorsLayout = {descriptorSetLayouts[0], descriptorSetLayouts[3]};
+    surfaceDescriptorsLayout = {descriptorSetLayouts[0], descriptorSetLayouts[1], descriptorSetLayouts[2]};
 
     // descriptors
     rayTracingDescriptors = {descriptorSets[0]};
-    //rayTraverseDescriptors = { descriptorSets[0], descriptorSets[1] };
-    samplingDescriptors = {descriptorSets[0], descriptorSets[2]};
-    surfaceDescriptors = {descriptorSets[0], nullptr, descriptorSets[3]};
-    rayShadingDescriptors = {descriptorSets[0], descriptorSets[4]};
+    samplingDescriptors = {descriptorSets[0], descriptorSets[3]};
+    surfaceDescriptors = {descriptorSets[0], nullptr, descriptorSets[2]};
+    rayTraverseDescriptors = {descriptorSets[0], nullptr};
 
     // create staging buffer
     generalStagingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -121,52 +103,22 @@ void Pipeline::initDescriptorSets()
 void Pipeline::initPipelines()
 {
     auto pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
-    ;
 
     // create pipeline layouts
     rayTracingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayTracingDescriptorsLayout.data()).setSetLayoutCount(rayTracingDescriptorsLayout.size()));
     rayTraversePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayTraverseDescriptorsLayout.data()).setSetLayoutCount(rayTraverseDescriptorsLayout.size()));
     samplingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(samplingDescriptorsLayout.data()).setSetLayoutCount(samplingDescriptorsLayout.size()));
     surfacePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(surfaceDescriptorsLayout.data()).setSetLayoutCount(surfaceDescriptorsLayout.size()));
-    rayShadingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayShadingDescriptorsLayout.data()).setSetLayoutCount(rayShadingDescriptorsLayout.size()));
 
     // create pipelines
     unorderedFormer.pipeline = createCompute(device, shadersPathPrefix + "/rendering/unordered.comp.spv", rayTracingPipelineLayout, pipelineCache);
     rayGeneration.pipeline = createCompute(device, shadersPathPrefix + "/rendering/generation.comp.spv", rayTracingPipelineLayout, pipelineCache);
     bvhTraverse.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bvh-traverse.comp.spv", rayTraversePipelineLayout, pipelineCache);
     surfaceShadingPpl.pipeline = createCompute(device, shadersPathPrefix + "/rendering/surface.comp.spv", surfacePipelineLayout, pipelineCache);
-    rayShadePipeline.pipeline = createCompute(device, shadersPathPrefix + "/rendering/rayshading.comp.spv", rayShadingPipelineLayout, pipelineCache);
+    rayShadePipeline.pipeline = createCompute(device, shadersPathPrefix + "/rendering/rayshading.comp.spv", rayTracingPipelineLayout, pipelineCache);
     sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/scatter.comp.spv", samplingPipelineLayout, pipelineCache);
     clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/clear.comp.spv", samplingPipelineLayout, pipelineCache);
-    binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayShadingPipelineLayout, pipelineCache);
-    //vertexInterp.pipeline = createCompute(device, shadersPathPrefix + "/rendering/vertex-interp.comp.spv", rayTraversePipelineLayout, pipelineCache);
-
-    /*
-            { // AMD ONLY - save assembly file of traverser
-                PFN_vkGetShaderInfoAMD pfnGetShaderInfoAMD = (PFN_vkGetShaderInfoAMD)vkGetDeviceProcAddr(device->logical, "vkGetShaderInfoAMD");
-
-                // query disassembly size (if available)
-                size_t dataSize = 0;
-                //device->logical.getShaderInfoAMD(bvhTraverse.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eDisassembly, &dataSize, nullptr);
-                VkResult res = pfnGetShaderInfoAMD(VkDevice(device->logical), VkPipeline(bvhTraverse.pipeline), VkShaderStageFlagBits(vk::ShaderStageFlagBits::eCompute), VkShaderInfoTypeAMD(vk::ShaderInfoTypeAMD::eDisassembly), &dataSize, nullptr);
-
-                // query disassembly and print
-                if (dataSize > 0) {
-                    std::cout << "BVH traverse dissasembly" << std::endl;
-                    char * disassembly = new char[dataSize];
-                    //device->logical.getShaderInfoAMD(bvhTraverse.pipeline, vk::ShaderStageFlagBits::eCompute, vk::ShaderInfoTypeAMD::eDisassembly, &dataSize, disassembly);
-                    res = pfnGetShaderInfoAMD(VkDevice(device->logical), VkPipeline(bvhTraverse.pipeline), VkShaderStageFlagBits(vk::ShaderStageFlagBits::eCompute), VkShaderInfoTypeAMD(vk::ShaderInfoTypeAMD::eDisassembly), &dataSize, disassembly);
-                    //std::cout << std::string(disassembly, disassembly + dataSize) << std::endl;
-
-                    std::ofstream assemblyAMD;
-                    assemblyAMD.open("bvhTraverseDisAMD.gasm");
-                    assemblyAMD << std::string(disassembly, disassembly + dataSize);
-                    assemblyAMD.close();
-
-                    delete disassembly;
-                }
-            }
-            */
+    binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayTracingPipelineLayout, pipelineCache);
 }
 
 void Pipeline::initLights()
@@ -186,7 +138,7 @@ void Pipeline::reloadQueuedRays()
 
     // collect colors to texels
     auto commandBuffer = getCommandBuffer(device, true);
-    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayShadingPipelineLayout, 0, rayShadingDescriptors, nullptr);
+    commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTracingPipelineLayout, 0, rayTracingDescriptors, nullptr);
     commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, binCollect.pipeline);
     commandBuffer.dispatch(INTENSIVITY, 1, 1);
     flushCommandBuffer(device, commandBuffer, true);
@@ -292,8 +244,8 @@ void Pipeline::initBuffers()
         // update descriptors
         device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                                                  vk::WriteDescriptorSet()
-                                                     .setDstSet(rayShadingDescriptors[1])
-                                                     .setDstBinding(0)
+                                                     .setDstSet(rayTracingDescriptors[0])
+                                                     .setDstBinding(20)
                                                      .setDstArrayElement(0)
                                                      .setDescriptorCount(1)
                                                      .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
@@ -392,25 +344,16 @@ void Pipeline::resizeCanvas(uint32_t width, uint32_t height)
     destroyTexture(accumulationImage);
     destroyTexture(filteredImage);
     destroyTexture(flagsImage);
-    //destroyTexture(depthImage);
-    //destroyTexture(normalImage);
-    //destroyTexture(albedoImage);
 
     accumulationImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1}, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
     filteredImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1}, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
     flagsImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1}, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
-    //depthImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-    //normalImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-    //albedoImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
 
     auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
     device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                                              vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
                                              vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
                                              vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
-                                             //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPImageInfo(&depthImage->descriptorInfo),
-                                             //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPImageInfo(&normalImage->descriptorInfo),
-                                             //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPImageInfo(&albedoImage->descriptorInfo),
                                          },
                                          nullptr);
 
@@ -420,9 +363,9 @@ void Pipeline::resizeCanvas(uint32_t width, uint32_t height)
 
 void Pipeline::setSkybox(TextureType &skybox)
 {
-    auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayShadingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
+    auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
     device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                                             vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&skybox->descriptorInfo)},
+                                             vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&skybox->descriptorInfo)},
                                          nullptr);
 }
 
@@ -703,19 +646,19 @@ void Pipeline::setTextureSet(std::shared_ptr<TextureSet> &textureSet)
                                          nullptr);
 }
 
-void Pipeline::traverse(std::shared_ptr<TriangleHierarchy> &hierarchy)
+void Pipeline::traverse(std::shared_ptr<HieararchyStorage> &hierarchy)
 {
     auto vdescs = hierarchy->getClientDescriptorSet();
 
     // unordered former
     auto unrdrCommandBuffer = getCommandBuffer(device, true);
-    unrdrCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayShadingPipelineLayout, 0, rayShadingDescriptors, nullptr);
+    unrdrCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTracingPipelineLayout, 0, rayTracingDescriptors, nullptr);
     unrdrCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, unorderedFormer.pipeline);
     unrdrCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 
     // traverse BVH
     auto bvhCommandBuffer = getCommandBuffer(device, true);
-    bvhCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, {rayTracingDescriptors[0], vdescs}, nullptr);
+    bvhCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, (rayTraverseDescriptors = {rayTracingDescriptors[0], vdescs}), nullptr);
     bvhCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
     bvhCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 

@@ -5,7 +5,6 @@
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
-//#include "../include/uniforms.glsl"
 #include "../include/vertex.glsl"
 #include "../include/mathlib.glsl"
 #include "../include/ballotlib.glsl"
@@ -73,18 +72,8 @@ int aNormalized(in VirtualDataAccess vac) {
 
 
 
-
-layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters {
-    int cCounter;
-    int lCounter;
-    int aCounter;
-    int bvhLevel;
-    int aRange[2];
-    int leafCounter[1];
-    int tcounter[1];
-};
-
 // input data
+layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[1]; };
 layout ( std430, binding = 1, set = 0 ) readonly buffer BufferSpace {INDEX16 bufferSpace[]; };
 layout ( std430, binding = 2, set = 0 ) readonly buffer BufferRegions {uvec2 bufferRegions[]; };
 layout ( std430, binding = 3, set = 0 ) readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };

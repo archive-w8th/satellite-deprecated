@@ -13,9 +13,9 @@ namespace NSM
         {
         protected:
             // Geometry metrics
+            const size_t _WIDTH = 6144;
             const size_t WARPED_WIDTH = 2048;
             const size_t ATTRIBUTE_EXTENT = 4;
-            const size_t _WIDTH = 6144;
 
             // BVH native
             const size_t _BVH_WIDTH = 2048;

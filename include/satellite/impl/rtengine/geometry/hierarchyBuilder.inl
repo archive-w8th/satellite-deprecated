@@ -9,9 +9,9 @@ namespace NSM
     namespace rt
     {
 
-        void HieararchyBuilder::init(DeviceQueueType &device)
+        void HieararchyBuilder::init(DeviceQueueType &_device)
         {
-            this->device = device;
+            this->device = _device;
             radixSort = std::shared_ptr<gr::RadixSort>(new gr::RadixSort(device, shadersPathPrefix));
 
             // descriptor set bindings
@@ -362,7 +362,7 @@ namespace NSM
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)
         {
             // special values
-            size_t _MAX_HEIGHT = std::max(nodeCount > 0 ? (nodeCount * ATTRIBUTE_EXTENT - 1) / WARPED_WIDTH + 1 : 0, WARPED_WIDTH) + 1;
+            size_t _MAX_HEIGHT = std::max(nodeCount > 0 ? (nodeCount - 1) / _BVH_WIDTH + 1 : 0, _BVH_WIDTH) + 1;
 
             // buffer for working with
             bvhNodesFlags = createBuffer(device, strided<uint32_t>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -377,7 +377,6 @@ namespace NSM
             bvhBoxWorking = createBuffer(device, strided<glm::mat4>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // write buffer to bvh builder descriptors
-            auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setMagFilter(vk::Filter::eNearest).setMinFilter(vk::Filter::eNearest).setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirrorClampToEdge).setCompareEnable(false));
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(builderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&mortonCodesBuffer->descriptorInfo),
@@ -388,7 +387,7 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(6).setPBufferInfo(&workingBVHNodesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo.setSampler(sampler)),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo),
             }, nullptr);
         }
     }

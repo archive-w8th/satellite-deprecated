@@ -7,9 +7,9 @@ namespace NSM
     namespace rt
     {
 
-        void GeometryAccumulator::init(DeviceQueueType &device)
+        void GeometryAccumulator::init(DeviceQueueType &_device)
         {
-            this->device = device;
+            this->device = _device;
 
             std::vector<vk::DescriptorSetLayoutBinding> loaderDescriptorSetBindings = {
                 // vertex inputs
@@ -112,11 +112,10 @@ namespace NSM
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(10).setPImageInfo(&attributeTexelWorking->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&orderIndicesWorking->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&vertexLinearWorking->descriptorInfo),
-            },
-                nullptr);
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&orderIndicesWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&vertexLinearWorking->descriptorInfo),
+            }, nullptr);
         }
 
         void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> &vertexInstance)
@@ -130,8 +129,7 @@ namespace NSM
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&vertexInstance->getDataFormatBuffer()->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&vertexInstance->getBufferBindingBuffer()->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&vertexInstance->getUniformBuffer()->descriptorInfo),
-            },
-                nullptr);
+            }, nullptr);
 
             // dispatch loading
             geometryLoader.dispatch();

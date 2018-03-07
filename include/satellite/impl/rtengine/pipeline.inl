@@ -373,9 +373,10 @@ namespace NSM
         {
             const bool IS_INTERLACED = false;
 
-            const size_t BLOCK_WIDTH = 32, BLOCK_HEIGHT = 32;
+            //const size_t BLOCK_WIDTH = 32, BLOCK_HEIGHT = 32;
+            const size_t BLOCK_WIDTH = 8, BLOCK_HEIGHT = 8;
             const size_t BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
-            const size_t BLOCK_NODES_SIZE = 64 * BLOCK_SIZE;
+            const size_t BLOCK_NODES_SIZE = 32 * BLOCK_SIZE;
             const size_t BLOCK_INDICES_SIZE = 8 * BLOCK_SIZE + 64;
             const size_t BLOCK_BIN_SIZE = 4 * BLOCK_SIZE + 64;
             const size_t TRAVERSE_CACHE_SIZE = 1024 * 256;

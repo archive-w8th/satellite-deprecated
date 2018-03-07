@@ -3,7 +3,7 @@
 
 // don't use shared memory for rays (need 32-byte aligment per rays)
 //#ifndef EXTENDED_SHARED_CACHE_SUPPORT
-#define DISCARD_SHARED_CACHING
+//#define DISCARD_SHARED_CACHING
 //#endif
 
 // include
@@ -99,10 +99,9 @@ int currentBlockSize = 0;
 int currentBlock = -1;
 
 
-// store ray in shared blocks (~48kb)
 #ifndef DISCARD_SHARED_CACHING
-shared RayRework _currentRay[WORK_SIZE/WARP_SIZE][WARP_SIZE];
-#define currentRay _currentRay[LC_IDX][LANE_IDX]
+shared RayRework _lRayCache[WORK_SIZE/WARP_SIZE][WARP_SIZE];
+#define currentRay _lRayCache[LC_IDX][LANE_IDX]
 #else
 RayRework currentRay;
 #endif
@@ -186,8 +185,41 @@ bool checkIllumination(in int block, in int bidx){
 void accquireNode(in int block, in int bidx){
     currentInBlockPtr = int(bidx);
     currentBlockNode = currentInBlockPtr >= 0 ? rayBlocks[block].indices[currentInBlockPtr]-1 : -1;
-    if (currentBlockNode >= 0) currentRay = rayBlockNodes[block][currentBlockNode].data;
+    currentRay = rayBlockNodes[block][currentBlockNode].data;
+
+    if (currentBlockNode < 0) {
+        currentRay.dcolor = uvec2((0u).xx);
+        currentRay.origin.w = 0;
+        WriteColor(currentRay.dcolor, 0.0f.xxxx);
+        RayActived(currentRay, FALSE_);
+        RayBounce(currentRay, 0);
+    }
 }
+
+void accquireNodeOffload(in int block, in int bidx){
+    currentInBlockPtr = int(bidx);
+    currentBlockNode = (currentInBlockPtr >= 0 && currentInBlockPtr < currentBlockSize) ? rayBlocks[block].indices[currentInBlockPtr]-1 : -1;
+
+    currentRay = rayBlockNodes[block][currentBlockNode].data;
+    if (currentBlockNode >= 0) { // for avoid errors with occupancy, temporarely clean in working memory
+        int nid = currentBlockNode;
+        rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
+        rayBlockNodes[block][nid].data.origin.w = 0;
+        WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
+        RayActived(rayBlockNodes[block][nid].data, FALSE_);
+        RayBounce(rayBlockNodes[block][nid].data, 0);
+        rayBlocks[block].indices[currentInBlockPtr] = IDCTYPE(-1);
+    } else {
+        currentRay.dcolor = uvec2((0u).xx);
+        currentRay.origin.w = 0;
+        WriteColor(currentRay.dcolor, 0.0f.xxxx);
+        RayActived(currentRay, FALSE_);
+        RayBounce(currentRay, 0);
+    }
+}
+
+
+
 
 
 void accquirePlainNode(in int block, in int bidx){
@@ -315,6 +347,17 @@ void accquireNode(in int bidx) {
         RayActived(currentRay, FALSE_);
     }
 }
+
+void accquireNodeOffload(in int bidx) {
+    accquireNodeOffload(currentBlock, bidx);
+    if (bidx >= currentBlockSize) {
+        currentInBlockPtr = int(bidx);
+        currentBlockNode = -1;
+        RayActived(currentRay, FALSE_);
+    }
+}
+
+
 
 void accquirePlainNode(in int bidx) {
     accquirePlainNode(currentBlock, bidx);

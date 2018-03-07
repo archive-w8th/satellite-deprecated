@@ -4,14 +4,16 @@
 //#define USE_SIMPLIFIED_MODE
 //#define USE_MULTIPLICANT_TRANSPARENCY
 
+
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
 #endif
 
-#include "../include/constants.glsl"
 
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
+//#define DISCARD_SHARED_CACHING
 
+#include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/rayslib.glsl"
@@ -106,8 +108,7 @@ void invalidateRay(inout RayRework rayTemplate, in bool overflow){
 }
 
 
-RayRework envShading(in RayRework currentRay, inout bool skipping) {
-    RayRework rayTemplate = currentRay;
+RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 
     // bad ray
     if (skipping) {
@@ -262,16 +263,11 @@ void main() {
                     randomClocks = 0, subHash = nid; // reset random clocks
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;
-                    accquireNode(nid); overflow = overflow || currentBlockNode < 0;
+                    accquireNodeOffload(nid); overflow = overflow || currentBlockNode < 0;
                     IFALL(overflow) break;
 
                     // get surface information
                     int rayState = invokeSurface(overflow);
-
-
-                    
-
-
 
                     // constants
                     const float IOR = 1.400f;
@@ -303,7 +299,7 @@ void main() {
                     if ( rayState == 3 || rayState == 1 ) prom = 1.0f;
 
                     // pre-filter rays in block
-                    int overwriteBlock = currentBlock;
+                    int overwriteBlock = -1;
                     RayRework enrollRay = envShading(currentRay, overflow);
 
                     // binarize/quantize 
@@ -337,22 +333,35 @@ void main() {
                         if (!SSC(RayActived(transpRay)) && qprom > 0.9999f) { qprom = prom; }
                     }
                     
-                    { // reflection rays from surface
-                        //overwriteBlock = -1;
-                        RayRework rayTemplate = reflection(enrollRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
-                        IF (not(RayActived(rayTemplate))) { WriteColor(rayTemplate.dcolor, 0.0f.xxxx); }
-                        invokeBlockForNodes(rayTemplate, reflectionBlock, overwriteBlock);
 
-                        // if specular ray no came
-                        if (!SSC(RayActived(rayTemplate)) && qspca > 0.9999f) { qspca = spca; }
+                    // occopy 64 byte (64kb)
+                    RayRework diffuseRay = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
+                    RayRework reflectionRay = reflection(enrollRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
+
+                    // filtering of rays
+                    IF (not(RayActived(diffuseRay))) { WriteColor(diffuseRay.dcolor, 0.0f.xxxx); }
+                    IF (not(RayActived(reflectionRay))) { WriteColor(reflectionRay.dcolor, 0.0f.xxxx); }
+                    invalidateRay(diffuseRay, false); invalidateRay(reflectionRay, false);
+
+                    // if reflection ray can't done own role, give to diffuse 
+                    if (!SSC(RayActived(reflectionRay)) && qspca > 0.9999f) { 
+                        qspca = spca; diffuseRay = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
+                    }
+
+                    // if diffuse ray can't done own role, give to reflection 
+                    if (!SSC(RayActived(diffuseRay)) && qspca < 0.0001f) {
+                        qspca = spca; reflectionRay = reflection(enrollRay, clamp01(speccolor.xyz / spca) * qspca * (1.f - qprom), tbn, refly);
+                    }
+
+
+
+                    { // reflection rays from surface
+                        invokeBlockForNodes(reflectionRay, reflectionBlock, overwriteBlock);
                     }
 
 #ifndef USE_SIMPLIFIED_MODE
                     { // diffuse rays from surface
-                        //overwriteBlock = -1;
-                        RayRework rayTemplate = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
-                        IF (not(RayActived(rayTemplate))) { WriteColor(rayTemplate.dcolor, 0.0f.xxxx); }
-                        invokeBlockForNodes(rayTemplate, diffuseBlock, overwriteBlock);
+                        invokeBlockForNodes(diffuseRay, diffuseBlock, overwriteBlock);
                     }
 
                     { // shadow rays from surface
@@ -364,8 +373,9 @@ void main() {
 #endif
 
 
-                    // all environment and lighting blocks to finishing
+                    overwriteBlock = currentBlock;
 
+                    // all environment and lighting blocks to finishing
                     { // environment (finish) rays
                         RayRework envRay = enrollRay;
                         WriteColor(envRay.dcolor, f16_f32(envRay.dcolor) * qprom ); // shadows dims 

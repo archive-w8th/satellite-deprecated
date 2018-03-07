@@ -38,7 +38,7 @@ void main() {
                 inv = inv || anyInvoc(inv || anyInvoc(inv || idx < 0));
                 IFALL(inv) break; // if overflow or bad texel
                 if (!inv) {
-                    for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+                    for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                         int nid = tb + int(LANE_IDX);
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE) {

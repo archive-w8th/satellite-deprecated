@@ -16,9 +16,9 @@ const int _SEED_ID = 15;
 
 int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     if (anyInvoc(block < 0 && minimalCondition)) {
-        int activeLane = firstActive();
+        uint activeLane = firstActive();
         if (LANE_IDX == activeLane) { block = createBlock(binID); } block = readLane(block, activeLane);
-        for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
@@ -70,7 +70,7 @@ void main()
             ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
 
             // invoke block data
-            for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                 int nid = tb + int(LANE_IDX);
                 randomClocks = 0, subHash = nid; // reset random clocks
                 accquirePlainNode(blockID, nid); // accquire by lane
@@ -155,7 +155,7 @@ void main()
                 storeRay(blockID, currentRay);
             }
 
-            for (int tb = 0; tb < R_BLOCK_SIZE; tb += WARP_SIZE_RT) {
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                 copyBlockIndices(currentBlock, tb + int(LANE_IDX));
             }
 

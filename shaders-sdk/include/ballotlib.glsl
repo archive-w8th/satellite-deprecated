@@ -14,6 +14,11 @@
 #endif
 #endif
 
+
+#ifndef ITYPE
+#define ITYPE uint
+#endif
+
 //#define WARP_SIZE_RT ITYPE(gl_SubGroupSizeARB)
   #define WARP_SIZE_RT ITYPE(WARP_SIZE)
 
@@ -28,10 +33,6 @@
 #define WARP_FILTER_MASK 31
 #endif
 
-#ifndef ITYPE
-#define ITYPE int
-#endif
-
 // customizable
 #ifndef CUSTOMIZE_IDC
   #define LT_IDX ITYPE(gl_LocalInvocationIndex)
@@ -39,10 +40,12 @@
   #define LC_IDX   (LT_IDX/WARP_SIZE_RT)
 #endif 
 
-#define UVEC_BALLOT_WARP uvec2
+//#define UVEC_BALLOT_WARP uvec2
+#define UVEC_BALLOT_WARP uint64_t
 
 
-
+// intel hd graphics may not support const arrays
+#ifndef INTEL_PLATFORM
 
 const uvec2 lookat_lt[65] = {
     uvec2(0x0u, 0x0u),
@@ -128,29 +131,35 @@ const uvec2 lookat_lt[65] = {
     uvec2(0xFFFFFFFFu, 0xFFFFFFFFu)
 };
 
+uint64_t lookatLt(const uint lid) { return P2U(lookat_lt[lid]); }
+#else 
+uint64_t lookatLt(const uint lid) { return (1ul << uint64_t(lid)) - 1ul; }
+#endif
+
+
 
 // filtering wrong warps
-uvec2 filterBallot() {
-    return lookat_lt[WARP_SIZE_RT];
+uint64_t filterBallot() {
+    return lookatLt(WARP_SIZE_RT);
 }
 
-uvec2 genLtMask() {
-    return lookat_lt[LANE_IDX] & filterBallot();
+uint64_t genLtMask() {
+    return lookatLt(LANE_IDX) & filterBallot();
 }
 
-uvec2 genGeMask() {
-    return lookat_lt[LANE_IDX] ^ filterBallot();
+uint64_t genGeMask() {
+    return lookatLt(LANE_IDX) ^ filterBallot();
 }
 
-vec4 readLane(in vec4 val, in int lane) {
+vec4 readLane(in vec4 val, in uint lane) {
     return readInvocationARB(val, lane);
 }
 
-vec3 readLane(in vec3 val, in int lane) {
+vec3 readLane(in vec3 val, in uint lane) {
     return readInvocationARB(val, lane);
 }
 
-mat3 readLane(in mat3 val, in int lane) {
+mat3 readLane(in mat3 val, in uint lane) {
     val[0] = readLane(val[0], lane);
     val[1] = readLane(val[1], lane);
     val[2] = readLane(val[2], lane);
@@ -158,26 +167,26 @@ mat3 readLane(in mat3 val, in int lane) {
 }
 
 
-float readLane(in float val, in int lane) {
+float readLane(in float val, in uint lane) {
     return readInvocationARB(val, lane);
 }
 
-uint readLane(in uint val, in int lane) {
+uint readLane(in uint val, in uint lane) {
     return readInvocationARB(val, lane);
 }
 
-int readLane(in int val, in int lane) {
+int readLane(in int val, in uint lane) {
     return readInvocationARB(val, lane);
 }
 
 
 // hack for cross-lane reading of 16-bit data (whaaat?)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-float16_t readLane(in float16_t val, in int lane){
+float16_t readLane(in float16_t val, in uint lane){
     return unpackFloat2x16(readInvocationARB(packFloat2x16(f16vec2(val, 0.hf)), lane)).x;
 }
 
-f16vec2 readLane(in f16vec2 val, in int lane){
+f16vec2 readLane(in f16vec2 val, in uint lane){
     return unpackFloat2x16(readInvocationARB(packFloat2x16(val), lane));
 }
 #endif
@@ -185,19 +194,19 @@ f16vec2 readLane(in f16vec2 val, in int lane){
 
 
 #ifdef ENABLE_AMD_INT16
-int16_t readLane(in int16_t val, in int lane){
+int16_t readLane(in int16_t val, in uint lane){
     return unpackInt2x16(readInvocationARB(packInt2x16(i16vec2(val, 0s)), lane)).x;
 }
 
-uint16_t readLane(in uint16_t val, in int lane){
+uint16_t readLane(in uint16_t val, in uint lane){
     return unpackUint2x16(readInvocationARB(packUint2x16(u16vec2(val, 0us)), lane)).x;
 }
 
-i16vec2 readLane(in i16vec2 val, in int lane){
+i16vec2 readLane(in i16vec2 val, in uint lane){
     return unpackInt2x16(readInvocationARB(packInt2x16(val), lane));
 }
 
-u16vec2 readLane(in u16vec2 val, in int lane){
+u16vec2 readLane(in u16vec2 val, in uint lane){
     return unpackUint2x16(readInvocationARB(packUint2x16(val), lane));
 }
 #endif
@@ -205,54 +214,45 @@ u16vec2 readLane(in u16vec2 val, in int lane){
 
 
 
-bool readLane(in bool val, in int lane) {
+bool readLane(in bool val, in uint lane) {
     return bool(readInvocationARB(int(val), lane));
 }
 
 
-
-
-
-
-uvec2 ballotHW(in BOOL_ val) {
-    uint64_t plc = 0xFFFFFFFFFFFFFFFFul;
-    //plc = ballotARB(bool(val));
-    plc = ballotARB(true); // fix support for Intel, etc.
-    return U2P(plc) & filterBallot();
+uint64_t ballotHW(in BOOL_ val) {
+    return ballotARB(true) & filterBallot();
 }
 
-int countInvocs(in BOOL_ val){
+
+uint countInvocs(in BOOL_ val){
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    return addInvocationsAMD(int(val)); // WHY 16-bit not supported?!
+    return addInvocationsAMD(uint(val)); // WHY 16-bit not supported?!
 #else
-    return bitCount64(ballotHW(val));
+    return btc(ballotHW(val));
 #endif
 }
 
 
-
-float readFLane(in float val, in int lane) { return readFirstInvocationARB(val); }
-uint readFLane(in uint val, in int lane) { return uint(readFirstInvocationARB(int(val)+1)-1); }
-int readFLane(in int val, in int lane) { return readFirstInvocationARB(val+1)-1; }
-
+float readFLane(in float val, in uint lane) { return readFirstInvocationARB(val); }
+uint readFLane(in uint val, in uint lane) { return readFirstInvocationARB(val+1u)-1u; }
+int readFLane(in int val, in uint lane) { return int(readFirstInvocationARB(uint(val+1)))-1; }
 
 
-float readFLane(in float val) { return readFLane(val, 0); }
-uint readFLane(in uint val) { return readFLane(val, 0); }
-int readFLane(in int val) { return readFLane(val, 0); }
+float readFLane(in float val) { return readFLane(val, 0u); }
+uint readFLane(in uint val) { return readFLane(val, 0u); }
+int readFLane(in int val) { return readFLane(val, 0u); }
 
 
+  uint firstActive() { return readFLane(LANE_IDX); }
+  uint firstActive(in UVEC_BALLOT_WARP wps) { return uint(lsb(wps)); }
+  //uint firstActive(in UVEC_BALLOT_WARP wps) { return readFLane(LANE_IDX); }
 
-  int firstActive() { return readFLane(int(LANE_IDX)); }
-  int firstActive(in UVEC_BALLOT_WARP wps) { return lsb(wps); }
-//int firstActive() { return firstActive(ballotHW(TRUE_)); }
 
-
-int mcount64(in UVEC_BALLOT_WARP bits){
+uint mcount64(in UVEC_BALLOT_WARP bits){
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    return int(mbcntAMD(P2U(bits))); // AMuDe
+    return mbcntAMD(bits); // AMuDe
 #else
-    return bitCount64(bits & genLtMask()); // some other
+    return btc(bits & genLtMask()); // some other
 #endif
 }
 
@@ -260,69 +260,69 @@ int mcount64(in UVEC_BALLOT_WARP bits){
 #define initAtomicIncFunction(mem, fname, T)\
 T fname(in BOOL_ _value) {\
     UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const int activeLane = firstActive(bits);\
-    T sumInOrder = T(bitCount64(bits));\
+    const uint activeLane = firstActive(bits);\
+    T sumInOrder = T(btc(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder);\
-    return readLane(gadd, activeLane) + idxInOrder;\
+    return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
 #define initAtomicDecFunction(mem, fname, T)\
 T fname(in BOOL_ _value) {\
     UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const int activeLane = firstActive(bits);\
-    T sumInOrder = T(bitCount64(bits));\
+    const uint activeLane = firstActive(bits);\
+    T sumInOrder = T(btc(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) {\
     atomicMax(mem, 0); gadd = atomicAdd(mem, -sumInOrder); atomicMax(mem, 0); }\
-    return readLane(gadd, activeLane) - idxInOrder;\
+    return readFLane(gadd, activeLane) - idxInOrder;\
 }
 
 // with multiplier support
 #define initAtomicIncByFunction(mem, fname, T)\
 T fname(in BOOL_ _value, const int by) {\
     UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const int activeLane = firstActive(bits);\
-    T sumInOrder = T(bitCount64(bits));\
+    const uint activeLane = firstActive(bits);\
+    T sumInOrder = T(btc(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder * by);\
-    return readLane(gadd, activeLane) + idxInOrder * by;\
+    return readFLane(gadd, activeLane) + idxInOrder * by;\
 }
 
 #define initAtomicIncFunctionTarget(mem, fname, T)\
 T fname(in uint WHERE, in BOOL_ _value) {\
     UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const int activeLane = firstActive(bits);\
-    T sumInOrder = T(bitCount64(bits));\
+    const uint activeLane = firstActive(bits);\
+    T sumInOrder = T(btc(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder);\
-    return readLane(gadd, activeLane) + idxInOrder;\
+    return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
 #define initNonAtomicIncFunction(mem, fname, T)\
 T fname(in BOOL_ _value) {\
     UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const int activeLane = firstActive(bits);\
-    T sumInOrder = T(bitCount64(bits));\
+    const uint activeLane = firstActive(bits);\
+    T sumInOrder = T(btc(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, sumInOrder);\
-    return readLane(gadd, activeLane) + idxInOrder;\
+    return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
 #define initNonAtomicIncFunctionTarget(mem, fname, T)\
 T fname(in uint WHERE, in BOOL_ _value) {\
     UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const int activeLane = firstActive(bits);\
-    T sumInOrder = T(bitCount64(bits));\
+    const uint activeLane = firstActive(bits);\
+    T sumInOrder = T(btc(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, sumInOrder);\
-    return readLane(gadd, activeLane) + idxInOrder;\
+    return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
 

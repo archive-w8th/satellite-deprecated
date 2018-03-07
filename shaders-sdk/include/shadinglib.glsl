@@ -115,6 +115,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
 
 RayRework promised(in RayRework ray, in mat3 tbn) {
     ray.origin.xyz = fma(dcts(ray.cdirect.xy), vec3(GAP), ray.origin.xyz);
+    IF (not(RayActived(ray))) WriteColor(ray.dcolor, 0.f.xxxx);
     return ray;
 }
 

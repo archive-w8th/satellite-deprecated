@@ -45,7 +45,7 @@ void main() {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
             bool owned = key == radice && validAddress;
             if (owned) {
-                WPTR offset = WPTR(countOffset(radice, TRUE_)); 
+                WPTR offset = WPTR(countOffset(radice)); 
                 KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr];
             }
             IFALL (radice >= RADICES || owned || !validAddress) break;

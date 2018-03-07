@@ -40,7 +40,7 @@ void main() {
             
             // invoke block data
             if (!invld) {
-                int bts = min(R_BLOCK_SIZE, currentBlockSize);
+                uint bts = min(R_BLOCK_SIZE, currentBlockSize);
                 for (int tb = 0; tb < bts; tb += int(WARP_SIZE_RT)) {
                     int nid = tb + int(LANE_IDX);
                     randomClocks = 0, subHash = nid; // reset random clocks
@@ -51,7 +51,7 @@ void main() {
 
                     // make unordered lists for context
                     if (!overflow && SSC(RayActived(currentRay))) {
-                        int uidx = atomicIncTT(TRUE_);
+                        uint uidx = atomicIncTT();
                         unorderedRays[uidx] = int(getGeneralNodeId())+1;
                     }
                 }

@@ -42,7 +42,7 @@ void splitNode(in int trID) {
     if (_pdata.x != _pdata.y && prID != -1) {
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
-        int hid = lCounterInc(TRUE_, 2);
+        int hid = lCounterInc(2);
         
         // encode with SIMD-like
         ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
@@ -51,16 +51,16 @@ void splitNode(in int trID) {
 
         // left child
         if (isLeaf.x) {
-            exchange(LeafIndices[cCounterInc(TRUE_)], hd.x);
+            exchange(LeafIndices[cCounterInc()], hd.x);
         } else { // add to next works
-            exchange(Actives[aCounterInc(TRUE_)], hd.x);
+            exchange(Actives[aCounterInc()], hd.x);
         }
 
         // right child
         if (isLeaf.y) {
-            exchange(LeafIndices[cCounterInc(TRUE_)], hd.y);
+            exchange(LeafIndices[cCounterInc()], hd.y);
         } else { // add to next works
-            exchange(Actives[aCounterInc(TRUE_)], hd.y);
+            exchange(Actives[aCounterInc()], hd.y);
         }
 
         ivec2 _lidx = bvhLinear2D(hd.x), _ridx = bvhLinear2D(hd.y);
@@ -80,8 +80,8 @@ void main() {
     // create initial (root) node
     bool isBeginning = aRange[1] == 0;
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
-        int hid = lCounterInc(TRUE_, 2);
-        exchange(Actives[aCounterInc(TRUE_)], hid);
+        int hid = lCounterInc(2);
+        exchange(Actives[aCounterInc()], hid);
 
         imageStore(bvhStorage, bvhLinear2D(hid), ivec4(0, aabbcount[0]-1, -1, -1));
         Flags[hid] = 0;

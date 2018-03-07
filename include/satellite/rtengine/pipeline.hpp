@@ -45,7 +45,7 @@ namespace NSM
             BufferType debugOnes32BufferReference;
 
             // blocks
-            BufferType rayNodeBuffer, rayBlockBuffer, blockBinBuffer, texelBuffer,
+            BufferType rayNodeBuffer, rayBlockBuffer, rayIndexSpaceBuffer, blockBinBuffer, texelBuffer,
                 hitBuffer, countersBuffer, unorderedTempBuffer; //
 
             // active blocks

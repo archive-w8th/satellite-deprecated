@@ -47,6 +47,7 @@ namespace NSM
                 vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // counters
                 vk::DescriptorSetLayoutBinding(9, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // hits buffer
                 vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // unordered indexing
+                vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // generalized 16-bit index space
 
                 // uniform set
                 vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // LightUniform
@@ -377,8 +378,6 @@ namespace NSM
             const size_t BLOCK_WIDTH = 8, BLOCK_HEIGHT = 8;
             const size_t BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
             const size_t BLOCK_NODES_SIZE = 32 * BLOCK_SIZE;
-            const size_t BLOCK_INDICES_SIZE = 8 * BLOCK_SIZE + 64;
-            const size_t BLOCK_BIN_SIZE = 4 * BLOCK_SIZE + 64;
             const size_t TRAVERSE_CACHE_SIZE = 1024 * 256;
             const size_t TRAVERSE_BLOCK_SIZE = 2048 + 64;
             const size_t ALLOC_MULT = 16;
@@ -391,19 +390,31 @@ namespace NSM
             rayBlockData[0].cameraUniform.interlace = IS_INTERLACED ? 1 : 0;
             syncUniforms();
 
-            //
+            // ray nodes (every 32-byte)
             rayNodeBuffer = createBuffer(device, BLOCK_NODES_SIZE * blockLimit, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            rayBlockBuffer = createBuffer(device, BLOCK_INDICES_SIZE * blockLimit, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+            // block headers
+            rayBlockBuffer = createBuffer(device, strided<glm::ivec4 >(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
             currentBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             preparingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             availableBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             clearingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
             texelBuffer = createBuffer(device, strided<Texel>(wrsize), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            blockBinBuffer = createBuffer(device, rayBlockData[0].samplerUniform.blockBinCount * BLOCK_BIN_SIZE, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+            blockBinBuffer = createBuffer(device, strided<glm::ivec4>(rayBlockData[0].samplerUniform.blockBinCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
             hitBuffer = createBuffer(device, strided<HitRework>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
             traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
             unorderedTempBuffer = createBuffer(device, strided<uint32_t>(blockLimit * BLOCK_SIZE), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+            // despite of 16-bit data cloud, we should allocate as big as possible
+            rayIndexSpaceBuffer = createBuffer(device, strided<uint32_t>(blockLimit*2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
 
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);
@@ -433,6 +444,7 @@ namespace NSM
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(9).setPBufferInfo(&hitBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(10).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(11).setPBufferInfo(&rayIndexSpaceBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo)},
                 nullptr);

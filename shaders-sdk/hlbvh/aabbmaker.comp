@@ -141,7 +141,7 @@ void main() {
                     bounding = compactBoxByTriangle(bounding, triverts);
                     vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
 
-                    int to = atomicIncAABB(TRUE_);
+                    int to = atomicIncAABB();
                     MortoncodesIndices[to] = int(to);
                     Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF))));
 

@@ -43,7 +43,7 @@ void main() {
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
             bool owned = key == radice && validAddress;
-            if (owned) countHistogram(radice, TRUE_);
+            if (owned) countHistogram(radice);
             IFALL (radice >= RADICES || owned || !validAddress) break;
         }
 

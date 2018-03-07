@@ -20,7 +20,6 @@ vec4 readEnv(in vec2 ds) {
     return texture(skybox[0], tx2);
 }
 
-
 float js_getThickness(in vec3 rd) {
      float sr = earthRadius+atmosphereHeight;
      vec3 ro = -up*earthRadius;

@@ -99,10 +99,9 @@ bool stackIsEmpty(){
 
 
 
-
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
-    int hid = atomicIncHT(TRUE_)+1;
+    uint hid = atomicIncHT()+1;
     HitRework hitp = hits[hid-1];
     hitp.uvt = intersection;
     hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
@@ -112,7 +111,7 @@ void includeChain(inout vec4 intersection) {
     hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
     hitp.emission = packHalf2(vec4(0.f));
     hits[hid-1] = hitp;
-    currentRay.origin.w = intBitsToFloat(hid);
+    currentRay.origin.w = uintBitsToFloat(hid);
 }
 
 struct GeometrySpace {

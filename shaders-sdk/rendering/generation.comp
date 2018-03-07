@@ -24,7 +24,7 @@ int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
-            rayBlocks[block].indices[nid] = IDCTYPE(-1);
+            m16s(uint(-1), blockIndiceHeader(block)+nid);
         }
     }
     return block;
@@ -37,7 +37,7 @@ LOCAL_SIZE_LAYOUT;
 void main()
 {
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
-    ivec2 blk = ivec2(tiled(wh.x, R_BLOCK_WIDTH), tiled(wh.y, R_BLOCK_HEIGHT));
+    ivec2 blk = ivec2(tiled(wh.x, int(R_BLOCK_WIDTH)), tiled(wh.y, int(R_BLOCK_HEIGHT)));
 
     vec2 sceneResInv = 1.0f / vec2(wh);
     int wsize = blk.x * blk.y;
@@ -52,9 +52,8 @@ void main()
         globalInvocationSMP = globalID;
 
         int binID = globalID;
-        blockBins[binID].info.count = 0;
-        blockBins[binID].info.header = -1;
-        blockBins[binID].info.previous = -1;
+        blockBins[binID].blockStart = uint(-1);
+        blockBins[binID].previousReg = uint(-1);
         
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
@@ -65,6 +64,11 @@ void main()
             createBlockOnce(blockID, true, binID);
             accquirePlainBlock(blockID); 
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
+
+            // allocate texel heading (2x16-bit)
+            if (LANE_IDX == 0) {
+                blockBins[binID].texelHeader = atomicIncRT(R_BLOCK_SIZE*2); 
+            }
 
             // make division
             ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
@@ -88,9 +92,12 @@ void main()
                 ivec2 xy = divxy + bc;
                 overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
 
-                int idx = xy.x + xy.y * wh.x;
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
-                blockBins[binID].texels[nid] = vbn ? idx+1 : -1;
+
+                // prison coding
+                int idx = xy.x + xy.y * wh.x;
+                m16s(vbn ? BFE_HW(idx,0 ,16) : 0xFFFF, blockBins[binID].texelHeader + nid*2+0);
+                m16s(vbn ? BFE_HW(idx,16,16) : 0xFFFF, blockBins[binID].texelHeader + nid*2+1);
 
                 IFALL(overflow) break;
                 

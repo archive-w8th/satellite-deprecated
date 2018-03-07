@@ -252,7 +252,7 @@ uint mcount64(in UVEC_BALLOT_WARP bits){
 
 
 #define initAtomicIncFunction(mem, fname, T)\
-T fname(in BOOL_ _value) {\
+T fname() {\
     UVEC_BALLOT_WARP bits = ballotHW();\
     uint activeLane = firstActive(bits);\
     T sumInOrder = T(bitcnt(bits));\
@@ -263,7 +263,7 @@ T fname(in BOOL_ _value) {\
 }
 
 #define initAtomicDecFunction(mem, fname, T)\
-T fname(in BOOL_ _value) {\
+T fname() {\
     UVEC_BALLOT_WARP bits = ballotHW();\
     uint activeLane = firstActive(bits);\
     T sumInOrder = T(bitcnt(bits));\
@@ -276,7 +276,7 @@ T fname(in BOOL_ _value) {\
 
 // with multiplier support
 #define initAtomicIncByFunction(mem, fname, T)\
-T fname(in BOOL_ _value, const int by) {\
+T fname(const T by) {\
     UVEC_BALLOT_WARP bits = ballotHW();\
     uint activeLane = firstActive(bits);\
     T sumInOrder = T(bitcnt(bits));\
@@ -287,7 +287,7 @@ T fname(in BOOL_ _value, const int by) {\
 }
 
 #define initAtomicIncFunctionTarget(mem, fname, T)\
-T fname(in uint WHERE, in BOOL_ _value) {\
+T fname(in uint WHERE) {\
     UVEC_BALLOT_WARP bits = ballotHW();\
     uint activeLane = firstActive(bits);\
     T sumInOrder = T(bitcnt(bits));\
@@ -298,7 +298,7 @@ T fname(in uint WHERE, in BOOL_ _value) {\
 }
 
 #define initNonAtomicIncFunction(mem, fname, T)\
-T fname(in BOOL_ _value) {\
+T fname() {\
     UVEC_BALLOT_WARP bits = ballotHW();\
     uint activeLane = firstActive(bits);\
     T sumInOrder = T(bitcnt(bits));\
@@ -309,7 +309,7 @@ T fname(in BOOL_ _value) {\
 }
 
 #define initNonAtomicIncFunctionTarget(mem, fname, T)\
-T fname(in uint WHERE, in BOOL_ _value) {\
+T fname(const uint WHERE) {\
     UVEC_BALLOT_WARP bits = ballotHW();\
     uint activeLane = firstActive(bits);\
     T sumInOrder = T(bitcnt(bits));\
@@ -319,7 +319,17 @@ T fname(in uint WHERE, in BOOL_ _value) {\
     return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
-
+// for bitfield based layouts (not for global usages!)
+#define initNonAtomicIncFunctionTargetFunc(funcinout, fname, T)\
+T fname(const uint WHERE) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
+    T idxInOrder = T(mcount64(bits));\
+    T gadd = 0;\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) { gadd = funcinout(WHERE); funcinout(WHERE, gadd + sumInOrder); }\
+    return readFLane(gadd, activeLane) + idxInOrder;\
+}
 
 
 

@@ -29,8 +29,11 @@ void main() {
             uint cnt = 256;
             uint idx = readLane(blockBins[globalID].blockStart , 0)-1u; if (LANE_IDX == 0) blockBins[globalID].blockStart  = uint(-1);
             uint prv = readLane(blockBins[globalID].previousReg, 0)-1u; if (LANE_IDX == 0) blockBins[globalID].previousReg = uint(-1);
-            if (LANE_IDX == 0 && prv >= 0) rayBlocks[prv].next = -1; // unlink weird block
+            uint texelHeader = readLane(blockBinIndiceHeader(globalID), 0);
+            if (LANE_IDX == 0 && int(prv) >= 0) rayBlocks[prv].next = -1; // unlink weird block
             
+            if (int(texelHeader) < 0) break; 
+
             // scatter colors from block bins
             bool inv = overflow;
             uint cnm = min(256, cnt);
@@ -38,16 +41,13 @@ void main() {
                 inv = inv || anyInvoc(inv || anyInvoc(inv || int(idx) < 0));
                 IFALL(inv) break; // if overflow or bad texel
                 if (!inv) {
-                    uint texelHeader = uint(blockBins[globalID].texelHeader);
-
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                         int nid = tb + int(LANE_IDX);
+                        uint n0_16 = m16i(texelHeader + nid*2+0), n1_16 = m16i(texelHeader + nid*2+1);
+                        uint texel = uint((n0_16&0xFFFFu) << 0u) | uint((n1_16&0xFFFFu) << 16u);
 
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE) {
-                            uint n0_16 = m16i(texelHeader + nid*2+0), n1_16 = m16i(texelHeader + nid*2+0);
-                            uint texel = ((n0_16&0xFFFFu) << 0) | ((n1_16&0xFFFFu) << 16);
-
                             vec4 color = f16_f32(rayBlockNodes[idx][nid].data.dcolor);
                             if (int(texel) >= 0 && !SSC(RayActived(rayBlockNodes[idx][nid].data)) && mlength(color.xyz) >= 0.00001f) {
                                 texelBuf.nodes[texel].color.xyz += color.xyz;

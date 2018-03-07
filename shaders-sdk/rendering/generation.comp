@@ -14,8 +14,8 @@
 const int _SEED_ID = 15;
 
 
-int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
-    if (anyInvoc(block < 0 && minimalCondition)) {
+uint createBlockOnce(inout uint block, in bool minimalCondition, in uint binID){
+    if (anyInvoc(int(block) < 0 && minimalCondition)) {
         uint activeLane = firstActive();
         if (LANE_IDX == activeLane) { block = createBlock(binID); } block = readLane(block, activeLane);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
@@ -60,14 +60,14 @@ void main()
         IFALL(overflow) break;
         if (!overflow) { 
             // create unique tile per WARP
-            int blockID = -1;
+            uint blockID = uint(-1);
             createBlockOnce(blockID, true, binID);
             accquirePlainBlock(blockID); 
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
 
             // allocate texel heading (2x16-bit)
             if (LANE_IDX == 0) {
-                blockBins[binID].texelHeader = atomicIncRT(R_BLOCK_SIZE*2); 
+                blockBins[binID].texelHeader = atomicIncRT(R_BLOCK_SIZE*4)+1; 
             }
 
             // make division
@@ -96,12 +96,15 @@ void main()
 
                 // prison coding
                 int idx = xy.x + xy.y * wh.x;
-                m16s(vbn ? BFE_HW(idx,0 ,16) : 0xFFFF, blockBins[binID].texelHeader + nid*2+0);
-                m16s(vbn ? BFE_HW(idx,16,16) : 0xFFFF, blockBins[binID].texelHeader + nid*2+1);
+                m16s(0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+0);
+                m16s(0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+1);
 
                 IFALL(overflow) break;
                 
                 if (vbn) {
+                    m16s(vbn ? BFE_HW(idx, 0,16) : 0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+0);
+                    m16s(vbn ? BFE_HW(idx,16,16) : 0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+1);
+
                     vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed.x);
                     vec2 coord = (vec2(xy) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
                     
@@ -156,6 +159,14 @@ void main()
                             RayActived(currentRay, FALSE_);
                         }
                     }
+
+
+
+
+                    // debug
+                    //RayActived(currentRay, FALSE_);
+                    //WriteColor(currentRay.dcolor, vec4(dir.xyz*0.5f+0.5f, 0));
+
                 }
                 
                 confirmNode(blockID, RayActived(currentRay) == TRUE_);
@@ -168,6 +179,7 @@ void main()
 
             if (LANE_IDX == 0) {
                 confirmBlock(blockID);
+                //flushBlock(blockID, true);
             }
         }
     }

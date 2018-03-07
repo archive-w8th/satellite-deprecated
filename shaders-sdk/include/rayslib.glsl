@@ -72,7 +72,7 @@ layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { IND
 
 // load and store 16-bit (error secure)
 #define m16i(i) (uint(M16(ispace, i))-1u)
-#define m16s(a, i) (M16S(ispace, INDEX16(a)+INDEX16(1u), i))
+#define m16s(a, i) M16S(ispace, INDEX16(a)+INDEX16(1u), i)
 
 
 // extraction of block length

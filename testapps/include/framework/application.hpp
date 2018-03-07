@@ -603,7 +603,7 @@ namespace SatelliteExample {
             timeAccumulate += std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tIdle).count();
             tIdle = std::chrono::high_resolution_clock::now(); // register polling end time 
 
-            if (timeAccumulate >= 1000.0 / 60.0) { // show result by polling
+            if (timeAccumulate >= 1000.0 / 240.0) { // show result by polling
                 timeAccumulate = 0.0001;
 
                 auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 

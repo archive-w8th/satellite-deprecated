@@ -141,8 +141,10 @@ vec4 mult4(in mat4 tmat, in vec4 vec) { return vec * tmat; }
 //uvec2 U2P(in uint64_t pckg) { return unpackUint2x32(pckg); }
 //uint64_t P2U(in uvec2 pckg) { return packUint2x32(pckg); }
 #else
-uvec2 U2P(in uint64_t pckg) { return uvec2(uint((pckg >> 0ul) & 0xFFFFFFFFul), uint((pckg >> 32ul) & 0xFFFFFFFFul)); }
-uint64_t P2U(in uvec2 pckg) { return uint64_t(pckg.x) | (uint64_t(pckg.y) << 32ul); }
+#define U2P unpackUint2x32
+#define P2U packUint2x32
+//uvec2 U2P(in uint64_t pckg) { return uvec2(uint((pckg >> 0ul) & 0xFFFFFFFFul), uint((pckg >> 32ul) & 0xFFFFFFFFul)); }
+//uint64_t P2U(in uvec2 pckg) { return uint64_t(pckg.x) | (uint64_t(pckg.y) << 32ul); }
 #endif
 
 

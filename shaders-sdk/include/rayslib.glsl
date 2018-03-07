@@ -132,7 +132,7 @@ ivec2 decomposeLinearId(in int linid){
 
 
 // counters
-layout ( std430, binding = 8, set = 0 ) restrict buffer CounterBlock { 
+layout ( std430, binding = 8, set = 0 ) buffer CounterBlock { 
     int bT; // blocks counter
     int aT; // active blocks counter
     int pT; // clearing blocks counters

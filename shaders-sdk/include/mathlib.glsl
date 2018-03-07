@@ -152,11 +152,13 @@ u64vec2 P4U(in uvec4 pckg) { return u64vec2(uint64_t(P2U(pckg.xy)), uint64_t(P2U
 
 
 
-uint btc(in uint vlc) { return uint(bitCount(vlc)); }
+
  int lsb(in uint vlc) { return findLSB(vlc); }
  int msb(in uint vlc) { return findMSB(vlc); }
-uint btc(in uvec2 lh) { return btc(lh.x) + btc(lh.y); }
-uint btc(in uint64_t lh) { return btc(U2P(lh)); }
+
+uint bitcnt(in uint vlc) { return uint(bitCount(vlc)); }
+uint bitcnt(in uvec2 lh) { ivec2 bic = bitCount(lh); return uint(bic.x+bic.y); }
+uint bitcnt(in uint64_t lh) { ivec2 bic = bitCount(U2P(lh)); return uint(bic.x+bic.y); }
 
 
 // bit measure utils
@@ -169,19 +171,19 @@ int msb(in uvec2 pair) {
 }
 
 int msb(in uint64_t vlc) { 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return findMSB(vlc);
-#else
+//#ifdef ENABLE_AMD_INSTRUCTION_SET
+//    return findMSB(vlc);
+//#else
     return msb(U2P(vlc));
-#endif
+//#endif
 }
 
 int lsb(in uint64_t vlc) { 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return findLSB(vlc);
-#else
+//#ifdef ENABLE_AMD_INSTRUCTION_SET
+//    return findLSB(vlc);
+//#else
     return lsb(U2P(vlc));
-#endif
+//#endif
 }
 
 

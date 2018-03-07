@@ -132,8 +132,11 @@ const uvec2 lookat_lt[65] = {
 };
 
 uint64_t lookatLt(const uint lid) { return P2U(lookat_lt[lid]); }
+
 #else 
+
 uint64_t lookatLt(const uint lid) { return (1ul << uint64_t(lid)) - 1ul; }
+
 #endif
 
 
@@ -219,17 +222,8 @@ bool readLane(in bool val, in uint lane) {
 }
 
 
-uint64_t ballotHW(in BOOL_ val) {
+uint64_t ballotHW() {
     return ballotARB(true) & filterBallot();
-}
-
-
-uint countInvocs(in BOOL_ val){
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    return addInvocationsAMD(uint(val)); // WHY 16-bit not supported?!
-#else
-    return btc(ballotHW(val));
-#endif
 }
 
 
@@ -252,27 +246,27 @@ uint mcount64(in UVEC_BALLOT_WARP bits){
 #ifdef ENABLE_AMD_INSTRUCTION_SET
     return mbcntAMD(bits); // AMuDe
 #else
-    return btc(bits & genLtMask()); // some other
+    return bitcnt(bits & genLtMask()); // some other
 #endif
 }
 
 
 #define initAtomicIncFunction(mem, fname, T)\
 T fname(in BOOL_ _value) {\
-    UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const uint activeLane = firstActive(bits);\
-    T sumInOrder = T(btc(bits));\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder);\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = atomicAdd(mem, sumInOrder);}\
     return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
 #define initAtomicDecFunction(mem, fname, T)\
 T fname(in BOOL_ _value) {\
-    UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const uint activeLane = firstActive(bits);\
-    T sumInOrder = T(btc(bits));\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) {\
@@ -283,31 +277,31 @@ T fname(in BOOL_ _value) {\
 // with multiplier support
 #define initAtomicIncByFunction(mem, fname, T)\
 T fname(in BOOL_ _value, const int by) {\
-    UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const uint activeLane = firstActive(bits);\
-    T sumInOrder = T(btc(bits));\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder * by);\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = atomicAdd(mem, sumInOrder * by);}\
     return readFLane(gadd, activeLane) + idxInOrder * by;\
 }
 
 #define initAtomicIncFunctionTarget(mem, fname, T)\
 T fname(in uint WHERE, in BOOL_ _value) {\
-    UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const uint activeLane = firstActive(bits);\
-    T sumInOrder = T(btc(bits));\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = atomicAdd(mem, sumInOrder);\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = atomicAdd(mem, sumInOrder);}\
     return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
 #define initNonAtomicIncFunction(mem, fname, T)\
 T fname(in BOOL_ _value) {\
-    UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const uint activeLane = firstActive(bits);\
-    T sumInOrder = T(btc(bits));\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
     if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, sumInOrder);\
@@ -316,12 +310,12 @@ T fname(in BOOL_ _value) {\
 
 #define initNonAtomicIncFunctionTarget(mem, fname, T)\
 T fname(in uint WHERE, in BOOL_ _value) {\
-    UVEC_BALLOT_WARP bits = ballotHW(TRUE_);\
-    const uint activeLane = firstActive(bits);\
-    T sumInOrder = T(btc(bits));\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    uint activeLane = firstActive(bits);\
+    T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) gadd = add(mem, sumInOrder);\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = add(mem, sumInOrder);}\
     return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
@@ -332,12 +326,10 @@ T fname(in uint WHERE, in BOOL_ _value) {\
 
 
 bool allInvoc(in BOOL_ bc){
-    //return countInvocs(bc) >= countInvocs(TRUE_);
     return allInvocations(SSC(bc));
 }
 
 bool anyInvoc(in BOOL_ bc){
-    //return countInvocs(bc) > 0;
     return anyInvocation(SSC(bc));
 }
 

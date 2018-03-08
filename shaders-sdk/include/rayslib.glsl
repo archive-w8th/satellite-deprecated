@@ -17,12 +17,12 @@ const int R_BLOCK_SIZE = R_BLOCK_WIDTH * R_BLOCK_HEIGHT;
 
 // 128bit block heading struct 
 struct BlockInfo {
-    int indiceHeader; uint bitfield; int next, blockBinId;
+    int indiceHeader; int indiceCount; int next, blockBinId;
 };
 
 // 128bit heading struct of bins
 struct BlockBin {
-    int texelHeader; uint bitfield; int blockStart, previousReg;
+    int texelHeader; int chainSize; int blockStart, previousReg;
 };
 
 
@@ -55,24 +55,18 @@ layout ( std430, binding = 9, set = 0 ) buffer HitsSSBO { HitRework hits[]; }; /
 layout ( std430, binding = 10, set = 0 ) buffer UnorderedSSBO { int unorderedRays[]; };
 
 
-#if (defined(ADDRESS_16BIT_SPACE) && defined(ENABLE_AMD_INT16))
-layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint16_t ispace[][R_BLOCK_SIZE]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint ispace[][R_BLOCK_SIZE]; };
 #define m16i(b,i) (int(ispace[b][i])-1)
-#define m16s(a,b,i) (ispace[b][i] = uint16_t((uint(a)+1u)&0xFFFFu))
-#else
-layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { mediump uint ispace[][R_BLOCK_SIZE]; };
-#define m16i(b,i) (int(ispace[b][i]&0xFFFFu)-1)
-#define m16s(a,b,i) (ispace[b][i] = ((uint(a)+1u)&0xFFFFu))
-#endif
+#define m16s(a,b,i) (ispace[b][i] = uint(a+1))
 
 
 // extraction of block length
 int blockLength(inout BlockInfo block){
-    return int(BFE_HW(block.bitfield, 0, 16)&0xFFFFu);
+    return block.indiceCount;
 }
 
 void blockLength(inout BlockInfo block, in int count){
-    block.bitfield = BFI_HW(block.bitfield, uint(min(int(count), int(R_BLOCK_SIZE))) & 0xFFFFu, 0, 16);
+    block.indiceCount = min(count, R_BLOCK_SIZE);
 }
 
 void resetBlockLength(inout BlockInfo block) { blockLength(block, 0); }
@@ -94,7 +88,7 @@ void resetBlockLength(in int blockPtr){
 
 
 int blockIndiceHeader(in int blockPtr){
-    return (rayBlocks[blockPtr].indiceHeader-1);
+    return rayBlocks[blockPtr].indiceHeader;
 }
 
 int blockPreparingHeader(in int blockPtr){
@@ -102,7 +96,7 @@ int blockPreparingHeader(in int blockPtr){
 }
 
 int blockBinIndiceHeader(in int binPtr){
-    return (blockBins[binPtr].texelHeader-1);
+    return blockBins[binPtr].texelHeader;
 }
 
 
@@ -178,7 +172,7 @@ initAtomicSubgroupIncFunction(arcounter.tT, atomicIncTT, 1, int)
 initAtomicSubgroupIncFunction(arcounter.hT, atomicIncHT, 1, int)
 
 // should functions have layouts
-initSubgroupIncFunctionFunc(blockLength, atomicIncCM, 1, int)
+initSubgroupIncFunctionTarget(rayBlocks[WHERE].indiceCount, atomicIncCM, 1, int)
 
 
 // copy node indices
@@ -317,7 +311,7 @@ int createBlock(inout int blockId, in int blockBinId){
             int st = int(atomicDecMT())-1;
             if (st >= 0) { 
                 mt = exchange(availableBlocks[st],-1)-1;
-                rayBlocks[mt].bitfield = 0u;
+                rayBlocks[mt].indiceCount = 0;
                 rayBlocks[mt].blockBinId = blockBinId+1;
                 rayBlocks[mt].next = 0;
             }
@@ -325,14 +319,14 @@ int createBlock(inout int blockId, in int blockBinId){
 
         if (mt < 0) { 
             mt = atomicIncBT(); 
-            rayBlocks[mt].bitfield = 0u;
+            rayBlocks[mt].indiceCount = 0;
             rayBlocks[mt].next = 0;
             rayBlocks[mt].blockBinId = blockBinId+1;
-            rayBlocks[mt].indiceHeader = 0;
+            rayBlocks[mt].indiceHeader = -1;
         }
 
-        if (mt >= 0 && rayBlocks[mt].indiceHeader <= 0) {
-            rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
+        if (mt >= 0 && rayBlocks[mt].indiceHeader < 0) {
+            rayBlocks[mt].indiceHeader = atomicIncRT(2);
         }
     }
     blockId = (mt >= 0 ? mt : int(blockId));

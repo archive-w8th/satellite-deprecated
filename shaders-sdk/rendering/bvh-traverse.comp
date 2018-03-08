@@ -7,6 +7,9 @@
 #define SIMPLIFIED_RAY_MANAGMENT
 #define DISCARD_SHARED_CACHING // store rays in registers if possible
 
+//#define USE_STACKLESS_BVH
+
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -41,13 +44,6 @@ struct NodeCache {
     int extendedStack[extendedStackSize];
 };
 
-// use shared local memory stack
-//#ifndef AMD_F16_BVH
-#define LOCAL_STACK localStack[LT_IDX]
-shared int localStack[WORK_SIZE][localStackSize];
-//#else 
-//int LOCAL_STACK[localStackSize];
-//#endif
 
 
 // use shared memory for boxes
@@ -67,6 +63,16 @@ layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCac
 layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { BlockCache blockCache[]; };
 
 
+
+#ifndef USE_STACKLESS_BVH
+
+// use shared local memory stack
+//#ifndef AMD_F16_BVH
+#define LOCAL_STACK localStack[LT_IDX]
+shared int localStack[WORK_SIZE][localStackSize];
+//#else 
+//int LOCAL_STACK[localStackSize];
+//#endif
 
 
 int loadStack(){
@@ -95,6 +101,7 @@ bool stackIsFull(){
 bool stackIsEmpty(){
     return stackPtr <= 0;
 }
+#endif
 
 
 

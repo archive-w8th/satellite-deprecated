@@ -40,18 +40,9 @@
 #endif
 
 #if defined(ENABLE_AMD_INT16)
-
-#ifdef USE_F16_WORKAROUND // fork with fp16
-#define INDEX16 float16_t
-#define M16(m, i) uint(float16BitsToUint16(m[i]))
-#define M32(m, i) packFloat2x16(f16vec2(m[(i)<<1],m[((i)<<1)|1]))
-
-#else // real int16
 #define INDEX16 uint16_t
 #define M16(m, i) uint(m[i])
 #define M32(m, i) packUint2x16(u16vec2(m[(i)<<1],m[((i)<<1)|1]))
-#endif
-
 #else
 #define INDEX16 uint
 #define M16(m, i) (BFE_HW(m[(i)>>1], 16*(int(i)&1), 16))
@@ -67,21 +58,13 @@
 #endif
 
 
-#if (defined(ENABLE_AMD_INSTRUCTION_SET) && defined(ENABLE_AMD_INT16_CONDITION) && defined(ENABLE_AMD_INT16))
-#define BVEC4_ i16vec4
-#define BVEC3_ i16vec3
-#define BVEC2_ i16vec2
-#define BOOL_ int16_t
-#define TRUE_ 1s
-#define FALSE_ 0s
-#else
+
 #define BVEC4_ ivec4
 #define BVEC3_ ivec3
 #define BVEC2_ ivec2
 #define BOOL_ int
 #define TRUE_ 1
 #define FALSE_ 0
-#endif
 
 #define TRUE2_ TRUE_.xx
 #define FALSE2_ FALSE_.xx

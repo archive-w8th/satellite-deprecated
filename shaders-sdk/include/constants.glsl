@@ -7,7 +7,7 @@
     #extension GL_AMD_gcn_shader : enable
     #extension GL_AMD_gpu_shader_half_float : enable
     //#extension GL_AMD_gpu_shader_half_float_fetch : enable
-    #extension GL_AMD_gpu_shader_int16 : enable 
+    //#extension GL_AMD_gpu_shader_int16 : enable 
     #extension GL_ARB_gpu_shader_int64 : require
 
     // intrinsics extensions
@@ -58,9 +58,9 @@
 
 // enable required GAPI extensions
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    #define ENABLE_AMD_INT16 // RX Vega broken support 16-bit integer buffers in Vulkan API 1.1.70
-    #define ENABLE_AMD_INT16_CONDITION
-    #define ADDRESS_16BIT_SPACE // automaticly
+    //#define ENABLE_AMD_INT16 // RX Vega broken support 16-bit integer buffers in Vulkan API 1.1.70
+    //#define ENABLE_AMD_INT16_CONDITION
+    //#define ADDRESS_16BIT_SPACE // automaticly
 #endif
 
 #ifndef ENABLE_AMD_INSTRUCTION_SET

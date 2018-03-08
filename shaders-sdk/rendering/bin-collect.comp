@@ -43,8 +43,8 @@ void main() {
                 if (!inv) {
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                         int nid = tb + int(LANE_IDX);
-                        int n0_16 = m16i(texelHeader+0, nid), n1_16 = m16i(texelHeader+1, nid);
-                        int texel = int((n0_16&0xFFFFu) << 0u) | int((n1_16&0xFFFFu) << 16u);
+                        int texel = m16i(texelHeader, nid);
+
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE) {
                             vec4 color = f16_f32(rayBlockNodes[idx][nid].data.dcolor);
@@ -58,7 +58,7 @@ void main() {
                     int preidx = readLane(int(idx) >= 0 ? rayBlocks[idx].next : 0, 0);
                     if (LANE_IDX == 0 && int(idx) >= 0) {
                         rayBlocks[idx].next = 0;
-                        rayBlocks[idx].bitfield = 0u;
+                        rayBlocks[idx].indiceCount = 0;
                         rayBlocks[idx].blockBinId = 0;
                     }
                     idx = preidx-1;

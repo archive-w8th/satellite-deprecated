@@ -46,10 +46,10 @@ f16vec2 readLane(in f16vec2 val, in uint lane) { return unpackFloat2x16(subgroup
 
 
 #ifdef ENABLE_AMD_INT16
-int16_t readLane(in int16_t val, in uint lane) { return unpackInt2x16(subgroupBroadcast(packInt2x16(i16vec2(val, 0s)), lane)).x; }
-uint16_t readLane(in uint16_t val, in uint lane) { return unpackUint2x16(subgroupBroadcast(packUint2x16(u16vec2(val, 0us)), lane)).x; }
-i16vec2 readLane(in i16vec2 val, in uint lane) { return unpackInt2x16(subgroupBroadcast(packInt2x16(val), lane)); }
-u16vec2 readLane(in u16vec2 val, in uint lane) { return unpackUint2x16(subgroupBroadcast(packUint2x16(val), lane)); }
+//int16_t readLane(in int16_t val, in uint lane) { return unpackInt2x16(subgroupBroadcast(packInt2x16(i16vec2(val, 0s)), lane)).x; }
+//uint16_t readLane(in uint16_t val, in uint lane) { return unpackUint2x16(subgroupBroadcast(packUint2x16(u16vec2(val, 0us)), lane)).x; }
+//i16vec2 readLane(in i16vec2 val, in uint lane) { return unpackInt2x16(subgroupBroadcast(packInt2x16(val), lane)); }
+//u16vec2 readLane(in u16vec2 val, in uint lane) { return unpackUint2x16(subgroupBroadcast(packUint2x16(val), lane)); }
 #endif
 
 

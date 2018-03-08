@@ -310,7 +310,7 @@ void main() {
 
                     // binarize/quantize specular and transparency
 #ifdef USE_SIMPLIFIED_MODE
-                    float qprom = qrand(prom), qspca = spca; // have no branching at now
+                    float qprom = qrand(prom), qspca = 0.f;//qspca = spca; // have no branching at now
 #else
                     float qprom = qrand(prom), qspca = qrand(spca);
 #endif

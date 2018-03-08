@@ -315,7 +315,7 @@ T fname(const uint WHERE) {\
     T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) {gadd = add(mem, sumInOrder);}\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) { gadd = add(mem, sumInOrder); }\
     return readFLane(gadd, activeLane) + idxInOrder;\
 }
 
@@ -327,7 +327,7 @@ T fname(const uint WHERE) {\
     T sumInOrder = T(bitcnt(bits));\
     T idxInOrder = T(mcount64(bits));\
     T gadd = 0;\
-    if (sumInOrder > 0 && LANE_IDX == activeLane) { gadd = funcinout(WHERE); funcinout(WHERE, gadd + sumInOrder); }\
+    if (sumInOrder > 0 && LANE_IDX == activeLane) { gadd = T(funcinout(WHERE)); funcinout(WHERE, T(gadd + sumInOrder)); }\
     return readFLane(gadd, activeLane) + idxInOrder;\
 }
 

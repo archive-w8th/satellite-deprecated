@@ -25,6 +25,7 @@ uint createBlockOnce(inout uint block, in bool minimalCondition, in uint binID){
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
             m16s(uint(-1), blockIndiceHeader(block)+nid);
+            m16s(uint(-1), blockPreparingHeader(block)+nid);
         }
     }
     return block;
@@ -159,14 +160,6 @@ void main()
                             RayActived(currentRay, FALSE_);
                         }
                     }
-
-
-
-
-                    // debug
-                    //RayActived(currentRay, FALSE_);
-                    //WriteColor(currentRay.dcolor, vec4(dir.xyz*0.5f+0.5f, 0));
-
                 }
                 
                 confirmNode(blockID, RayActived(currentRay) == TRUE_);
@@ -178,7 +171,9 @@ void main()
             }
 
             if (LANE_IDX == 0) {
-                confirmBlock(blockID);
+                if (blockLength(blockID) >= 1) {
+                    confirmBlock(blockID);
+                }
                 //flushBlock(blockID, true);
             }
         }

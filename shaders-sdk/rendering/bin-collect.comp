@@ -30,9 +30,8 @@ void main() {
             uint idx = readLane(blockBins[globalID].blockStart , 0)-1u; if (LANE_IDX == 0) blockBins[globalID].blockStart  = uint(-1);
             uint prv = readLane(blockBins[globalID].previousReg, 0)-1u; if (LANE_IDX == 0) blockBins[globalID].previousReg = uint(-1);
             uint texelHeader = readLane(blockBinIndiceHeader(globalID), 0);
-            if (LANE_IDX == 0 && int(prv) >= 0) rayBlocks[prv].next = -1; // unlink weird block
-            
-            if (int(texelHeader) < 0) break; 
+            if (LANE_IDX == 0 && int(prv) >= 0) rayBlocks[prv].next = 0u; // unlink weird block
+            if (int(texelHeader) < 0) break;
 
             // scatter colors from block bins
             bool inv = overflow;
@@ -56,12 +55,12 @@ void main() {
                             RayActived(rayBlockNodes[idx][nid].data, FALSE_);
                         }
                     }
-                    uint preidx = readLane(int(idx) >= 0 ? rayBlocks[idx].next : 0, 0); 
-                    if (LANE_IDX == 0 && int(idx) >= 0) rayBlocks[idx].next = -1;
-                    idx = preidx-1u;
+                    int preidx = int(readLane(int(idx) >= 0 ? rayBlocks[idx].next : 0, 0))-1;
+                    if (LANE_IDX == 0 && int(idx) >= 0) rayBlocks[idx].next = 0u;
+                    idx = uint(preidx);
                 }
             }
-            if (LANE_IDX == 0 && idx >= 0) rayBlocks[idx].next = -1;
+            if (LANE_IDX == 0 && int(idx) >= 0) rayBlocks[idx].next = 0u;
         }
     }
 }

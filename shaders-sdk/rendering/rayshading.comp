@@ -161,7 +161,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 uint createBlockOnce(inout uint block, in bool minimalCondition){
     if (anyInvoc(block < 0 && minimalCondition)) {
         uint activeLane = firstActive();
-        if (LANE_IDX == activeLane) { block = createBlock(); } block = readLane(block, activeLane);
+        if (LANE_IDX == activeLane) { block = createBlock(block); } block = readLane(block, activeLane);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
@@ -170,6 +170,7 @@ uint createBlockOnce(inout uint block, in bool minimalCondition){
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
             m16s(uint(-1), blockIndiceHeader(block)+nid);
+            m16s(uint(-1), blockPreparingHeader(block)+nid);
         }
     }
     return block;
@@ -205,11 +206,11 @@ void emitBlock(in uint block) {
     if (anyInvoc(block >= 0)) {
         bool hasIllumination = false;
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) { 
-            int bidx = int(tb + LANE_IDX), idx = bidx;
-            m16s(m16i(blockPreparingHeader(block) + uint(bidx)), blockIndiceHeader(block) + uint(bidx));
+            uint bidx = uint(tb + LANE_IDX), idx = m16i(blockPreparingHeader(block) + uint(bidx));
+            m16s(idx, blockIndiceHeader(block) + uint(bidx));
 
-            if (idx >= 0) {
-                bool hasIlm = mlength(f16_f32(rayBlockNodes[block][idx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][idx].data));
+            if (int(bidx) >= 0) {
+                bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
                 hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
             }
         }

@@ -77,16 +77,17 @@ layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { IND
 
 // extraction of block length
 uint blockLength(inout BlockInfo block){
-    return BFE_HW(block.bitfield, 0, 16)-1;
+    return BFE_HW(block.bitfield, 0, 16)&0xFFFFu;
 }
 
 void blockLength(inout BlockInfo block, in uint count){
-    block.bitfield = BFI_HW(block.bitfield, count+1, 0, 16);
+    block.bitfield = BFI_HW(block.bitfield, (count)&0xFFFFu, 0, 16);
 }
 
-void resetBlockLength(inout BlockInfo block){
-    blockLength(block, 0);
-}
+
+
+
+void resetBlockLength(inout BlockInfo block) { blockLength(block, 0); }
 
 
 
@@ -103,12 +104,14 @@ void resetBlockLength(in uint blockPtr){
     resetBlockLength(rayBlocks[blockPtr]);
 }
 
+
+
 uint blockIndiceHeader(in uint blockPtr){
     return rayBlocks[blockPtr].indiceHeader-1;
 }
 
 uint blockPreparingHeader(in uint blockPtr){
-    return (rayBlocks[blockPtr].indiceHeader-1) + R_BLOCK_SIZE;
+    return blockIndiceHeader(blockPtr) + R_BLOCK_SIZE;
 }
 
 uint blockBinIndiceHeader(in uint binPtr){
@@ -289,27 +292,27 @@ bool confirmNodeOccupied(in uint block){
 // confirm for processing
 void confirmNode(in uint block, in bool actived){
     if (blockLength(block) < currentBlockSize && actived && int(block) >= 0) { // don't overflow
-        uint idx = atomicIncCM(block);
-        m16s(currentBlockNode, blockPreparingHeader(block) + uint(idx));
+        uint idx = atomicIncCM(block); m16s(currentBlockNode, blockPreparingHeader(block) + idx);
     }
 }
 
 
 // add to actives
 void confirmBlock(in uint mt){
-    if (int(mt) >= 0) {
-        rayBlocks[mt].next = 0u; confirmBlocks[atomicIncAT()] = int(mt+1);
-    }
+    if (int(mt) >= 0) { rayBlocks[mt].next = 0u; confirmBlocks[atomicIncAT()] = int(mt+1); }
 }
 
 
 // utilize blocks
 void flushBlock(in uint bid, in uint _mt, in bool illuminated){
-    uint prev = -1; _mt += 1;
-    if (int(bid) >= 0 && int(_mt) >= 0 && illuminated) {
+    _mt += 1;
+
+    uint prev = uint(-1);
+    if (int(bid) >= 0 && int(_mt) > 0 && illuminated) {
         prev = atomicExchange(blockBins[bid].previousReg, _mt)-1u;
         if (int(prev) < 0) atomicCompSwap(blockBins[bid].blockStart, uint(-1), _mt); // avoid wrong condition
     }
+    
     if (int(prev) >= 0) {
         resetBlockLength(prev);
         rayBlocks[prev].next = _mt;
@@ -327,27 +330,26 @@ uint createBlock(inout uint blockId, in uint blockBinId){
     // write block where possible
     uint mt = blockId, st = uint(-1);
     {
-        uint alu = firstActive(), hid = uint(0);
+        uint alu = firstActive(), hid = uint(-1);
         if (LANE_IDX == alu) {
             if (int(mt) < 0) { 
-                st = atomicDecMT()-1; 
-            }
-            
-            if (int(st) >= 0) {
-                mt = exchange(availableBlocks[st],-1)-1, 
-                hid = rayBlocks[mt].indiceHeader;
+                st = atomicDecMT()-1;
+                if (int(st) >= 0) {
+                    mt = exchange(availableBlocks[st],-1)-1, 
+                    hid = rayBlocks[mt].indiceHeader-1;
+                }
             }
 
             if (int(mt) < 0) {
                 mt = atomicIncBT(), 
-                hid = atomicIncRT(R_BLOCK_SIZE*4)+1;
+                hid = atomicIncRT(R_BLOCK_SIZE*4);
             }
 
             if (int(mt) >= 0) {
-                rayBlocks[mt].indiceHeader = hid;
                 rayBlocks[mt].bitfield = 0;
                 rayBlocks[mt].next = uint(-1);
                 rayBlocks[mt].blockBinId = blockBinId+1u;
+                rayBlocks[mt].indiceHeader = hid+1;
             }
         }
         mt = readLane(mt, alu);
@@ -358,8 +360,7 @@ uint createBlock(inout uint blockId, in uint blockBinId){
 }
 
 uint createBlock(in uint blockBinId){
-    uint nblock = uint(-1);
-    return createBlock(nblock, blockBinId);
+    uint nblock = uint(-1); return createBlock(nblock, blockBinId);
 }
 
 #endif
@@ -367,11 +368,13 @@ uint createBlock(in uint blockBinId){
 
 // accquire block
 void accquireBlock(in uint gid){
-    currentBlock = activeBlocks[gid]-1, currentBlockSize = int(currentBlock) >= 0 ? min(blockLength(rayBlocks[currentBlock]), uint(R_BLOCK_SIZE)) : 0;
+    currentBlock = activeBlocks[gid]-1, 
+    currentBlockSize = int(currentBlock) >= 0 ? min(blockLength(currentBlock), uint(R_BLOCK_SIZE)) : 0u;
 }
 
 void accquirePlainBlock(in uint gid){
-    currentBlock = int(gid), currentBlockSize = int(currentBlock) >= 0 ? R_BLOCK_SIZE : 0u;
+    currentBlock = int(gid), 
+    currentBlockSize = int(currentBlock) >= 0 ? R_BLOCK_SIZE : 0u;
 }
 
 
@@ -383,18 +386,18 @@ uint getBlockIndiceCounter(in uint block) { return blockLength(block); }
 
 // aliases
 void accquireNode(in int bidx) {
+    currentInBlockPtr = int(bidx);
     accquireNode(currentBlock, bidx);
     if (bidx >= currentBlockSize) {
-        currentInBlockPtr = int(bidx);
         currentBlockNode = -1;
         RayActived(currentRay, FALSE_);
     }
 }
 
 void accquireNodeOffload(in int bidx) {
+    currentInBlockPtr = int(bidx);
     accquireNodeOffload(currentBlock, bidx);
     if (bidx >= currentBlockSize) {
-        currentInBlockPtr = int(bidx);
         currentBlockNode = -1;
         RayActived(currentRay, FALSE_);
     }

@@ -1,7 +1,7 @@
 :: It is helper for compilation shaders to SPIR-V
 
 cd %~dp0
-  set CFLAGSV= -V120 --target-env vulkan1.0 -t -r --nsf -DNVIDIA_PLATFORM -DUSE_F32_BVH
+  set CFLAGSV= --client vulkan100 --target-env vulkan1.0 -t -r --nsf -DNVIDIA_PLATFORM -DUSE_F32_BVH
   
 set INDIR=.\
 ::set OUTDIR=..\Build\shaders-spv\

@@ -72,7 +72,7 @@ layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { IND
 
 // load and store 16-bit (error secure)
 #define m16i(i) (uint(M16(ispace, i))-1u)
-#define m16s(a, i) M16S(ispace, INDEX16(a)+INDEX16(1u), i)
+#define m16s(a, i) M16S(ispace, ((uint(a)+1u)&0xFFFFu), i)
 
 
 // extraction of block length
@@ -360,10 +360,6 @@ uint createBlock(inout uint blockId, in uint blockBinId){
     return blockId;
 }
 
-uint createBlock(in uint blockBinId){
-    uint nblock = uint(-1); return createBlock(nblock, blockBinId);
-}
-
 #endif
 
 
@@ -423,10 +419,6 @@ void storeRay(in uint block) {
 }
 
 #ifndef SIMPLIFIED_RAY_MANAGMENT
-uint createBlock() {
-    return createBlock(currentBlockBin);
-}
-
 void confirmNode(in bool actived) {
     confirmNode(int(currentBlock), actived);
 }

@@ -159,9 +159,9 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 
 
 uint createBlockOnce(inout uint block, in bool minimalCondition){
-    if (anyInvoc(block < 0 && minimalCondition)) {
+    if (anyInvoc(int(block) < 0 && minimalCondition)) {
         uint activeLane = firstActive();
-        if (LANE_IDX == activeLane) { block = createBlock(block); } block = readLane(block, activeLane);
+        if (LANE_IDX == activeLane) { block = createBlock(block, currentBlockBin); } block = readLane(block, activeLane);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);

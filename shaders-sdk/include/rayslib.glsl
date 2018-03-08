@@ -330,11 +330,9 @@ void flushBlock(in uint mt, in bool illuminated){
 
 // create/allocate block 
 uint createBlock(inout uint blockId, in uint blockBinId){
-
-    // write block where possible
-    uint alu = firstActive(), mt = -1;
-    if (LANE_IDX == alu) {
-        if (int(mt) < 0) {
+    int mt = -1;
+    {
+        if (mt < 0) {
             int st = int(atomicDecMT())-1;
             if (st >= 0) { 
                 mt = exchange(availableBlocks[st],-1)-1;
@@ -344,7 +342,7 @@ uint createBlock(inout uint blockId, in uint blockBinId){
             }
         }
 
-        if (int(mt) < 0) { 
+        if (mt < 0) { 
             mt = atomicIncBT(); 
             rayBlocks[mt].bitfield = 0;
             rayBlocks[mt].next = uint(-1);
@@ -352,16 +350,12 @@ uint createBlock(inout uint blockId, in uint blockBinId){
             rayBlocks[mt].indiceHeader = 0;
         }
 
-        if (int(mt) >= 0) {
-            if (rayBlocks[mt].indiceHeader <= 0) {
-                rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
-            }
+        if (mt >= 0 && rayBlocks[mt].indiceHeader <= 0) {
+            rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
         }
     }
-    mt = readLane(mt, alu);
-
-    blockId = mt >= 0 ? mt : blockId;
-    return blockId;
+    blockId = uint(mt >= 0 ? mt : int(blockId));
+    return uint(mt);
 }
 
 #endif

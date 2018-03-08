@@ -28,6 +28,7 @@ const int TEXCOORD_TID = 1;
 const int COLOR_TID = 2; // unused
 const int MODF_TID = 3; // at now no supported 
 
+/*
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
 #define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp, crd, 0, chnl)
@@ -35,9 +36,10 @@ const int MODF_TID = 3; // at now no supported
 #define ISTORE(img, crd, data) imageStore(img, crd, data)
 #define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
 #endif
+*/
 
-//#define ISTORE(img, crd, data) imageStore(img, crd, data)
-//#define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
+#define ISTORE(img, crd, data) imageStore(img, crd, data)
+#define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
 
 //#define _SWIZV wzx
 #define _SWIZV xyz

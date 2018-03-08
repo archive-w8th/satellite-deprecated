@@ -157,7 +157,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
     return rayTemplate;
 }
 
-uint createBlockOnce(inout uint block, in bool minimalCondition){
+uint createBlockOnce(inout int block, in bool minimalCondition){
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
         if (subgroupElect()) { block = createBlock(block, currentBlockBin); }; block = readFLane(block);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
@@ -169,8 +169,8 @@ uint createBlockOnce(inout uint block, in bool minimalCondition){
             RayBounce(rayBlockNodes[block][nid].data, 0);
 
             if (nid < R_BLOCK_SIZE) {
-                m16s(uint(-1), blockIndiceHeader(block), nid);
-                m16s(uint(-1), blockPreparingHeader(block), nid);
+                m16s(-1, blockIndiceHeader(block), nid);
+                m16s(-1, blockPreparingHeader(block), nid);
             }
         }
     }
@@ -178,7 +178,7 @@ uint createBlockOnce(inout uint block, in bool minimalCondition){
 }
 
 
-void invokeBlockForNodes(inout RayRework rayTemplate, inout uint outNewBlock, inout uint prevNonOccupiedBlock) {
+void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock) {
     invalidateRay(rayTemplate, false);
     bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
 
@@ -199,18 +199,18 @@ void invokeBlockForNodes(inout RayRework rayTemplate, inout uint outNewBlock, in
     }
 
     // recommend or not new block if have
-    prevNonOccupiedBlock = allInvoc(!confirmNodeOccupied(prevNonOccupiedBlock) || int(outNewBlock) < 0) ? uint(prevNonOccupiedBlock) : uint(outNewBlock);
+    prevNonOccupiedBlock = allInvoc(!confirmNodeOccupied(prevNonOccupiedBlock) || int(outNewBlock) < 0) ? int(prevNonOccupiedBlock) : int(outNewBlock);
 }
 
 
-void emitBlock(in uint block) {
+void emitBlock(in int block) {
     if (anyInvoc(block >= 0)) {
         bool hasIllumination = false;
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) { 
-            uint bidx = uint(tb + LANE_IDX), idx = -1;
+            int bidx = int(tb + LANE_IDX), idx = -1;
             if (bidx < int(R_BLOCK_SIZE)) {
-                idx = m16i(blockPreparingHeader(block), uint(bidx));
-                m16s(idx, blockIndiceHeader(block), uint(bidx));
+                idx = m16i(blockPreparingHeader(block), int(bidx));
+                m16s(idx, blockIndiceHeader(block), int(bidx));
             }
             if (int(bidx) >= 0) {
                 bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
@@ -259,7 +259,7 @@ void main() {
             if (invld) { currentBlock = -1; continue; }
             
             resetBlockIndiceCounter(currentBlock);
-            uint shadowBlock = uint(-1), emissionBlock = uint(-1), diffuseBlock = uint(-1), reflectionBlock = uint(-1), transparentBlock = uint(-1), envBlock = uint(-1);
+            int shadowBlock = int(-1), emissionBlock = int(-1), diffuseBlock = int(-1), reflectionBlock = int(-1), transparentBlock = int(-1), envBlock = int(-1);
 
             // invoke block data
             if (!invld) {
@@ -305,7 +305,7 @@ void main() {
                     if ( rayState == 3 || rayState == 1 ) prom = 1.0f;
 
                     // pre-filter rays in block
-                    uint overwriteBlock = uint(-1);
+                    int overwriteBlock = int(-1);
                     RayRework enrollRay = envShading(currentRay, overflow);
 
                     // binarize/quantize specular and transparency

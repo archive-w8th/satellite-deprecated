@@ -143,7 +143,7 @@ T fname(const uint WHERE) {\
     T sumInOrder = T(subgroupBallotBitCount(bits));\
     T idxInOrder = T(subgroupBallotExclusiveBitCount(bits));\
     T gadd = 0;\
-    if (subgroupElect() && sumInOrder > 0) {gadd = memfunc(WHERE); memfunc(WHERE, gadd+sumInOrder * T(by));}\
+    if (subgroupElect() && sumInOrder > 0) {gadd = memfunc(T(WHERE)); memfunc(T(WHERE), gadd+sumInOrder * T(by));}\
     return readFLane(gadd) + idxInOrder * T(by);\
 }
 

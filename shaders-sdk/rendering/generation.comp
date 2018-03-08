@@ -13,7 +13,7 @@
 
 const int _SEED_ID = 15;
 
-uint createBlockOnce(inout uint block, in bool minimalCondition, in uint binID){
+int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
         if (subgroupElect()) { block = createBlock(block, binID); }; block = readFLane(block);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
@@ -23,8 +23,8 @@ uint createBlockOnce(inout uint block, in bool minimalCondition, in uint binID){
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
-            m16s(uint(-1), blockIndiceHeader(block), nid);
-            m16s(uint(-1), blockPreparingHeader(block), nid);
+            m16s(-1, blockIndiceHeader(block), nid);
+            m16s(-1, blockPreparingHeader(block), nid);
         }
     }
     return block;
@@ -52,16 +52,16 @@ void main()
         globalInvocationSMP = globalID;
 
         int binID = globalID;
-        blockBins[binID].blockStart = uint(-1);
-        blockBins[binID].previousReg = uint(-1);
-        blockBins[binID].texelHeader = uint(-1);
+        blockBins[binID].blockStart = 0;
+        blockBins[binID].previousReg = 0;
+        blockBins[binID].texelHeader = 0;
         
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
         IFALL(overflow) break;
         if (!overflow) { 
             // create unique tile per WARP
-            uint blockID = uint(-1);
+            int blockID = -1;
             createBlockOnce(blockID, true, binID);
             accquirePlainBlock(blockID); 
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 

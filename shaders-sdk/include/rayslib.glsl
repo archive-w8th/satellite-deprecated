@@ -130,12 +130,8 @@ int currentBlockNode = -1;
 uint currentBlockSize = 0;
 int currentBlock = -1;
 
-#ifndef DISCARD_SHARED_CACHING
-shared RayRework _lRayCache[WORK_SIZE/WARP_SIZE][WARP_SIZE];
-#define currentRay _lRayCache[LC_IDX][LANE_IDX]
-#else
+// static cached ray
 RayRework currentRay;
-#endif
 
 // refering by 
 #define currentBlockBin (currentBlock >= 0 ? (int(rayBlocks[currentBlock].blockBinId)-1) : -1)
@@ -185,19 +181,18 @@ layout ( std430, binding = 8, set = 0 ) buffer CounterBlock {
 #define atomicDecMT() (true?atomicAdd(arcounter.mT,-1):0)
 #define atomicIncRT(cct) (cct>0?atomicAdd(arcounter.rT,cct):0)
 #else
-initAtomicIncFunction(arcounter.bT, atomicIncBT, int)
-initAtomicIncFunction(arcounter.aT, atomicIncAT, int)
-initAtomicIncFunction(arcounter.pT, atomicIncPT, int)
-initAtomicIncFunction(arcounter.iT, atomicIncIT, int)
-initAtomicDecFunction(arcounter.mT, atomicDecMT, int)
-initAtomicIncByFunction(arcounter.rT, atomicIncRT, uint)
+initAtomicSubgroupIncFunction(arcounter.bT, atomicIncBT,  1, int)
+initAtomicSubgroupIncFunction(arcounter.aT, atomicIncAT,  1, int)
+initAtomicSubgroupIncFunction(arcounter.pT, atomicIncPT,  1, int)
+initAtomicSubgroupIncFunction(arcounter.iT, atomicIncIT,  1, int)
+initAtomicSubgroupIncFunction(arcounter.mT, atomicDecMT, -1, int)
+initAtomicSubgroupIncFunctionDyn(arcounter.rT, atomicIncRT, uint)
 #endif
-
-initAtomicIncFunction(arcounter.tT, atomicIncTT, int)
-initAtomicIncFunction(arcounter.hT, atomicIncHT, int)
+initAtomicSubgroupIncFunction(arcounter.tT, atomicIncTT, 1, int)
+initAtomicSubgroupIncFunction(arcounter.hT, atomicIncHT, 1, int)
 
 // should functions have layouts
-initNonAtomicIncFunctionTargetFunc(blockLength, atomicIncCM, uint)
+initSubgroupIncFunctionFunc(blockLength, atomicIncCM, 1, uint)
 
 
 // copy node indices
@@ -214,9 +209,9 @@ bool checkIllumination(in int block, in int bidx){
 
 
 // accquire rays for processors
-void accquireNode(in int block, in int bidx){
+void accquireNode(in int block, in uint bidx){
     currentInBlockPtr = int(bidx);
-    currentBlockNode = (int(currentInBlockPtr) >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block),currentInBlockPtr)) : -1;
+    currentBlockNode = (currentInBlockPtr >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block), currentInBlockPtr)) : -1;
     currentRay = rayBlockNodes[block][currentBlockNode].data;
 
     if (currentBlockNode < 0) {
@@ -229,9 +224,9 @@ void accquireNode(in int block, in int bidx){
 }
 
 
-void accquireNodeOffload(in int block, in int bidx){
+void accquireNodeOffload(in int block, in uint bidx){
     currentInBlockPtr = int(bidx);
-    currentBlockNode = (int(currentInBlockPtr) >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block),currentInBlockPtr)) : -1;
+    currentBlockNode = (currentInBlockPtr >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block),currentInBlockPtr)) : -1;
 
     currentRay = rayBlockNodes[block][currentBlockNode].data;
     if (int(currentBlockNode) >= 0) { // for avoid errors with occupancy, temporarely clean in working memory

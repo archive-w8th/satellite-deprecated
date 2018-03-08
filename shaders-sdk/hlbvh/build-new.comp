@@ -29,9 +29,9 @@ int findSplit( in int first, in int last) {
     return clamp(split, first, last-1);
 }
 
-initAtomicIncByFunction(lCounter, lCounterInc, int)
-initAtomicIncFunction(aCounter, aCounterInc, int)
-initAtomicIncFunction(cCounter, cCounterInc, int)
+initAtomicSubgroupIncFunctionDyn(lCounter, lCounterInc, int)
+initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
+initAtomicSubgroupIncFunction(cCounter, cCounterInc, 1, int)
 
 void splitNode(in int trID) {
     int prID = exchange(Actives[trID], -1);

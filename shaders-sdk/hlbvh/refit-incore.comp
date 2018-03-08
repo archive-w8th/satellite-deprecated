@@ -17,7 +17,7 @@ LOCAL_SIZE_LAYOUT;
 //const int work_size = 1024;
 //layout ( local_size_x = work_size ) in;
 
-initAtomicIncFunction(aCounter, aCounterInc, int)
+initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 
 void unifyNodeBox(inout int idx){
     ivec2 _pdx2 = bvhLinear2D(idx);

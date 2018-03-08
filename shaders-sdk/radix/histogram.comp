@@ -11,7 +11,7 @@ shared uint localHistogram[RADICES];
 shared URDC_WARP _data[WARP_SIZE];
 #define key _data[LANE_IDX]
 
-initNonAtomicIncFunctionTarget(localHistogram[WHERE], countHistogram, uint)
+initSubgroupIncFunctionTarget(localHistogram[WHERE], countHistogram, 1, uint)
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;

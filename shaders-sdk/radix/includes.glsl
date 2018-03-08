@@ -1,13 +1,14 @@
 #include "../include/constants.glsl"
 #include "../include/mathlib.glsl"
 
-#define CUSTOMIZE_IDC
+#define OUR_INVOC_TERM
 uint LC_IDX = 0;
 uint LANE_IDX = 0;
 uint LT_IDX = 0;
 uint LF_IDX = 0;
 
 #include "../include/ballotlib.glsl"
+#define WARP_SIZE_RT gl_SubgroupSize.x
 
 // radices 4-bit
 #define BITS_PER_PASS 4

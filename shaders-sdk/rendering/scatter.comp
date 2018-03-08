@@ -19,6 +19,7 @@ layout ( binding = 5, set = 1, rgba32f ) uniform image2D albedobuf;
 
 LOCAL_SIZE_LAYOUT;
 
+
 void main() {
     vec2 wh = vec2(RAY_BLOCK samplerUniform.sceneRes.xy);
     vec2 whs = vec2(imageSize(presampled).xy); whs.y *= 0.5f; // divide height

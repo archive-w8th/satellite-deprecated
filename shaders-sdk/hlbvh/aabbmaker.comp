@@ -11,7 +11,7 @@
 #include "../include/morton.glsl"
 #include "./includes.glsl"
 
-initAtomicIncFunction(aabbcount[0], atomicIncAABB, int)
+initAtomicSubgroupIncFunction(aabbcount[0], atomicIncAABB, 1, int)
 
 LOCAL_SIZE_LAYOUT;
 

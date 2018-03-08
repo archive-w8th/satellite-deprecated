@@ -39,38 +39,38 @@ struct BlockBin {
 
 // blocks data (32 byte node)
 struct RayBlockNode { RayRework data; };
-layout ( std430, binding = 0, set = 0 ) coherent buffer RaysSSBO { RayBlockNode rayBlockNodes[][R_BLOCK_SIZE]; }; // blocks data
+layout ( std430, binding = 0, set = 0 ) buffer RaysSSBO { RayBlockNode rayBlockNodes[][R_BLOCK_SIZE]; }; // blocks data
 
 // blocks managment
-layout ( std430, binding = 1, set = 0 ) coherent buffer BlocksSSBO { BlockInfo rayBlocks[]; }; // block headers and indices
-layout ( std430, binding = 7, set = 0 ) coherent buffer BlockBins { BlockBin blockBins[]; };
+layout ( std430, binding = 1, set = 0 ) buffer BlocksSSBO { BlockInfo rayBlocks[]; }; // block headers and indices
+layout ( std430, binding = 7, set = 0 ) buffer BlockBins { BlockBin blockBins[]; };
 layout ( std430, binding = 2, set = 0 ) readonly buffer ActiveSSBO { int activeBlocks[]; }; // current blocks, that will invoked by devices
 
 #ifndef SIMPLIFIED_RAY_MANAGMENT // for traversers don't use
 // blocks confirmation
-layout ( std430, binding = 3, set = 0 ) restrict buffer ConfirmSSBO { int confirmBlocks[]; }; // preparing blocks for invoking
+layout ( std430, binding = 3, set = 0 ) buffer ConfirmSSBO { int confirmBlocks[]; }; // preparing blocks for invoking
 
 // reusing blocks
-layout ( std430, binding = 4, set = 0 ) restrict buffer AvailableSSBO { int availableBlocks[]; }; // block are free for write
-layout ( std430, binding = 5, set = 0 ) restrict buffer PrepareSSBO { int preparingBlocks[]; }; // block where will writing
+layout ( std430, binding = 4, set = 0 ) buffer AvailableSSBO { int availableBlocks[]; }; // block are free for write
+layout ( std430, binding = 5, set = 0 ) buffer PrepareSSBO { int preparingBlocks[]; }; // block where will writing
 
 // texels binding
-layout ( std430, binding = 6, set = 0 ) coherent buffer TexelsSSBO { Texel nodes[]; } texelBuf; // 32byte per node
+layout ( std430, binding = 6, set = 0 ) buffer TexelsSSBO { Texel nodes[]; } texelBuf; // 32byte per node
 #endif
 
 // intersection vertices
-layout ( std430, binding = 9, set = 0 ) coherent buffer HitsSSBO { HitRework hits[]; }; // 96byte per node
+layout ( std430, binding = 9, set = 0 ) buffer HitsSSBO { HitRework hits[]; }; // 96byte per node
 
 // for faster BVH traverse
-layout ( std430, binding = 10, set = 0 ) coherent buffer UnorderedSSBO { int unorderedRays[]; };
+layout ( std430, binding = 10, set = 0 ) buffer UnorderedSSBO { int unorderedRays[]; };
 
 
 #if (defined(ADDRESS_16BIT_SPACE) && defined(ENABLE_AMD_INT16))
-layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[][R_BLOCK_SIZE]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint16_t ispace[][R_BLOCK_SIZE]; }; // globalized index space (planned VK_KHR_16bit_storage support)
 #define m16i(b,i) ((uint(ispace[b][i])&0xFFFFu)-1u)
 #define m16s(a,b,i) (ispace[b][i] = uint16_t((uint(a)+1u)&0xFFFFu))
 #else
-layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { mediump uint ispace[][R_BLOCK_SIZE]; };
+layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { mediump uint ispace[][R_BLOCK_SIZE]; };
 #define m16i(b,i) ((ispace[b][i]&0xFFFFu)-1u)
 #define m16s(a,b,i) (ispace[b][i] = ((uint(a)+1u)&0xFFFFu))
 #endif
@@ -82,7 +82,7 @@ uint blockLength(inout BlockInfo block){
 }
 
 void blockLength(inout BlockInfo block, in uint count){
-    block.bitfield = BFI_HW(block.bitfield, count&0xFFFFu, 0, 16);
+    block.bitfield = BFI_HW(block.bitfield, min(count, R_BLOCK_SIZE) & 0xFFFFu, 0, 16);
 }
 
 

@@ -18,7 +18,7 @@ void main() {
     #define wsize RAY_BLOCK samplerUniform.blockCount
     //int wsize = RAY_BLOCK samplerUniform.blockCount;
     int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
-    int wcount = min(tiled(wsize, wcsize), 50000);
+    int wcount = min(tiled(wsize, wcsize), 1000000);
 
     // invoke available blocks
     bool overflow = false;

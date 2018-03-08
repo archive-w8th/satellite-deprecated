@@ -300,7 +300,7 @@ HitRework interpolateMeshData(inout HitRework res) {
 void main() {
     #define wsize RAY_BLOCK samplerUniform.hitCount
     //int wsize = RAY_BLOCK samplerUniform.hitCount;
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
     bool overflow = false;
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {

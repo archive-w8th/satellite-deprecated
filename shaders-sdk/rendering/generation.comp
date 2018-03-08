@@ -45,7 +45,7 @@ void main()
     vec2 sceneResInv = 1.0f / vec2(wh);
     int wsize = blk.x * blk.y;
     int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
-    int wcount = min(tiled(wsize, wcsize), 100000);
+    int wcount = min(tiled(wsize, wcsize), 1000000);
 
     // invoke available blocks
     bool overflow = false;

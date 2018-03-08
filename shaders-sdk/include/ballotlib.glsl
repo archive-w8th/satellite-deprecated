@@ -3,12 +3,6 @@
 
 #include "../include/mathlib.glsl"
 
-#ifndef OUR_INVOC_TERM
-#define LANE_IDX gl_SubgroupInvocationID.x
-#define WARP_SIZE_RT gl_SubgroupSize.x
-#define LT_IDX gl_LocalInvocationIndex.x
-#define LC_IDX (LT_IDX / WARP_SIZE_RT)
-#endif
 
 
 #ifndef WARP_SIZE
@@ -19,50 +13,161 @@
 #endif
 #endif
 
+#ifndef LEGACY_BALLOT
+#define WARP_SIZE_RT gl_SubgroupSize.x
+#else
+#define WARP_SIZE_RT WARP_SIZE
+#endif
 
-
-
-
+#ifndef OUR_INVOC_TERM
+#ifndef LEGACY_BALLOT
+#define LT_IDX gl_LocalInvocationIndex.x
+#define LC_IDX (LT_IDX / WARP_SIZE_RT)
+#define LANE_IDX gl_SubgroupInvocationID.x
+#else
+#define LT_IDX gl_LocalInvocationIndex.x
+#define LC_IDX (LT_IDX / WARP_SIZE_RT)
+#define LANE_IDX (LT_IDX % WARP_SIZE_RT)
+#endif
+#endif
 
 #define UVEC_BALLOT_WARP uvec4
 
+#ifdef LEGACY_BALLOT
+#define RL_(a,b) readInvocationARB(a,int(b))
+#define RLF_ readFirstInvocationARB
+#else
+#define RL_ subgroupBroadcast
+#define RLF_ subgroupBroadcastFirst
+#endif
 
-vec4 readLane(in vec4 val, in uint lane) { return subgroupBroadcast(val, lane); }
-vec3 readLane(in vec3 val, in uint lane) { return subgroupBroadcast(val, lane); }
+
+
+vec4 readLane(in vec4 val, in uint lane) { return RL_(val, lane); }
+vec3 readLane(in vec3 val, in uint lane) { return RL_(val, lane); }
 mat3 readLane(in mat3 val, in uint lane) { val[0] = readLane(val[0], lane), val[1] = readLane(val[1], lane), val[2] = readLane(val[2], lane); return val; }
-
-float readLane(in float val, in uint lane) { return subgroupBroadcast(val, lane); }
-uint readLane(in uint val, in uint lane) { return subgroupBroadcast(val, lane); }
-int readLane(in int val, in uint lane) { return subgroupBroadcast(val, lane); }
-
-
+float readLane(in float val, in uint lane) { return RL_(val, lane); }
+uint readLane(in uint val, in uint lane) { return RL_(val, lane); }
+int readLane(in int val, in uint lane) { return RL_(val, lane); }
+bool readLane(in bool val, in uint lane) { return bool(RL_(int(val), lane)); }
 
 // hack for cross-lane reading of 16-bit data (whaaat?)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-float16_t readLane(in float16_t val, in uint lane) { return unpackFloat2x16(subgroupBroadcast(packFloat2x16(f16vec2(val, 0.hf)), lane)).x; }
-f16vec2 readLane(in f16vec2 val, in uint lane) { return unpackFloat2x16(subgroupBroadcast(packFloat2x16(val), lane)); }
+float16_t readLane(in float16_t val, in uint lane) { return unpackFloat2x16(RL_(packFloat2x16(f16vec2(val, 0.hf)), lane)).x; }
+f16vec2 readLane(in f16vec2 val, in uint lane) { return unpackFloat2x16(RL_(packFloat2x16(val), lane)); }
 #endif
 
+float readFLane(in float val) { return RLF_(val); }
+uint readFLane(in uint val) { return RLF_(val); }
+int readFLane(in int val) { return RLF_(val); }
 
 
-#ifdef ENABLE_AMD_INT16
-//int16_t readLane(in int16_t val, in uint lane) { return unpackInt2x16(subgroupBroadcast(packInt2x16(i16vec2(val, 0s)), lane)).x; }
-//uint16_t readLane(in uint16_t val, in uint lane) { return unpackUint2x16(subgroupBroadcast(packUint2x16(u16vec2(val, 0us)), lane)).x; }
-//i16vec2 readLane(in i16vec2 val, in uint lane) { return unpackInt2x16(subgroupBroadcast(packInt2x16(val), lane)); }
-//u16vec2 readLane(in u16vec2 val, in uint lane) { return unpackUint2x16(subgroupBroadcast(packUint2x16(val), lane)); }
+UVEC_BALLOT_WARP maskLt(const uint lid) { return UVEC_BALLOT_WARP(U2P(lid == 64 ? 0xFFFFFFFFFFFFFFFFul : (1ul << uint64_t(lid)) - 1ul), 0u.xx); }
+
+UVEC_BALLOT_WARP ballotHW() { 
+#ifdef LEGACY_BALLOT
+    return UVEC_BALLOT_WARP(U2P(ballotARB(true)), 0u.xx) & maskLt(WARP_SIZE_RT);
+#else
+    return subgroupBallot(true); 
+#endif
+}
+
+
+#ifdef LEGACY_BALLOT 
+bool electedInvoc() { return lsb(ballotHW().xy)==LANE_IDX; }
+#else
+bool electedInvoc() { return subgroupElect(); }
 #endif
 
+uint bitclt(in uvec2 bits){
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return mbcntAMD(P2U(bits.xy)); // AMuDe
+#else
+    return bitcnt((bits&maskLt(LANE_IDX)).xy); // some other
+#endif
+}
 
-bool readLane(in bool val, in uint lane) { return bool(subgroupBroadcast(int(val), lane)); }
 
 
+#ifdef LEGACY_BALLOT
+
+// statically multiplied
+#define initAtomicSubgroupIncFunction(mem, fname, by, T)\
+T fname() {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitclt(bits.xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = atomicAdd(mem, sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
+
+#define initAtomicSubgroupIncFunctionDyn(mem, fname, T)\
+T fname(const T by) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitclt(bits.xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = atomicAdd(mem, sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
+
+// statically multiplied
+#define initAtomicSubgroupIncFunctionTarget(mem, fname, by, T)\
+T fname(const uint WHERE) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitclt(bits.xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = atomicAdd(mem, sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
+
+#define initAtomicSubgroupIncFunctionByTarget(mem, fname, T)\
+T fname(const uint WHERE, const T by) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitclt(bits.xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = atomicAdd(mem, sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
+
+// statically multiplied
+#define initSubgroupIncFunctionTarget(mem, fname, by, T)\
+T fname(const uint WHERE) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitcnt((bits&maskLt(LANE_IDX)).xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = add(mem, sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
 
 
-UVEC_BALLOT_WARP ballotHW() { return subgroupBallot(true); }
+#define initSubgroupIncFunctionByTarget(mem, fname, T)\
+T fname(const uint WHERE, const T by) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitclt(bits.xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = add(mem, sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
 
-float readFLane(in float val) { return subgroupBroadcastFirst(val); }
-uint readFLane(in uint val) { return subgroupBroadcastFirst(val); }
-int readFLane(in int val) { return subgroupBroadcastFirst(val); }
+#define initSubgroupIncFunctionFunc(memfunc, fname, by, T)\
+T fname(const uint WHERE) {\
+    UVEC_BALLOT_WARP bits = ballotHW();\
+    T sumInOrder = T(bitcnt(bits.xy));\
+    T idxInOrder = T(bitclt(bits.xy));\
+    T gadd = 0;\
+    if (lsb(bits.xy)==LANE_IDX && sumInOrder > 0) {gadd = memfunc(T(WHERE)); memfunc(T(WHERE), gadd+sumInOrder * T(by));}\
+    return readFLane(gadd) + idxInOrder * T(by);\
+}
+
+bool allInvoc(in bool bc){ return allInvocationsARB(bc); }
+bool anyInvoc(in bool bc){ return anyInvocationARB(bc); }
+#else
 
 
 // statically multiplied
@@ -99,8 +204,6 @@ T fname(const uint WHERE) {\
     return readFLane(gadd) + idxInOrder * T(by);\
 }
 
-
-
 #define initAtomicSubgroupIncFunctionByTarget(mem, fname, T)\
 T fname(const uint WHERE, const T by) {\
     UVEC_BALLOT_WARP bits = ballotHW();\
@@ -110,8 +213,6 @@ T fname(const uint WHERE, const T by) {\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, sumInOrder * T(by));}\
     return readFLane(gadd) + idxInOrder * T(by);\
 }
-
-
 
 // statically multiplied
 #define initSubgroupIncFunctionTarget(mem, fname, by, T)\
@@ -124,7 +225,6 @@ T fname(const uint WHERE) {\
     return readFLane(gadd) + idxInOrder * T(by);\
 }
 
-
 #define initSubgroupIncFunctionByTarget(mem, fname, T)\
 T fname(const uint WHERE, const T by) {\
     UVEC_BALLOT_WARP bits = ballotHW();\
@@ -134,8 +234,6 @@ T fname(const uint WHERE, const T by) {\
     if (subgroupElect() && sumInOrder > 0) {gadd = add(mem, sumInOrder * T(by));}\
     return readFLane(gadd) + idxInOrder * T(by);\
 }
-
-
 
 #define initSubgroupIncFunctionFunc(memfunc, fname, by, T)\
 T fname(const uint WHERE) {\
@@ -147,11 +245,11 @@ T fname(const uint WHERE) {\
     return readFLane(gadd) + idxInOrder * T(by);\
 }
 
-
-
-
 bool allInvoc(in bool bc){ return subgroupAll(bc); }
 bool anyInvoc(in bool bc){ return subgroupAny(bc); }
+#endif
+
+
 bool allInvoc(in BOOL_ bc){ return allInvoc(SSC(bc)); }
 bool anyInvoc(in BOOL_ bc){ return anyInvoc(SSC(bc)); }
 #define IFALL(b)if(allInvoc(b))

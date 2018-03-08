@@ -15,7 +15,7 @@ const int _SEED_ID = 15;
 
 int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
-        if (subgroupElect()) { block = createBlock(block, binID); }; block = readFLane(block);
+        if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);

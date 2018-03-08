@@ -159,7 +159,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 
 uint createBlockOnce(inout int block, in bool minimalCondition){
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
-        if (subgroupElect()) { block = createBlock(block, currentBlockBin); }; block = readFLane(block);
+        if (electedInvoc()) { block = createBlock(block, currentBlockBin); }; block = readFLane(block);
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
@@ -220,7 +220,7 @@ void emitBlock(in int block) {
         hasIllumination = hasIllumination || anyInvoc(hasIllumination);
 
         // confirm block or flush
-        if (subgroupElect()) {
+        if (electedInvoc()) {
             if (blockLength(block) >= 1) { 
                 confirmBlock(block);
             } else {

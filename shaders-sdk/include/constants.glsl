@@ -6,8 +6,6 @@
     // data format extensions
     #extension GL_AMD_gcn_shader : enable
     #extension GL_AMD_gpu_shader_half_float : enable
-    //#extension GL_AMD_gpu_shader_half_float_fetch : enable
-    //#extension GL_AMD_gpu_shader_int16 : enable 
     #extension GL_ARB_gpu_shader_int64 : require
 
     // intrinsics extensions
@@ -18,7 +16,14 @@
     #extension GL_AMD_shader_image_load_store_lod : enable
     #extension GL_EXT_shader_image_load_formatted : enable
 
+
+    // legacy vulkan API
+    #extension GL_AMD_shader_ballot : enable
+    #extension GL_ARB_shader_ballot : enable
+    #extension GL_ARB_shader_group_vote : enable
+
     // subgroup operations
+#ifndef LEGACY_BALLOT
     #extension GL_KHR_shader_subgroup_basic            : enable
     #extension GL_KHR_shader_subgroup_vote             : enable
     #extension GL_KHR_shader_subgroup_arithmetic       : enable
@@ -27,7 +32,7 @@
     #extension GL_KHR_shader_subgroup_shuffle_relative : enable
     #extension GL_KHR_shader_subgroup_clustered        : enable
     #extension GL_KHR_shader_subgroup_quad             : enable
-
+#endif
 
 
 

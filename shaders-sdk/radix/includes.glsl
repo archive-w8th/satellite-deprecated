@@ -8,7 +8,6 @@ uint LT_IDX = 0;
 uint LF_IDX = 0;
 
 #include "../include/ballotlib.glsl"
-#define WARP_SIZE_RT gl_SubgroupSize.x
 
 // radices 4-bit
 #define BITS_PER_PASS 4

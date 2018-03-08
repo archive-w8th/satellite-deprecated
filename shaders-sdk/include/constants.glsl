@@ -18,22 +18,15 @@
     #extension GL_AMD_shader_image_load_store_lod : enable
     #extension GL_EXT_shader_image_load_formatted : enable
 
-    // wave operations
-    #extension GL_AMD_shader_ballot : enable
-    //#extension GL_ARB_shader_ballot : require
-    //#extension GL_ARB_shader_group_vote : require
-    
-    
-
-
-      #extension GL_KHR_shader_subgroup_basic            : enable
-      #extension GL_KHR_shader_subgroup_vote             : enable
-      #extension GL_KHR_shader_subgroup_arithmetic       : enable
-      #extension GL_KHR_shader_subgroup_ballot           : enable
-      #extension GL_KHR_shader_subgroup_shuffle          : enable
-      #extension GL_KHR_shader_subgroup_shuffle_relative : enable
-      #extension GL_KHR_shader_subgroup_clustered        : enable
-      #extension GL_KHR_shader_subgroup_quad             : enable
+    // subgroup operations
+    #extension GL_KHR_shader_subgroup_basic            : enable
+    #extension GL_KHR_shader_subgroup_vote             : enable
+    #extension GL_KHR_shader_subgroup_arithmetic       : enable
+    #extension GL_KHR_shader_subgroup_ballot           : enable
+    #extension GL_KHR_shader_subgroup_shuffle          : enable
+    #extension GL_KHR_shader_subgroup_shuffle_relative : enable
+    #extension GL_KHR_shader_subgroup_clustered        : enable
+    #extension GL_KHR_shader_subgroup_quad             : enable
 
 
 

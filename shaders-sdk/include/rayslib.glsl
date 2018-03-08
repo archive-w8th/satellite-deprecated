@@ -67,14 +67,22 @@ layout ( std430, binding = 10, set = 0 ) coherent buffer UnorderedSSBO { int uno
 
 
 #if (defined(ADDRESS_16BIT_SPACE) && defined(ENABLE_AMD_INT16)) // 16-bit address space (more space for micro-indexing)
-layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
-#define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
-#define m16s(a, i) (ispace[i] = uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
+
+    #ifdef USE_F16_WORKAROUND  // fork with fp16
+    layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { float16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+    #define m16i(i) ((uint(float16BitsToUint16(ispace[i]))&0xFFFFu)-1u)
+    #define m16s(a, i) (ispace[i] = uint16BitsToFloat16(uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu)))
+
+    #else // real int16
+    layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+    #define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
+    #define m16s(a, i) (ispace[i] = uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
+    #endif
 
 #else // legacy 32-bit address space
-layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
-#define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
-#define m16s(a, i) (ispace[i] = uint(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
+    layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+    #define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
+    #define m16s(a, i) (ispace[i] = uint(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
 #endif
 
 

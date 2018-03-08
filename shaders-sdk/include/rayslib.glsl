@@ -64,15 +64,18 @@ layout ( std430, binding = 9, set = 0 ) coherent buffer HitsSSBO { HitRework hit
 // for faster BVH traverse
 layout ( std430, binding = 10, set = 0 ) coherent buffer UnorderedSSBO { int unorderedRays[]; };
 
-// globalized index space 
-layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { INDEX16 ispace[]; };
 
 
+#ifdef ADDRESS_16BIT_SPACE // 16-bit address space (more space for micro-indexing)
+layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+#define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
+#define m16s(a, i) (ispace[i] = uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
 
-
-// load and store 16-bit (error secure)
-#define m16i(i) (uint(M16(ispace, i))-1u)
-#define m16s(a, i) M16S(ispace, ((uint(a)+1u)&0xFFFFu), i)
+#else // legacy 32-bit address space
+layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+#define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
+#define m16s(a, i) (ispace[i] = uint(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
+#endif
 
 
 // extraction of block length

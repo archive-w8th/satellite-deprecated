@@ -54,6 +54,7 @@
 #ifdef ENABLE_AMD_INSTRUCTION_SET
     #define ENABLE_AMD_INT16
     #define ENABLE_AMD_INT16_CONDITION
+    #define ADDRESS_16BIT_SPACE // automaticly
 #endif
 
 #ifndef ENABLE_AMD_INSTRUCTION_SET

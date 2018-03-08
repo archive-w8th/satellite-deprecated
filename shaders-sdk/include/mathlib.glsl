@@ -42,12 +42,10 @@
 #if defined(ENABLE_AMD_INT16)
 #define INDEX16 uint16_t
 #define M16(m, i) uint(m[i])
-#define M16S(m, a, i) (m[i] = INDEX16(uint(a)&0xFFFFu))
 #define M32(m, i) packUint2x16(u16vec2(m[(i)<<1],m[((i)<<1)|1]))
 #else
 #define INDEX16 uint
 #define M16(m, i) (BFE_HW(m[(i)>>1], 16*(int(i)&1), 16))
-#define M16S(m, a, i) (m[(i)>>1] = BFI_HW(m[(i)>>1], uint(a)&0xFFFFu, 16*(int(i)&1), 16))
 #define M32(m, i) m[i]
 #endif
 

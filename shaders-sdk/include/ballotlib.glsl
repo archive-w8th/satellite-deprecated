@@ -31,6 +31,7 @@
 #endif
 #endif
 
+
 #define UVEC_BALLOT_WARP uvec4
 
 #ifdef LEGACY_BALLOT
@@ -62,7 +63,10 @@ uint readFLane(in uint val) { return RLF_(val); }
 int readFLane(in int val) { return RLF_(val); }
 
 
+#ifdef LEGACY_BALLOT
 UVEC_BALLOT_WARP maskLt(const uint lid) { return UVEC_BALLOT_WARP(U2P(lid == 64 ? 0xFFFFFFFFFFFFFFFFul : (1ul << uint64_t(lid)) - 1ul), 0u.xx); }
+#endif
+
 
 UVEC_BALLOT_WARP ballotHW() { 
 #ifdef LEGACY_BALLOT
@@ -79,6 +83,10 @@ bool electedInvoc() { return lsb(ballotHW().xy)==LANE_IDX; }
 bool electedInvoc() { return subgroupElect(); }
 #endif
 
+
+#ifdef LEGACY_BALLOT
+/*
+
 uint bitclt(in uvec2 bits){
 #ifdef ENABLE_AMD_INSTRUCTION_SET
     return mbcntAMD(P2U(bits.xy)); // AMuDe
@@ -86,10 +94,6 @@ uint bitclt(in uvec2 bits){
     return bitcnt((bits&maskLt(LANE_IDX)).xy); // some other
 #endif
 }
-
-
-
-#ifdef LEGACY_BALLOT
 
 // statically multiplied
 #define initAtomicSubgroupIncFunction(mem, fname, by, T)\
@@ -167,8 +171,9 @@ T fname(const uint WHERE) {\
 
 bool allInvoc(in bool bc){ return allInvocationsARB(bc); }
 bool anyInvoc(in bool bc){ return anyInvocationARB(bc); }
-#else
+*/
 
+#else
 
 // statically multiplied
 #define initAtomicSubgroupIncFunction(mem, fname, by, T)\

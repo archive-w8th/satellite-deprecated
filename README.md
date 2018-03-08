@@ -2,7 +2,7 @@
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
-**08.03.2018**: Vulkan API 1.1.70 and SDK compilers still buggy, I merge very later. 
+**09.03.2018**: transition to Vulkan API 1.1.70 shader model
 
 ### Features from carton box
 
@@ -21,6 +21,5 @@
 
 * Windows platform with IDE (Visual Studio 2017 and higher)
 * GLM (https://github.com/g-truc/glm)
-* Shader compiler from LunarG 1.0.68 (don't know why)
 * Vulkan API (preferly 1.1.70, includes Vulkan-Hpp) (https://www.lunarg.com/vulkan-sdk/)
 * Vulkan memory allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)

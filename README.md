@@ -1,4 +1,4 @@
-# Satellite OEM (VK-1.0.68)
+# Satellite OEM (VK-1.1.70)
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
@@ -19,6 +19,8 @@
 
 ### Minimal requirement for minimal product
 
-* GLM
-* Vulkan API 1.0.68 (and Vulkan-Hpp)
-* Vulkan memory allocator
+* Windows platform with IDE (Visual Studio 2017 and higher)
+* GLM (https://github.com/g-truc/glm)
+* Shader compiler from LunarG 1.0.68 (don't know why)
+* Vulkan API (preferly 1.1.70, includes Vulkan-Hpp) (https://www.lunarg.com/vulkan-sdk/)
+* Vulkan memory allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)

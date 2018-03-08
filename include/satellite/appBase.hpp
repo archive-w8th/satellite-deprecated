@@ -200,9 +200,6 @@ namespace NSM
 
         virtual DeviceQueueType createDevice(vk::PhysicalDevice &gpu)
         {
-            auto gpuProps = gpu.getProperties();
-            auto gpuMemoryProps = gpu.getMemoryProperties();
-
             // use extensions
             auto deviceExtensions = std::vector<const char *>();
             auto gpuExtensions = gpu.enumerateDeviceExtensionProperties();

@@ -328,32 +328,33 @@ void flushBlock(in uint mt, in bool illuminated){
 uint createBlock(inout uint blockId, in uint blockBinId){
 
     // write block where possible
-    uint mt = blockId, st = uint(-1);
-    {
-        uint alu = firstActive(), hid = uint(-1);
-        if (LANE_IDX == alu) {
-            if (int(mt) < 0) { 
-                st = atomicDecMT()-1;
-                if (int(st) >= 0) {
-                    mt = exchange(availableBlocks[st],-1)-1, 
-                    hid = rayBlocks[mt].indiceHeader-1;
-                }
-            }
-
-            if (int(mt) < 0) {
-                mt = atomicIncBT(), 
-                hid = atomicIncRT(R_BLOCK_SIZE*4);
-            }
-
-            if (int(mt) >= 0) {
+    uint alu = firstActive(), mt = blockId;
+    if (LANE_IDX == alu) {
+        if (int(mt) < 0) {
+            int st = int(atomicDecMT())-1;
+            if (st >= 0) { 
+                mt = exchange(availableBlocks[st],-1)-1;
                 rayBlocks[mt].bitfield = 0;
-                rayBlocks[mt].next = uint(-1);
                 rayBlocks[mt].blockBinId = blockBinId+1u;
-                rayBlocks[mt].indiceHeader = hid+1;
+                rayBlocks[mt].next = uint(-1);
             }
         }
-        mt = readLane(mt, alu);
+
+        if (int(mt) < 0) { 
+            mt = atomicIncBT(); 
+            rayBlocks[mt].bitfield = 0;
+            rayBlocks[mt].next = uint(-1);
+            rayBlocks[mt].blockBinId = blockBinId+1u;
+            rayBlocks[mt].indiceHeader = 0;
+        }
+
+        if (int(mt) >= 0) {
+            if (rayBlocks[mt].indiceHeader <= 0) {
+                rayBlocks[mt].indiceHeader = atomicIncRT(R_BLOCK_SIZE*2)+1;
+            }
+        }
     }
+    mt = readLane(mt, alu);
 
     blockId = mt >= 0 ? mt : blockId;
     return blockId;

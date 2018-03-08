@@ -70,7 +70,7 @@ void main()
 
             // allocate texel heading (2x16-bit)
             if (LANE_IDX == 0) {
-                blockBins[binID].texelHeader = atomicIncRT(R_BLOCK_SIZE*4)+1; 
+                blockBins[binID].texelHeader = atomicIncRT(R_BLOCK_SIZE*2)+1; 
             }
 
             // make division

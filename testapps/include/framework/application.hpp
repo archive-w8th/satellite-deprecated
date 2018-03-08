@@ -242,7 +242,7 @@ namespace SatelliteExample {
                 {
                     currentContext->device->logical.waitIdle();
                     currentContext->device->logical.destroySwapchainKHR(currentContext->swapchain);
-                    currentContext->swapchain = createSwapchain(currentContext->device, applicationWindow.surface, applicationWindow.surfaceFormat);
+                    currentContext->swapchain = createSwapchain(currentContext->device, *applicationWindow.surface, applicationWindow.surfaceFormat);
                     updateSwapchainFramebuffer(currentContext->device, currentContext->swapchain, currentContext->renderpass, applicationWindow.surfaceFormat, currentContext->framebuffers);
                     currentBuffer = 0;
                 }
@@ -292,7 +292,7 @@ namespace SatelliteExample {
                 gpuID = physicalDevices.size() - 1;
             }
             if (gpuID < 0 || gpuID == -1) gpuID = 0;
-            auto& gpu = physicalDevices[gpuID];
+            auto gpu = std::make_shared<vk::PhysicalDevice>(physicalDevices[gpuID]);
 
             // create surface
             applicationWindow = createWindowSurface(wind, canvasWidth, canvasHeight, title);
@@ -459,7 +459,7 @@ namespace SatelliteExample {
 
                 // create framebuffers by size
                 context->renderpass = renderpass;
-                context->swapchain = createSwapchain(deviceQueue, applicationWindow.surface, applicationWindow.surfaceFormat);
+                context->swapchain = createSwapchain(deviceQueue, *applicationWindow.surface, applicationWindow.surfaceFormat);
                 context->framebuffers = createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass, applicationWindow.surfaceFormat);
 
                 auto app = this;

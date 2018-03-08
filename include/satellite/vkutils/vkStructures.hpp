@@ -27,7 +27,7 @@ namespace NSM
         bool initialized = false;
         bool executed = false;
         vk::Device logical;
-        vk::PhysicalDevice physical;
+        std::shared_ptr<vk::PhysicalDevice> physical;
 
         vk::Semaphore wsemaphore;
         vk::CommandPool commandPool;

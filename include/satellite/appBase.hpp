@@ -23,7 +23,7 @@ namespace NSM
         struct SurfaceWindow
         {
             GLFWwindow *window;
-            vk::SurfaceKHR surface;
+            std::shared_ptr<vk::SurfaceKHR> surface;
             SurfaceFormat surfaceFormat;
             vk::Extent2D surfaceSize;
         } applicationWindow;
@@ -36,25 +36,20 @@ namespace NSM
 
         // instance extensions
         std::vector<const char *> wantedExtensions = {
-            "VK_GOOGLE_display_timing",
-            "VK_KHR_incremental_present",
-            "VK_KHR_swapchain",
-            "VK_KHR_surface",
-            "VK_KHR_display",
-            "VK_KHR_display_swapchain",
-            "VK_EXT_swapchain_colorspace",
-            "VK_EXT_debug_marker",
+            "VK_KHR_get_physical_device_properties2",
+            "VK_KHR_get_surface_capabilities2",
+            "VK_KHR_external_fence_capabilities",
+            "VK_KHR_external_semaphore_capabilities",
+            "VK_KHR_external_memory_capabilities",
+            "VK_KHR_device_group_creation",
             "VK_EXT_debug_report",
-            "VK_AMD_gpa_interface",
-            "VK_AMD_buffer_marker",
-            "VK_AMD_wave_limits",
-            "VK_AMD_gpu_shader_half_float_fetch",
+            "VK_EXT_debug_utils",
+            "VK_KHR_surface",
+            "VK_KHR_win32_surface"
         };
 
         // default device extensions
         std::vector<const char *> wantedDeviceExtensions = {
-            "VK_GOOGLE_display_timing",
-
             "VK_EXT_swapchain_colorspace",
             "VK_EXT_direct_mode_display",
             "VK_EXT_debug_marker",
@@ -68,19 +63,20 @@ namespace NSM
             "VK_EXT_queue_family_foreign",
             "VK_EXT_sampler_filter_minmax",
 
-            "VK_AMD_gpa_interface",
+
+            "VK_KHR_16bit_storage",
+            "VK_AMD_gpu_shader_int16",
+            "VK_AMD_gpu_shader_half_float",
+
             "VK_AMD_buffer_marker",
             "VK_AMD_shader_info",
-            "VK_AMD_wave_limits",
             "VK_AMD_shader_ballot",
             "VK_AMD_texture_gather_bias_lod",
             "VK_AMD_shader_image_load_store_lod",
             "VK_AMD_gcn_shader",
             "VK_AMD_shader_trinary_minmax",
-            "VK_AMD_gpu_shader_int16",
-            "VK_AMD_gpu_shader_half_float",
-            "VK_AMD_gpu_shader_half_float_fetch",
             "VK_AMD_draw_indirect_count",
+
 
             "VK_KHR_dedicated_allocation",
             "VK_KHR_incremental_present",
@@ -88,7 +84,6 @@ namespace NSM
             "VK_KHR_swapchain",
             "VK_KHR_sampler_ycbcr_conversion",
             "VK_KHR_image_format_list",
-            "VK_KHR_16bit_storage",
             "VK_KHR_sampler_mirror_clamp_to_edge",
             "VK_KHR_shader_draw_parameters",
             "VK_KHR_storage_buffer_storage_class",
@@ -97,36 +92,29 @@ namespace NSM
             "VK_KHR_display"
             "VK_KHR_display_swapchain"
 
+
             "VK_KHR_get_memory_requirements2",
             "VK_KHR_get_physical_device_properties2",
             "VK_KHR_get_surface_capabilities2",
             "VK_KHR_bind_memory2",
             "VK_KHR_maintenance1",
             "VK_KHR_maintenance2",
+            "VK_KHR_maintenance3"
         };
 
         // instance layers
         std::vector<const char *> wantedLayers = {
-            //"VK_LAYER_LUNARG_assistant_layer",
+            "VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_parameter_validation",
-            //"VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_core_validation",
-
-            "VK_LAYER_AMD_switchable_graphics", 
-            "VK_LAYER_GOOGLE_threading",
-            "VK_LAYER_NV_optimus",
+            //"VK_LAYER_LUNARG_assistant_layer",
+            //"VK_LAYER_LUNARG_vktrace",
+            //"VK_LAYER_GOOGLE_threading"
         };
 
         // default device layers
         std::vector<const char *> wantedDeviceValidationLayers = {
-            //"VK_LAYER_LUNARG_assistant_layer",
-            //"VK_LAYER_LUNARG_parameter_validation",
-            //"VK_LAYER_LUNARG_standard_validation",
-            //"VK_LAYER_LUNARG_core_validation",
-
-            "VK_LAYER_AMD_switchable_graphics",
-            "VK_LAYER_GOOGLE_threading",
-            "VK_LAYER_NV_optimus",
+            "VK_LAYER_AMD_switchable_graphics"
         };
 
         vk::Instance createInstance()
@@ -134,20 +122,17 @@ namespace NSM
 
             // get required extensions
             unsigned int glfwExtensionCount = 0;
-            const char **glfwExtensions =
-                glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+            const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
             // add glfw extensions to list
-            for (int i = 0; i < glfwExtensionCount; i++)
-            {
+            for (int i = 0; i < glfwExtensionCount; i++) {
                 wantedExtensions.push_back(glfwExtensions[i]);
             }
 
             // get our needed extensions
             auto installedExtensions = vk::enumerateInstanceExtensionProperties();
             auto extensions = std::vector<const char *>();
-            for (auto &w : wantedExtensions)
-            {
+            for (auto &w : wantedExtensions) {
                 for (auto &i : installedExtensions)
                 {
                     if (std::string(i.extensionName).compare(w) == 0)
@@ -161,8 +146,7 @@ namespace NSM
             // get validation layers
             auto installedLayers = vk::enumerateInstanceLayerProperties();
             auto layers = std::vector<const char *>();
-            for (auto &w : wantedLayers)
-            {
+            for (auto &w : wantedLayers) {
                 for (auto &i : installedLayers)
                 {
                     if (std::string(i.layerName).compare(w) == 0)
@@ -189,20 +173,16 @@ namespace NSM
 
             // create instance
             instance = vk::createInstance(cinstanceinfo);
-            // physicalDevices = instance.enumeratePhysicalDevices();
-
-            // debug log
-            // instance.createDebugReportCallbackEXT(vk::DebugReportCallbackCreateInfoEXT().setPfnCallback(debugCallback));
 
             // get physical device for application
             return instance;
         };
 
-        virtual DeviceQueueType createDevice(vk::PhysicalDevice &gpu)
+        virtual DeviceQueueType createDevice(std::shared_ptr<vk::PhysicalDevice> gpu)
         {
             // use extensions
             auto deviceExtensions = std::vector<const char *>();
-            auto gpuExtensions = gpu.enumerateDeviceExtensionProperties();
+            auto gpuExtensions = gpu->enumerateDeviceExtensionProperties();
             for (auto &w : wantedDeviceExtensions)
             {
                 for (auto &i : gpuExtensions)
@@ -218,7 +198,7 @@ namespace NSM
             // use layers
             auto layers = std::vector<const char *>();
             auto deviceValidationLayers = std::vector<const char *>();
-            auto gpuLayers = gpu.enumerateDeviceLayerProperties();
+            auto gpuLayers = gpu->enumerateDeviceLayerProperties();
             for (auto &w : wantedLayers)
             {
                 for (auto &i : gpuLayers)
@@ -232,62 +212,48 @@ namespace NSM
             }
 
             // get features and queue family properties
-            auto gpuFeatures = gpu.getFeatures();
-            auto gpuQueueProps = gpu.getQueueFamilyProperties();
+            auto gpuFeatures = gpu->getFeatures();
+            auto gpuQueueProps = gpu->getQueueFamilyProperties();
 
             // search graphics supported queue family
             std::vector<DevQueueType> queues;
 
-            float priority = 0.0f;
+            float priority = 1.0f;
             uint32_t computeFamilyIndex = -1, graphicsFamilyIndex = -1;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
 
             // compute/graphics queue
-            for (auto &queuefamily : gpuQueueProps)
-            {
+            for (auto &queuefamily : gpuQueueProps) {
                 computeFamilyIndex++;
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute))
-                {
-                    queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(
-                        vk::DeviceQueueCreateFlags(), computeFamilyIndex, 1, &priority));
-                    queues.push_back(std::make_shared<DevQueue>(
-                        DevQueue{ computeFamilyIndex, vk::Queue{} }));
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute)) {   
+                    queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
+                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ computeFamilyIndex, vk::Queue{} }));
                     break;
                 }
             }
 
             // graphics/presentation queue
-            for (auto &queuefamily : gpuQueueProps)
-            {
+            for (auto &queuefamily : gpuQueueProps) {
                 graphicsFamilyIndex++;
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) &&
-                    gpu.getSurfaceSupportKHR(graphicsFamilyIndex,
-                        applicationWindow.surface))
-                {
-                    if (graphicsFamilyIndex != computeFamilyIndex)
-                    {
-                        queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(
-                            vk::DeviceQueueCreateFlags(), graphicsFamilyIndex, 1, &priority));
-                        queues.push_back(std::make_shared<DevQueue>(
-                            DevQueue{ graphicsFamilyIndex, vk::Queue{} }));
-                        break;
-                    }
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu->getSurfaceSupportKHR(graphicsFamilyIndex, *applicationWindow.surface) && graphicsFamilyIndex != computeFamilyIndex) {
+                    queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
+                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ graphicsFamilyIndex, vk::Queue{} }));
+                    break;
                 }
             }
 
+            // assign presentation (may not working)
+            if (int(graphicsFamilyIndex) < 0 || graphicsFamilyIndex >= gpuQueueProps.size()) {
+                std::wcerr << "Device may not support presentation" << std::endl;
+                graphicsFamilyIndex = computeFamilyIndex;
+            }
+
             // make graphics queue same as compute
-            if (graphicsFamilyIndex == computeFamilyIndex ||
-                graphicsFamilyIndex == -1 || queues.size() <= 1)
-            {
+            if ((graphicsFamilyIndex == computeFamilyIndex || queues.size() <= 1) && queues.size() > 0) {
                 queues.push_back(queues[0]);
             }
 
-            // assign presentation (may not working)
-            if (graphicsFamilyIndex == -1)
-            {
-                std::cerr << "Device may not support presentation" << std::endl;
-                graphicsFamilyIndex = computeFamilyIndex;
-            }
+
 
             // pre-declare logical device
             auto deviceQueuePtr = std::shared_ptr<DeviceQueue>(new DeviceQueue);
@@ -296,17 +262,13 @@ namespace NSM
             if (queueCreateInfos.size() > 0)
             {
                 deviceQueuePtr->physical = gpu;
-                deviceQueuePtr->logical = gpu.createDevice(vk::DeviceCreateInfo(
-                    vk::DeviceCreateFlags(), queueCreateInfos.size(),
-                    queueCreateInfos.data(), deviceValidationLayers.size(),
-                    deviceValidationLayers.data(), deviceExtensions.size(),
-                    deviceExtensions.data(), &gpuFeatures));
+                deviceQueuePtr->logical = gpu->createDevice(vk::DeviceCreateInfo().setFlags(vk::DeviceCreateFlags())
+                    .setPEnabledFeatures(&gpuFeatures)
+                    .setPQueueCreateInfos(queueCreateInfos.data()).setQueueCreateInfoCount(queueCreateInfos.size())
+                    .setPpEnabledExtensionNames(deviceExtensions.data()).setEnabledExtensionCount(deviceExtensions.size())
+                    .setPpEnabledLayerNames(deviceValidationLayers.data()).setEnabledLayerCount(deviceValidationLayers.size()));
 
-                for (int i = 0; i < queues.size(); i++)
-                {
-                    queues[i]->queue =
-                        deviceQueuePtr->logical.getQueue(queues[i]->familyIndex, 0);
-                }
+                for (int i = 0; i < queues.size(); i++) { queues[i]->queue = deviceQueuePtr->logical.getQueue(queues[i]->familyIndex, 0); }
                 deviceQueuePtr->queues = queues;
                 deviceQueuePtr->mainQueue = deviceQueuePtr->queues[0];
 
@@ -314,13 +276,12 @@ namespace NSM
                 devices.push_back(deviceQueuePtr);
 
                 // create semaphores
-                deviceQueuePtr->wsemaphore =
-                    deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
+                deviceQueuePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
                 deviceQueuePtr->commandPool = createCommandPool(deviceQueuePtr);
 
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
-                allocatorInfo.physicalDevice = deviceQueuePtr->physical;
+                allocatorInfo.physicalDevice = *deviceQueuePtr->physical;
                 allocatorInfo.device = deviceQueuePtr->logical;
                 allocatorInfo.preferredLargeHeapBlockSize = 16384; // 16kb
                 allocatorInfo.flags =
@@ -350,37 +311,28 @@ namespace NSM
         }
 
         // create window and surface for this application (multi-window not supported)
-        virtual SurfaceWindow &createWindowSurface(GLFWwindow *window, uint32_t WIDTH,
-            uint32_t HEIGHT,
-            std::string title = "TestApp")
-        {
+        virtual SurfaceWindow &createWindowSurface(GLFWwindow *window, uint32_t WIDTH, uint32_t HEIGHT, std::string title = "TestApp") {
             applicationWindow.window = window;
             applicationWindow.surfaceSize = { WIDTH, HEIGHT };
             auto vksurface = VkSurfaceKHR();
-            glfwCreateWindowSurface(instance, applicationWindow.window, nullptr,
-                &vksurface);
-            applicationWindow.surface = vk::SurfaceKHR(vksurface);
+            glfwCreateWindowSurface(instance, applicationWindow.window, nullptr, &vksurface);
+            applicationWindow.surface = std::make_shared<vk::SurfaceKHR>(vksurface);
             return applicationWindow;
         }
 
         // create window and surface for this application (multi-window not supported)
-        virtual SurfaceWindow &createWindowSurface(uint32_t WIDTH, uint32_t HEIGHT,
-            std::string title = "TestApp")
-        {
-            applicationWindow.window =
-                glfwCreateWindow(WIDTH, HEIGHT, title.c_str(), nullptr, nullptr);
+        virtual SurfaceWindow &createWindowSurface(uint32_t WIDTH, uint32_t HEIGHT, std::string title = "TestApp") {
+            applicationWindow.window = glfwCreateWindow(WIDTH, HEIGHT, title.c_str(), nullptr, nullptr);
             applicationWindow.surfaceSize = { WIDTH, HEIGHT };
             auto vksurface = VkSurfaceKHR();
-            glfwCreateWindowSurface(instance, applicationWindow.window, nullptr,
-                &vksurface);
-            applicationWindow.surface = vk::SurfaceKHR(vksurface);
+            glfwCreateWindowSurface(instance, applicationWindow.window, nullptr, &vksurface);
+            applicationWindow.surface = std::make_shared<vk::SurfaceKHR>(vksurface);
             return applicationWindow;
         }
 
-        virtual SurfaceFormat getSurfaceFormat(vk::SurfaceKHR &surface,
-            vk::PhysicalDevice &gpu)
+        virtual SurfaceFormat getSurfaceFormat(std::shared_ptr<vk::SurfaceKHR> surface, std::shared_ptr<vk::PhysicalDevice> gpu)
         {
-            auto surfaceFormats = gpu.getSurfaceFormatsKHR(surface);
+            auto surfaceFormats = gpu->getSurfaceFormatsKHR(*surface);
 
             const std::vector<vk::Format> preferredFormats = {
                 vk::Format::eA2R10G10B10UnormPack32,
@@ -416,7 +368,7 @@ namespace NSM
                 surfaceFormats[surfaceFormatID].colorSpace;
 
             // get format properties?
-            auto formatProperties = gpu.getFormatProperties(surfaceColorFormat);
+            auto formatProperties = gpu->getFormatProperties(surfaceColorFormat);
 
             // only if these depth formats
             std::vector<vk::Format> depthFormats = {
@@ -428,7 +380,7 @@ namespace NSM
             vk::Format surfaceDepthFormat = depthFormats[0];
             for (auto &format : depthFormats)
             {
-                auto depthFormatProperties = gpu.getFormatProperties(format);
+                auto depthFormatProperties = gpu->getFormatProperties(format);
                 if (depthFormatProperties.optimalTilingFeatures &
                     vk::FormatFeatureFlagBits::eDepthStencilAttachment)
                 {
@@ -536,7 +488,7 @@ namespace NSM
         {
             // The swapchain handles allocating frame images.
             auto swapchainImages = device->logical.getSwapchainImagesKHR(swapchain);
-            auto gpuMemoryProps = device->physical.getMemoryProperties();
+            auto gpuMemoryProps = device->physical->getMemoryProperties();
 
             // create depth image
             auto imageInfo = vk::ImageCreateInfo(
@@ -597,7 +549,7 @@ namespace NSM
         {
             // The swapchain handles allocating frame images.
             auto swapchainImages = device->logical.getSwapchainImagesKHR(swapchain);
-            auto gpuMemoryProps = device->physical.getMemoryProperties();
+            auto gpuMemoryProps = device->physical->getMemoryProperties();
 
             // create depth image
             auto imageInfo = vk::ImageCreateInfo(
@@ -671,10 +623,8 @@ namespace NSM
             vk::SurfaceKHR &surface,
             SurfaceFormat &formats)
         {
-            auto surfaceCapabilities =
-                device->physical.getSurfaceCapabilitiesKHR(surface);
-            auto surfacePresentModes =
-                device->physical.getSurfacePresentModesKHR(surface);
+            auto surfaceCapabilities = device->physical->getSurfaceCapabilitiesKHR(surface);
+            auto surfacePresentModes = device->physical->getSurfacePresentModesKHR(surface);
 
             // check the surface width/height.
             if (!(surfaceCapabilities.currentExtent.width == -1 ||

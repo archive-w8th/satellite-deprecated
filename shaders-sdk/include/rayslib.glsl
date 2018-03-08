@@ -66,7 +66,7 @@ layout ( std430, binding = 10, set = 0 ) coherent buffer UnorderedSSBO { int uno
 
 
 
-#ifdef ADDRESS_16BIT_SPACE // 16-bit address space (more space for micro-indexing)
+#if (defined(ADDRESS_16BIT_SPACE) && defined(ENABLE_AMD_INT16)) // 16-bit address space (more space for micro-indexing)
 layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
 #define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
 #define m16s(a, i) (ispace[i] = uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))

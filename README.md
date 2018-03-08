@@ -1,8 +1,8 @@
-# Satellite OEM (VK-1.1.70)
+# Satellite OEM (VK-1.0.68)
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
-**08.03.2018**: Beginning of Vulkan API 1.1
+**08.03.2018**: Vulkan API 1.1.70 and SDK compilers still buggy, I merge very later. 
 
 ### Features from carton box
 
@@ -20,5 +20,5 @@
 ### Minimal requirement for minimal product
 
 * GLM
-* Vulkan API 1.1.70 (and Vulkan-Hpp)
+* Vulkan API 1.0.68 (and Vulkan-Hpp)
 * Vulkan memory allocator

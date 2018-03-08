@@ -24,8 +24,8 @@ uint createBlockOnce(inout uint block, in bool minimalCondition, in uint binID){
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, FALSE_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
-            m16s(uint(-1), blockIndiceHeader(block)+nid);
-            m16s(uint(-1), blockPreparingHeader(block)+nid);
+            m16s(uint(-1), blockIndiceHeader(block), nid);
+            m16s(uint(-1), blockPreparingHeader(block), nid);
         }
     }
     return block;
@@ -57,6 +57,7 @@ void main()
         int binID = globalID;
         blockBins[binID].blockStart = uint(-1);
         blockBins[binID].previousReg = uint(-1);
+        blockBins[binID].texelHeader = uint(-1);
         
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
@@ -70,7 +71,7 @@ void main()
 
             // allocate texel heading (2x16-bit)
             if (LANE_IDX == 0) {
-                blockBins[binID].texelHeader = atomicIncRT(R_BLOCK_SIZE*2)+1; 
+                blockBins[binID].texelHeader = atomicIncRT(2)+1; 
             }
 
             // make division
@@ -99,14 +100,14 @@ void main()
 
                 // prison coding
                 int idx = xy.x + xy.y * wh.x;
-                m16s(0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+0);
-                m16s(0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+1);
+                m16s(0xFFFFu, (blockBins[binID].texelHeader-1)+0, nid);
+                m16s(0xFFFFu, (blockBins[binID].texelHeader-1)+1, nid);
 
                 IFALL(overflow) break;
                 
                 if (vbn) {
-                    m16s(vbn ? BFE_HW(idx, 0,16) : 0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+0);
-                    m16s(vbn ? BFE_HW(idx,16,16) : 0xFFFFu, blockBins[binID].texelHeader-1 + nid*2+1);
+                    m16s(vbn ? BFE_HW(idx, 0,16) : 0xFFFFu, (blockBins[binID].texelHeader-1)+0, nid);
+                    m16s(vbn ? BFE_HW(idx,16,16) : 0xFFFFu, (blockBins[binID].texelHeader-1)+1, nid);
 
                     vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed.x);
                     vec2 coord = (vec2(xy) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;

@@ -65,24 +65,14 @@ layout ( std430, binding = 9, set = 0 ) coherent buffer HitsSSBO { HitRework hit
 layout ( std430, binding = 10, set = 0 ) coherent buffer UnorderedSSBO { int unorderedRays[]; };
 
 
-
-#if (defined(ADDRESS_16BIT_SPACE) && defined(ENABLE_AMD_INT16)) // 16-bit address space (more space for micro-indexing)
-
-    #ifdef USE_F16_WORKAROUND  // fork with fp16
-    layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { float16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
-    #define m16i(i) ((uint(float16BitsToUint16(ispace[i]))&0xFFFFu)-1u)
-    #define m16s(a, i) (ispace[i] = uint16BitsToFloat16(uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu)))
-
-    #else // real int16
-    layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
-    #define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
-    #define m16s(a, i) (ispace[i] = uint16_t(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
-    #endif
-
-#else // legacy 32-bit address space
-    layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint ispace[]; }; // globalized index space (planned VK_KHR_16bit_storage support)
-    #define m16i(i) ((uint(ispace[i])&0xFFFFu)-1u)
-    #define m16s(a, i) (ispace[i] = uint(( (uint(a)&0xFFFFu) +1u )&0xFFFFu))
+#if (defined(ADDRESS_16BIT_SPACE) && defined(ENABLE_AMD_INT16))
+layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { uint16_t ispace[][R_BLOCK_SIZE]; }; // globalized index space (planned VK_KHR_16bit_storage support)
+#define m16i(b,i) ((uint(ispace[b][i])&0xFFFFu)-1u)
+#define m16s(a,b,i) (ispace[b][i] = uint16_t((uint(a)+1u)&0xFFFFu))
+#else
+layout ( std430, binding = 11, set = 0 ) coherent buffer BlockIndexedSpace { mediump uint ispace[][R_BLOCK_SIZE]; };
+#define m16i(b,i) ((ispace[b][i]&0xFFFFu)-1u)
+#define m16s(a,b,i) (ispace[b][i] = ((uint(a)+1u)&0xFFFFu))
 #endif
 
 
@@ -92,7 +82,7 @@ uint blockLength(inout BlockInfo block){
 }
 
 void blockLength(inout BlockInfo block, in uint count){
-    block.bitfield = BFI_HW(block.bitfield, (count)&0xFFFFu, 0, 16);
+    block.bitfield = BFI_HW(block.bitfield, count&0xFFFFu, 0, 16);
 }
 
 
@@ -118,15 +108,15 @@ void resetBlockLength(in uint blockPtr){
 
 
 uint blockIndiceHeader(in uint blockPtr){
-    return rayBlocks[blockPtr].indiceHeader-1;
+    return (rayBlocks[blockPtr].indiceHeader-1);
 }
 
 uint blockPreparingHeader(in uint blockPtr){
-    return blockIndiceHeader(blockPtr) + R_BLOCK_SIZE;
+    return blockIndiceHeader(blockPtr)+1;
 }
 
 uint blockBinIndiceHeader(in uint binPtr){
-    return blockBins[binPtr].texelHeader-1;
+    return (blockBins[binPtr].texelHeader-1);
 }
 
 
@@ -213,8 +203,8 @@ initNonAtomicIncFunctionTargetFunc(blockLength, atomicIncCM, uint)
 // copy node indices
 void copyBlockIndices(in int block, in int bidx){
     if (block >= 0) {
-        uint idx = (bidx >= min(blockLength(block), R_BLOCK_SIZE)) ? uint(-1) : m16i(blockPreparingHeader(block) + uint(bidx));
-        if (int(bidx) >= 0 && bidx < R_BLOCK_SIZE) m16s(uint(idx), blockIndiceHeader(block) + uint(bidx));
+        uint idx = (bidx >= min(blockLength(block), R_BLOCK_SIZE)) ? uint(-1) : m16i(blockPreparingHeader(block),uint(bidx));
+        if (int(bidx) >= 0 && bidx < R_BLOCK_SIZE) m16s(uint(idx), blockIndiceHeader(block), uint(bidx));
     }
 }
 
@@ -226,7 +216,7 @@ bool checkIllumination(in int block, in int bidx){
 // accquire rays for processors
 void accquireNode(in int block, in int bidx){
     currentInBlockPtr = int(bidx);
-    currentBlockNode = int(currentInBlockPtr) >= 0 ? int(m16i(blockIndiceHeader(block) + currentInBlockPtr)) : -1;
+    currentBlockNode = (int(currentInBlockPtr) >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block),currentInBlockPtr)) : -1;
     currentRay = rayBlockNodes[block][currentBlockNode].data;
 
     if (currentBlockNode < 0) {
@@ -241,7 +231,7 @@ void accquireNode(in int block, in int bidx){
 
 void accquireNodeOffload(in int block, in int bidx){
     currentInBlockPtr = int(bidx);
-    currentBlockNode = int(currentInBlockPtr) >= 0 ? int(m16i(blockIndiceHeader(block) + currentInBlockPtr)) : -1;
+    currentBlockNode = (int(currentInBlockPtr) >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block),currentInBlockPtr)) : -1;
 
     currentRay = rayBlockNodes[block][currentBlockNode].data;
     if (int(currentBlockNode) >= 0) { // for avoid errors with occupancy, temporarely clean in working memory
@@ -251,7 +241,7 @@ void accquireNodeOffload(in int block, in int bidx){
         WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
         RayActived(rayBlockNodes[block][nid].data, FALSE_);
         RayBounce(rayBlockNodes[block][nid].data, 0);
-        m16s(uint(-1), blockIndiceHeader(block) + currentInBlockPtr);
+        m16s(uint(-1), blockIndiceHeader(block), currentInBlockPtr);
     } else {
         currentRay.dcolor = uvec2((0u).xx);
         currentRay.origin.w = 0;
@@ -303,7 +293,10 @@ bool confirmNodeOccupied(in uint block){
 // confirm for processing
 void confirmNode(in uint block, in bool actived){
     if (blockLength(block) < currentBlockSize && actived && int(block) >= 0) { // don't overflow
-        uint idx = atomicIncCM(block); m16s(currentBlockNode, blockPreparingHeader(block) + idx);
+        uint idx = atomicIncCM(block); 
+        if (int(idx) >= 0 && idx < R_BLOCK_SIZE) {
+            m16s(currentBlockNode, blockPreparingHeader(block), idx);
+        }
     }
 }
 
@@ -339,7 +332,7 @@ void flushBlock(in uint mt, in bool illuminated){
 uint createBlock(inout uint blockId, in uint blockBinId){
 
     // write block where possible
-    uint alu = firstActive(), mt = blockId;
+    uint alu = firstActive(), mt = -1;
     if (LANE_IDX == alu) {
         if (int(mt) < 0) {
             int st = int(atomicDecMT())-1;
@@ -361,7 +354,7 @@ uint createBlock(inout uint blockId, in uint blockBinId){
 
         if (int(mt) >= 0) {
             if (rayBlocks[mt].indiceHeader <= 0) {
-                rayBlocks[mt].indiceHeader = atomicIncRT(R_BLOCK_SIZE*2)+1;
+                rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
             }
         }
     }

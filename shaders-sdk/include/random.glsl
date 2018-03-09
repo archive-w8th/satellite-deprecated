@@ -51,7 +51,7 @@ float random( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
     uint plan = hash((globalInvocationSMP << 8) ^ subHash);
     uint gseq = hash(uint(superseed));
-    return hrand(uvec3(plan, hclk, gseq));
+    return hrand(uvec3(hclk, plan, gseq));
 }
 
 // 1D random generators from superseed
@@ -59,27 +59,17 @@ float randomQnt( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
     uint plan = 0;
     uint gseq = hash(uint(superseed));
-    return hrand(uvec3(plan, hclk, gseq));
+    return hrand(uvec3(hclk, plan, gseq));
 }
 
 
-
-
-// 2D random generators from superseed
-vec2 hammersley2d( in uint N, in int superseed ) {
-    uint hclk = ++randomClocks; randomClocks <<= 1;
-    uint plan = hash((globalInvocationSMP << 8) ^ subHash);
-    uint gseq = hash(uint(superseed));
-    uint comb = hash(uvec3(plan, hclk, gseq));
-    return vec2(fract(float(comb%N) / float(N)), radicalInverse_VdC(comb));
-}
 
 // another 2D random generator
 vec2 randf2x( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
     uint plan = hash((globalInvocationSMP << 8) ^ subHash);
     uint gseq = hash(uint(superseed));
-    uint comb = hash(uvec3(plan, hclk, gseq));
+    uint comb = hash(uvec3(hclk, plan, gseq));
     return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
 }
 
@@ -88,7 +78,7 @@ vec2 randf2q( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
     uint plan = 0;
     uint gseq = hash(uint(superseed));
-    uint comb = hash(uvec3(plan, hclk, gseq));
+    uint comb = hash(uvec3(hclk, plan, gseq));
     return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
 }
 
@@ -97,7 +87,6 @@ vec2 randf2q( in int superseed ) {
 // static aggregated randoms
 float random() { return random(rayStreams[0].superseed.x); }
 float randomQnt() { return randomQnt(rayStreams[0].superseed.x); }
-vec2 hammersley2d(in uint N) { return hammersley2d(N, rayStreams[0].superseed.x); }
 vec2 randf2x() { return randf2x(rayStreams[0].superseed.x); }
 
 

@@ -161,19 +161,19 @@ int msb(in uvec2 pair) {
 }
 
 int msb(in uint64_t vlc) { 
-//#ifdef ENABLE_AMD_INSTRUCTION_SET
-//    return findMSB(vlc);
-//#else
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return findMSB(vlc);
+#else
     return msb(U2P(vlc));
-//#endif
+#endif
 }
 
 int lsb(in uint64_t vlc) { 
-//#ifdef ENABLE_AMD_INSTRUCTION_SET
-//    return findLSB(vlc);
-//#else
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return findLSB(vlc);
+#else
     return lsb(U2P(vlc));
-//#endif
+#endif
 }
 
 

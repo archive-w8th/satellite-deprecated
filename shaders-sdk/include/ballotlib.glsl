@@ -22,7 +22,7 @@
 #ifndef OUR_INVOC_TERM
 #ifndef LEGACY_BALLOT
 #define LT_IDX gl_LocalInvocationIndex.x
-#define LC_IDX (LT_IDX / WARP_SIZE_RT)
+#define LC_IDX gl_SubgroupID.x
 #define LANE_IDX gl_SubgroupInvocationID.x
 #else
 #define LT_IDX gl_LocalInvocationIndex.x

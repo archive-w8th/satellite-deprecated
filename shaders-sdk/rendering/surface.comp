@@ -62,8 +62,8 @@ bool validateTexture(const uint tbinding) {
     return _binding >= 0 && tbinding < MAX_TEXTURES;
 }
 
-#define fetchTexture(tbinding, tcoord) texture(sampler2D(textures[tbinding-1], samplers[0]), tcoord)
-#define fetchTextureOffset(tbinding, tcoord, toffset) textureOffset(sampler2D(textures[tbinding-1], samplers[0]), tcoord, toffset)
+#define fetchTexture(tbinding, tcoord) textureLod(sampler2D(textures[tbinding-1], samplers[0]), tcoord, 0)
+#define fetchTextureOffset(tbinding, tcoord, toffset) textureLodOffset(sampler2D(textures[tbinding-1], samplers[0]), tcoord, 0, toffset)
 
 
 vec4 fetchDiffuse(in vec2 texcoord){

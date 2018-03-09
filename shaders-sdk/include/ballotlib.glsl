@@ -124,5 +124,10 @@ bool anyInvoc(in BOOL_ bc){ return anyInvoc(SSC(bc)); }
 #define IFALL(b)if(allInvoc(b))
 #define IFANY(b)if(anyInvoc(b))
 
+
+
+#define SB_BARRIER subgroupMemoryBarrier();subgroupBarrier();
+
+
 #endif
 

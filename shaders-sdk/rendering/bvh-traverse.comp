@@ -313,11 +313,13 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 
         // do intersection of found geometry
         IFANY (traverseState.defTriangleID >= 0) {
+            SB_BARRIER
             doIntersection();
         }
     }
 
     // if has any intersection, include to result list
+    SB_BARRIER
     IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & BOOL_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
         includeChain(traverseState.geometrySpace.lastIntersection);
     }
@@ -336,6 +338,7 @@ void main() {
 
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
+        SB_BARRIER
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); //rayID = it;
         BOOL_ overflow = BOOL_(it >= wsize);
         IFALL(overflow) break;

@@ -48,6 +48,7 @@ void main()
     bool overflow = false;
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
+        SB_BARRIER
         int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
         globalInvocationSMP = globalID;
 
@@ -167,10 +168,12 @@ void main()
                 storeRay(blockID, currentRay);
             }
 
+            SB_BARRIER
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                 copyBlockIndices(currentBlock, tb + int(LANE_IDX));
             }
 
+            SB_BARRIER
             if (LANE_IDX == 0) {
                 if (blockLength(blockID) >= 1) {
                     confirmBlock(blockID);

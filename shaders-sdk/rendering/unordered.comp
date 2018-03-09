@@ -24,6 +24,7 @@ void main() {
     bool overflow = false;
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
+        SB_BARRIER
         int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
         globalInvocationSMP = globalID;
 

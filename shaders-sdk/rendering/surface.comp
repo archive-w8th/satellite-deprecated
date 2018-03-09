@@ -226,11 +226,6 @@ HitRework interpolateMeshData(inout HitRework res) {
     return res;
 }
 
-#ifdef LEGACY_BALLOT
-#define SB_BARRIER memoryBarrier();
-#else
-#define SB_BARRIER subgroupBarrier();subgroupMemoryBarrier();
-#endif
 
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.hitCount
@@ -239,6 +234,7 @@ void main() {
     bool overflow = false;
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
+        SB_BARRIER
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
         overflow = overflow || globalID >= RAY_BLOCK samplerUniform.hitCount || globalID < 0;
         

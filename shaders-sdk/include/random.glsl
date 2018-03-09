@@ -16,14 +16,14 @@ float radicalInverse_VdC(in uint bits) {
     return clamp(fract(float(bits) * 2.3283064365386963e-10), 0.f, 1.f);
 }
 
-
 float floatConstruct( in uint m ) {
     return clamp(fract(1.f-uintBitsToFloat((m & 0x007FFFFFu) | 0x3F800000u)), 0.f, 1.f);
 }
 
 
 // seeds hashers
-uint hash( in uint a ) {
+uint hash( in uint x ) {
+    uint a = x;
     a += ( a << 10u );
     a ^= ( a >>  6u );
     a += ( a <<  3u );
@@ -34,9 +34,9 @@ uint hash( in uint a ) {
 
 
 // multi-dimensional seeds hashers
-uint hash( in uvec2 v ) { return hash( v.x ^ hash(v.y)                         ); }
-uint hash( in uvec3 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z))             ); }
-uint hash( in uvec4 v ) { return hash( v.x ^ hash(v.y ^ hash(v.z ^ hash(v.w))) ); }
+uint hash( in uvec2 v ) { return hash(v.x^hash(v.y)); }
+uint hash( in uvec3 v ) { return hash(v.x^hash(v.yz)); }
+uint hash( in uvec4 v ) { return hash(v.x^hash(v.yzw)); }
 
 
 // aggregated randoms from seeds
@@ -49,49 +49,46 @@ float hrand( in uvec4  v ) { return floatConstruct(hash(v)); }
 // 1D random generators from superseed
 float random( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
-    uint plan = (globalInvocationSMP << 10) ^ subHash;
-    uint gseq = uint(superseed);
-    return hrand(uvec3(hclk, plan, gseq));
+    uint plan = hash((globalInvocationSMP << 8) ^ subHash);
+    uint gseq = hash(uint(superseed));
+    return hrand(uvec3(plan, hclk, gseq));
 }
-
 
 // 1D random generators from superseed
 float randomQnt( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
     uint plan = 0;
-    uint gseq = uint(superseed);
-    return hrand(uvec3(hclk, plan, gseq));
+    uint gseq = hash(uint(superseed));
+    return hrand(uvec3(plan, hclk, gseq));
 }
+
+
 
 
 // 2D random generators from superseed
 vec2 hammersley2d( in uint N, in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
-    uint plan = (globalInvocationSMP << 10) ^ subHash;
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec3(hclk, plan, gseq));
+    uint plan = hash((globalInvocationSMP << 8) ^ subHash);
+    uint gseq = hash(uint(superseed));
+    uint comb = hash(uvec3(plan, hclk, gseq));
     return vec2(fract(float(comb%N) / float(N)), radicalInverse_VdC(comb));
 }
-
 
 // another 2D random generator
 vec2 randf2x( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
-    uint plan = (globalInvocationSMP << 10) ^ subHash;
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec3(hclk, plan, gseq));
+    uint plan = hash((globalInvocationSMP << 8) ^ subHash);
+    uint gseq = hash(uint(superseed));
+    uint comb = hash(uvec3(plan, hclk, gseq));
     return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
-    
-    //return vec2(random(superseed), random(superseed));
 }
-
 
 // another 2D random generator
 vec2 randf2q( in int superseed ) {
     uint hclk = ++randomClocks; randomClocks <<= 1;
-    uint plan = 0;//(globalInvocationSMP << 10) ^ subHash;
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec3(hclk, plan, gseq));
+    uint plan = 0;
+    uint gseq = hash(uint(superseed));
+    uint comb = hash(uvec3(plan, hclk, gseq));
     return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
 }
 

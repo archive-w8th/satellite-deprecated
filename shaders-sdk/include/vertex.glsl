@@ -77,16 +77,13 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
         //const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
         IFANY (valid) {
             // gather patterns
-            //vec2 ntri = fma(vec2(gatherMosaic(getUniformCoord(tri))), sz, hs);
             const int itri = tri*9;
             mat3 ABC = mat3(
-                //SGATHER(vertex_texture, ntri, 0)._SWIZV - orig.x,
-                //SGATHER(vertex_texture, ntri, 1)._SWIZV - orig.y,
-                //SGATHER(vertex_texture, ntri, 2)._SWIZV - orig.z
-                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]) - orig.x,
-                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]) - orig.y,
-                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]) - orig.z
-            ) * M;
+                lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
+                lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
+                lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
+            );
+            ABC[0] -= orig.xxx, ABC[1] -= orig.yyy, ABC[2] -= orig.zzz, ABC *= M;
 
             // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
             // http://jcgt.org/published/0002/01/05/paper.pdf

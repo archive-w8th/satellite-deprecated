@@ -232,9 +232,12 @@ void main(){
                     ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
 
                     // interleave vertex for intersection
-                    lvtx[tidc*9+3*0+i] = vertice[mi].x;
-                    lvtx[tidc*9+3*1+i] = vertice[mi].y;
-                    lvtx[tidc*9+3*2+i] = vertice[mi].z;
+                    //lvtx[tidc*9+3*0+i] = vertice[mi].x;
+                    //lvtx[tidc*9+3*1+i] = vertice[mi].y;
+                    //lvtx[tidc*9+3*2+i] = vertice[mi].z;
+                    lvtx[tidc*9+3*i+0] = vertice[mi].x;
+                    lvtx[tidc*9+3*i+1] = vertice[mi].y;
+                    lvtx[tidc*9+3*i+2] = vertice[mi].z;
                 }
             }
 
@@ -256,9 +259,12 @@ void main(){
                     ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
 
                     // interleave vertex for intersection
-                    lvtx[tidc*9+3*0+i] = vertice[mi].x;
-                    lvtx[tidc*9+3*1+i] = vertice[mi].y;
-                    lvtx[tidc*9+3*2+i] = vertice[mi].z;
+                    //lvtx[tidc*9+3*0+i] = vertice[mi].x;
+                    //lvtx[tidc*9+3*1+i] = vertice[mi].y;
+                    //lvtx[tidc*9+3*2+i] = vertice[mi].z;
+                    lvtx[tidc*9+3*i+0] = vertice[mi].x;
+                    lvtx[tidc*9+3*i+1] = vertice[mi].y;
+                    lvtx[tidc*9+3*i+2] = vertice[mi].z;
                 }
             }
 

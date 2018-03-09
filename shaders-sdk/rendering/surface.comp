@@ -201,11 +201,11 @@ HitRework interpolateMeshData(inout HitRework res) {
 
         // get delta vertex 
         const int itri = tri*9;
-        mat3x3 triverts = transpose(mat3x3(
-            vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
-            vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
-            vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
-        ));
+        mat3x3 triverts = mat3x3(
+            lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
+            lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
+            lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
+        );
         vec3 deltaPos0 = triverts[1] - triverts[0], deltaPos1 = triverts[2] - triverts[0];
 
         // calculate tangent and bitangent 

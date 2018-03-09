@@ -115,20 +115,14 @@ void main() {
             vec4 mn = vec4(INFINITY), mx = vec4(-INFINITY);
 
             const uint tri = clamp(globalID, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
-            
             const uint itri = tri*9;
-            mat3x4 triverts = transpose(mat4x3(
-                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]), 
-                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]), 
-                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]),
-                1.f.xxx
-            ));
+            const mat3x4 triverts = mat3x4(
+                divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2], 1.f))), 
+                divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5], 1.f))), 
+                divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8], 1.f)))
+            );
 
-            triverts[0] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[0]));
-            triverts[1] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[1]));
-            triverts[2] = divW(mult4(bvhBlock.creatorUniform.transform, triverts[2]));
-
-            vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
+            const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
             if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
                 bbox bounding = calcTriBox(triverts);
                 

@@ -78,12 +78,11 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
         IFANY (valid) {
             // gather patterns
             const int itri = tri*9;
-            mat3 ABC = mat3(
-                lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
-                lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
-                lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
-            );
-            ABC[0] -= orig.xxx, ABC[1] -= orig.yyy, ABC[2] -= orig.zzz, ABC *= M;
+            const mat3 ABC = transpose(mat3(
+                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2])-orig,
+                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5])-orig,
+                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])-orig
+            ))*M;
 
             // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
             // http://jcgt.org/published/0002/01/05/paper.pdf

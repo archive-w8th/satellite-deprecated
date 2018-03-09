@@ -327,7 +327,7 @@ void main() {
 
                     // if incedent ray is diffuse or shadowed, don't distribute indirect light directly (it can be approximated, for example, VCT)
                     bool deepIndirectIlluminated = false;
-                    if (RayType(enrollRay) == 1) { diffcolor *= 0.f.xxxx; deepIndirectIlluminated = true;  }
+                    //if (RayType(enrollRay) == 1) { diffcolor *= 0.f.xxxx; deepIndirectIlluminated = true;  }
                     // TODO: approximate indirect diffuses
 
 

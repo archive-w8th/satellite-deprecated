@@ -123,7 +123,7 @@ namespace NSM
         struct RayStream
         {
             glm::vec4 diffuseStream;
-            glm::ivec4 superseed;
+            glm::u64vec4 superseed;
             glm::vec4 frand4;
         };
 

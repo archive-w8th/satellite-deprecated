@@ -20,7 +20,11 @@ float floatConstruct( in uint m ) {
     return clamp(fract(uintBitsToFloat((m & 0x007FFFFFu) | 0x3F800000u)-1.f), 0.f, 1.f);
 }
 
-vec2 constructTwoHalfs ( in uint m ) {
+vec2 float2Construct( in uvec2 m ) {
+    return vec2(floatConstruct(m.x), floatConstruct(m.y));
+}
+
+vec2 half2Construct ( in uint m ) {
     return clamp(fract(unpackHalf2x16((m & 0x03FF03FFu) | (0x3C003C00u))-1.f.xx), 0.f.xx, 1.f.xx);
 }
 
@@ -35,6 +39,7 @@ uint hash2( in uint a ) {
    a = (a^0xb55a4f09) ^ (a>>16);
    return a;
 }
+
 
 uint hash( in uint x ) {
     uint a = hash2(x);
@@ -54,17 +59,6 @@ uint hash( in uvec3 v ) { return hash( v.x ^ hash(v.y) ^ hash(v.z)             )
 uint hash( in uvec4 v ) { return hash( v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w) ); }
 
 
-// aliased functions (half)
-vec2 hashedHalf2(in uint a) { return constructTwoHalfs(hash(a)); }
-vec2 hashedHalf2(in  int a) { return hashedHalf2(uint(a)); }
-
-// aliased functions (floats)
-vec2 hashedFloat2(in uvec2 a) { return vec2(floatConstruct(hash(a.x)), floatConstruct(hash(a.y))); }
-vec2 hashedFloat2(in ivec2 a) { return hashedFloat2(uvec2(a)); }
-
-
-
-
 
 // aggregated randoms from seeds
 float hrand( in uint   x ) { return floatConstruct(hash(x)); }
@@ -74,63 +68,51 @@ float hrand( in uvec4  v ) { return floatConstruct(hash(v)); }
 
 
 // 1D random generators from superseed
-float random( in int superseed ) {
+float random( in uvec2 superseed ) {
     uint hclk = ++randomClocks;
     uint plan = uint(globalInvocationSMP);
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec4(hclk, plan, subHash, gseq));
+    uint comb = hash(uvec4(hclk, plan, subHash, hash(superseed) ));
     return floatConstruct(comb);
 }
 
 
 // 1D random generators from superseed
-float urandom( in int superseed ) {
+float urandom( in uvec2 superseed ) {
     uint hclk = ++randomClocks;
     uint plan = uint(0);
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec4(hclk, plan, 0, gseq));
+    uint comb = hash(uvec4(hclk, plan, subHash, hash(superseed) ));
     return floatConstruct(comb);
 }
 
-// 1D random generators from superseed
-vec2 urandom2hf( in int superseed ) {
-    uint hclk = ++randomClocks;
-    uint plan = uint(0);
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec4(hclk, plan, 0, gseq));
-    return constructTwoHalfs(comb);
-}
 
 
 
 // another 2D random generator
-vec2 randf2q( in int superseed ) {
+vec2 randf2q( in uvec2 superseed ) {
     uint hclk = ++randomClocks;
     uint plan = uint(globalInvocationSMP);
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec4(hclk, plan, subHash, gseq));
+    uint comb = hash(uvec4(hclk, plan, subHash, hash(superseed) ));
     return vec2(floatConstruct(comb), radicalInverse_VdC(comb));
 }
 
 // another 2D random generator
-vec2 randf2x( in int superseed ) {
+vec2 randf2x( in uvec2 superseed ) {
     uint hclk = ++randomClocks;
     uint plan = uint(globalInvocationSMP);
-    uint gseq = uint(superseed);
-    uint comb = hash(uvec4(hclk, plan, subHash, gseq));
-    return vec2(hashedHalf2(comb));
+    uint comb = hash(uvec4(hclk, plan, subHash, hash(superseed) ));
+    return vec2(half2Construct(comb));
 }
 
 
 
 // static aggregated randoms
-float random() { return random(rayStreams[0].superseed.x); }
-vec2 randf2q() { return randf2q(rayStreams[0].superseed.x); }
-vec2 randf2x() { return randf2x(rayStreams[0].superseed.x); }
+float random() { return random(rayStreams[0].superseed[0]); }
+vec2 randf2q() { return randf2q(rayStreams[0].superseed[0]); }
+vec2 randf2x() { return randf2x(rayStreams[0].superseed[0]); }
 
 
 // geometric random generators
-vec3 randomCosine(in int superseed) {
+vec3 randomCosine(in uvec2 superseed) {
     vec2 hmsm = randf2x(superseed);
     float up = sqrt(1.f-hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));

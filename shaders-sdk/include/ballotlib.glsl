@@ -5,7 +5,7 @@
 
 // for constant maners
 #ifndef WARP_SIZE
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#ifndef NVIDIA_PLATFORM
 #define WARP_SIZE 64
 #else
 #define WARP_SIZE 32

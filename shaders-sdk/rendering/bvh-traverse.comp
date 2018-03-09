@@ -55,25 +55,15 @@ FMAT3X4_ CACHED_BOX;
 //#endif
 
 
-// plain pointers
-int stackPtr = 0, rayID = 0;
-
-
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { BlockCache blockCache[]; };
 
 
+int stackPtr = 0; int rayID = 0;
 
 #ifndef USE_STACKLESS_BVH
-
-// use shared local memory stack
-//#ifndef AMD_F16_BVH
 #define LOCAL_STACK localStack[LT_IDX]
 shared int localStack[WORK_SIZE][localStackSize];
-//#else 
-//int LOCAL_STACK[localStackSize];
-//#endif
-
 
 int loadStack(){
     int ptr = --stackPtr; int val = -1;

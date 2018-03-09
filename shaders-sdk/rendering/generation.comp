@@ -159,7 +159,6 @@ void main()
                         }
                     }
 
-
                     //RayActived(currentRay, FALSE_);
                     //WriteColor(currentRay.dcolor, vec4(dir.xyz*0.5f+0.5f, 0));
                 }

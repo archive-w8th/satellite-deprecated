@@ -1,12 +1,10 @@
 #ifndef _CONSTANTS_H
 #define _CONSTANTS_H
 
-
-
     // data format extensions
     #extension GL_AMD_gcn_shader : enable
     #extension GL_AMD_gpu_shader_half_float : enable
-    #extension GL_ARB_gpu_shader_int64 : require
+    #extension GL_ARB_gpu_shader_int64 : enable
     #extension GL_AMD_gpu_shader_int16 : enable
 
     // intrinsics extensions
@@ -17,10 +15,6 @@
     #extension GL_AMD_shader_image_load_store_lod : enable
     #extension GL_EXT_shader_image_load_formatted : enable
 
-
-
-    
-#ifndef LEGACY_BALLOT
     // subgroup operations
     #extension GL_KHR_shader_subgroup_basic            : enable
     #extension GL_KHR_shader_subgroup_vote             : enable
@@ -29,12 +23,7 @@
     #extension GL_KHR_shader_subgroup_shuffle          : enable
     #extension GL_KHR_shader_subgroup_shuffle_relative : enable
     #extension GL_KHR_shader_subgroup_clustered        : enable
-#else
-    // legacy vulkan API
-    #extension GL_AMD_shader_ballot : enable
-    #extension GL_ARB_shader_ballot : enable
-    #extension GL_ARB_shader_group_vote : enable
-#endif
+
 
 
 
@@ -86,11 +75,7 @@
 
 // Platform-oriented compute
 #ifndef WORK_SIZE
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-#define WORK_SIZE 64
-#else
-#define WORK_SIZE 32
-#endif
+#define WORK_SIZE 128
 #endif
 #define LOCAL_SIZE_LAYOUT layout ( local_size_x = WORK_SIZE ) in
 

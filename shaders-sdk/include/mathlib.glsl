@@ -127,7 +127,7 @@ vec4 mult4(in mat4 tmat, in vec4 vec) { return vec * tmat; }
 
 
 // 64-bit packing
-#ifndef NVIDIA_PLATFORM
+#if (!defined(NVIDIA_PLATFORM) || !defined(UNIVERSAL_PLATFORM))
 #define U2P unpackUint2x32
 #define P2U packUint2x32
 #else
@@ -161,7 +161,7 @@ int msb(in uvec2 pair) {
 }
 
 int msb(in uint64_t vlc) { 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#if (!defined(NVIDIA_PLATFORM) || !defined(UNIVERSAL_PLATFORM))
     return findMSB(vlc);
 #else
     return msb(U2P(vlc));
@@ -169,7 +169,7 @@ int msb(in uint64_t vlc) {
 }
 
 int lsb(in uint64_t vlc) { 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+#if (!defined(NVIDIA_PLATFORM) || !defined(UNIVERSAL_PLATFORM))
     return findLSB(vlc);
 #else
     return lsb(U2P(vlc));

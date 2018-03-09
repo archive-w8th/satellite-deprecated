@@ -268,8 +268,8 @@ void main() {
             mat3 tbn = mat3(tangent.xyz, bitang.xyz, normal.xyz);
             vec3 pV = normalize((-dcts(ray.cdirect.xy) * hit.uvt.z) * tbn);
             float hW = 0.f;
- 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
+
+#ifndef PLAIN_BINDLESS_TEXTURE_FETCH
             bool wasTextured = false;
             for (int wl=0;wl<WARP_SIZE_RT;wl++) {
                 IFALL(wasTextured) break;

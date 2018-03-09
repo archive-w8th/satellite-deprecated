@@ -19,30 +19,8 @@
 #include "../include/vertex.glsl"
 
 
-struct BlockCacheInfo {
-    ivec4 reserved;
-};
-
-struct BlockCache {
-    BlockCacheInfo info;
-};
-
-
-
-struct NodeCacheInfo {
-    int bakedStackCount;
-    int chainID;
-    int prevHt;
-    int nextHt;
-};
-
 const int localStackSize = 8;
-const int extendedStackSize = 24;
-
-struct NodeCache {
-    NodeCacheInfo info;
-    int extendedStack[extendedStackSize];
-};
+const int extendedStackSize = 32;
 
 
 
@@ -55,8 +33,12 @@ FMAT3X4_ CACHED_BOX;
 //#endif
 
 
+// dedicated BVH stack
+struct NodeCache { int extendedStack[extendedStackSize]; };
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
-layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { BlockCache blockCache[]; };
+
+// reserved block
+layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { uvec4 blockCache[]; };
 
 
 int stackPtr = 0; int rayID = 0;
@@ -153,9 +135,6 @@ void doIntersection() {
 
 
 void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
-    nodeCache[rayID].info.prevHt = -1;
-    nodeCache[rayID].info.chainID = -1;
-
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.bitStack = 0ul;

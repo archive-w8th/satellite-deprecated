@@ -55,7 +55,7 @@ void main()
         int binID = globalID;
         blockBins[binID].blockStart = 0;
         blockBins[binID].previousReg = 0;
-        blockBins[binID].texelHeader = -1;
+        blockBins[binID].texelHeader = 0;
         
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
@@ -69,7 +69,7 @@ void main()
 
             // allocate texel heading (2x16-bit)
             if (LANE_IDX == 0) {
-                blockBins[binID].texelHeader = atomicIncRT(1); 
+                blockBins[binID].texelHeader = atomicIncRT(1)+1; 
             }
 
             // make division
@@ -98,12 +98,12 @@ void main()
 
                 // prison coding
                 int idx = xy.x + xy.y * wh.x;
-                m16s(-1, blockBins[binID].texelHeader, nid);
+                m16s(-1, blockBins[binID].texelHeader-1, nid);
 
                 IFALL(overflow) break;
                 
                 if (vbn) {
-                    m16s(vbn ? idx : -1, blockBins[binID].texelHeader, nid);
+                    m16s(vbn ? idx : -1, blockBins[binID].texelHeader-1, nid);
 
                     vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed.x);
                     vec2 coord = (vec2(xy) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;

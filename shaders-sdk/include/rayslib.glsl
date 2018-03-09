@@ -88,7 +88,7 @@ void resetBlockLength(in int blockPtr){
 
 
 int blockIndiceHeader(in int blockPtr){
-    return rayBlocks[blockPtr].indiceHeader;
+    return rayBlocks[blockPtr].indiceHeader-1;
 }
 
 int blockPreparingHeader(in int blockPtr){
@@ -96,7 +96,7 @@ int blockPreparingHeader(in int blockPtr){
 }
 
 int blockBinIndiceHeader(in int binPtr){
-    return blockBins[binPtr].texelHeader;
+    return blockBins[binPtr].texelHeader-1;
 }
 
 
@@ -322,11 +322,11 @@ int createBlock(inout int blockId, in int blockBinId){
             rayBlocks[mt].indiceCount = 0;
             rayBlocks[mt].next = 0;
             rayBlocks[mt].blockBinId = blockBinId+1;
-            rayBlocks[mt].indiceHeader = -1;
+            rayBlocks[mt].indiceHeader = 0;
         }
 
-        if (mt >= 0 && rayBlocks[mt].indiceHeader < 0) {
-            rayBlocks[mt].indiceHeader = atomicIncRT(2);
+        if (mt >= 0 && rayBlocks[mt].indiceHeader <= 0) {
+            rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
         }
     }
     blockId = (mt >= 0 ? mt : int(blockId));

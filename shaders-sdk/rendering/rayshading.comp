@@ -306,7 +306,7 @@ void main() {
                     if ( rayState == 3 || rayState == 1 ) prom = 1.0f;
 
                     // pre-filter rays in block
-                    int overwriteBlock = int(-1);
+                    int overwriteBlock = currentBlock;
                     RayRework enrollRay = envShading(currentRay, overflow);
 
                     // binarize/quantize specular and transparency
@@ -362,13 +362,16 @@ void main() {
                         invokeBlockForNodes(diffuseRay, diffuseBlock, overwriteBlock);
                     }
 
+
+                    overwriteBlock = -1;
+
                     { // shadow rays from surface
                         RayRework shadowRay = directLight(0, enrollRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
                         invokeBlockForNodes(shadowRay, shadowBlock, overwriteBlock);
                     }
 #endif
 
-                    overwriteBlock = currentBlock;
+                    overwriteBlock = -1;
 
                     // all environment and lighting blocks to finishing
                     { // environment (finish) rays

@@ -11,7 +11,7 @@
 #include "../include/mathlib.glsl"
 
 
-const int _SEED_ID = 15;
+const int _SEED_ID = 14;
 
 int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
@@ -105,7 +105,7 @@ void main()
                 if (vbn) {
                     m16s(vbn ? idx : -1, blockBins[binID].texelHeader-1, nid);
 
-                    vec2 rnd = vec2(randf2q(rayStreams[_SEED_ID].superseed.x));
+                    vec2 rnd = vec2(hashedFloat2(uvec2(rayStreams[0].superseed.x, rayStreams[0].superseed.y)));
                     vec2 coord = (vec2(xy) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
                     
                     Texel txfi = texelBuf.nodes[idx];

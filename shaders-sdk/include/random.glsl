@@ -34,9 +34,9 @@ uint hash( in uint x ) {
 
 
 // multi-dimensional seeds hashers
-uint hash( in uvec2 v ) { return hash(v.x^hash(v.y)); }
-uint hash( in uvec3 v ) { return hash(v.x^hash(v.yz)); }
-uint hash( in uvec4 v ) { return hash(v.x^hash(v.yzw)); }
+uint hash( in uvec2 v ) { return hash(hash(v.x)^hash(v.y)); }
+uint hash( in uvec3 v ) { return hash(hash(v.x)^hash(v.yz)); }
+uint hash( in uvec4 v ) { return hash(hash(v.x)^hash(v.yzw)); }
 
 
 // aggregated randoms from seeds

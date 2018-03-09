@@ -75,18 +75,6 @@ float random( in uvec2 superseed ) {
     return floatConstruct(comb);
 }
 
-
-// 1D random generators from superseed
-float urandom( in uvec2 superseed ) {
-    uint hclk = ++randomClocks;
-    uint plan = uint(0);
-    uint comb = hash(uvec4(hclk, plan, subHash, hash(superseed) ));
-    return floatConstruct(comb);
-}
-
-
-
-
 // another 2D random generator
 vec2 randf2q( in uvec2 superseed ) {
     uint hclk = ++randomClocks;
@@ -113,14 +101,14 @@ vec2 randf2x() { return randf2x(rayStreams[0].superseed[0]); }
 
 // geometric random generators
 vec3 randomCosine(in uvec2 superseed) {
-    vec2 hmsm = randf2x(superseed);
+    vec2 hmsm = vec2(random(superseed), random(superseed));
     float up = sqrt(1.f-hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
 
 vec3 randomDirectionInSphere() {
-    vec2 hmsm = randf2x();
+    vec2 hmsm = vec2(random(), random());
     float up = (0.5f-hmsm.x)*2.f, over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }

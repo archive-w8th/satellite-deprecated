@@ -40,7 +40,7 @@ namespace NSM
     auto rand64u()
     {
         auto dvc = std::mt19937_64(std::random_device()());
-        return std::uniform_int_distribution<uint64_t>(0, 9223372036854775807)(dvc);
+        return std::uniform_int_distribution<uint64_t>(0, 9223372036854775807ull)(dvc);
     }
 
     auto randm()

@@ -648,7 +648,7 @@ namespace SatelliteExample {
             image.permute_axes("yzcx");
             image.mirror("y");
             image.get_shared_channel(3).fill(1.f);
-            image.save_exr(name.c_str());
+            image.save_exr_adv(name.c_str());
         }
     }
 

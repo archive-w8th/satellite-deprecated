@@ -25,7 +25,7 @@
 
 #ifdef USE_CIMG
 #include "tinyexr.h"
-#define cimg_plugin "CImg/tinyexr_plugin.cih"
+#define cimg_plugin "CImg/tinyexr_plugin.hpp"
 #define cimg_use_png
 #define cimg_use_jpeg
 #include "CImg.h"

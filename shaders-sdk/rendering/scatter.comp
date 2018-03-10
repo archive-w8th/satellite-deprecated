@@ -21,10 +21,11 @@ LOCAL_SIZE_LAYOUT;
 
 
 void main() {
-    vec2 wh = vec2(RAY_BLOCK samplerUniform.sceneRes.xy);
-    vec2 whs = vec2(imageSize(presampled).xy); whs.y *= 0.5f; // divide height
+    vec2 wh = floor(vec2(RAY_BLOCK samplerUniform.sceneRes.xy) + 0.0001f.xx);
+    vec2 whs = floor(vec2(imageSize(presampled).xy) * vec2(1.f, 0.5f) + 0.0001f);
+
     vec2 samplesPerPixel = wh / whs;
-    vec2 scl = ceil(samplesPerPixel);
+    ivec2 scl = ivec2(ceil(samplesPerPixel - 0.0001f));
 
     int wsize = int(ceil(whs.x * whs.y));
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
@@ -37,25 +38,27 @@ void main() {
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        float ft = float(it);
-        
-        vec2 screen = vec2(floor(mod(ft,whs.x) + 0.0001f), floor(ft/whs.x + 0.0001f));
-        vec2 rbasis = floor(screen * samplesPerPixel);
+        if (it >= wsize) break;
+
+        int screenY = clamp(it/int(whs.x), 0, int(whs.y)-1);
+        int screenX = clamp(it%int(whs.x), 0, int(whs.x)-1);
+        ivec2 screen = ivec2(screenX, screenY);
+        ivec2 rbasis = ivec2(floor(screen * samplesPerPixel + 0.0001f));
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
 
         vec4 depth = vec4(0.0f), newc = vec4(0.0f), albedo = vec4(0.f), normal = vec4(0.f);
         float dpl = INFINITY, samplecount = 0;
 
-        for (float x=-1.f;x<=scl.x;x+=1.f) {
-            for (float y=-1.f;y<=scl.y;y+=1.f) {
-                vec2 cmp = rbasis + vec2(x, y);
+        for (int x=-1;x<=scl.x;x+=1) {
+            for (float y=-1;y<=scl.y;y+=1) {
+                ivec2 cmp = rbasis + ivec2(x, y);
                 if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
-                    int ts = int(floor(cmp.y * wh.x + cmp.x));
-                    vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);
+                    int ts = cmp.y * int(wh.x) + cmp.x;
+                    ivec2 coord = ivec2(floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f));
                     vec4 color = vec4(0.f), prevc = vec4(0.f);
                     float hsmp = 0.f;
 
-                    IF (equalF(coord.x, screen.x) & equalF(coord.y, screen.y)) {
+                    if (coord.x == screen.x && coord.y == screen.y) {
                         albedo += texelBuf.nodes[ts].albedo, normal += texelBuf.nodes[ts].normal;
                         
 #ifndef MOTION_BLUR
@@ -63,7 +66,7 @@ void main() {
 #endif
 
                         { // planned based on previous
-                            prevc = imageLoad(presampled, cid + ivec2(0, whs.y));
+                            prevc = imageLoad(presampled, cid + ivec2(0,whs.y));
                             prevc.xyz *= prevc.w;
                         }
                         

@@ -40,19 +40,19 @@ namespace NSM
     auto rand64u()
     {
         auto dvc = std::mt19937_64(std::random_device()());
-        return std::uniform_int_distribution<uint64_t>(0, 9223372036854775807ull)(dvc);
+        return std::uniform_int_distribution<uint64_t>(0ull, _UI64_MAX)(dvc);
     }
 
     auto randm()
     {
         auto dvc = std::mt19937(std::random_device()());
-        return std::uniform_int_distribution<uint32_t>(0, 2147483647u)(dvc);
+        return std::uniform_int_distribution<uint32_t>(0u, UINT_MAX)(dvc);
     }
 
     auto randm(const unsigned max)
     {
         auto dvc = std::mt19937(std::random_device()());
-        return std::uniform_int_distribution<uint32_t>(0, max)(dvc);
+        return std::uniform_int_distribution<uint32_t>(0u, max)(dvc);
     }
 
     auto randf()

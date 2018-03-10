@@ -99,7 +99,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 
-    vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed[1]), tbn);
+    vec3 sdr = normalOrient(randomCosine(rayStreams[RayDiffBounce(ray)].superseed[1]), tbn);
     sdr = faceforward(sdr, sdr, -tbn[2]);
     ray.cdirect.xy = lcts(sdr);
     ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);

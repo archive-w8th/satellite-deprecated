@@ -91,7 +91,7 @@ namespace SatelliteExample {
 
 
     void GltfViewer::parseArguments(const int32_t& argc, const char ** argv) {
-        args::ArgumentParser parser("This is a test rendering program.", "We don't care about your guarantees. -_-");
+        args::ArgumentParser parser("This is a test rendering program.", "GeForce GTX 560 still sucks in 2018 year...");
         args::HelpFlag help(parser, "help", "Available flags", { 'h', "help" });
         args::ValueFlag<int> computeflag(parser, "compute-device-id", "Vulkan compute device (UNDER CONSIDERATION)", { 'c' });
         args::ValueFlag<int> deviceflag(parser, "graphics-device-id", "Vulkan graphics device to use (also should support compute)", { 'g' });
@@ -285,19 +285,17 @@ namespace SatelliteExample {
                     // vertex
                     if (it.first.compare("POSITION") == 0) { // vertices
                         geom->setVertexBinding(bnds->addElement(vattr));
+                    } else
+
+                    // normal
+                    if (it.first.compare("NORMAL") == 0) {
+                        geom->setNormalBinding(bnds->addElement(vattr));
+                    } else
+
+                    // texcoord
+                    if (it.first.compare("TEXCOORD_0") == 0) {
+                        geom->setTexcoordBinding(bnds->addElement(vattr));
                     }
-                    else
-
-                        // normal
-                        if (it.first.compare("NORMAL") == 0) {
-                            geom->setNormalBinding(bnds->addElement(vattr));
-                        }
-                        else
-
-                            // texcoord
-                            if (it.first.compare("TEXCOORD_0") == 0) {
-                                geom->setTexcoordBinding(bnds->addElement(vattr));
-                            }
                 }
 
                 // indices
@@ -435,9 +433,8 @@ const int32_t baseWidth = 640, baseHeight = 360;
 int main(const int argc, const char ** argv)
 {
     if (!glfwInit()) exit(EXIT_FAILURE);
-
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // create application window (planned to merge)
     GLFWwindow* window = glfwCreateWindow(baseWidth, baseHeight, "Running...", NULL, NULL);

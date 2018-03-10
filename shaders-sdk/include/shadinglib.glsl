@@ -93,7 +93,7 @@ vec3 normalOrient(in vec3 runit, in mat3 tbn){
 
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
-    RayDL(ray, FALSE_); // diffuse indirects can't be illuminated directly (except some cases)
+    RayDL(ray, TRUE_);
 
     const int diffuse_reflections = 2; // disable any diffused indirects
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));

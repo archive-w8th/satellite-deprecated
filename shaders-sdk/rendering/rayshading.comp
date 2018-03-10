@@ -134,7 +134,8 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 
     // shade light
     if (lc >= 0 && (RayTargetLight(rayTemplate) == lc || RayType(rayTemplate) != 2) && SSC(RayActived(rayTemplate))) {
-        WriteColor(rayTemplate.dcolor, f16_f32(rayTemplate.dcolor) * vec4(getLightColor(lc), 1.f));
+        // if diffuse, shade as non-shaded (absorb), because for it have direct light
+        WriteColor(rayTemplate.dcolor, RayType(rayTemplate) == 1 ? 0.f.xxxx : f16_f32(rayTemplate.dcolor) * vec4(getLightColor(lc), 1.f));
         RayActived(rayTemplate, FALSE_);
         skipping = true;
     }

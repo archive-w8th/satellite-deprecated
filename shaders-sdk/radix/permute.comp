@@ -8,7 +8,7 @@ layout (local_size_x = BLOCK_SIZE) in;
 shared uint localHistogram[RADICES];
 
 // shared for 16 threads (with lanes)
-shared URDC_WARP _data[WARP_SIZE];
+shared URDC_WARP _data[128];
 #define key _data[LANE_IDX]
 
 initSubgroupIncFunctionTarget(localHistogram[WHERE], countOffset, 1, uint)

@@ -44,3 +44,4 @@ external/vk-sdk/
 */FindOptiX.*
 
 *.spv
+*.spv.txt

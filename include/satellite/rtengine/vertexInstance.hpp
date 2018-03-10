@@ -51,7 +51,7 @@ namespace NSM
             void setBindingSet(std::shared_ptr<DataBindingSet> &bindingSet);
             void setBufferViewSet(std::shared_ptr<BufferViewSet> &bufferViewSet);
             void setDataAccessSet(std::shared_ptr<DataAccessSet> &accessDataSet);
-            vk::DescriptorSet& getDescriptorSet();
+            vk::DescriptorSet& getDescriptorSet(bool needUpdate = true);
 
         protected:
             // getters of buffers

@@ -110,13 +110,22 @@ namespace NSM
             }, nullptr);
         }
 
-        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance) {
+
+        
+
+
+        void GeometryAccumulator::pushGeometryByDescriptorSet(const vk::DescriptorSet& vinstanceDS) {
             auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { loaderDescriptorSets[0], vertexInstance->getDescriptorSet() }, nullptr);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { loaderDescriptorSets[0], vinstanceDS }, nullptr);
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader.pipeline);
             commandBuffer.dispatch(INTENSIVITY, 1, 1);
             flushCommandBuffer(device, commandBuffer, true);
         }
+
+        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor) {
+            this->pushGeometryByDescriptorSet(vertexInstance->getDescriptorSet(needUpdateDescriptor));
+        }
+
     }
 } // namespace NSM
 

@@ -73,16 +73,18 @@ namespace NSM
             this->dataBindingSet = bindingSet;
         }
 
-        vk::DescriptorSet& VertexInstance::getDescriptorSet() {
-            auto descEntryTempl = vk::WriteDescriptorSet().setDstSet(vinstanceDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(0).setPBufferInfo(&this->getBufferSpaceBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(1).setPBufferInfo(&this->getBufferSpaceRegions()->descriptorInfo),
-                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(2).setPBufferInfo(&this->getBufferViewsBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(3).setPBufferInfo(&this->getDataFormatBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(4).setPBufferInfo(&this->getBufferBindingBuffer()->descriptorInfo),
-                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(5).setPBufferInfo(&this->getUniformBuffer()->descriptorInfo),
-            }, nullptr);
+        vk::DescriptorSet& VertexInstance::getDescriptorSet(bool needUpdate) {
+            if (needUpdate) {
+                auto descEntryTempl = vk::WriteDescriptorSet().setDstSet(vinstanceDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(descEntryTempl).setDstBinding(0).setPBufferInfo(&this->getBufferSpaceBuffer()->descriptorInfo),
+                        vk::WriteDescriptorSet(descEntryTempl).setDstBinding(1).setPBufferInfo(&this->getBufferSpaceRegions()->descriptorInfo),
+                        vk::WriteDescriptorSet(descEntryTempl).setDstBinding(2).setPBufferInfo(&this->getBufferViewsBuffer()->descriptorInfo),
+                        vk::WriteDescriptorSet(descEntryTempl).setDstBinding(3).setPBufferInfo(&this->getDataFormatBuffer()->descriptorInfo),
+                        vk::WriteDescriptorSet(descEntryTempl).setDstBinding(4).setPBufferInfo(&this->getBufferBindingBuffer()->descriptorInfo),
+                        vk::WriteDescriptorSet(descEntryTempl).setDstBinding(5).setPBufferInfo(&this->getUniformBuffer()->descriptorInfo),
+                }, nullptr);
+            }
             return vinstanceDescriptorSets[0]; 
         };
 

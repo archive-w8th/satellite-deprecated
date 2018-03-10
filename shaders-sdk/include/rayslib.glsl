@@ -60,7 +60,7 @@ layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint16_t isp
 #define m16i(b,i) (int(ispace[b][i])-1)
 #define m16s(a,b,i) (ispace[b][i] = uint16_t(a+1))
 #else
-layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint ispace[][R_BLOCK_SIZE]; };
+layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { mediump uint ispace[][R_BLOCK_SIZE]; };
 #define m16i(b,i) (int(ispace[b][i])-1)
 #define m16s(a,b,i) (ispace[b][i] = uint(a+1))
 #endif

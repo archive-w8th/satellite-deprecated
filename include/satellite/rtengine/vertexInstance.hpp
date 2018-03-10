@@ -24,8 +24,10 @@ namespace NSM
             std::vector<MeshUniformStruct> meshUniformData;
             BufferType meshUniformStager, meshUniformBuffer;
 
-            std::vector<vk::DescriptorSet> vinstanceDescriptorSets;
-            std::vector<vk::DescriptorSetLayout> vinstanceDescriptorLayout; // may be single layout
+            struct VertexInstanceViews {
+                vk::DescriptorBufferInfo vInstanceBufferInfos[6];
+            } descViews;
+
 
         public:
             VertexInstance() {}
@@ -51,7 +53,7 @@ namespace NSM
             void setBindingSet(std::shared_ptr<DataBindingSet> &bindingSet);
             void setBufferViewSet(std::shared_ptr<BufferViewSet> &bufferViewSet);
             void setDataAccessSet(std::shared_ptr<DataAccessSet> &accessDataSet);
-            vk::DescriptorSet& getDescriptorSet(bool needUpdate = true);
+            VertexInstanceViews getDescViewData(bool needUpdate = true);
 
         protected:
             // getters of buffers
@@ -61,6 +63,8 @@ namespace NSM
             BufferType getDataFormatBuffer() { return dataFormatSet->getBuffer(); };
             BufferType getBufferBindingBuffer() { return dataBindingSet->getBuffer(); };
             BufferType& getUniformBuffer() { syncUniform(); return meshUniformBuffer; };
+
+            
         };
     } // namespace rt
 } // namespace NSM

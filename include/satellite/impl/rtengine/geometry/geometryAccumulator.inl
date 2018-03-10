@@ -29,16 +29,34 @@ namespace NSM
                 vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // mesh uniforms
             };
 
+
             // loader descriptor layout
             loaderDescriptorLayout = std::vector<vk::DescriptorSetLayout>{ 
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(loaderDescriptorSetBindings.data()).setBindingCount(loaderDescriptorSetBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(vertexInstanceDescreiptorBindings.data()).setBindingCount(vertexInstanceDescreiptorBindings.size()))
             };
-            loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&loaderDescriptorLayout[0]));
+            loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(loaderDescriptorLayout.size()).setPSetLayouts(loaderDescriptorLayout.data()));
 
             // create pipeline layout and caches
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(loaderDescriptorLayout.data()).setSetLayoutCount(loaderDescriptorLayout.size()));
             pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
+
+            {
+                std::vector<vk::DescriptorUpdateTemplateEntry> entries = {
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(0).setOffset(strided<vk::DescriptorBufferInfo>(0)).setStride(strided<vk::DescriptorBufferInfo>(1)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(1).setOffset(strided<vk::DescriptorBufferInfo>(1)).setStride(strided<vk::DescriptorBufferInfo>(1)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(2).setOffset(strided<vk::DescriptorBufferInfo>(2)).setStride(strided<vk::DescriptorBufferInfo>(1)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(3).setOffset(strided<vk::DescriptorBufferInfo>(3)).setStride(strided<vk::DescriptorBufferInfo>(1)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(4).setOffset(strided<vk::DescriptorBufferInfo>(4)).setStride(strided<vk::DescriptorBufferInfo>(1)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(5).setOffset(strided<vk::DescriptorBufferInfo>(5)).setStride(strided<vk::DescriptorBufferInfo>(1))
+                };
+
+                descriptorVInstanceUpdateTemplate = device->logical.createDescriptorUpdateTemplateKHR(vk::DescriptorUpdateTemplateCreateInfo()
+                    .setDescriptorSetLayout(loaderDescriptorLayout[1])
+                    .setPDescriptorUpdateEntries(entries.data()).setDescriptorUpdateEntryCount(entries.size())
+                    //.setPipelineLayout(pipelineLayout).setPipelineBindPoint(vk::PipelineBindPoint::eCompute).setSet(1)
+                    .setTemplateType(vk::DescriptorUpdateTemplateType::eDescriptorSet), nullptr, device->dldid);
+            }
 
             // vertex loader
             geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader.comp.spv", pipelineLayout, pipelineCache);
@@ -110,20 +128,14 @@ namespace NSM
             }, nullptr);
         }
 
+        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor) {
+            device->logical.updateDescriptorSetWithTemplateKHR(loaderDescriptorSets[1], descriptorVInstanceUpdateTemplate, &vertexInstance->getDescViewData(needUpdateDescriptor), device->dldid);
 
-        
-
-
-        void GeometryAccumulator::pushGeometryByDescriptorSet(const vk::DescriptorSet& vinstanceDS) {
             auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { loaderDescriptorSets[0], vinstanceDS }, nullptr);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, loaderDescriptorSets, nullptr);
             commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader.pipeline);
             commandBuffer.dispatch(INTENSIVITY, 1, 1);
             flushCommandBuffer(device, commandBuffer, true);
-        }
-
-        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor) {
-            this->pushGeometryByDescriptorSet(vertexInstance->getDescriptorSet(needUpdateDescriptor));
         }
 
     }

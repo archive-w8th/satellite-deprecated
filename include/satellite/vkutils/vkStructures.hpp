@@ -39,6 +39,9 @@ namespace NSM
         // queue managment
         DevQueueType mainQueue;
         std::vector<DevQueueType> queues;
+
+        // dispatch loader
+        vk::DispatchLoaderDynamic dldid;
     };
 
     using DeviceQueueType = std::shared_ptr<DeviceQueue>;

@@ -269,6 +269,9 @@ namespace NSM
                     .setPpEnabledExtensionNames(deviceExtensions.data()).setEnabledExtensionCount(deviceExtensions.size())
                     .setPpEnabledLayerNames(deviceValidationLayers.data()).setEnabledLayerCount(deviceValidationLayers.size()));
 
+                // init dispatch loader
+                deviceQueuePtr->dldid = vk::DispatchLoaderDynamic(instance, deviceQueuePtr->logical);
+
                 for (int i = 0; i < queues.size(); i++) { queues[i]->queue = deviceQueuePtr->logical.getQueue(queues[i]->familyIndex, 0); }
                 deviceQueuePtr->queues = queues;
                 deviceQueuePtr->mainQueue = deviceQueuePtr->queues[0];
@@ -303,7 +306,8 @@ namespace NSM
                         vk::DescriptorPoolCreateInfo()
                         .setPPoolSizes(psizes.data())
                         .setPoolSizeCount(psizes.size())
-                        .setMaxSets(16));
+                        .setMaxSets(16)
+                    );
                 deviceQueuePtr->fence = createFence(deviceQueuePtr, false);
                 deviceQueuePtr->initialized = true;
             }

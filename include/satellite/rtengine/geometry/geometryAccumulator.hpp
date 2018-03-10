@@ -32,6 +32,8 @@ namespace NSM
 
             std::vector<vk::DescriptorSet> loaderDescriptorSets;
             std::vector<vk::DescriptorSetLayout> loaderDescriptorLayout; // may be single layout
+            vk::DescriptorUpdateTemplate descriptorVInstanceUpdateTemplate;
+
 
             // streaming of buffers data
             BufferType generalStagingBuffer, generalLoadingBuffer;
@@ -44,7 +46,6 @@ namespace NSM
                 init(device);
             }
 
-            void pushGeometryByDescriptorSet(const vk::DescriptorSet& vinstanceDS);
             void pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor = true); // planned support for transformations
             void resetAccumulationCounter();
             void allocatePrimitiveReserve(size_t primitiveCount);

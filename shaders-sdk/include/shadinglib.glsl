@@ -95,7 +95,12 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f));
     RayDL(ray, TRUE_);
 
-    const int diffuse_reflections = 2; // disable any diffused indirects
+#ifdef USE_OPTIMIZED_PT
+    const int diffuse_reflections = 1;
+#else
+    const int diffuse_reflections = 2;
+#endif
+
     RayActived(ray, RayType(ray) == 2 ? FALSE_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 
@@ -134,7 +139,15 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color, 1.f));
 
     // bounce mini-config
+#ifdef USE_SIMPLIFIED_MODE
+    const int caustics_bounces = 0, reflection_bounces = 1;
+#else
+#ifdef USE_OPTIMIZED_PT
+    const int caustics_bounces = 0, reflection_bounces = 1;
+#else
     const int caustics_bounces = 0, reflection_bounces = 2;
+#endif
+#endif
 
     if ( RayType(ray) == 1 ) RayDL(ray, TRUE_); // allow to caustics light
     RayBounce(ray, min(RayType(ray)==1?caustics_bounces:reflection_bounces, max(RayBounce(ray) - (RayType(ray)==3?0:1), 0)));

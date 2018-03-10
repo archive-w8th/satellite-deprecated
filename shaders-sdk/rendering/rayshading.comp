@@ -1,6 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#define USE_OPTIMIZED_PT
 //#define USE_SIMPLIFIED_MODE
 //#define USE_MULTIPLICANT_TRANSPARENCY
 
@@ -312,7 +313,7 @@ void main() {
 
                     // binarize/quantize specular and transparency
 #ifdef USE_SIMPLIFIED_MODE
-                    float qprom = qrand(prom), qspca = 0.f;//qspca = spca; // have no branching at now
+                    float qprom = qrand(prom), qspca = spca; // have no branching at now
 #else
                     float qprom = qrand(prom), qspca = qrand(spca);
 #endif
@@ -386,8 +387,9 @@ void main() {
 #ifdef USE_SIMPLIFIED_MODE // fake diffuse (beginner shading mode)
                     { // simple shading + possible emissions
                         vec3 lightVec = sLight(0) - enrollRay.origin.xyz;
-                        vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 1.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f)) + emiscolor.xyz;
-                        RayRework rayTemplate = emissive(enrollRay, fake_diffusion * (1.f - spca) * (1.f - prom), tbn);
+                        vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 2.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f));
+                        vec3 emission_addition = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - prom);
+                        RayRework rayTemplate = emissive(enrollRay, emission_addition + fake_diffusion * (1.f - spca) * (1.f - prom), tbn);
                         IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
                         invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
                     }

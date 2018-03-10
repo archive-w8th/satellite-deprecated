@@ -90,9 +90,9 @@ vec2 randf2q( in uvec2 superseed ) {
 
 
 // static aggregated randoms
-float random() { return random(rayStreams[0].superseed[0]); }
-vec2 randf2q() { return randf2q(rayStreams[0].superseed[0]); }
-vec2 randf2x() { return randf2x(rayStreams[0].superseed[0]); }
+float random() { return random(rayStreams[ rayBlock.samplerUniform.iterationCount ].superseed[0]); }
+vec2 randf2q() { return randf2q(rayStreams[ rayBlock.samplerUniform.iterationCount ].superseed[0]); }
+vec2 randf2x() { return randf2x(rayStreams[ rayBlock.samplerUniform.iterationCount ].superseed[0]); }
 
 
 // geometric random generators

@@ -109,7 +109,7 @@ void main()
                 if (vbn) {
                     m16s(vbn ? (idx-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
-                    vec2 rnd = float2Construct(rayStreams[_SEED_ID].superseed[0]);
+                    vec2 rnd = float2Construct(rayStreams[_SEED_ID].superseed[3]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
                     
                     Texel txfi = texelBuf.nodes[idx];

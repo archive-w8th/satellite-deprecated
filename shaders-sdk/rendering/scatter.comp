@@ -23,8 +23,8 @@ LOCAL_SIZE_LAYOUT;
 void main() {
     vec2 wh = vec2(RAY_BLOCK samplerUniform.sceneRes.xy);
     vec2 whs = vec2(imageSize(presampled).xy); whs.y *= 0.5f; // divide height
-    vec2 aspect = wh / whs;
-    vec2 scl = ceil(aspect);
+    vec2 samplesPerPixel = wh / whs;
+    vec2 scl = ceil(samplesPerPixel);
 
     int wsize = int(ceil(whs.x * whs.y));
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
@@ -39,8 +39,8 @@ void main() {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
         float ft = float(it);
         
-        vec2 screen = vec2(ft - whs.x * floor(ft / whs.x + 0.0001f), floor(float(it) / whs.x));
-        vec2 basis = floor(screen * aspect);
+        vec2 screen = vec2(floor(mod(ft,whs.x) + 0.0001f), floor(ft/whs.x + 0.0001f));
+        vec2 rbasis = floor(screen * samplesPerPixel);
         ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
 
         vec4 depth = vec4(0.0f), newc = vec4(0.0f), albedo = vec4(0.f), normal = vec4(0.f);
@@ -48,7 +48,7 @@ void main() {
 
         for (float x=-1.f;x<=scl.x;x+=1.f) {
             for (float y=-1.f;y<=scl.y;y+=1.f) {
-                vec2 cmp = basis + vec2(x, y);
+                vec2 cmp = rbasis + vec2(x, y);
                 if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
                     int ts = int(floor(cmp.y * wh.x + cmp.x));
                     vec2 coord = floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f);

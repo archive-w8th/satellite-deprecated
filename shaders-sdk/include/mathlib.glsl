@@ -77,7 +77,7 @@ float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0
 
 
-float precIssue (in float a) { if (isnan(a)) a = 0.f; if (isinf(a)) a = 1.f; return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
+float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 100000.f*sign(a); return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
 
 
 

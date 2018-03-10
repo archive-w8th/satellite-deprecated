@@ -45,7 +45,8 @@ namespace NSM
             "VK_EXT_debug_report",
             "VK_EXT_debug_utils",
             "VK_KHR_surface",
-            "VK_KHR_win32_surface"
+            "VK_KHR_win32_surface",
+            "VK_KHR_16bit_storage"
         };
 
         // default device extensions

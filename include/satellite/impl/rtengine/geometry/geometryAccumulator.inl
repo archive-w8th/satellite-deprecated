@@ -12,27 +12,29 @@ namespace NSM
             this->device = _device;
 
             std::vector<vk::DescriptorSetLayoutBinding> loaderDescriptorSetBindings = {
-                // vertex inputs
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // counters
-                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space
-                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer regions
-                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer views
-                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data formats
-                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data bindings (with buffer views)
-                vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // mesh uniforms
+                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // material buffer
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // order buffer
+                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // vertex linear buffer
+                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // attributed data (alpha footage)
+            };
 
-                // write buffers
-                vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // material buffer
-                vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // order buffer
-                vk::DescriptorSetLayoutBinding(9, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // vertex linear buffer
-
-                // write images with vertex data
-                vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // attributed data (alpha footage)
+            // from vertex instance
+            std::vector<vk::DescriptorSetLayoutBinding> vertexInstanceDescreiptorBindings = {
+                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space
+                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer regions
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer views
+                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data formats
+                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data bindings (with buffer views)
+                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // mesh uniforms
             };
 
             // loader descriptor layout
-            loaderDescriptorLayout = std::vector<vk::DescriptorSetLayout>{ device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(loaderDescriptorSetBindings.data()).setBindingCount(loaderDescriptorSetBindings.size())) };
-            loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(loaderDescriptorLayout.size()).setPSetLayouts(loaderDescriptorLayout.data()));
+            loaderDescriptorLayout = std::vector<vk::DescriptorSetLayout>{ 
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(loaderDescriptorSetBindings.data()).setBindingCount(loaderDescriptorSetBindings.size())),
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(vertexInstanceDescreiptorBindings.data()).setBindingCount(vertexInstanceDescreiptorBindings.size()))
+            };
+            loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&loaderDescriptorLayout[0]));
 
             // create pipeline layout and caches
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(loaderDescriptorLayout.data()).setSetLayoutCount(loaderDescriptorLayout.size()));
@@ -40,15 +42,6 @@ namespace NSM
 
             // vertex loader
             geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader.comp.spv", pipelineLayout, pipelineCache);
-
-            // loading geometry command
-            geometryLoader.dispatch = [&]() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, loaderDescriptorSets, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
-            };
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb
@@ -62,8 +55,7 @@ namespace NSM
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&geometryCounter->descriptorInfo),
-            },
-                nullptr);
+            }, nullptr);
 
             {
                 zerosBufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -111,28 +103,19 @@ namespace NSM
             // descriptor templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(10).setPImageInfo(&attributeTexelWorking->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(8).setPBufferInfo(&orderIndicesWorking->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&vertexLinearWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&vertexLinearWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(4).setPImageInfo(&attributeTexelWorking->descriptorInfo),
             }, nullptr);
         }
 
-        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> &vertexInstance)
-        {
-            // write mesh buffers to loaders descriptors
-            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&vertexInstance->getBufferSpaceBuffer()->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&vertexInstance->getBufferSpaceRegions()->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&vertexInstance->getBufferViewsBuffer()->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&vertexInstance->getDataFormatBuffer()->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&vertexInstance->getBufferBindingBuffer()->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&vertexInstance->getUniformBuffer()->descriptorInfo),
-            }, nullptr);
-
-            // dispatch loading
-            geometryLoader.dispatch();
+        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance) {
+            auto commandBuffer = getCommandBuffer(device, true);
+            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { loaderDescriptorSets[0], vertexInstance->getDescriptorSet() }, nullptr);
+            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader.pipeline);
+            commandBuffer.dispatch(INTENSIVITY, 1, 1);
+            flushCommandBuffer(device, commandBuffer, true);
         }
     }
 } // namespace NSM

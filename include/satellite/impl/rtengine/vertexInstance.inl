@@ -7,9 +7,22 @@ namespace NSM
     namespace rt
     {
 
-        void VertexInstance::init(DeviceQueueType &device)
+        void VertexInstance::init(DeviceQueueType &_device)
         {
-            this->device = device;
+            this->device = _device;
+
+            std::vector<vk::DescriptorSetLayoutBinding> vertexInstanceDescreiptorBindings = {
+                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space
+                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer regions
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer views
+                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data formats
+                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data bindings (with buffer views)
+                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // mesh uniforms
+            };
+
+            vinstanceDescriptorLayout = std::vector<vk::DescriptorSetLayout>{ device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(vertexInstanceDescreiptorBindings.data()).setBindingCount(vertexInstanceDescreiptorBindings.size())) };
+            vinstanceDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(vinstanceDescriptorLayout.size()).setPSetLayouts(vinstanceDescriptorLayout.data()));
+
             meshUniformData = std::vector<MeshUniformStruct>{ MeshUniformStruct() };
             meshUniformBuffer = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             meshUniformStager = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -39,14 +52,10 @@ namespace NSM
             meshUniformData = another.meshUniformData;
         }
 
+
         void VertexInstance::setBufferSpace(std::shared_ptr<BufferSpace> &buf)
         {
             this->bufferSpace = buf;
-        };
-
-        void VertexInstance::setBindingSet(std::shared_ptr<DataBindingSet> &bindingSet)
-        {
-            this->dataBindingSet = bindingSet;
         }
 
         void VertexInstance::setBufferViewSet(std::shared_ptr<BufferViewSet> &bufferViewSet)
@@ -58,6 +67,24 @@ namespace NSM
         {
             this->dataFormatSet = accessDataSet;
         }
+
+        void VertexInstance::setBindingSet(std::shared_ptr<DataBindingSet> &bindingSet)
+        {
+            this->dataBindingSet = bindingSet;
+        }
+
+        vk::DescriptorSet& VertexInstance::getDescriptorSet() {
+            auto descEntryTempl = vk::WriteDescriptorSet().setDstSet(vinstanceDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(0).setPBufferInfo(&this->getBufferSpaceBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(1).setPBufferInfo(&this->getBufferSpaceRegions()->descriptorInfo),
+                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(2).setPBufferInfo(&this->getBufferViewsBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(3).setPBufferInfo(&this->getDataFormatBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(4).setPBufferInfo(&this->getBufferBindingBuffer()->descriptorInfo),
+                vk::WriteDescriptorSet(descEntryTempl).setDstBinding(5).setPBufferInfo(&this->getUniformBuffer()->descriptorInfo),
+            }, nullptr);
+            return vinstanceDescriptorSets[0]; 
+        };
 
         size_t VertexInstance::getNodeCount()
         {

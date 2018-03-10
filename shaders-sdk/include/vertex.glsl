@@ -3,12 +3,15 @@
 
 #include "../include/mathlib.glsl"
 
+// for geometry accumulators
 #ifdef VERTEX_FILLING
-layout ( std430, binding = 7, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
-layout ( std430, binding = 8, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
-layout ( binding = 10, rgba32f, set = 0 ) uniform image2D attrib_texture_out;
-layout ( std430, binding = 9, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
+layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[1]; };
+layout ( std430, binding = 1, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
+layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
+layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
+layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
 #else
+// for traverse, or anything else
 layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
 #ifndef BVH_CREATION
 layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { UBLANEF_ bvhBoxes[][4]; };
@@ -119,7 +122,9 @@ R   | x || y || z || w |
 #ifdef BVH_CREATION
 layout ( binding = 11, rgba32i, set = 0 ) uniform iimage2D bvhStorage;
 #else
+#ifndef VERTEX_FILLING
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
+#endif
 #endif
 
 
@@ -131,11 +136,12 @@ ivec2 bvhLinear2D(in int linear) {
 }
 
 #ifndef BVH_CREATION
+#ifndef VERTEX_FILLING
 vec2 bvhGatherifyStorage(in ivec2 ipt){
     const vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
     return fma(vec2(ipt), sz, hs);
 }
 #endif
-
+#endif
 
 #endif

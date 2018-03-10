@@ -22,7 +22,7 @@ struct BlockInfo {
 
 // 128bit heading struct of bins
 struct BlockBin {
-    int texelHeader; int chainSize; int blockStart, previousReg;
+    int texelHeader; int texelFrom; int blockStart, previousReg;
 };
 
 
@@ -55,9 +55,15 @@ layout ( std430, binding = 9, set = 0 ) buffer HitsSSBO { HitRework hits[]; }; /
 layout ( std430, binding = 10, set = 0 ) buffer UnorderedSSBO { int unorderedRays[]; };
 
 
+#ifdef USE_16BIT_ADDRESS_SPACE
+layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint16_t ispace[][R_BLOCK_SIZE]; };
+#define m16i(b,i) (int(ispace[b][i])-1)
+#define m16s(a,b,i) (ispace[b][i] = uint16_t(a+1))
+#else
 layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { uint ispace[][R_BLOCK_SIZE]; };
 #define m16i(b,i) (int(ispace[b][i])-1)
 #define m16s(a,b,i) (ispace[b][i] = uint(a+1))
+#endif
 
 
 // extraction of block length

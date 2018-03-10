@@ -56,6 +56,7 @@ void main()
         blockBins[binID].blockStart = 0;
         blockBins[binID].previousReg = 0;
         blockBins[binID].texelHeader = 0;
+        blockBins[binID].texelFrom = 0;
         
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
@@ -74,6 +75,10 @@ void main()
 
             // make division
             ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
+            //blockBins[binID].texelFrom = 0;
+            //blockBins[binID].texelFrom = int(BFI_HW(uint(blockBins[binID].texelFrom), (divxy.x / R_BLOCK_WIDTH) & 0xFFFFu, 0, 16));
+            //blockBins[binID].texelFrom = int(BFI_HW(uint(blockBins[binID].texelFrom), (divxy.y / R_BLOCK_HEIGHT) & 0xFFFFu, 16, 16));
+            blockBins[binID].texelFrom = (divxy.x + divxy.y * wh.x)+1;
 
             // invoke block data
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
@@ -93,7 +98,6 @@ void main()
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
                 ivec2 xy = divxy + bc;
                 overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
-
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
 
                 // prison coding
@@ -103,7 +107,7 @@ void main()
                 IFALL(overflow) break;
                 
                 if (vbn) {
-                    m16s(vbn ? idx : -1, blockBins[binID].texelHeader-1, nid);
+                    m16s(vbn ? (idx-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
                     vec2 rnd = float2Construct(rayStreams[_SEED_ID].superseed[0]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;

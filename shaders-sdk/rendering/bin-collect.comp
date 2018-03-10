@@ -16,6 +16,7 @@ void main() {
     int wsize = RAY_BLOCK samplerUniform.blockBinCount;
     int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
     int wcount = min(tiled(wsize, wcsize), 1000000);
+    ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
 
     // invoke available blocks
     bool overflow = false;
@@ -32,8 +33,10 @@ void main() {
             int idx = readLane(blockBins[globalID].blockStart , 0)-1; if (LANE_IDX == 0) blockBins[globalID].blockStart  = 0;
             int prv = readLane(blockBins[globalID].previousReg, 0)-1; if (LANE_IDX == 0) blockBins[globalID].previousReg = 0;
             int texelHeader = readLane(blockBinIndiceHeader(globalID), 0);
+            int texelFrom = (blockBins[globalID].texelFrom)-1;
+
             if (LANE_IDX == 0 && int(prv) >= 0) rayBlocks[prv].next = 0; // unlink weird block
-            if (int(texelHeader) < 0) break;
+            if (int(texelHeader) < 0 || int(texelFrom) < 0) continue;
 
             // scatter colors from block bins
             bool inv = overflow;
@@ -45,7 +48,7 @@ void main() {
                 if (!inv) {
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                         int nid = tb + int(LANE_IDX);
-                        int texel = m16i(texelHeader, nid);
+                        int texel = texelFrom + m16i(texelHeader, nid);
 
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE) {

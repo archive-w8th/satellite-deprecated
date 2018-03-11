@@ -87,7 +87,7 @@ struct GeometrySpace {
 };
 
 struct BVHSpace {
-    FMAT3X4_ minusOrig, directInv; BVEC3_ boxSide;
+    FVEC3_ minusOrig, directInv; BVEC3_ boxSide;
     float cutOut;
 };
 
@@ -179,8 +179,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     }
 
     float toffset = max(near, 0.f); torig -= toffset;
-    traverseState.bvhSpace.directInv = FMAT3X4_(dirproj.xxxx, dirproj.yyyy, dirproj.zzzz);
-    traverseState.bvhSpace.minusOrig = FMAT3X4_(torig.xxxx, torig.yyyy, torig.zzzz);
+    traverseState.bvhSpace.directInv = FVEC3_(dirproj);
+    traverseState.bvhSpace.minusOrig = FVEC3_(torig);
     traverseState.distMult = 1.f/dirlenInv;
     traverseState.diffOffset = toffset;
 
@@ -208,8 +208,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
                     UNPACK_LANE_(bvhBoxes[_cmp][1]),
                     UNPACK_LANE_(bvhBoxes[_cmp][2])
-                ), nears, fars); nears += traverseState.diffOffset.xx;
-                childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
+                ), nears, fars);
+                childIntersect &= BVEC2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
 
 #ifdef USE_STACKLESS_BVH
                 // any child node (stackless)
@@ -245,7 +245,6 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 #ifdef USE_STACKLESS_BVH
             // stackless 
             if (!_continue) {
-                
                 // go to parents so far as possible 
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;

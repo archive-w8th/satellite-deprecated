@@ -29,13 +29,8 @@ void unifyNodeBox(inout int idx){
         lmx = UNPACK_LANE_(bvhBoxes[sibid2+0][1]),
         rmx = UNPACK_LANE_(bvhBoxes[sibid2+1][1]);
 
-#ifdef USE_F32_BVH
     bvhBoxes[idx][0] = PACK_LANE_(min(lmn, rmn));
     bvhBoxes[idx][1] = PACK_LANE_(max(lmx, rmx));
-#else
-    bvhBoxes[idx][0] = PACK_LANE_(min(lmn, rmn)-UBLANEF_UNPACKED_(0.00009f.xxxx));
-    bvhBoxes[idx][1] = PACK_LANE_(max(lmx, rmx)+UBLANEF_UNPACKED_(0.00009f.xxxx));
-#endif
 
     bvhBoxes[sibid2+0][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.x, rmn.x, lmx.x, rmx.x));
     bvhBoxes[sibid2+0][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.y, rmn.y, lmx.y, rmx.y));

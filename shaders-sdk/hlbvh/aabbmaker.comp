@@ -139,13 +139,16 @@ void main() {
                     MortoncodesIndices[to] = int(to);
                     Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF))));
 
+                    // for inprecise BVH increase precisions
 #ifdef USE_F32_BVH
-#define PRECB 0.0001f
+                    bounding.mn -= 0.00001f;
+                    bounding.mx += 0.00001f;
 #else
-#define PRECB 0.001f
+                    bounding.mn -= 0.0005f;
+                    bounding.mx += 0.0005f;
 #endif
-                    
-                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-PRECB), mx = UBLANEF_UNPACKED_(bounding.mx+PRECB);
+
+                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn), mx = UBLANEF_UNPACKED_(bounding.mx);
                     HlbvhNode outLeaf = Leafs[to];
                     outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
                     outLeaf.pdata.xy = ivec2(to);

@@ -504,17 +504,16 @@ BVEC2_ intersectCubeDual(inout FMAT3X4_ origin, inout FMAT3X4_ dr, inout BVEC3_ 
 
     // precise error correct
 #ifdef AMD_F16_BVH
-    tNear -= 0.001hf.xx;
-    tFar  += 0.001hf.xx;
+    tNear += -1e-3hf, tFar += 1e-3hf;
 #else
-    tNear -= 0.0001f.xx;
-    tFar  += 0.0001f.xx;
+    tNear += -1e-5f, tFar += 1e-5f;
 #endif
 
     BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));
 
     const vec2 inf = vec2(INFINITY);
-    near = mix(inf, vec2(tNear), isCube), far = mix(inf, vec2(tFar), isCube);
+    near = mix(inf, vec2(tNear), isCube), 
+     far = mix(inf, vec2( tFar), isCube);
     return isCube;
 }
 

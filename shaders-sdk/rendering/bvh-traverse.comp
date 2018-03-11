@@ -19,21 +19,8 @@
 #include "../include/vertex.glsl"
 
 
-const int localStackSize = 8;
-const int extendedStackSize = 32;
-
-
-
-// use shared memory for boxes
-//#ifdef AMD_F16_BVH
-//shared FMAT3X4_ cachedBoxes[WORK_SIZE];
-//#define CACHED_BOX cachedBoxes[LT_IDX]
-//#else 
-FMAT3X4_ CACHED_BOX;
-//#endif
-
-
 // dedicated BVH stack
+const int extendedStackSize = 32;
 struct NodeCache { int extendedStack[extendedStackSize]; };
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 
@@ -45,6 +32,7 @@ int stackPtr = 0; int rayID = 0;
 
 #ifndef USE_STACKLESS_BVH
 #define LOCAL_STACK localStack[LT_IDX]
+const int localStackSize = 8;
 shared int localStack[WORK_SIZE][localStackSize];
 
 int loadStack(){
@@ -216,13 +204,11 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 // load 32-byte bounding box
                 int _cmp = comp4.x >> 1;
 
-                CACHED_BOX = FMAT3X4_(
+                childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
                     UNPACK_LANE_(bvhBoxes[_cmp][1]),
                     UNPACK_LANE_(bvhBoxes[_cmp][2])
-                );
-
-                childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, CACHED_BOX, nears, fars); nears += traverseState.diffOffset.xx;
+                ), nears, fars); nears += traverseState.diffOffset.xx;
                 childIntersect &= BVEC2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
 
 #ifdef USE_STACKLESS_BVH

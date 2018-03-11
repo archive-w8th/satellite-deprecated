@@ -171,9 +171,9 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
     IF (not(intersectCubeF32Single(torig, dirproj, bsgn, mat3x2(
-        -1.0001f, 1.0001f, 
-        -1.0001f, 1.0001f, 
-        -1.0001f, 1.0001f
+        -1.0015f, 1.0015f, 
+        -1.0015f, 1.0015f, 
+        -1.0015f, 1.0015f
     ), near, far))) {
         traverseState.idx = -1;
     }

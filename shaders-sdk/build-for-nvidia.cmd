@@ -3,7 +3,7 @@
 set PATH=C:\Users\elvir\msvc\glslang\bin;%PATH%
 
 cd %~dp0
-  set CFLAGSV= --client vulkan100 --target-env vulkan1.1 -DNVIDIA_PLATFORM -DPLAIN_BINDLESS_TEXTURE_FETCH
+  set CFLAGSV= --client vulkan100 --target-env vulkan1.1 -DNVIDIA_PLATFORM -DPLAIN_BINDLESS_TEXTURE_FETCH -DUSE_F32_BVH
   
 set INDIR=.\
 ::set OUTDIR=..\Build\shaders-spv\

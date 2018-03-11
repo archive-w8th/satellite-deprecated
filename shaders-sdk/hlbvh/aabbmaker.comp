@@ -140,9 +140,9 @@ void main() {
                     Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF))));
 
 #ifdef USE_F32_BVH
-#define PRECB 0.00005f
+#define PRECB 0.0001f
 #else
-#define PRECB 0.0005f
+#define PRECB 0.001f
 #endif
                     
                     UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn-PRECB), mx = UBLANEF_UNPACKED_(bounding.mx+PRECB);

@@ -486,7 +486,7 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 // made by DevIL research group
 // also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
 // compatible with NVidia GPU too
-BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, inout vec2 near, inout vec2 far) {
+BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, in FMAT3X4_ tCorrections, inout vec2 near, inout vec2 far) {
     tMinMax = FMAT3X4_(
         fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
         fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),

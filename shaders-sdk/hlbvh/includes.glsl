@@ -1,5 +1,6 @@
 
 // Morton codes and geometry counters
+
 layout ( std430, binding = 0, set = 0 ) coherent buffer MortoncodesBlock {
     MORTONTYPE Mortoncodes[];
 };
@@ -12,10 +13,7 @@ layout ( std430, binding = 3, set = 0 ) coherent buffer LeafBlock {
     HlbvhNode Leafs[];
 };
 
-// BVH nodes
-layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBoxBlock {
-    UBLANEF_ bvhBoxes[][2];
-};
+layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBoxBlock { uvec4 bvhBoxes[][4]; };
 
 layout ( std430, binding = 5, set = 0 ) restrict buffer FlagsBlock {
     int Flags[];
@@ -37,6 +35,8 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer BuildCounters {
     int aRange[2];
     int aabbcount[1];
 };
+
+layout ( rgba32i, binding = 11, set = 0 ) uniform iimage2D bvhStorage;
 
 
 

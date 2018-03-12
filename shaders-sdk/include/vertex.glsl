@@ -3,6 +3,7 @@
 
 #include "../include/mathlib.glsl"
 
+
 // for geometry accumulators
 #ifdef VERTEX_FILLING
 layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[1]; };
@@ -11,17 +12,19 @@ layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorde
 layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
 layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
 #else
+
 // for traverse, or anything else
-layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
 #ifndef BVH_CREATION
-layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { UBLANEF_ bvhBoxes[][4]; };
+layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { uvec4 bvhBoxes[][4]; }; 
+layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
 #endif
+
+layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
 layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
 layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
 layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
 layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
 #endif
-
 
 const int ATTRIB_EXTENT = 4;
 
@@ -103,29 +106,6 @@ float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int
 }
 #endif
 
-
-//==============================
-//BVH data future transcoding (each by 32-bit only)
-//By textureGather you can get siblings
-/* 
-        Sib     P    T
-    +==================+
-L   | x || y || z || w |
-    +==================+
-R   | x || y || z || w |
-    +==================+
-    
-*///============================
-
-
-// bvh transcoded storage
-#ifdef BVH_CREATION
-layout ( binding = 11, rgba32i, set = 0 ) uniform iimage2D bvhStorage;
-#else
-#ifndef VERTEX_FILLING
-layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
-#endif
-#endif
 
 
 const int _BVH_WIDTH = 2048;

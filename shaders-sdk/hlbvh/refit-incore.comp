@@ -19,23 +19,42 @@ LOCAL_SIZE_LAYOUT;
 
 initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 
-void unifyNodeBox(inout int idx){
-    ivec2 _pdx2 = bvhLinear2D(idx);
-    int sibid2 = imageLoad(bvhStorage, _pdx2).x;
-    
-    UBLANEF_UNPACKED_ 
-        lmn = UNPACK_LANE_(bvhBoxes[sibid2+0][0]),
-        rmn = UNPACK_LANE_(bvhBoxes[sibid2+1][0]),
-        lmx = UNPACK_LANE_(bvhBoxes[sibid2+0][1]),
-        rmx = UNPACK_LANE_(bvhBoxes[sibid2+1][1]);
+void unifyNodeBox(in int idx){
+    int sibid = imageLoad(bvhStorage, bvhLinear2D(idx)).x >> 1;
 
-    bvhBoxes[idx][0] = PACK_LANE_(min(lmn, rmn));
-    bvhBoxes[idx][1] = PACK_LANE_(max(lmx, rmx));
+    // TODO: unpacking correction rows
+#ifdef USE_F32_BVH
+    FVEC4_  
+        lmn = uintBitsToFloat(bvhBoxes[sibid][0]), rmn = uintBitsToFloat(bvhBoxes[sibid][2]),
+        lmx = uintBitsToFloat(bvhBoxes[sibid][1]), rmx = uintBitsToFloat(bvhBoxes[sibid][3]);
+#else
+    FVEC4_  
+        lmn = UNPACK_HF(bvhBoxes[sibid][0].xy), rmn = UNPACK_HF(bvhBoxes[sibid][1].xy),
+        lmx = UNPACK_HF(bvhBoxes[sibid][0].zw), rmx = UNPACK_HF(bvhBoxes[sibid][1].zw);
+#endif
 
-    bvhBoxes[sibid2+0][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.x, rmn.x, lmx.x, rmx.x));
-    bvhBoxes[sibid2+0][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.y, rmn.y, lmx.y, rmx.y));
-    bvhBoxes[sibid2+1][0] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.z, rmn.z, lmx.z, rmx.z));
-    bvhBoxes[sibid2+1][1] = PACK_LANE_(UBLANEF_UNPACKED_(lmn.w, rmn.w, lmx.w, rmx.w));
+    int bidx = idx>>1, sidx = idx&1;
+#ifdef USE_F32_BVH
+    bvhBoxes[bidx][sidx*2+0] = floatBitsToUint(min(lmn, rmn));
+    bvhBoxes[bidx][sidx*2+1] = floatBitsToUint(max(lmx, rmx));
+#else
+    bvhBoxes[bidx][sidx+0] = uvec4(packHalf2(min(lmn, rmn)), packHalf2(max(lmx, rmx)));
+    bvhBoxes[bidx][sidx+2] = uvec4(0u.xxxx);
+#endif
+
+    // shuffle and transpose for traversing
+#ifdef USE_F32_BVH
+    bvhBoxes[sibid][0] = floatBitsToUint( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) );
+    bvhBoxes[sibid][1] = floatBitsToUint( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) );
+    bvhBoxes[sibid][2] = floatBitsToUint( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) );
+    bvhBoxes[sibid][3] = floatBitsToUint( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) );
+#else
+    // TODO: support of corrections fields
+    bvhBoxes[sibid][0].xyzw = uvec4(packHalf2( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) ), 0u.xx);
+    bvhBoxes[sibid][1].xyzw = uvec4(packHalf2( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) ), 0u.xx);
+    bvhBoxes[sibid][2].xyzw = uvec4(packHalf2( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) ), 0u.xx);
+    bvhBoxes[sibid][3].xyzw = uvec4(packHalf2( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) ), 0u.xx);
+#endif
 }
 
 

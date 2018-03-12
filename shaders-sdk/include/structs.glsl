@@ -17,7 +17,7 @@ struct bbox {
 };
 
 
-
+/*
 #ifdef USE_F32_BVH
 #define UBLANEF_ vec4
 #else
@@ -107,6 +107,47 @@ struct bbox {
 #endif
 
 #define TRANSPOSEF_(m)PACK_BOX_(transpose(UNPACK_BOX_(m)))
+*/
+
+
+
+
+
+#ifdef USE_F32_BVH 
+    #define UNPACK_LROW(m) uintBitsToFloat(m)
+#else
+    #ifdef AMD_F16_BVH
+        #define UNPACK_LROW(m) unpackHalf2(m.xy)
+    #else
+        #define UNPACK_LROW(m) unpackHalf(m.xy)
+    #endif
+#endif
+
+#ifdef USE_F32_BVH
+    #define UNPACK_RCRC(m) vec4(0.f)
+#else
+    #ifdef AMD_F16_BVH
+        #define UNPACK_RCRC(m) unpackHalf2(m.zw)
+    #else
+        #define UNPACK_RCRC(m) unpackHalf(m.zw)
+    #endif
+#endif
+
+
+#ifdef USE_F32_BVH
+    #define UNPACK_HF(m) vec4(0.f)
+#else
+    #ifdef AMD_F16_BVH
+        #define UNPACK_HF(m) unpackHalf2(m)
+    #else
+        #define UNPACK_HF(m) unpackHalf(m)
+    #endif
+#endif
+
+
+
+
+
 
 
 // ray bitfield spec (reduced to 16-bit)
@@ -284,7 +325,7 @@ void RayDiffBounce(inout RayRework ray, in int bn) {
 
 
 struct HlbvhNode {
-     UHBOXF_ lbox;
+     vec4 lbox[2];
      ivec4 pdata;
 };
 

@@ -148,9 +148,9 @@ void main() {
                     bounding.mx += 0.0005f;
 #endif
 
-                    UBLANEF_UNPACKED_ mn = UBLANEF_UNPACKED_(bounding.mn), mx = UBLANEF_UNPACKED_(bounding.mx);
                     HlbvhNode outLeaf = Leafs[to];
-                    outLeaf.lbox = UHBOXF_(PACK_LANE_(mn), PACK_LANE_(mx));
+                    outLeaf.lbox[0] = bounding.mn;
+                    outLeaf.lbox[1] = bounding.mx;
                     outLeaf.pdata.xy = ivec2(to);
                     outLeaf.pdata.zw = ivec2(-1, globalID);
                     Leafs[to] = outLeaf;

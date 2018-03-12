@@ -1,7 +1,8 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-#define USE_OPTIMIZED_PT
+
+//#define USE_OPTIMIZED_PT
 //#define USE_SIMPLIFIED_MODE
 //#define USE_MULTIPLICANT_TRANSPARENCY
 

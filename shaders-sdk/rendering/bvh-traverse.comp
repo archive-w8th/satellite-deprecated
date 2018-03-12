@@ -191,19 +191,20 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 
         for (;hi<max_iteraction;hi++) {
             bool _continue = false;
-            ivec4 comp4 = traverseState.idx >= 0 ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0) : (-1).xxxx;
-            
+            ivec2 b2idx = bvhLinear2D(traverseState.idx);
+            ivec2 cnode = traverseState.idx >= 0 ? texelFetch(bvhStorage, b2idx, 0).xy : (-1).xx;
+            // planned another plan of "y" value in BVH 
+
             // if not leaf 
-            if (comp4.x != comp4.y) {
+            if (cnode.x != cnode.y) {
                 vec2 nears = INFINITY.xx, fars = INFINITY.xx; 
 
                 // intersect boxes
                 BVEC2_ childIntersect = BVEC2_((traverseState.idx >= 0).xx);
-                childIntersect &= BOOL_(comp4.x != comp4.y).xx; // base on fact 
+                childIntersect &= BOOL_(cnode.x != cnode.y).xx; // base on fact 
 
                 // load 32-byte bounding box
-                int _cmp = comp4.x >> 1;
-
+                const int _cmp = cnode.x >> 1;
                 childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, FMAT3X4_(
                     UNPACK_LANE_(bvhBoxes[_cmp][0]),
                     UNPACK_LANE_(bvhBoxes[_cmp][1]),
@@ -211,32 +212,28 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 ), nears, fars);
                 childIntersect &= BVEC2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
 
-#ifdef USE_STACKLESS_BVH
-                // any child node (stackless)
-                IF (any(childIntersect)) {
-                    traverseState.bitStack <<= 1ul;
-                    ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
-                    traverseState.idx = ordered.x;
-                    IF (all(childIntersect)) traverseState.bitStack |= 1ul;
+                int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection
+                if (fmask >= 0) {
                     _continue = true;
-                }
-#else
-                // any child node 
-                IF (any(childIntersect)) {
-                    ivec2 ordered = SSC(lessEqualF(nears.x, nears.y) & childIntersect.x) ? comp4.xy : comp4.yx;
-                    traverseState.idx = ordered.x;
-                    IF (all(childIntersect) & BOOL_(ordered.y > 0)) {
-                        if (!stackIsFull()) storeStack(ordered.y);
+                    if (fmask == 2) { // if both has intersection
+                        ivec2 ordered = cnode.xx + (SSC(lessEqualF(nears.x, nears.y)) ? ivec2(0,1) : ivec2(1,0));
+                        traverseState.idx = ordered.x;
+    #ifdef USE_STACKLESS_BVH
+                        IF (all(childIntersect)) traverseState.bitStack |= 1ul;
+    #else
+                        IF (all(childIntersect) & BOOL_(!stackIsFull())) storeStack(ordered.y);
+    #endif
+                    } else {
+                        traverseState.idx = cnode.x + fmask;
                     }
-                    _continue = true;
                 }
-#endif
+
             } else  
             
             // if leaf, defer for intersection 
-            if (comp4.x == comp4.y) {
+            if (cnode.x == cnode.y) {
                 if (traverseState.defTriangleID < 0) {
-                    traverseState.defTriangleID = comp4.w;
+                    traverseState.defTriangleID = texelFetch(bvhStorage, b2idx, 0).w;
                 } else {
                     _continue = true;
                 }

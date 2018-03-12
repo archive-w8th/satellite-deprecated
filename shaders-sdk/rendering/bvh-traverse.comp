@@ -206,20 +206,14 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 // load 32-byte bounding box
                 const int _cmp = cnode.x >> 1;
                 childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, 
-
-                FMAT3X4_(
-                    UNPACK_LROW(bvhBoxes[_cmp][0]),
-                    UNPACK_LROW(bvhBoxes[_cmp][1]),
-                    UNPACK_LROW(bvhBoxes[_cmp][2])
-                ),
-
-                FMAT3X4_(
-                    UNPACK_RCRC(bvhBoxes[_cmp][0]),
-                    UNPACK_RCRC(bvhBoxes[_cmp][1]),
-                    UNPACK_RCRC(bvhBoxes[_cmp][2])
-                ),
-                
-                nears, fars);
+#ifdef USE_F32_BVH
+                    FMAT3X4_(uintBitsToFloat(bvhBoxes[_cmp][0]), uintBitsToFloat(bvhBoxes[_cmp][1]), uintBitsToFloat(bvhBoxes[_cmp][2])),
+                    FMAT3X4_(vec4(0.f), vec4(0.f), vec4(0.f))
+#else
+                    FMAT3X4_(UNPACK_HF(bvhBoxes[_cmp][0].xy), UNPACK_HF(bvhBoxes[_cmp][0].zw), UNPACK_HF(bvhBoxes[_cmp][1].xy)),
+                    FMAT3X4_(UNPACK_HF(bvhBoxes[_cmp][2].xy), UNPACK_HF(bvhBoxes[_cmp][2].zw), UNPACK_HF(bvhBoxes[_cmp][3].xy))
+#endif
+                , nears, fars);
                 childIntersect &= BVEC2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection

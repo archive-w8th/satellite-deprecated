@@ -50,10 +50,10 @@ void unifyNodeBox(in int idx){
     bvhBoxes[sibid][3] = floatBitsToUint( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) );
 #else
     // TODO: support of corrections fields
-    bvhBoxes[sibid][0].xyzw = uvec4(packHalf2( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) ), 0u.xx);
-    bvhBoxes[sibid][1].xyzw = uvec4(packHalf2( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) ), 0u.xx);
-    bvhBoxes[sibid][2].xyzw = uvec4(packHalf2( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) ), 0u.xx);
-    bvhBoxes[sibid][3].xyzw = uvec4(packHalf2( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) ), 0u.xx);
+    bvhBoxes[sibid][0].xyzw = uvec4(packHalf2( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) ), packHalf2( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) ));
+    bvhBoxes[sibid][1].xyzw = uvec4(packHalf2( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) ), packHalf2( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) ));
+    bvhBoxes[sibid][2].xyzw = 0u.xxxx;
+    bvhBoxes[sibid][3].xyzw = 0u.xxxx;
 #endif
 }
 

@@ -2,6 +2,14 @@
 #define _MATHLIB_H
 
 
+
+#ifdef AMD_F16_BVH
+    const bool amd_fp16_bvh = true;
+#else
+    const bool amd_fp16_bvh = false;
+#endif
+
+
 // float 16 or 32 types
 #ifdef AMD_F16_BVH
 #define FTYPE_ float16_t
@@ -77,7 +85,7 @@ float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0
 
 
-float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 100000.f*sign(a); return max(abs(a),0.0001f)*(a>=0.f?1.f:-1.f); }
+float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 100000.f*sign(a); return max(abs(a),1e-6f)*(a>=0.f?1.f:-1.f); }
 
 
 
@@ -468,8 +476,7 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 #endif
 
     // precise error correct
-    tNear -= 0.0001f;
-    tFar  += 0.0001f;
+    tNear += -1e-5f, tFar += 1e-5f;
 
     // validate hit
     BOOL_ isCube = BOOL_(tFar>tNear) & BOOL_(tFar>0.f) & BOOL_(abs(tNear) <= INFINITY-PRECERR);
@@ -504,9 +511,9 @@ BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in
 
     // precise error correct
 #ifdef AMD_F16_BVH
-    tNear += -1e-3hf, tFar += 1e-3hf;
+    tNear -= 1e-4hf.xx, tFar += 1e-3hf.xx;
 #else
-    tNear += -1e-5f, tFar += 1e-5f;
+    tNear -= 1e-5f.xx, tFar += 1e-5f.xx;
 #endif
 
     BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));
@@ -566,6 +573,9 @@ vec3 dcts(in vec2 hr) {
 
 #define f32_f16 packHalf2
 #define f16_f32 unpackHalf
+
+
+
 
 
 

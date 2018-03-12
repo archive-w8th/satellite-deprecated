@@ -139,9 +139,9 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
         torig = -divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f))).xyz,
         torigTo = divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin+direct, 1.0f))).xyz,
         dirproj = torigTo+torig;
-    
-    float dirlenInv = 1.f / max(length(dirproj), 0.00001f);
-    dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), vec3(0.0001f)) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
+
+    float dirlenInv = 1.f / max(length(dirproj), 1e-5f);
+    dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), 1e-6f.xxx) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
     BVEC3_ bsgn = (BVEC3_(sign(dirproj)*FTYPE_(1.0001f))+TRUE_)>>TRUE_;
@@ -165,23 +165,17 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     ));
     traverseState.geometrySpace.lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
 
-    // precalc origin
-    torig *= dirproj;
-
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
-    IF (not(intersectCubeF32Single(torig, dirproj, bsgn, mat3x2(
-        -1.101f, 1.101f, 
-        -1.101f, 1.101f, 
-        -1.101f, 1.101f
-    ), near, far))) {
+    const vec2 bndsf2 = vec2(-(1.f+1e-3f), (1.f+1e-3f));
+    IF (not(intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(bndsf2, bndsf2, bndsf2), near, far))) {
         traverseState.idx = -1;
     }
 
-    float toffset = max(near, 0.f); torig -= toffset;
+    float toffset = max(near, 0.f);
     traverseState.bvhSpace.directInv = FVEC3_(dirproj);
-    traverseState.bvhSpace.minusOrig = FVEC3_(torig);
-    traverseState.distMult = 1.f/dirlenInv;
+    traverseState.bvhSpace.minusOrig = fma(FVEC3_(torig), FVEC3_(dirproj), -FVEC3_(toffset));
+    traverseState.distMult = 1.f/precIssue(dirlenInv);
     traverseState.diffOffset = toffset;
 
     // begin of traverse BVH 

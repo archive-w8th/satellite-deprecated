@@ -140,13 +140,7 @@ void main() {
                     Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF))));
 
                     // for inprecise BVH increase precisions
-#ifdef USE_F32_BVH
-                    bounding.mn -= 0.00001f;
-                    bounding.mx += 0.00001f;
-#else
-                    bounding.mn -= 0.0005f;
-                    bounding.mx += 0.0005f;
-#endif
+                    bounding.mn -= 0.0005f.xxxx, bounding.mx += 0.0005f.xxxx;
 
                     HlbvhNode outLeaf = Leafs[to];
                     outLeaf.lbox[0] = bounding.mn;

@@ -6,7 +6,6 @@
 
 #include "args.hxx"
 
-#include "satellite/rtengine.hpp"
 #include "satellite/appBase.hpp"
 #include "service/ambientIO.hpp"
 
@@ -64,104 +63,6 @@ namespace SatelliteExample {
         static const int32_t kL = 11;
     };
 
-
-    class CameraController {
-        bool monteCarlo = true;
-
-    public:
-        glm::dvec3 dir = glm::normalize(glm::dvec3(0.0, -1.0, 0.01));
-        glm::dvec3 eye = glm::dvec3(0.0, 4.0, 0.0);
-        glm::dvec3 view = glm::dvec3(0.0, 0.0, 0.0);
-
-        glm::dvec2 mposition;
-        std::shared_ptr<rt::Pipeline> raysp;
-
-        glm::dmat4 project() {
-            view = eye + dir;
-            return glm::lookAt(eye, view, glm::dvec3(0.0f, 1.0f, 0.0f));
-        }
-
-        void setRays(std::shared_ptr<rt::Pipeline>& r) {
-            raysp = r;
-        }
-
-        void work(const glm::dvec2 &position, const double &diff, ControlMap& map) {
-            glm::dmat4 viewm = project();
-            glm::dmat4 unviewm = glm::inverse(viewm);
-            glm::dvec3 ca = (viewm * glm::dvec4(eye, 1.0f)).xyz();
-            glm::dvec3 vi = glm::normalize((glm::dvec4(dir, 0.0) * unviewm).xyz());
-            bool isFocus = true;
-
-            if (map.mouseleft && isFocus)
-            {
-                glm::dvec2 mpos = glm::dvec2(position) - mposition;
-                double diffX = mpos.x, diffY = mpos.y;
-                if (glm::abs(diffX) > 0.0) this->rotateX(vi, diffX);
-                if (glm::abs(diffY) > 0.0) this->rotateY(vi, diffY);
-                if (monteCarlo) raysp->clearSampling();
-            }
-            mposition = glm::dvec2(position);
-
-            if (map.keys[ControlMap::kW] && isFocus)
-            {
-                this->forwardBackward(ca, -diff);
-                if (monteCarlo) raysp->clearSampling();
-            }
-
-            if (map.keys[ControlMap::kS] && isFocus)
-            {
-                this->forwardBackward(ca, diff);
-                if (monteCarlo) raysp->clearSampling();
-            }
-
-            if (map.keys[ControlMap::kA] && isFocus)
-            {
-                this->leftRight(ca, -diff);
-                if (monteCarlo) raysp->clearSampling();
-            }
-
-            if (map.keys[ControlMap::kD] && isFocus)
-            {
-                this->leftRight(ca, diff);
-                if (monteCarlo) raysp->clearSampling();
-            }
-
-            if ((map.keys[ControlMap::kE] || map.keys[ControlMap::kSpc]) && isFocus)
-            {
-                this->topBottom(ca, diff);
-                if (monteCarlo) raysp->clearSampling();
-            }
-
-            if ((map.keys[ControlMap::kQ] || map.keys[ControlMap::kSft] || map.keys[ControlMap::kC]) && isFocus)
-            {
-                this->topBottom(ca, -diff);
-                if (monteCarlo) raysp->clearSampling();
-            }
-
-            dir = glm::normalize((glm::dvec4(vi, 0.0) * viewm).xyz());
-            eye = (unviewm * glm::dvec4(ca, 1.0f)).xyz();
-            view = eye + dir;
-        }
-
-        void leftRight(glm::dvec3 &ca, const double &diff) {
-            ca.x += diff / 100.0f;
-        }
-        void topBottom(glm::dvec3 &ca, const double &diff) {
-            ca.y += diff / 100.0f;
-        }
-        void forwardBackward(glm::dvec3 &ca, const double &diff) {
-            ca.z += diff / 100.0f;
-        }
-        void rotateY(glm::dvec3 &vi, const double &diff) {
-            glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(-1.0f, 0.0f, 0.0f));
-            vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
-        }
-        void rotateX(glm::dvec3 &vi, const double &diff) {
-            glm::dmat4 rot = glm::rotate(diff / float(raysp->getCanvasHeight()) / 0.5f, glm::dvec3(0.0f, -1.0f, 0.0f));
-            vi = (rot * glm::dvec4(vi, 1.0f)).xyz();
-        }
-    };
-
     class PathTracerApplication : public ApplicationBase {
     public:
         PathTracerApplication(const int32_t& argc, const char ** argv, GLFWwindow * wind) { };
@@ -173,20 +74,17 @@ namespace SatelliteExample {
         void mouseRelease(const int32_t& button);
         void mouseMove(const double& x, const double& y);
 
-        void resize(const int32_t& width, const int32_t& height);
-        void resizeBuffers(const int32_t& width, const int32_t& height);
-        void saveHdr(std::string name = "");
-
-        std::vector<Framebuffer>& getFramebuffers() {
-            return currentContext->framebuffers;
-        }
+        virtual void resize(const int32_t& width, const int32_t& height) {};
+        virtual void resizeBuffers(const int32_t& width, const int32_t& height) {};
+        virtual void saveHdr(std::string name = "") {};
+        std::vector<Framebuffer>& getFramebuffers() { return currentContext->framebuffers; }
 
         virtual void init(DeviceQueueType& device, const int32_t& argc, const char ** argv) = 0;
         virtual void process() = 0;
         virtual void execute(const int32_t& argc, const char ** argv, GLFWwindow * wind);
         virtual void parseArguments(const int32_t& argc, const char ** argv) = 0;
         virtual void handleGUI() {};
-        //virtual void updateSwapchains();
+        virtual TextureType getOutputImage() { return nullptr; };
 
     protected:
 
@@ -208,10 +106,8 @@ namespace SatelliteExample {
 
 
 
-
         uint32_t gpuID = 0;
         std::string shaderPack = "shaders-spv";
-        std::shared_ptr<rt::Pipeline> rays;
 
 
         double time = 0, diff = 0;
@@ -249,13 +145,13 @@ namespace SatelliteExample {
 
                 // resize renderer canvas
                 this->resize(canvasWidth, canvasHeight);
-                rays->clearSampling();
+                //rays->clearSampling();
 
                 // write descriptors for showing texture
                 {
                     // create sampler
                     auto sampler = currentContext->device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eClampToEdge).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMagFilter(vk::Filter::eLinear).setMinFilter(vk::Filter::eLinear).setCompareEnable(false));
-                    auto image = rays->getFilteredImage();
+                    auto image = this->getOutputImage();
 
                     // update descriptors
                     currentContext->device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
@@ -308,11 +204,13 @@ namespace SatelliteExample {
             memoryBufferToHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
             memoryBufferFromHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-            // init ray tracer
-            rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(deviceQueue, shaderPack));
-
             // resize buffers and canvas
             glfwGetWindowContentScale(wind, &windowScale, nullptr);
+
+            // init base application
+            this->init(deviceQueue, argc, argv); // init ray tracers virtually
+
+            // resize data
             this->resizeBuffers(baseWidth * superSampling, baseHeight * superSampling);
             this->resize(canvasWidth, canvasHeight);
 
@@ -340,21 +238,17 @@ namespace SatelliteExample {
                 });
             }
 
-            // init or prerender data
-            this->init(deviceQueue, argc, argv); // init ray tracers virtually
 
             // descriptor set bindings
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = { vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, nullptr) };
-
-            // layouts of descriptor sets 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = { deviceQueue->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(1)) };
-
-            // descriptor sets (where will writing binding)
-            auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(deviceQueue->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
 
             // pipeline layout and cache
             auto pipelineLayout = deviceQueue->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(descriptorSetLayouts.size()));
             auto pipelineCache = deviceQueue->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
+
+            // descriptor sets (where will writing binding)
+            auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(deviceQueue->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
 
             // create pipeline
             {
@@ -426,7 +320,7 @@ namespace SatelliteExample {
                 samplerInfo.magFilter = vk::Filter::eLinear;
                 samplerInfo.compareEnable = false;
                 auto sampler = deviceQueue->logical.createSampler(samplerInfo);
-                auto image = rays->getFilteredImage();
+                auto image = this->getOutputImage();
 
                 // desc texture texture
                 vk::DescriptorImageInfo imageDesc;
@@ -543,7 +437,6 @@ namespace SatelliteExample {
         this->initVulkan(argc, argv, wind);
 
         double timeAccumulate = 0.0001;
-        //ImGuiIO& io = ImGui::GetIO();
         bool safe_polling = true;
 
         auto tIdle = std::chrono::high_resolution_clock::now();
@@ -623,35 +516,6 @@ namespace SatelliteExample {
         glfwTerminate();
     }
 
-
-    void PathTracerApplication::saveHdr(std::string name) {
-        auto width = rays->getCanvasWidth(), height = rays->getCanvasHeight();
-        std::vector<float> imageData(width * height * 4);
-
-        {
-            auto texture = rays->getRawImage();
-            flushCommandBuffer(currentContext->device, createCopyCmd<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
-                .setImageExtent({ width, height, 1 })
-                .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
-                .setBufferOffset(0)
-                .setBufferRowLength(width)
-                .setBufferImageHeight(height)
-                .setImageSubresource(texture->subresourceLayers)), false);
-        }
-
-        {
-            getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)imageData.data(), sizeof(float) * width * height * 4, 0);
-        }
-
-        {
-            cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);
-            image.permute_axes("yzcx");
-            image.mirror("y");
-            image.get_shared_channel(3).fill(1.f);
-            image.save_exr_adv(name.c_str());
-        }
-    }
-
     // key downs
     void PathTracerApplication::passKeyDown(const int32_t& key) {
         if (key == GLFW_KEY_W) kmap.keys[ControlMap::kW] = true;
@@ -689,14 +553,7 @@ namespace SatelliteExample {
     }
 
     // mouse moving and pressing
-    void PathTracerApplication::mousePress(const int32_t& button) {
-        if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = true;
-    }
-
+    void PathTracerApplication::mousePress(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = true; }
     void PathTracerApplication::mouseRelease(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = false; }
     void PathTracerApplication::mouseMove(const double& x, const double& y) { mousepos.x = x, mousepos.y = y; }
-
-    // resize buffers and canvas functions
-    void PathTracerApplication::resizeBuffers(const int32_t& width, const int32_t& height) { rays->reallocRays(width, height); }
-    void PathTracerApplication::resize(const int32_t& width, const int32_t& height) { rays->resizeCanvas(width, height); }
 };

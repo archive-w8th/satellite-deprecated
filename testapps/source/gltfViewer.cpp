@@ -329,7 +329,7 @@ int main(const int argc, const char ** argv)
 {
     if (!glfwInit()) exit(EXIT_FAILURE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // create application window (planned to merge)
     GLFWwindow* window = glfwCreateWindow(baseWidth, baseHeight, "Running...", NULL, NULL);

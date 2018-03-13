@@ -6,6 +6,13 @@ namespace NSM
 {
     namespace rt
     {
+        struct VertexInstanceViews {
+            vk::DescriptorBufferInfo vInstanceBufferInfos[6];
+        };
+
+
+
+
 
         struct bbox
         {

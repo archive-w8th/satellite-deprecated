@@ -43,18 +43,17 @@ namespace NSM
 
             {
                 std::vector<vk::DescriptorUpdateTemplateEntry> entries = {
-                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(0).setOffset(strided<vk::DescriptorBufferInfo>(0)).setStride(strided<vk::DescriptorBufferInfo>(1)),
-                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(1).setOffset(strided<vk::DescriptorBufferInfo>(1)).setStride(strided<vk::DescriptorBufferInfo>(1)),
-                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(2).setOffset(strided<vk::DescriptorBufferInfo>(2)).setStride(strided<vk::DescriptorBufferInfo>(1)),
-                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(3).setOffset(strided<vk::DescriptorBufferInfo>(3)).setStride(strided<vk::DescriptorBufferInfo>(1)),
-                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(4).setOffset(strided<vk::DescriptorBufferInfo>(4)).setStride(strided<vk::DescriptorBufferInfo>(1)),
-                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(5).setOffset(strided<vk::DescriptorBufferInfo>(5)).setStride(strided<vk::DescriptorBufferInfo>(1))
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(0).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[0])).setStride(sizeof(vk::DescriptorBufferInfo)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(1).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[1])).setStride(sizeof(vk::DescriptorBufferInfo)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(2).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[2])).setStride(sizeof(vk::DescriptorBufferInfo)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(3).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[3])).setStride(sizeof(vk::DescriptorBufferInfo)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(4).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[4])).setStride(sizeof(vk::DescriptorBufferInfo)),
+                    vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(5).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[5])).setStride(sizeof(vk::DescriptorBufferInfo))
                 };
 
                 descriptorVInstanceUpdateTemplate = device->logical.createDescriptorUpdateTemplateKHR(vk::DescriptorUpdateTemplateCreateInfo()
                     .setDescriptorSetLayout(loaderDescriptorLayout[1])
                     .setPDescriptorUpdateEntries(entries.data()).setDescriptorUpdateEntryCount(entries.size())
-                    //.setPipelineLayout(pipelineLayout).setPipelineBindPoint(vk::PipelineBindPoint::eCompute).setSet(1)
                     .setTemplateType(vk::DescriptorUpdateTemplateType::eDescriptorSet), nullptr, device->dldid);
             }
 

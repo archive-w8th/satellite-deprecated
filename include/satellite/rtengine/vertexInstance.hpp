@@ -24,9 +24,7 @@ namespace NSM
             std::vector<MeshUniformStruct> meshUniformData;
             BufferType meshUniformStager, meshUniformBuffer;
 
-            struct VertexInstanceViews {
-                vk::DescriptorBufferInfo vInstanceBufferInfos[6];
-            } descViews;
+            VertexInstanceViews descViews;
 
 
         public:

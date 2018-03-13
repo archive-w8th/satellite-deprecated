@@ -66,9 +66,9 @@ namespace NSM
             std::vector<vk::DescriptorSetLayoutBinding> surfaceImgSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, MAX_SURFACE_IMAGES, vk::ShaderStageFlagBits::eCompute, nullptr), // textures
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eSampler, 16, vk::ShaderStageFlagBits::eCompute, nullptr),                      // samplers for textures
-                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr) };
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr) };               // material descs
 
-            // images for sampling
+            // images for sampling and processing
             std::vector<vk::DescriptorSetLayoutBinding> sampleImgSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // sampling image buffer
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // filtered sampled
@@ -78,24 +78,25 @@ namespace NSM
             // prepare pools and sets
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
-                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(surfaceImgSetLayoutBindings.data()).setBindingCount(surfaceImgSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size())),
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())),
             };
-            auto descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
+
+            // allocate descriptor sets (except 3rd, planned to use templates)
+            auto descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(3).setPSetLayouts(descriptorSetLayouts.data()));
 
             // layouts
             rayTracingDescriptorsLayout = { descriptorSetLayouts[0] };
-            rayTraverseDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[1] };
-            samplingDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[3] };
-            surfaceDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[1], descriptorSetLayouts[2] };
+            rayTraverseDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[3] };
+            samplingDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[2] };
+            surfaceDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[3], descriptorSetLayouts[1] };
 
             // descriptors
             rayTracingDescriptors = { descriptorSets[0] };
             rayTraverseDescriptors = { descriptorSets[0], nullptr };
-            samplingDescriptors = { descriptorSets[0], descriptorSets[3] };
-            surfaceDescriptors = { descriptorSets[0], nullptr, descriptorSets[2] };
-
+            samplingDescriptors = { descriptorSets[0], descriptorSets[2] };
+            surfaceDescriptors = { descriptorSets[0], nullptr, descriptorSets[1] };
 
             // create staging buffer
             generalStagingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -663,6 +664,7 @@ namespace NSM
 
         void Pipeline::setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy) {
             rayTraverseDescriptors[1] = hierarchy->getClientDescriptorSet();
+            surfaceDescriptors[1] = rayTraverseDescriptors[1];
         }
 
         void Pipeline::traverse() {
@@ -691,7 +693,7 @@ namespace NSM
 
             // surface shading command
             auto srfCommandBuffer = getCommandBuffer(device, true);
-            srfCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, { surfaceDescriptors[0], rayTraverseDescriptors[1], surfaceDescriptors[2] }, nullptr);
+            srfCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, surfaceDescriptors, nullptr);
             srfCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, surfaceShadingPpl.pipeline);
             srfCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 

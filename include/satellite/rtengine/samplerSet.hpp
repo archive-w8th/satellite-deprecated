@@ -23,12 +23,12 @@ namespace NSM
             SamplerSet(SamplerSet &another);
             SamplerSet(SamplerSet &&another);
 
-            void freeSampler(const uint32_t &idx);
+            void freeSampler(const int32_t& idx);
             void clearSamplers();
-            void setSampler(uint32_t location, const SamplerType &texture);
+            void setSampler(const int32_t& location, const SamplerType &texture);
             bool haveSamplers();
             std::vector<SamplerType> &getSamplers();
-            uint32_t addSampler(const SamplerType &texture);
+            int32_t addSampler(const SamplerType &texture);
         };
     } // namespace rt
 } // namespace NSM

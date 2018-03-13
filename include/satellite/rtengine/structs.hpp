@@ -210,10 +210,10 @@ namespace NSM
             float alpharef = 0.0f;
             float unk0f = 0.0f;
 
-            uint32_t diffuseTexture = 0, diffuseSampler = 0;
-            uint32_t specularTexture = 0, specularSampler = 0;
-            uint32_t bumpTexture = 0, bumpSampler = 0;
-            uint32_t emissiveTexture = 0, emissiveSampler = 0;
+            uint32_t diffuseTexture = 0;
+            uint32_t specularTexture = 0;
+            uint32_t bumpTexture = 0;
+            uint32_t emissiveTexture = 0;
 
             int32_t flags = 0;
             int32_t alphafunc = 0;

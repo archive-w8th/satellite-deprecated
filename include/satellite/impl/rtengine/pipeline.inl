@@ -66,7 +66,9 @@ namespace NSM
             std::vector<vk::DescriptorSetLayoutBinding> surfaceImgSetLayoutBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eSampledImage, MAX_SURFACE_IMAGES, vk::ShaderStageFlagBits::eCompute, nullptr), // textures
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eSampler, 16, vk::ShaderStageFlagBits::eCompute, nullptr),                      // samplers for textures
-                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr) };               // material descs
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),                 // material descs
+                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),                 // virtual textures
+            }; 
 
             // images for sampling and processing
             std::vector<vk::DescriptorSetLayoutBinding> sampleImgSetLayoutBindings = {
@@ -357,8 +359,7 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
-            },
-                nullptr);
+            }, nullptr);
 
             clearSampling();
             syncUniforms();
@@ -367,9 +368,7 @@ namespace NSM
         void Pipeline::setSkybox(TextureType &skybox)
         {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&skybox->descriptorInfo)},
-                nullptr);
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{ vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&skybox->descriptorInfo)}, nullptr);
         }
 
         void Pipeline::reallocRays(uint32_t width, uint32_t height)
@@ -390,7 +389,7 @@ namespace NSM
             rayBlockData[0].cameraUniform.interlace = IS_INTERLACED ? 1 : 0;
             syncUniforms();
 
-            // block headers
+            // block headers 
             rayNodeBuffer = createBuffer(device, BLOCK_NODES_SIZE * BLOCK_SIZE * blockLimit, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             hitBuffer = createBuffer(device, strided<HitRework>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
@@ -409,46 +408,36 @@ namespace NSM
             clearingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             unorderedTempBuffer = createBuffer(device, strided<uint32_t>(blockLimit * BLOCK_SIZE), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
-
-
+            // caches
             traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
-
-
-
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);
-            for (int i = 0; i < 32; i++)
-            {
-                minmaxes[i * 2 + 0] = glm::vec4(10000.f), minmaxes[i * 2 + 1] = glm::vec4(-10000.f);
-            }
+            for (int i = 0; i < 32; i++) { minmaxes[i * 2 + 0] = glm::vec4(10000.f), minmaxes[i * 2 + 1] = glm::vec4(-10000.f); }
 
             // zeros
             std::vector<uint32_t> zeros(1024), ones(1024);
-            for (int i = 0; i < 1024; i++)
-            {
-                zeros[i] = 0, ones[i] = 1;
-            }
+            for (int i = 0; i < 1024; i++) { zeros[i] = 0, ones[i] = 1; }
 
             // write descriptos
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPBufferInfo(&rayNodeBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&rayBlockBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&currentBlocks->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&preparingBlocks->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&availableBlocks->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&clearingBlocks->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&texelBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(7).setPBufferInfo(&blockBinBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(9).setPBufferInfo(&hitBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(10).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(11).setPBufferInfo(&rayIndexSpaceBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo)},
-                nullptr);
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPBufferInfo(&rayBlockBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPBufferInfo(&currentBlocks->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(3).setPBufferInfo(&preparingBlocks->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(4).setPBufferInfo(&availableBlocks->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(5).setPBufferInfo(&clearingBlocks->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(6).setPBufferInfo(&texelBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(7).setPBufferInfo(&blockBinBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(9).setPBufferInfo(&hitBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(10).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(11).setPBufferInfo(&rayIndexSpaceBuffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo),
+            }, nullptr);
 
             // init swaps
             indicesSwap[0] = currentBlocks, indicesSwap[1] = preparingBlocks, availableSwap[0] = availableBlocks, availableSwap[1] = clearingBlocks;
@@ -587,37 +576,45 @@ namespace NSM
 
         void Pipeline::setMaterialSet(std::shared_ptr<MaterialSet> &materialSet)
         {
-            if (!materialSet->haveMaterials())
-                return;
+            if (!materialSet->haveMaterials()) return;
             boundMaterialSet = materialSet;
 
             auto materialBuffer = materialSet->getMaterialBuffer();
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+            auto vtextureBuffer = materialSet->getVTextureBuffer();
+
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>
+            {
                 vk::WriteDescriptorSet()
                     .setDstSet(surfaceDescriptors[2])
                     .setDstBinding(2)
                     .setDstArrayElement(0)
                     .setDescriptorCount(1)
                     .setDescriptorType(vk::DescriptorType::eStorageBuffer)
-                    .setPBufferInfo(&materialBuffer->descriptorInfo)},
-                nullptr);
+                    .setPBufferInfo(&materialBuffer->descriptorInfo),
+                    
+               vk::WriteDescriptorSet()
+                    .setDstSet(surfaceDescriptors[2])
+                    .setDstBinding(3)
+                    .setDstArrayElement(0)
+                    .setDescriptorCount(1)
+                    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+                    .setPBufferInfo(&vtextureBuffer->descriptorInfo)
+            }, nullptr);
         }
 
         void Pipeline::setSamplerSet(std::shared_ptr<SamplerSet> &samplerSet)
         {
-            if (!samplerSet || !samplerSet->haveSamplers())
-                return;
+            if (!samplerSet || !samplerSet->haveSamplers()) return;
 
             // fill by textures
             std::vector<vk::DescriptorImageInfo> images;
-            auto textures = samplerSet->getSamplers();
+            auto samplers = samplerSet->getSamplers();
 
             // push descriptors
             for (int i = 0; i < MAX_SURFACE_IMAGES; i++)
             {
-                if (i >= textures.size())
-                    break;
-                images.push_back(textures[i]->descriptorInfo);
+                if (i >= samplers.size()) break;
+                images.push_back(samplers[i]->descriptorInfo);
             }
 
             // update descriptors
@@ -628,24 +625,21 @@ namespace NSM
                     .setDstArrayElement(0)
                     .setDescriptorCount(images.size())
                     .setDescriptorType(vk::DescriptorType::eSampler)
-                    .setPImageInfo(images.data())},
-                nullptr);
+                    .setPImageInfo(images.data())
+            }, nullptr);
         }
 
         void Pipeline::setTextureSet(std::shared_ptr<TextureSet> &textureSet)
         {
-            if (!textureSet || !textureSet->haveTextures())
-                return;
+            if (!textureSet || !textureSet->haveTextures()) return;
 
             // fill by textures
             std::vector<vk::DescriptorImageInfo> images;
             auto textures = textureSet->getTextures();
 
             // push descriptors
-            for (int i = 0; i < MAX_SURFACE_IMAGES; i++)
-            {
-                if (i >= textures.size())
-                    break;
+            for (int i = 0; i < MAX_SURFACE_IMAGES; i++) {
+                if (i >= textures.size()) break;
                 images.push_back(textures[i]->descriptorInfo);
             }
 
@@ -657,8 +651,8 @@ namespace NSM
                     .setDstArrayElement(0)
                     .setDescriptorCount(images.size())
                     .setDescriptorType(vk::DescriptorType::eSampledImage)
-                    .setPImageInfo(images.data())},
-                nullptr);
+                    .setPImageInfo(images.data())
+            }, nullptr);
         }
 
 

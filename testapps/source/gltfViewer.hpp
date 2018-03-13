@@ -166,8 +166,8 @@ namespace SatelliteExample {
         double mscale = 1.0f;
 #ifdef EXPERIMENTAL_GLTF
         tinygltf::Model gltfModel;
-        std::vector<std::vector<std::shared_ptr<rt::VertexInstance>>> meshVec = std::vector<std::vector<std::shared_ptr<rt::VertexInstance>>>();
-        std::vector<uint32_t> rtTextures = std::vector<uint32_t>();
+        std::vector<std::vector<std::shared_ptr<rt::VertexInstance>>> meshVec = std::vector<std::vector<std::shared_ptr<rt::VertexInstance>>>(0);
+        std::vector<int32_t> rtTextures = std::vector<int32_t>(0);
         std::shared_ptr<rt::BufferSpace> vtbSpace;
         std::shared_ptr<rt::BufferViewSet> bfvi;
         std::shared_ptr<rt::DataAccessSet> acs;

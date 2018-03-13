@@ -61,7 +61,7 @@ namespace SatelliteExample {
         for (int i = 0; i < gltfModel.textures.size(); i++) {
             tinygltf::Texture& gltfTexture = gltfModel.textures[i];
             std::string uri = directory + "/" + gltfModel.images[gltfTexture.source].uri;
-            uint32_t rtTexture = textureManager->loadTexture(uri);
+            int32_t rtTexture = textureManager->loadTexture(uri);
             // todo with rtTexture processing
             rtTextures.push_back(rtTexture);
         }
@@ -71,10 +71,10 @@ namespace SatelliteExample {
             tinygltf::Material & material = gltfModel.materials[i];
             rt::VirtualMaterial submat;
 
-            // diffuse?
+            // diffuse? 
 
             int32_t texId = getTextureIndex(material.values["baseColorTexture"].json_double_value);
-            submat.diffuseTexture = texId >= 0 ? rtTextures[texId] : 0;
+            submat.diffuseTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
 
             if (material.values["baseColorFactor"].number_array.size() >= 3) {
                 submat.diffuse = glm::vec4(glm::make_vec3(&material.values["baseColorFactor"].number_array[0]), 1.0f);
@@ -85,7 +85,7 @@ namespace SatelliteExample {
 
             // metallic roughness
             texId = getTextureIndex(material.values["metallicRoughnessTexture"].json_double_value);
-            submat.specularTexture = texId >= 0 ? rtTextures[texId] : 0;
+            submat.specularTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
             submat.specular = glm::vec4(1.0f);
 
             if (material.values["metallicFactor"].number_array.size() >= 1) {
@@ -106,11 +106,11 @@ namespace SatelliteExample {
 
             // emissive texture
             texId = getTextureIndex(material.additionalValues["emissiveTexture"].json_double_value);
-            submat.emissiveTexture = texId >= 0 ? rtTextures[texId] : 0;
+            submat.emissiveTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
 
             // normal map
             texId = getTextureIndex(material.additionalValues["normalTexture"].json_double_value);
-            submat.bumpTexture = texId >= 0 ? rtTextures[texId] : 0;
+            submat.bumpTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
 
             // load material
             materialManager->addMaterial(submat);

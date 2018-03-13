@@ -29,9 +29,9 @@ namespace NSM
             samplers = std::move(another.samplers);
         }
 
-        void SamplerSet::freeSampler(const uint32_t &idx)
+        void SamplerSet::freeSampler(const int32_t& idx)
         {
-            freedomSamplers.push_back(idx - 1);
+            freedomSamplers.push_back(idx);
         }
 
         void SamplerSet::clearSamplers()
@@ -40,43 +40,30 @@ namespace NSM
             samplers.resize(0);
         }
 
-        void SamplerSet::setSampler(uint32_t location, const SamplerType &texture)
+        void SamplerSet::setSampler(const int32_t& location, const SamplerType &texture)
         {
-            for (int i = 0; i < freedomSamplers.size(); i++)
-            {
-                if (freedomSamplers[i] == location - 1)
-                    freedomSamplers.erase(freedomSamplers.begin() + i);
+            for (int i = 0; i < freedomSamplers.size(); i++) {
+                if (freedomSamplers[i] == location) freedomSamplers.erase(freedomSamplers.begin() + i);
             }
-            if (samplers.size() < location)
-                samplers.resize(location);
-            samplers[location - 1] = texture;
+            if (samplers.size() <= location) samplers.resize(location+1);
+            samplers[location] = texture;
         }
 
-        uint32_t SamplerSet::addSampler(const SamplerType &texture)
+        int32_t SamplerSet::addSampler(const SamplerType &sampler)
         {
-            uint32_t idx = 0;
-            if (freedomSamplers.size() > 0)
-            {
+            int32_t idx = -1;
+            if (freedomSamplers.size() > 0) {
                 idx = freedomSamplers[freedomSamplers.size() - 1];
                 freedomSamplers.pop_back();
-                samplers[idx] = texture;
-            }
-            else
-            {
-                samplers.push_back(texture);
+                samplers[idx] = sampler;
+            } else {
                 idx = samplers.size();
+                samplers.push_back(sampler);
             }
             return idx;
-        };
-
-        bool SamplerSet::haveSamplers()
-        {
-            return samplers.size() > 0;
         }
 
-        std::vector<SamplerType> &SamplerSet::getSamplers()
-        {
-            return samplers;
-        }
+        bool SamplerSet::haveSamplers() { return samplers.size() > 0; }
+        std::vector<SamplerType>& SamplerSet::getSamplers() { return samplers; }
     }
 }

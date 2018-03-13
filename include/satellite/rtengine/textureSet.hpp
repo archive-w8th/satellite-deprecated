@@ -23,14 +23,15 @@ namespace NSM
             TextureSet(TextureSet &another);
             TextureSet(TextureSet &&another);
 
-            void freeTexture(const uint32_t &idx);
+            void freeTexture(const int32_t &idx);
+            void setTexture(const int32_t &idx, const TextureType &texture);
+
             void clearTextures();
-            void setTexture(uint32_t location, const TextureType &texture);
             bool haveTextures();
             std::vector<TextureType> &getTextures();
 
-            uint32_t loadTexture(const TextureType &texture);
-            uint32_t loadTexture(std::string tex, bool force_write = false);
+            int32_t loadTexture(const TextureType &texture);
+            int32_t loadTexture(std::string tex, bool force_write = false);
         };
     } // namespace rt
 } // namespace NSM

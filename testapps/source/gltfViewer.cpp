@@ -283,6 +283,19 @@ namespace SatelliteExample {
             }
         }
 #endif
+
+
+        // load materials to GPU
+        materialManager->loadToVGA();
+
+        // build BVH in device (with linked data)
+        bvhBuilder->build(glm::dmat4(1.0));
+
+        // bind resources
+        rays->setMaterialSet(materialManager);
+        rays->setTextureSet(textureManager);
+        rays->setSamplerSet(samplerManager);
+        rays->setHierarchyStorage(bvhStore);
     }
 
     // processing
@@ -297,11 +310,16 @@ namespace SatelliteExample {
             switch360key = false;
         }
 
-        // load materials to GPU
-        materialManager->loadToVGA();
+        
 
         glm::dmat4 perspView = glm::perspectiveFov(glm::radians(60.0), double(canvasWidth), double(canvasHeight), 0.0001, 10000.0); // ray tracing better pickup coordinates at LH for RH dimension
         glm::dmat4 modelView = glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)); // need rotated coordinate system in 180 degree (Vulkan API)
+        rays->setModelView(modelView);
+        rays->setPerspective(perspView);
+
+        /*
+        // load materials to GPU
+        materialManager->loadToVGA();
 
         // build BVH in device (with linked data)
         bvhBuilder->build(glm::dmat4(1.0));
@@ -311,8 +329,7 @@ namespace SatelliteExample {
         rays->setTextureSet(textureManager);
         rays->setSamplerSet(samplerManager);
         rays->setHierarchyStorage(bvhStore);
-        rays->setModelView(modelView);
-        rays->setPerspective(perspView);
+        */
 
         // dispatch ray tracing pipeline
         rays->dispatchRayTracing();
@@ -324,8 +341,8 @@ namespace SatelliteExample {
 // main? 
 //////////////////////
 
-const int32_t baseWidth = 960, baseHeight = 540;
-//const int32_t baseWidth = 640, baseHeight = 360;
+//const int32_t baseWidth = 960, baseHeight = 540;
+const int32_t baseWidth = 640, baseHeight = 360;
 int main(const int argc, const char ** argv)
 {
     if (!glfwInit()) exit(EXIT_FAILURE);

@@ -1,6 +1,5 @@
 #pragma once
 
-//#include "./rtengine.hpp"
 #include "./gapi.hpp"
 
 #ifdef OS_WIN

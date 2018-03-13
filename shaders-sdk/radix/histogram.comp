@@ -23,7 +23,7 @@ void main() {
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         localHistogram[rk + LC_IDX] = 0;
     }
-    memoryBarrier(); barrier();
+    GROUP_BARRIER
 
     // use SIMD lanes for calculate histograms
     blocks_info blocks = get_blocks_info(NumKeys);
@@ -33,11 +33,11 @@ void main() {
         BVEC_WARP validAddress = addr < NumKeys;
         IFALL(!validAddress) break;
 
-        //memoryBarrier(); barrier();
+        
         if (LF_IDX == 0) {
             key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
         }
-        memoryBarrier(); barrier();
+        GROUP_BARRIER
 
         // WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
@@ -51,7 +51,7 @@ void main() {
     }
 
     // resolve histograms (planned distribute threads) 
-    memoryBarrier(); barrier();
+    GROUP_BARRIER
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
         if (radice < RADICES) {

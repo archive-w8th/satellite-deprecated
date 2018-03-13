@@ -51,13 +51,12 @@ void main() {
     uint i = gl_WorkGroupID.x * (gl_WorkGroupSize.x*2) + tid;
 
     sdata[tid] = bbox(vec4( 100000.f), vec4(-100000.f));
-    //sdata[tid] = bbox(vec4( 0.f), vec4( 0.f));
     while (i < tcount) {
         bbox bound = sdata[tid];
         sdata[tid] = bboxunion(bound, bboxunion(getMinMaxPrimitive(i), getMinMaxPrimitive(i + gl_WorkGroupSize.x)));
         i += gridSize;
     };
-    memoryBarrier(); barrier(); 
+    GROUP_BARRIER
 
     for (uint ki=(gl_WorkGroupSize.x>>1);ki>=1;ki>>=1) {
         if (tid < ki) {
@@ -65,9 +64,7 @@ void main() {
             bbox opbound = sdata[tid + ki];
             sdata[tid] = bboxunion(bound, opbound); 
         }
-        if (ki > WARP_SIZE_RT) {
-            memoryBarrier(); barrier(); 
-        }
+        if (ki > WARP_SIZE_RT) { GROUP_BARRIER }
     }
 
     if (tid == 0) {

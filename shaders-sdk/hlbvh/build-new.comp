@@ -87,7 +87,7 @@ void main() {
         Flags[hid] = 0;
     }
 
-    memoryBarrier(); barrier(); 
+    GROUP_BARRIER
 
     // begin work on splitting
     int ranged[2] = (isBeginning && workID == 0) ? int[2](0, 1) : int[2](aRange[0], aRange[1]);

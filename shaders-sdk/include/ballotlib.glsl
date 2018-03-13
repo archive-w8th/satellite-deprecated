@@ -50,20 +50,17 @@ bool electedInvoc() { return subgroupElect(); }
 // statically multiplied
 #define initAtomicSubgroupIncFunction(mem, fname, by, T)\
 T fname() {\
-    UVEC_BALLOT_WARP bits = ballotHW();\
-    uint sumInOrder = subgroupBallotBitCount(bits);\
-    uint idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
     return readFLane(gadd) + T(idxInOrder) * T(by);\
 }
 
-
 #define initAtomicSubgroupIncFunctionDyn(mem, fname, T)\
 T fname(const T by) {\
-    UVEC_BALLOT_WARP bits = ballotHW();\
-    uint sumInOrder = subgroupBallotBitCount(bits);\
-    uint idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
     return readFLane(gadd) + T(idxInOrder) * T(by);\
@@ -73,9 +70,8 @@ T fname(const T by) {\
 // statically multiplied
 #define initAtomicSubgroupIncFunctionTarget(mem, fname, by, T)\
 T fname(const uint WHERE) {\
-    UVEC_BALLOT_WARP bits = ballotHW();\
-    uint sumInOrder = subgroupBallotBitCount(bits);\
-    uint idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
     return readFLane(gadd) + T(idxInOrder) * T(by);\
@@ -83,9 +79,8 @@ T fname(const uint WHERE) {\
 
 #define initAtomicSubgroupIncFunctionByTarget(mem, fname, T)\
 T fname(const uint WHERE, const T by) {\
-    UVEC_BALLOT_WARP bits = ballotHW();\
-    uint sumInOrder = subgroupBallotBitCount(bits);\
-    uint idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
     return readFLane(gadd) + T(idxInOrder) * T(by);\
@@ -95,9 +90,8 @@ T fname(const uint WHERE, const T by) {\
 // statically multiplied
 #define initSubgroupIncFunctionTarget(mem, fname, by, T)\
 T fname(const uint WHERE) {\
-    UVEC_BALLOT_WARP bits = ballotHW();\
-    uint sumInOrder = subgroupBallotBitCount(bits);\
-    uint idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = add(mem, T(sumInOrder) * T(by));}\
     return readFLane(gadd) + T(idxInOrder) * T(by);\
@@ -105,28 +99,28 @@ T fname(const uint WHERE) {\
 
 #define initSubgroupIncFunctionByTarget(mem, fname, T)\
 T fname(const uint WHERE, const T by) {\
-    UVEC_BALLOT_WARP bits = ballotHW();\
-    uint sumInOrder = subgroupBallotBitCount(bits);\
-    uint idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = add(mem, T(sumInOrder) * T(by));}\
     return readFLane(gadd) + T(idxInOrder) * T(by);\
 }
 
 
+// invoc vote
 bool allInvoc(in bool bc){ return subgroupAll(bc); }
 bool anyInvoc(in bool bc){ return subgroupAny(bc); }
 
 
-
+// aliases
 bool allInvoc(in BOOL_ bc){ return allInvoc(SSC(bc)); }
 bool anyInvoc(in BOOL_ bc){ return anyInvoc(SSC(bc)); }
 #define IFALL(b)if(allInvoc(b))
 #define IFANY(b)if(anyInvoc(b))
 
 
-
-#define SB_BARRIER subgroupMemoryBarrier();subgroupBarrier();
+// subgroup barriers
+#define SB_BARRIER subgroupMemoryBarrier(),subgroupBarrier();
 
 
 #endif

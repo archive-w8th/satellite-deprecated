@@ -24,7 +24,7 @@ void main() {
         UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
         localHistogram[radice] = PrefixSum[radice + gl_WorkGroupID.x * RADICES];
     }
-    memoryBarrier(); barrier();
+    GROUP_BARRIER
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
@@ -34,11 +34,10 @@ void main() {
         BVEC_WARP validAddress = addr < NumKeys;
         IFALL(!validAddress) break;
 
-        //memoryBarrier(); barrier();
         if (LF_IDX == 0) {
             key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
         }
-        memoryBarrier(); barrier();
+        GROUP_BARRIER
 
         // WARP-optimized histogram calculation
         for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {

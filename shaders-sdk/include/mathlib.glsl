@@ -10,6 +10,9 @@
 #endif
 
 
+#define GROUP_BARRIER memoryBarrier(),barrier(); 
+
+
 // float 16 or 32 types
 #ifdef AMD_F16_BVH
 #define FTYPE_ float16_t

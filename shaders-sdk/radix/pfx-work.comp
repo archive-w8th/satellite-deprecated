@@ -23,6 +23,7 @@ uint prefixScan(const uint limit) {
     }
 
     // reduction prefix-scan
+    [[unroll]]
     for (int i=1;i<limit;i<<=1) {
         uint prv = ldx >= i ? ldx-i : 0;
         uint off = ldx >= i && ldx < limit ? localHistogram[prv] : 0, 

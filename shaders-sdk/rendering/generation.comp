@@ -16,6 +16,8 @@ const int _SEED_ID = 14;
 int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
         if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
+
+        [[unroll]]
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
             int nid = tb + int(LANE_IDX);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
@@ -78,6 +80,7 @@ void main()
             blockBins[binID].texelFrom = (divxy.x + divxy.y * wh.x);
 
             // invoke block data
+            [[unroll]]
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                 int nid = tb + int(LANE_IDX);
                 randomClocks = 0, subHash = nid; // reset random clocks
@@ -182,6 +185,8 @@ void main()
             blockBins[binID].texelFrom += 1;
 
             SB_BARRIER
+
+            [[unroll]]
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
                 copyBlockIndices(currentBlock, tb + int(LANE_IDX));
             }

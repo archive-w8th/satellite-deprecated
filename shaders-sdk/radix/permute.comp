@@ -20,10 +20,12 @@ void main() {
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
 
     // set prefix sum (planned distribute threads) 
+    [[unroll]]
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
         localHistogram[radice] = PrefixSum[radice + gl_WorkGroupID.x * RADICES];
     }
+    
     GROUP_BARRIER
 
     // calculate blocks

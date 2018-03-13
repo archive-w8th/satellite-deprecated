@@ -187,6 +187,8 @@ void main(){
 
 
             const int mode = meshUniform.primitiveType, trp = mode == 1 ? 4 : 3;
+
+            [[unroll]]
             for (int i=0;i<trp;i++) {
                 uint indiceID = globalID * trp + i;
                 readByAccessorIndice(meshUniform.indiceAccessor, indiceID, indiceID);
@@ -221,6 +223,7 @@ void main(){
                 ivec2 NORMAL_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+NORMAL_TID));
                 ivec2 TEXCOORD_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+TEXCOORD_TID));
 
+                [[unroll]]
                 for (int i=0;i<3;i++) {
                     const int mi = i;
 
@@ -248,6 +251,7 @@ void main(){
                 ivec2 NORMAL_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+NORMAL_TID));
                 ivec2 TEXCOORD_TXF = gatherMosaic(getUniformCoord(tidc*ATTRIB_EXTENT+TEXCOORD_TID));
 
+                [[unroll]]
                 for (int i=0;i<3;i++) {
                     const int mi = m[i];
 

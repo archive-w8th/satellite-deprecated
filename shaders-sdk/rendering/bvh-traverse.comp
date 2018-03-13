@@ -211,8 +211,12 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 childIntersect &= BVEC2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection
+
+                [[flatten]]
                 if (fmask >= 0) {
                     _continue = true;
+
+                    [[flatten]]
                     if (fmask == 2) { // if both has intersection
                         ivec2 ordered = cnode.xx + (SSC(lessEqualF(nears.x, nears.y)) ? ivec2(0,1) : ivec2(1,0));
                         traverseState.idx = ordered.x;

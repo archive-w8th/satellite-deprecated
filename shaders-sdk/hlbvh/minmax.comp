@@ -58,6 +58,7 @@ void main() {
     };
     GROUP_BARRIER
 
+    [[unroll]]
     for (uint ki=(gl_WorkGroupSize.x>>1);ki>=1;ki>>=1) {
         if (tid < ki) {
             bbox bound = sdata[tid];

@@ -160,6 +160,7 @@ vec2 parallaxMapping(in vec3 V, in vec2 T, out float parallaxHeight) {
     }
     
     // refinement
+    [[unroll]]
     for(int l=0;l<refLayers;l++){
         vec3 chd = mix(chd_a, chd_b, 0.5f);
         float heightFromTexture = 1.f-fetchTexture(tbinding, chd.xy).z;
@@ -272,6 +273,8 @@ void main() {
 
 #ifndef PLAIN_BINDLESS_TEXTURE_FETCH
             bool wasTextured = false;
+
+            [[unroll]]
             for (int wl=0;wl<WARP_SIZE_RT;wl++) {
                 IFALL(wasTextured) break;
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy

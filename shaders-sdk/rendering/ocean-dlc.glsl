@@ -55,8 +55,9 @@ float map(vec3 p) {
     float choppy = SEA_CHOPPY;
     vec2 uv = p.xz; uv.x *= 0.75f;
     
-    float d, h = 0.0f;    
-    for(int i = 0; i < ITER_GEOMETRY; i++) {        
+    float d, h = 0.0f;
+    [[unroll]]
+    for (int i = 0; i < ITER_GEOMETRY; i++) {        
     	d = sea_octave((uv+SEA_TIME)*freq,choppy);
     	d += sea_octave((uv-SEA_TIME)*freq,choppy);
         h += d * amp;        
@@ -72,8 +73,9 @@ float map_detailed(vec3 p) {
     float choppy = SEA_CHOPPY;
     vec2 uv = p.xz; uv.x *= 0.75f;
     
-    float d, h = 0.0;    
-    for(int i = 0; i < ITER_FRAGMENT; i++) {        
+    float d, h = 0.0;
+    [[unroll]]
+    for (int i = 0; i < ITER_FRAGMENT; i++) {        
     	d = sea_octave((uv+SEA_TIME)*freq,choppy);
     	d += sea_octave((uv-SEA_TIME)*freq,choppy);
         h += d * amp;        

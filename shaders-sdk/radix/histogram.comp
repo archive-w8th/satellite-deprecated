@@ -19,7 +19,8 @@ void main() {
     LC_IDX = gl_WorkGroupID.y + LF_IDX * gl_WorkGroupSize.y;
     LANE_IDX = (gl_LocalInvocationID.x % WARP_SIZE_RT);
 
-    // clear histogram of block (planned distribute threads) 
+    // clear histogram of block (planned distribute threads)
+    [[unroll]]
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         localHistogram[rk + LC_IDX] = 0;
     }
@@ -52,6 +53,8 @@ void main() {
 
     // resolve histograms (planned distribute threads) 
     GROUP_BARRIER
+
+    [[unroll]]
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
         UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
         if (radice < RADICES) {

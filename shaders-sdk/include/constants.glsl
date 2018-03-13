@@ -1,6 +1,9 @@
 #ifndef _CONSTANTS_H
 #define _CONSTANTS_H
 
+    // control flow
+    #extension GL_EXT_control_flow_attributes : enable
+
     // data format extensions
     #extension GL_AMD_gcn_shader : enable
     #extension GL_AMD_gpu_shader_half_float : enable

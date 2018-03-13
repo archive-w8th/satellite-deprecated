@@ -92,9 +92,10 @@ namespace NSM
 
             // descriptors
             rayTracingDescriptors = { descriptorSets[0] };
+            rayTraverseDescriptors = { descriptorSets[0], nullptr };
             samplingDescriptors = { descriptorSets[0], descriptorSets[3] };
             surfaceDescriptors = { descriptorSets[0], nullptr, descriptorSets[2] };
-            rayTraverseDescriptors = { descriptorSets[0], nullptr };
+
 
             // create staging buffer
             generalStagingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -407,13 +408,13 @@ namespace NSM
             clearingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             unorderedTempBuffer = createBuffer(device, strided<uint32_t>(blockLimit * BLOCK_SIZE), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
-            
-            
+
+
             traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
-            
-            
+
+
 
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);
@@ -541,7 +542,10 @@ namespace NSM
             reloadQueuedRays();
         }
 
-        void Pipeline::generate(const glm::dmat4 &persp, const glm::dmat4 &frontSide)
+        void Pipeline::setPerspective(const glm::dmat4 &persp) { rayBlockData[0].cameraUniform.projInv = glm::transpose(glm::inverse(persp)); }
+        void Pipeline::setModelView(const glm::dmat4 &mv) { rayBlockData[0].cameraUniform.camInv = glm::transpose(glm::inverse(mv)); }
+
+        void Pipeline::generate()
         {
             clearRays();
 
@@ -567,8 +571,6 @@ namespace NSM
             //rayBlockData[0].materialUniform.time = randm();
             rayBlockData[0].cameraUniform.ftime = float((milliseconds() - starttime) / (1000.0));
             rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
-            rayBlockData[0].cameraUniform.camInv = glm::transpose(glm::inverse(frontSide));
-            rayBlockData[0].cameraUniform.projInv = glm::transpose(glm::inverse(persp));
             syncUniforms();
 
             //
@@ -658,9 +660,13 @@ namespace NSM
                 nullptr);
         }
 
-        void Pipeline::traverse(std::shared_ptr<HieararchyStorage> &hierarchy)
-        {
-            auto vdescs = hierarchy->getClientDescriptorSet();
+
+        void Pipeline::setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy) {
+            rayTraverseDescriptors[1] = hierarchy->getClientDescriptorSet();
+        }
+
+        void Pipeline::traverse() {
+            if (!rayTraverseDescriptors[1]) return; // no valid geometry or hierarchy
 
             // unordered former
             auto unrdrCommandBuffer = getCommandBuffer(device, true);
@@ -670,7 +676,7 @@ namespace NSM
 
             // traverse BVH
             auto bvhCommandBuffer = getCommandBuffer(device, true);
-            bvhCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, (rayTraverseDescriptors = { rayTracingDescriptors[0], vdescs }), nullptr);
+            bvhCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, rayTraverseDescriptors, nullptr);
             bvhCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
             bvhCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 
@@ -685,7 +691,7 @@ namespace NSM
 
             // surface shading command
             auto srfCommandBuffer = getCommandBuffer(device, true);
-            srfCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, { surfaceDescriptors[0], vdescs, surfaceDescriptors[2] }, nullptr);
+            srfCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, { surfaceDescriptors[0], rayTraverseDescriptors[1], surfaceDescriptors[2] }, nullptr);
             srfCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, surfaceShadingPpl.pipeline);
             srfCommandBuffer.dispatch(INTENSIVITY, 1, 1);
 
@@ -696,6 +702,8 @@ namespace NSM
             flushCommandBuffer(device, srfCommandBuffer, true);
         }
 
+        void Pipeline::enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; clearSampling(); }
+        size_t Pipeline::getRayCount() { return rayBlockData[0].samplerUniform.blockCount; }
         uint32_t Pipeline::getCanvasWidth() { return canvasWidth; }
         uint32_t Pipeline::getCanvasHeight() { return canvasHeight; }
 
@@ -704,12 +712,17 @@ namespace NSM
         TextureType &Pipeline::getNormalImage() { return normalImage; }
         TextureType &Pipeline::getAlbedoImage() { return albedoImage; }
 
-        // panorama mode
-        void Pipeline::enable360mode(bool mode)
-        {
-            rayBlockData[0].cameraUniform.enable360 = mode;
-            clearSampling();
+        void Pipeline::dispatchRayTracing() {
+            const int32_t MDEPTH = 16;
+            this->generate();
+            for (int32_t j = 0; j < MDEPTH; j++) {
+                if (this->getRayCount() <= 1) break;
+                this->traverse();
+                this->rayShading();
+            }
+            this->collectSamples();
         }
-        size_t Pipeline::getRayCount() { return rayBlockData[0].samplerUniform.blockCount; }
+
+
     }
 }

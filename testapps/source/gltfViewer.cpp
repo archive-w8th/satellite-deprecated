@@ -407,19 +407,16 @@ namespace SatelliteExample {
         // build BVH in device (with linked data)
         bvhBuilder->build(glm::dmat4(1.0));
 
-        // bind materials and textures
+        // bind resources
         rays->setMaterialSet(materialManager);
         rays->setTextureSet(textureManager);
         rays->setSamplerSet(samplerManager);
+        rays->setHierarchyStorage(bvhStore);
+        rays->setModelView(modelView);
+        rays->setPerspective(perspView);
 
-        // process ray tracing 
-        rays->generate(perspView, modelView);
-        for (int32_t j = 0; j < depth; j++) {
-            if (rays->getRayCount() <= 1) break;
-            rays->traverse(bvhStore); // TODO: linking bvh storage too 
-            rays->rayShading(); // low level function for change rays
-        }
-        rays->collectSamples();
+        // dispatch ray tracing pipeline
+        rays->dispatchRayTracing();
     }
 
 };

@@ -98,20 +98,29 @@ namespace NSM
             void initBuffers();
             void init(DeviceQueueType &device);
 
-        public:
+
+        protected:
             void clearRays();
-            void resizeCanvas(uint32_t width, uint32_t height);
-            void setSkybox(TextureType &skybox);
-            void reallocRays(uint32_t width, uint32_t height);
-            void clearSampling();
+            void generate();
             void collectSamples();
             void rayShading();
-            void generate(const glm::dmat4 &persp, const glm::dmat4 &frontSide);
+            void traverse();
+
+        public:
+            void clearSampling();
+            void dispatchRayTracing();
+
+            void setSkybox(TextureType &skybox);
+            void resizeCanvas(uint32_t width, uint32_t height);
+            void reallocRays(uint32_t width, uint32_t height);
+            
+            void setPerspective(const glm::dmat4 &persp);
+            void setModelView(const glm::dmat4 &mv);
 
             void setSamplerSet(std::shared_ptr<SamplerSet> &samplerSet);
             void setTextureSet(std::shared_ptr<TextureSet> &textureSet);
             void setMaterialSet(std::shared_ptr<MaterialSet> &materialSet);
-            void traverse(std::shared_ptr<HieararchyStorage> &hierarchy);
+            void setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy);
 
             uint32_t getCanvasWidth();
             uint32_t getCanvasHeight();

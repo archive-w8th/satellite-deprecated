@@ -211,14 +211,15 @@ namespace NSM
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(64) }), false);
 
             // receive boundary
-            std::vector<glm::vec4> bounds(64);
+            std::vector<bbox> bounds(32);
             getBufferSubData(generalLoadingBuffer, bounds, 0);
-            bbox bound = { bounds[0], bounds[1] };
-            for (int i = 1; i < 32; i++)
-            {
-                bound.mn = glm::min(bounds[i * 2 + 0], bound.mn);
-                bound.mx = glm::max(bounds[i * 2 + 1], bound.mx);
-            }
+
+            bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bbox{ glm::vec4(10000.f), glm::vec4(-10000.f) }, [&](auto&& a, auto&& b) {
+                register bbox _box;
+                _box.mn = glm::min(a.mn, b.mn);
+                _box.mx = glm::max(a.mx, b.mx);
+                return _box;
+            });
 
             // get optimizations
             glm::vec3 scale = (bound.mx - bound.mn).xyz();

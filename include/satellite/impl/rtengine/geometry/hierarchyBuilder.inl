@@ -214,7 +214,7 @@ namespace NSM
             std::vector<bbox> bounds(32);
             getBufferSubData(generalLoadingBuffer, bounds, 0);
 
-            bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bbox{ glm::vec4(10000.f), glm::vec4(-10000.f) }, [&](auto&& a, auto&& b) {
+            bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bounds[0], [&](auto&& a, auto&& b) {
                 register bbox _box;
                 _box.mn = glm::min(a.mn, b.mn);
                 _box.mx = glm::max(a.mx, b.mx);

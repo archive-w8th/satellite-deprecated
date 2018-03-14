@@ -75,7 +75,7 @@ ivec2 getUniformCoord(in uint indice) {
 
 
 #ifndef VERTEX_FILLING
-float intersectTriangle(inout vec3 orig, inout mat3 M, inout int axis, inout int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
+float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
     float T = INFINITY;
     //IFANY (_valid) {
         BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define

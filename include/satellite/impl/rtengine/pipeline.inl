@@ -374,7 +374,7 @@ namespace NSM
             const size_t BLOCK_WIDTH = 8, BLOCK_HEIGHT = 8;
             const size_t BLOCK_SIZE = BLOCK_WIDTH * BLOCK_HEIGHT;
             const size_t BLOCK_NODES_SIZE = 32; // 32byte
-            const size_t TRAVERSE_CACHE_SIZE = 32768; // 32kb
+            const size_t TRAVERSE_CACHE_SIZE = 1024; // 32kb
             const size_t TRAVERSE_BLOCK_SIZE = 4096; // 4kb
             const size_t ALLOC_MULT = 12;
 
@@ -407,7 +407,7 @@ namespace NSM
 
             // caches
             traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * 64 * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);

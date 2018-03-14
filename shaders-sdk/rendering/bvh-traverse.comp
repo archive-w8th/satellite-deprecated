@@ -21,14 +21,16 @@
 
 // dedicated BVH stack
 const int extendedStackSize = 32;
-struct NodeCache { int extendedStack[extendedStackSize]; };
+struct NodeCache { 
+    int extendedStack[32];
+};
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 
 // reserved block
 layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { uvec4 blockCache[]; };
 
 
-int stackPtr = 0; int rayID = 0;
+int stackPtr = 0, triPtr = 0; int rayID = 0;
 
 #ifndef USE_STACKLESS_BVH
 #define LOCAL_STACK localStack[LT_IDX]
@@ -101,16 +103,13 @@ struct BvhTraverseState {
 } traverseState;
 
 
-
 void doIntersection() {
     BOOL_ near = BOOL_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
     float d = intersectTriangle(currentRay.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
-    IF (lessF(d, _nearhit)) {
-        traverseState.bvhSpace.cutOut = d * traverseState.distMult;
-    }
+    IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }
     
     // validate hit 
     near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
@@ -119,7 +118,6 @@ void doIntersection() {
     // reset triangle ID 
     traverseState.defTriangleID = -1;
 }
-
 
 
 void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
@@ -183,7 +181,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     for (int hi=0;hi<max_iteraction;hi++) {
         IFALL (traverseState.idx < 0) break; // if traverse can't live
 
-        for (;hi<max_iteraction;hi++) {
+        if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
             ivec2 b2idx = bvhLinear2D(traverseState.idx);
             ivec2 cnode = traverseState.idx >= 0 ? texelFetch(bvhStorage, b2idx, 0).xy : (-1).xx;
@@ -236,8 +234,6 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
             if (cnode.x == cnode.y) {
                 if (traverseState.defTriangleID < 0) {
                     traverseState.defTriangleID = texelFetch(bvhStorage, b2idx, 0).w;
-                } else {
-                    _continue = true;
                 }
             }
 
@@ -270,15 +266,10 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
             } _continue = false;
 #endif
 
-            // pause, because found intersection 
-            IFALL (traverseState.defTriangleID >= 0 || traverseState.idx < 0) break; // pause traversing
-        }
+            IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0 ) { SB_BARRIER break; }
+        }}
 
-        // do intersection of found geometry
-        IFANY (traverseState.defTriangleID >= 0) {
-            SB_BARRIER
-            doIntersection();
-        }
+        IFANY (traverseState.defTriangleID >= 0) { SB_BARRIER doIntersection(); }
     }
 
     // if has any intersection, include to result list

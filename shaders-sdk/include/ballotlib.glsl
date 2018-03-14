@@ -25,23 +25,9 @@
 #define RLF_ subgroupBroadcastFirst
 
 
-vec4 readLane(in vec4 val, in uint lane) { return RL_(val, lane); }
-vec3 readLane(in vec3 val, in uint lane) { return RL_(val, lane); }
-mat3 readLane(in mat3 val, in uint lane) { val[0] = readLane(val[0], lane), val[1] = readLane(val[1], lane), val[2] = readLane(val[2], lane); return val; }
-float readLane(in float val, in uint lane) { return RL_(val, lane); }
-uint readLane(in uint val, in uint lane) { return RL_(val, lane); }
-int readLane(in int val, in uint lane) { return RL_(val, lane); }
-bool readLane(in bool val, in uint lane) { return bool(RL_(int(val), lane)); }
-
-// hack for cross-lane reading of 16-bit data (whaaat?)
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-float16_t readLane(in float16_t val, in uint lane) { return unpackFloat2x16(RL_(packFloat2x16(f16vec2(val, 0.hf)), lane)).x; }
-f16vec2 readLane(in f16vec2 val, in uint lane) { return unpackFloat2x16(RL_(packFloat2x16(val), lane)); }
-#endif
-
-float readFLane(in float val) { return RLF_(val); }
-uint readFLane(in uint val) { return RLF_(val); }
-int readFLane(in int val) { return RLF_(val); }
+// universal aliases
+#define readFLane RLF_
+#define readLane RL_
 
 UVEC_BALLOT_WARP ballotHW() { return subgroupBallot(true); }
 bool electedInvoc() { return subgroupElect(); }

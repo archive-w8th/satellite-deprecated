@@ -317,19 +317,10 @@ namespace SatelliteExample {
         rays->setModelView(modelView);
         rays->setPerspective(perspView);
 
-        /*
-        // load materials to GPU
-        materialManager->loadToVGA();
+
 
         // build BVH in device (with linked data)
         bvhBuilder->build(glm::dmat4(1.0));
-
-        // bind resources
-        rays->setMaterialSet(materialManager);
-        rays->setTextureSet(textureManager);
-        rays->setSamplerSet(samplerManager);
-        rays->setHierarchyStorage(bvhStore);
-        */
 
         // dispatch ray tracing pipeline
         rays->dispatchRayTracing();

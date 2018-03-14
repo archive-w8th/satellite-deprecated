@@ -8,21 +8,14 @@ namespace NSM
     // create command pool function
     vk::CommandPool createCommandPool(const DeviceQueueType &deviceQueue)
     {
-        return deviceQueue->logical.createCommandPool(vk::CommandPoolCreateInfo(
-            vk::CommandPoolCreateFlags(
-                vk::CommandPoolCreateFlagBits::eResetCommandBuffer),
-            deviceQueue->mainQueue->familyIndex));
+        return deviceQueue->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueue->mainQueue->familyIndex));
     }
 
     // get or create command buffer
     auto getCommandBuffer(const DeviceQueueType &deviceQueue, bool begin = true)
     {
-        vk::CommandBuffer cmdBuffer =
-            deviceQueue->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(
-                deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
-        if (begin)
-            cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(
-                vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+        vk::CommandBuffer cmdBuffer = deviceQueue->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
+        if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
         cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe |
             vk::PipelineStageFlagBits::eTransfer,
             vk::PipelineStageFlagBits::eTopOfPipe |
@@ -32,40 +25,33 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffers(const DeviceQueueType &deviceQueue,
-        const std::vector<vk::CommandBuffer> &commandBuffers,
-        bool async = false)
+    auto flushCommandBuffers(const DeviceQueueType &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = false) 
     {
         std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo()
-                .setWaitSemaphoreCount(0)
-                .setCommandBufferCount(commandBuffers.size())
-                .setPCommandBuffers(commandBuffers.data()) };
+            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
+        };
 
         if (async)
         {
             std::async([=]() { // async submit and await for destruction command buffers
-                for (auto &cmdf : commandBuffers)
-                    cmdf.end(); // end cmd buffers
+                for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
                 vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
                 deviceQueue->mainQueue->queue.submit(submitInfos, fence);
-                deviceQueue->logical.waitForFences(1, &fence, true,
-                    DEFAULT_FENCE_TIMEOUT);
+                deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool,
-                    commandBuffers);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
             });
         }
         else
         {
-            for (auto &cmdf : commandBuffers)
-                cmdf.end(); // end cmd buffers
+            for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
             auto fence = deviceQueue->fence;
             deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            deviceQueue->logical.resetFences(1, &fence);
-            deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool,
-                commandBuffers);
+            std::async([=]() {
+                deviceQueue->logical.resetFences(1, &fence);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
+            });
         }
     };
 
@@ -78,55 +64,39 @@ namespace NSM
             cmdf.end(); // end cmd buffers
 
         std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo()
-                .setWaitSemaphoreCount(0)
-                .setCommandBufferCount(commandBuffers.size())
-                .setPCommandBuffers(commandBuffers.data()) };
+            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
+        };
 
         std::async([=]() { // async submit and await for destruction command buffers
-            for (auto &cmdf : commandBuffers)
-                cmdf.end(); // end cmd buffers
+            for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
             vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
             deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            std::async([=]() {
+                deviceQueue->logical.destroyFence(fence);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
+            });
             asyncCallback();
-            deviceQueue->logical.destroyFence(fence);
-            deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool,
-                commandBuffers);
         });
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue,
-        const vk::CommandBuffer &commandBuffer,
-        bool async = false)
+    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = false)
     {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo()
-                .setWaitSemaphoreCount(0)
-                .setCommandBufferCount(1)
-                .setPCommandBuffers(&commandBuffer) };
-
-        // vk::PipelineStageFlags stageMasks =
-        // vk::PipelineStageFlagBits::eAllCommands; if (!deviceQueue->executed ||
-        // !deviceQueue->currentSemaphore) {
-        //    deviceQueue->currentSemaphore =
-        //    deviceQueue->logical.createSemaphore(vk::SemaphoreCreateInfo());
-        //    deviceQueue->executed = true;
-        //}
+            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) 
+        };
 
         if (async)
         {
             std::async([=]() { // async submit and await for destruction command buffers
                 vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
                 deviceQueue->mainQueue->queue.submit(submitInfos, fence);
-                deviceQueue->logical.waitForFences(1, &fence, true,
-                    DEFAULT_FENCE_TIMEOUT);
+                deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1,
-                    &commandBuffer);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
         }
         else
@@ -134,9 +104,10 @@ namespace NSM
             auto fence = deviceQueue->fence;
             deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            deviceQueue->logical.resetFences(1, &fence);
-            deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1,
-                &commandBuffer);
+            std::async([=]() {
+                deviceQueue->logical.resetFences(1, &fence);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+            });
         }
     };
 
@@ -148,27 +119,18 @@ namespace NSM
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo()
-                .setWaitSemaphoreCount(0)
-                .setCommandBufferCount(1)
-                .setPCommandBuffers(&commandBuffer) };
-
-        // vk::PipelineStageFlags stageMasks =
-        // vk::PipelineStageFlagBits::eAllCommands; if (!deviceQueue->executed ||
-        // !deviceQueue->currentSemaphore) {
-        //    deviceQueue->currentSemaphore =
-        //    deviceQueue->logical.createSemaphore(vk::SemaphoreCreateInfo());
-        //    deviceQueue->executed = true;
-        //}
+            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) 
+        };
 
         std::async([=]() { // async submit and await for destruction command buffers
             vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
             deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            std::async([=]() {
+                deviceQueue->logical.destroyFence(fence);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+            });
             asyncCallback();
-            deviceQueue->logical.destroyFence(fence);
-            deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1,
-                &commandBuffer);
         });
     };
 

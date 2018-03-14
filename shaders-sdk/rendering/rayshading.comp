@@ -162,6 +162,8 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 }
 
 uint createBlockOnce(inout int block, in bool minimalCondition){
+    SB_BARRIER
+
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
         if (electedInvoc()) { block = createBlock(block, currentBlockBin); }; block = readFLane(block);
 
@@ -179,6 +181,8 @@ uint createBlockOnce(inout int block, in bool minimalCondition){
             }
         }
     }
+
+    SB_BARRIER
     return block;
 }
 
@@ -204,11 +208,13 @@ void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, ino
     }
 
     // recommend or not new block if have
+    SB_BARRIER
     prevNonOccupiedBlock = allInvoc(!confirmNodeOccupied(prevNonOccupiedBlock) || int(outNewBlock) < 0) ? int(prevNonOccupiedBlock) : int(outNewBlock);
 }
 
 
 void emitBlock(in int block) {
+    SB_BARRIER
     if (anyInvoc(block >= 0)) {
         bool hasIllumination = false;
 
@@ -225,8 +231,9 @@ void emitBlock(in int block) {
             }
         }
 
+        SB_BARRIER
         hasIllumination = hasIllumination || anyInvoc(hasIllumination);
-
+        
         // confirm block or flush
         if (electedInvoc()) {
             if (blockLength(block) >= 1) { 

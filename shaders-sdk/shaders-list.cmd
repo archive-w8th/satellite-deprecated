@@ -96,8 +96,8 @@ call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDX
 call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%bvh-traverse.comp.spv    -o %OUTDIR%%RNDR%bvh-traverse.comp.spv
 
 :: for some workarounds
-call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%unordered.comp.spv       -o %OUTDIR%%RNDR%unordered.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%rayshading.comp.spv      -o %OUTDIR%%RNDR%rayshading.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%unordered.comp.spv       -o %OUTDIR%%RNDR%unordered.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%generation.comp.spv      -o %OUTDIR%%RNDR%generation.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%surface.comp.spv         -o %OUTDIR%%RNDR%surface.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%scatter.comp.spv         -o %OUTDIR%%RNDR%scatter.comp.spv

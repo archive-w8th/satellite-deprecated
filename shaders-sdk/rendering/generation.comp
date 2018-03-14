@@ -77,7 +77,7 @@ void main()
 
             // make division
             ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
-            blockBins[binID].texelFrom = (divxy.x + divxy.y * wh.x);
+            blockBins[binID].texelFrom = (divxy.x + divxy.y * wh.x)+1;
 
             // invoke block data
             [[unroll]]
@@ -111,13 +111,13 @@ void main()
                     texelBuf.nodes[idx] = txfi;
                 }
 
-                m16s(-1, blockBins[binID].texelHeader-1, nid);
+                m16s(0, blockBins[binID].texelHeader-1, nid);
 
                 IFALL(overflow) break;
                 
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
                 if (vbn) {
-                    m16s(vbn ? (idx-blockBins[binID].texelFrom+1) : -1, blockBins[binID].texelHeader-1, nid);
+                    m16s(vbn ? (idx-(blockBins[binID].texelFrom-1)+1) : 0, blockBins[binID].texelHeader-1, nid);
 
                     vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;

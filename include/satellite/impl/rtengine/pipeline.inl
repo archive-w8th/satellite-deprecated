@@ -208,13 +208,10 @@ namespace NSM
             // counters buffer
             countersBuffer = createBuffer(device, strided<uint32_t>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
-            // zeros
-            std::vector<uint32_t> zeros(1024);
-            std::vector<uint32_t> ones(1024);
-            for (int i = 0; i < 1024; i++)
-            {
-                zeros[i] = 0, ones[i] = 1;
-            }
+            // zeros and ones
+            std::vector<uint32_t> zeros(1024), ones(1024);
+            std::for_each(std::execution::par_unseq, zeros.begin(), zeros.end(), [&](auto&& m) { m = 0u; });
+            std::for_each(std::execution::par_unseq, ones.begin(), ones.end(), [&](auto&& m) { m = 1u; });
 
             {
                 // make reference buffers

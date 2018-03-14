@@ -12,6 +12,8 @@
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <execution>
+#include <iterator>
 
 #include <half.hpp> // force include half's
 #include <glm/glm.hpp>

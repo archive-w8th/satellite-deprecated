@@ -79,19 +79,13 @@ namespace NSM
                 debugOnes32BufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // minmaxes
-                std::vector<glm::vec4> minmaxes(64);
-                for (int i = 0; i < 32; i++)
-                {
-                    minmaxes[i * 2 + 0] = glm::vec4(10000.f), minmaxes[i * 2 + 1] = glm::vec4(-10000.f);
-                }
+                std::vector<bbox> minmaxes(32);
+                std::for_each(std::execution::par_unseq, minmaxes.begin(), minmaxes.end(), [&](auto&& m) { m.mn = glm::vec4(10000.f), m.mx = glm::vec4(-10000.f); });
 
-                // zeros
-                std::vector<uint32_t> zeros(1024);
-                std::vector<uint32_t> ones(1024);
-                for (int i = 0; i < 1024; i++)
-                {
-                    zeros[i] = 0, ones[i] = 1;
-                }
+                // zeros and ones
+                std::vector<uint32_t> zeros(1024), ones(1024);
+                std::for_each(std::execution::par_unseq, zeros.begin(), zeros.end(), [&](auto&& m) { m = 0u; });
+                std::for_each(std::execution::par_unseq, ones.begin(), ones.end(), [&](auto&& m) { m = 1u; });
 
                 // make reference buffers
                 auto command = getCommandBuffer(device, true);

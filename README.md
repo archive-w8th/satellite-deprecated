@@ -1,5 +1,7 @@
 # Satellite OEM (VK-1.1.70)
 
+[![Join the chat at https://gitter.im/world8th/satellite-oem](https://badges.gitter.im/world8th/satellite-oem.svg)](https://gitter.im/world8th/satellite-oem?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
 **10.03.2018**: Support for Vulkan API 1.1.70 runtime 

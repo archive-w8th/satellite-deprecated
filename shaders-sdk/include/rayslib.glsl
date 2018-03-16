@@ -52,7 +52,11 @@ layout ( std430, binding = 6, set = 0 ) buffer TexelsSSBO { Texel nodes[]; } tex
 layout ( std430, binding = 9, set = 0 ) buffer HitsSSBO { HitRework hits[]; }; // 96byte per node
 
 // for faster BVH traverse
-layout ( std430, binding = 10, set = 0 ) buffer UnorderedSSBO { int unorderedRays[]; };
+layout ( std430, binding = 10, set = 0 ) buffer UnorderedSSBO { ElectedRay unorderedRays[]; };
+
+
+
+
 
 
 #ifdef USE_16BIT_ADDRESS_SPACE
@@ -240,8 +244,7 @@ void accquirePlainNode(in int block, in int bidx){
 }
 
 
-void accquireUnordered(in int gid){
-    int rid = unorderedRays[gid]-1;
+void accquireUnordered(in int rid){
     currentBlock = int(rid / R_BLOCK_SIZE);
     currentBlockNode = int(rid % R_BLOCK_SIZE);
     if (currentBlockNode >= 0) currentRay = rayBlockNodes[currentBlock][currentBlockNode].data;

@@ -53,7 +53,11 @@ void main() {
                     // make unordered lists for context
                     if (!overflow && SSC(RayActived(currentRay))) {
                         uint uidx = atomicIncTT();
-                        unorderedRays[uidx] = int(getGeneralNodeId())+1;
+                        unorderedRays[uidx].cdirect = currentRay.cdirect;
+                        unorderedRays[uidx].origin = currentRay.origin;
+                        unorderedRays[uidx].uindex.x = uint(getGeneralNodeId())+1;
+                        unorderedRays[uidx].uindex.y = 0;
+                        //unorderedRays[uidx] = int(getGeneralNodeId())+1;
                     }
                 }
             }

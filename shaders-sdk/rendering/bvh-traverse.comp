@@ -19,6 +19,10 @@
 #include "../include/vertex.glsl"
 
 
+// terrorist ray
+ElectedRay currentRayTmp;
+
+
 // dedicated BVH stack
 const int extendedStackSize = 32;
 struct NodeCache { 
@@ -74,13 +78,13 @@ void includeChain(inout vec4 intersection) {
     HitRework hitp = hits[hid-1];
     hitp.uvt = intersection;
     hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
-    hitp.ray = int(getGeneralNodeId());
+    hitp.ray = int(currentRayTmp.uindex.x)-1;
     hitp.bitfield = 0;
     hitp.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
     hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
     hitp.emission = packHalf2(vec4(0.f));
     hits[hid-1] = hitp;
-    currentRay.origin.w = uintBitsToFloat(hid);
+    currentRayTmp.origin.w = uintBitsToFloat(hid);
 }
 
 struct GeometrySpace {
@@ -106,7 +110,7 @@ struct BvhTraverseState {
 void doIntersection() {
     BOOL_ near = BOOL_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    float d = intersectTriangle(currentRay.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
+    float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }
@@ -296,17 +300,18 @@ void main() {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); //rayID = it;
         BOOL_ overflow = BOOL_(it >= wsize);
         IFALL(overflow) break;
-        accquireUnordered(it);
-
-        // begin traverse (save to caches)
-        overflow |= not(RayActived(currentRay)) | BOOL_(currentBlock < 0 || currentBlockNode < 0);
+        currentRayTmp = unorderedRays[it];
 
         // do BVH traversing 
-        doBvhTraverse(currentRay.origin.xyz, dcts(currentRay.cdirect.xy), not(overflow));
+        doBvhTraverse(currentRayTmp.origin.xyz, dcts(currentRayTmp.cdirect.xy), not(overflow));
 
-        // save result if present
+        // save result if present (planned binding lately)
         IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & BOOL_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
+            accquireUnordered(int(currentRayTmp.uindex.x)-1);
+            currentRay.origin.w = currentRayTmp.origin.w;
             storeRay();
         }
+        
+        unorderedRays[it] = currentRayTmp;
     }
 }

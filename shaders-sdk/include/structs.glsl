@@ -173,6 +173,11 @@ struct RayRework {
      vec4 origin; vec2 cdirect; uvec2 dcolor;
 };
 
+struct ElectedRay {
+     vec4 origin; vec2 cdirect; uvec2 uindex;
+};
+
+
 
 // write color, but don't write (save) last element
 uvec2 WriteColor(inout uvec2 rwby, in vec4 color){

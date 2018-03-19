@@ -77,11 +77,11 @@ namespace NSM
 
             // build global boundary
             boundPrimitives.dispatch = [&]() {
-                auto cCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(64) });
+                auto cCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) });
                 auto commandBuffer = getCommandBuffer(device, true);
                 commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
                 commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, boundPrimitives.pipeline);
-                commandBuffer.dispatch(32, 1, 1);
+                commandBuffer.dispatch(CACHED_BBOX, 1, 1);
                 flushCommandBuffers(device, std::vector<vk::CommandBuffer>{ {cCmd, commandBuffer}}, true);
             };
 
@@ -113,9 +113,9 @@ namespace NSM
             };
 
             { // boundary buffer cache
-                boundaryBuffer = createBuffer(device, strided<glm::vec4>(64), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
                 countersBuffer = createBuffer(device, strided<uint32_t>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-                boundaryBufferReference = createBuffer(device, strided<glm::vec4>(64), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                boundaryBuffer = createBuffer(device, strided<glm::vec4>(CACHED_BBOX * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                boundaryBufferReference = createBuffer(device, strided<glm::vec4>(CACHED_BBOX*2), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             }
 
             {
@@ -123,7 +123,7 @@ namespace NSM
                 debugOnes32BufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // minmaxes
-                std::vector<bbox> minmaxes(32);
+                std::vector<bbox> minmaxes(CACHED_BBOX);
                 std::for_each(std::execution::par_unseq, minmaxes.begin(), minmaxes.end(), [&](auto&& m) { m.mn = glm::vec4(10000.f), m.mx = glm::vec4(-10000.f); });
 
                 // zeros and ones
@@ -208,10 +208,10 @@ namespace NSM
             boundPrimitives.dispatch(); // calculate general box
 
             // get boundary
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(64) }), false);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), false);
 
             // receive boundary
-            std::vector<bbox> bounds(32);
+            std::vector<bbox> bounds(CACHED_BBOX);
             getBufferSubData(generalLoadingBuffer, bounds, 0);
 
             bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bounds[0], [&](auto&& a, auto&& b) {
@@ -318,8 +318,7 @@ namespace NSM
                 // check if complete
                 getBufferSubData(generalLoadingBuffer, counters, 0);
                 int32_t nodeCount = counters[5] - counters[4];
-                if (nodeCount <= 0)
-                    break;
+                if (nodeCount <= 0) break;
             }
 
             // because already awaited, but clear command buffers and fence (planned saving/cache commands)

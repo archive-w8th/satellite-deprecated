@@ -4,7 +4,7 @@
 #include "./includes.glsl"
 
 // current work group size
-#define WG_COUNT 32
+#define WG_COUNT 64
 
 // shared memory of...
 shared uint localHistogram[RADICES];

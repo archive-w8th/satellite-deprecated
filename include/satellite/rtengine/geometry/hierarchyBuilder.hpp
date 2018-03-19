@@ -12,6 +12,9 @@ namespace NSM
         class HieararchyBuilder
         {
         protected:
+            const size_t CACHED_BBOX = 128;
+
+
             // Geometry metrics
             const size_t _WIDTH = 6144;
             const size_t WARPED_WIDTH = 2048;

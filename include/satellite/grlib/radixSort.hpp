@@ -19,7 +19,7 @@ namespace NSM {
             vk::PipelineLayout pipelineLayout;
 
             struct Consts { uint32_t NumKeys, Shift, Descending, IsSigned; };
-            const uint32_t WG_COUNT = 32;
+            const uint32_t WG_COUNT = 64;
             const uint32_t RADICE_AFFINE = 2;
             std::string shadersPathPrefix = "shaders-spv";
             void init(DeviceQueueType& device);

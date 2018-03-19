@@ -28,7 +28,7 @@ void main() {
                 ivec2 _idx2 = bvhLinear2D(idx);
                 ivec4 bvhmeta = imageLoad(bvhStorage, _idx2);
                 uint leafID = MortoncodesIndices[bvhmeta.x];
-                exchange(Leafs[leafID].pdata.z, int(idx));
+                Leafs[leafID].pdata.z = int(idx);
                 HlbvhNode leaf = Leafs[leafID];
                 imageStore(bvhStorage, _idx2, ivec4(bvhmeta.xx, bvhmeta.z, leaf.pdata.w));
 

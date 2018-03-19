@@ -109,8 +109,10 @@ float mlength(in vec3 mcolor) { return max(mcolor.x, max(mcolor.y, mcolor.z)); }
 
 // memory managment
 void swap(inout int a, inout int b) { int t = a; a = b; b = t; }
+
 uint exchange(inout uint mem, in uint v) { uint tmp = mem; mem = v; return tmp; }
 int exchange(inout int mem, in int v) { int tmp = mem; mem = v; return tmp; }
+
 int add(inout int mem, in int v) { int tmp = mem; mem += v; return tmp; }
 uint add(inout uint mem, in uint ops) { uint tmp = mem; mem += ops; return tmp; }
 

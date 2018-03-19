@@ -23,8 +23,8 @@
 ElectedRay currentRayTmp;
 
 
-const int stackPageCount = 2;
-const int localStackSize = 16;
+const int stackPageCount = 4;
+const int localStackSize = 8;
 
 
 // dedicated BVH stack
@@ -54,7 +54,11 @@ int loadStack(){
         }
     }
 
+#ifdef USE_FAST_OFFLOAD
+    if (ptr >= 0) { val = LOCAL_STACK[ptr]; }
+#else
     if (ptr >= 0) { val = exchange(LOCAL_STACK[ptr], -1); }
+#endif
     return val;
 }
 
@@ -66,8 +70,14 @@ void storeStack(in int val){
         if (page >= 0 && page < stackPageCount) {
             stackPtr = 1, ptr = 0; 
 
+#ifdef USE_FAST_OFFLOAD
             [[unroll]]
             for (int i=0;i<localStackSize;i++) { nodeCache[rayID].stackPageFiles[page][i] = exchange(LOCAL_STACK[i], -1); }
+#else
+            [[unroll]]
+            for (int i=0;i<localStackSize;i++) { nodeCache[rayID].stackPageFiles[page][i] = LOCAL_STACK[i]; }
+#endif
+
         }
     }
 

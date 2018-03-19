@@ -51,16 +51,16 @@ void splitNode(in int trID) {
 
         // left child
         if (isLeaf.x) {
-            exchange(LeafIndices[cCounterInc()], hd.x);
+            LeafIndices[cCounterInc()] = hd.x;
         } else { // add to next works
-            exchange(Actives[aCounterInc()], hd.x);
+            Actives[aCounterInc()] = hd.x;
         }
 
         // right child
         if (isLeaf.y) {
-            exchange(LeafIndices[cCounterInc()], hd.y);
+            LeafIndices[cCounterInc()] = hd.y;
         } else { // add to next works
-            exchange(Actives[aCounterInc()], hd.y);
+            Actives[aCounterInc()] = hd.y;
         }
 
         ivec2 _lidx = bvhLinear2D(hd.x), _ridx = bvhLinear2D(hd.y);
@@ -80,8 +80,7 @@ void main() {
     // create initial (root) node
     bool isBeginning = aRange[1] == 0;
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
-        int hid = lCounterInc(2);
-        exchange(Actives[aCounterInc()], hid);
+        int hid = lCounterInc(2); Actives[aCounterInc()] = hid;
 
         imageStore(bvhStorage, bvhLinear2D(hid), ivec4(0, aabbcount[0]-1, -1, -1));
         Flags[hid] = 0;

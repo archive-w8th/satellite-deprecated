@@ -38,7 +38,7 @@ LOCAL_SIZE_LAYOUT;
 
 void main()
 {
-    ivec2 wh = ivec2(floor(vec2(RAY_BLOCK samplerUniform.sceneRes.xy)+0.0001f.xx));
+    ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
     ivec2 blk = ivec2(tiled(wh.x, int(R_BLOCK_WIDTH)), tiled(wh.y, int(R_BLOCK_HEIGHT)));
 
     vec2 sceneResInv = 1.0f / vec2(wh);
@@ -89,32 +89,28 @@ void main()
                 // by default is inactive
                 currentRay.cdirect = vec2(0.f.xx);
                 currentRay.origin = vec4(vec3(0.f.xxx), FINT_NULL);
-                RayActived(currentRay, FALSE_);
 
-                // default colors of rays
+                // by default - disabled
+                RayActived(currentRay, FALSE_);
                 WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
                 // get 2D index
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
                 ivec2 xy = divxy + bc;
                 overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
-                
+                IFALL(overflow) break;
 
                 // prison coding
                 int idx = xy.x + xy.y * wh.x;
-
                 {
                     Texel txfi = texelBuf.nodes[idx];
-                    txfi.coord.x = 0.f;
-                    txfi.coord.y = 0.f;
+                    txfi.coord.x = -1.f;
+                    txfi.coord.y = -1.f;
                     txfi.color = 0.f.xxxx; // debug white
                     texelBuf.nodes[idx] = txfi;
                 }
 
                 m16s(-1, blockBins[binID].texelHeader-1, nid);
-
-                IFALL(overflow) break;
-                
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
                 if (vbn) {
                     m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);

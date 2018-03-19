@@ -21,11 +21,11 @@ LOCAL_SIZE_LAYOUT;
 
 
 void main() {
-    vec2 wh = floor(vec2(RAY_BLOCK samplerUniform.sceneRes.xy) + 0.0001f.xx);
-    vec2 whs = floor(vec2(imageSize(presampled).xy) * vec2(1.f, 0.5f) + 0.0001f);
+    ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
+    ivec2 whs = imageSize(presampled).xy; whs.y /= 2;
 
-    vec2 samplesPerPixel = wh / whs;
-    ivec2 scl = ivec2(ceil(samplesPerPixel - 0.0001f));
+    vec2 samplesPerPixel = vec2(wh) / vec2(whs);
+    ivec2 scl = ivec2(ceil(samplesPerPixel-0.000001f));
 
     int wsize = int(ceil(whs.x * whs.y));
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
@@ -43,8 +43,8 @@ void main() {
         int screenY = clamp(it/int(whs.x), 0, int(whs.y)-1);
         int screenX = clamp(it%int(whs.x), 0, int(whs.x)-1);
         ivec2 screen = ivec2(screenX, screenY);
-        ivec2 rbasis = ivec2(floor(screen * samplesPerPixel + 0.0001f));
-        ivec2 cid = ivec2(floor(screen.xy + 0.0001f));
+        ivec2 rbasis = ivec2(floor(vec2(screen) * samplesPerPixel + 0.000001f));
+        ivec2 cid = screen;
 
         vec4 depth = vec4(0.0f), newc = vec4(0.0f), albedo = vec4(0.f), normal = vec4(0.f);
         float dpl = INFINITY, samplecount = 0;
@@ -54,11 +54,11 @@ void main() {
                 ivec2 cmp = rbasis + ivec2(x, y);
                 if (cmp.x >= 0.f && cmp.x < wh.x && cmp.y >= 0.f && cmp.y < wh.y) {
                     int ts = cmp.y * int(wh.x) + cmp.x;
-                    ivec2 coord = ivec2(floor(texelBuf.nodes[ts].coord.xy * whs + 0.0001f));
                     vec4 color = vec4(0.f), prevc = vec4(0.f);
                     float hsmp = 0.f;
 
-                    if (coord.x == screen.x && coord.y == screen.y) {
+                    ivec2 coord = ivec2(floor(texelBuf.nodes[ts].coord.xy * vec2(whs) + 0.000001f));
+                    if ( screen.x == coord.x && screen.y == coord.y ) {
                         albedo += texelBuf.nodes[ts].albedo, normal += texelBuf.nodes[ts].normal;
                         
 #ifndef MOTION_BLUR

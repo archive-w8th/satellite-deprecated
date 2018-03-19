@@ -78,7 +78,7 @@ namespace NSM
             "VK_AMD_shader_trinary_minmax",
             "VK_AMD_draw_indirect_count",
 
-
+            "VK_KHR_descriptor_update_template",
             "VK_KHR_dedicated_allocation",
             "VK_KHR_incremental_present",
             "VK_KHR_push_descriptor",

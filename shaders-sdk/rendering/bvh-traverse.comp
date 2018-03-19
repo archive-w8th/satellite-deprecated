@@ -18,17 +18,24 @@
 #include "../include/mathlib.glsl"
 #include "../include/vertex.glsl"
 
-
 // terrorist ray
 ElectedRay currentRayTmp;
 
-
+#ifdef ENABLE_AMD_INSTRUCTION_SET // RX Vega may have larger local shared memory and wider bandwidth
+const int stackPageCount = 2;
+const int localStackSize = 16;
+#else
 const int stackPageCount = 4;
 const int localStackSize = 8;
+#endif
+
+// for structured copying
+struct PagedStack { int stack[localStackSize]; };
+
 
 
 // dedicated BVH stack
-struct NodeCache { int stackPageFiles[stackPageCount][localStackSize]; };
+struct NodeCache { PagedStack stackPages[stackPageCount]; };
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 
 // reserved block
@@ -38,8 +45,8 @@ layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { uvec4 b
 int stackPtr = 0, pageIdx = -1; int rayID = 0;
 
 #ifndef USE_STACKLESS_BVH
-#define LOCAL_STACK localStack[LT_IDX]
-shared int localStack[WORK_SIZE][localStackSize];
+#define LOCAL_STACK localStack[LT_IDX].stack
+shared PagedStack localStack[WORK_SIZE];
 
 int loadStack(){
     int ptr = --stackPtr; int val = -1;
@@ -48,9 +55,7 @@ int loadStack(){
     if (ptr < 0) { int page = pageIdx--; 
         if (page >= 0) {
             stackPtr = ptr = localStackSize-1;
-
-            [[unroll]]
-            for (int i=0;i<localStackSize;i++) { LOCAL_STACK[i] = nodeCache[rayID].stackPageFiles[page][i]; }
+            localStack[LT_IDX] = nodeCache[rayID].stackPages[page];
         }
     }
 
@@ -68,16 +73,8 @@ void storeStack(in int val){
     // store stack to global page, and empty list
     if (ptr >= localStackSize) { int page = ++pageIdx;
         if (page >= 0 && page < stackPageCount) {
-            stackPtr = 1, ptr = 0; 
-
-#ifdef USE_FAST_OFFLOAD
-            [[unroll]]
-            for (int i=0;i<localStackSize;i++) { nodeCache[rayID].stackPageFiles[page][i] = exchange(LOCAL_STACK[i], -1); }
-#else
-            [[unroll]]
-            for (int i=0;i<localStackSize;i++) { nodeCache[rayID].stackPageFiles[page][i] = LOCAL_STACK[i]; }
-#endif
-
+            stackPtr = 1, ptr = 0;
+            nodeCache[rayID].stackPages[page] = localStack[LT_IDX];
         }
     }
 
@@ -156,9 +153,11 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
     stackPtr = 0, pageIdx = -1;
 
     // auto-clean stack from sh*t
+#ifndef USE_FAST_OFFLOAD
     [[unroll]]
     for (int i=0;i<localStackSize;i++) { LOCAL_STACK[i] = -1; }
-    
+#endif
+
     // test constants
     vec3 
         torig = -divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f))).xyz,

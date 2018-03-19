@@ -10,7 +10,7 @@
 #include "../include/mathlib.glsl"
 #include "./includes.glsl"
 
-const int work_size = 1024;
+const int work_size = 512;
 layout ( local_size_x = work_size ) in;
 shared bbox sdata[ work_size ];
 

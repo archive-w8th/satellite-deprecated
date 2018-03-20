@@ -5,6 +5,7 @@
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
 **10.03.2018**: Support for Vulkan API 1.1.70 runtime 
+**20.03.2018**: Suspend of main support (only non-critical bug fixes)
 
 ### Features from carton box
 

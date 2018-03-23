@@ -77,8 +77,7 @@ set OPTFLAGS= ^
 --workaround-1209 ^
 --replace-invalid-opcode ^
 --if-conversion ^
---scalar-replacement ^
--O
+--scalar-replacement 
 
 :: for optimize
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv

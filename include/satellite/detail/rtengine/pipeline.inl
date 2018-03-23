@@ -121,7 +121,7 @@ namespace NSM
             bvhTraverse.pipeline = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
             surfaceShadingPpl.pipeline = createCompute(device, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout, pipelineCache);
             rayShadePipeline.pipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pscatter.comp.spv", samplingPipelineLayout, pipelineCache);
+            sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pgather.comp.spv", samplingPipelineLayout, pipelineCache);
             clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pclear.comp.spv", samplingPipelineLayout, pipelineCache);
             binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/accumulation.comp.spv", rayTracingPipelineLayout, pipelineCache);
         }

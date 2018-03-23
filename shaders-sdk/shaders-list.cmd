@@ -14,7 +14,7 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%OUTP%render.frag        -o %OU
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%OUTP%render.vert        -o %OUTDIR%%OUTP%render.vert.spv
 
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%pclear.comp         -o %OUTDIR%%RNDR%pclear.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%pscatter.comp       -o %OUTDIR%%RNDR%pscatter.comp.spv
+start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%pgather.comp        -o %OUTDIR%%RNDR%pgather.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%accumulation.comp   -o %OUTDIR%%RNDR%accumulation.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%gen-primary.comp    -o %OUTDIR%%RNDR%gen-primary.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%gen-secondary.comp  -o %OUTDIR%%RNDR%gen-secondary.comp.spv
@@ -26,7 +26,7 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%VRTX%vloader.comp       -o %OU
 ::start /b /wait glslangValidator %CFLAGSV% %INDIR%%VRTX%vloader.comp       -o %OUTDIR%%VRTX%vloader-int16.comp.spv -DENABLE_INT16_LOADING
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bound-calc.comp    -o %OUTDIR%%HLBV%bound-calc.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-build.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-fit.comp 	  -o %OUTDIR%%HLBV%bvh-fit.comp.spv
+start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-fit.comp       -o %OUTDIR%%HLBV%bvh-fit.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-gen.comp      -o %OUTDIR%%HLBV%leaf-gen.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-link.comp     -o %OUTDIR%%HLBV%leaf-link.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RDXI%permute.comp       -o %OUTDIR%%RDXI%permute.comp.spv
@@ -39,7 +39,8 @@ set FIXFLAGS = ^
 --skip-validation ^
 --strip-debug ^
 --workaround-1209 ^
---replace-invalid-opcode
+--replace-invalid-opcode ^
+-Os
 
 set OPTFLAGS= ^
 --skip-validation ^
@@ -76,7 +77,8 @@ set OPTFLAGS= ^
 --workaround-1209 ^
 --replace-invalid-opcode ^
 --if-conversion ^
---scalar-replacement
+--scalar-replacement ^
+-O
 
 :: for optimize
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
@@ -84,3 +86,12 @@ call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDX
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
+
+:: for workarounds
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%accumulation.comp.spv    -o %OUTDIR%%RNDR%accumulation.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%gen-primary.comp.spv     -o %OUTDIR%%RNDR%gen-primary.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%gen-secondary.comp.spv   -o %OUTDIR%%RNDR%gen-secondary.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%hit-shader.comp.spv      -o %OUTDIR%%RNDR%hit-shader.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%pgather.comp.spv         -o %OUTDIR%%RNDR%pgather.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%pclear.comp.spv          -o %OUTDIR%%RNDR%pclear.comp.spv
+

@@ -37,16 +37,9 @@ namespace NSM
         // instance extensions
         std::vector<const char *> wantedExtensions = {
             "VK_KHR_get_physical_device_properties2",
-            "VK_KHR_get_surface_capabilities2",
-            "VK_KHR_external_fence_capabilities",
-            "VK_KHR_external_semaphore_capabilities",
-            "VK_KHR_external_memory_capabilities",
-            "VK_KHR_device_group_creation",
             "VK_EXT_debug_report",
-            "VK_EXT_debug_utils",
             "VK_KHR_surface",
-            "VK_KHR_win32_surface",
-            "VK_KHR_16bit_storage"
+            "VK_KHR_win32_surface"
         };
 
         // default device extensions
@@ -105,6 +98,7 @@ namespace NSM
 
         // instance layers
         std::vector<const char *> wantedLayers = {
+            "VK_LAYER_RENDERDOC_Capture"
             //"VK_LAYER_LUNARG_standard_validation",
             //"VK_LAYER_LUNARG_parameter_validation",
             //"VK_LAYER_LUNARG_core_validation",

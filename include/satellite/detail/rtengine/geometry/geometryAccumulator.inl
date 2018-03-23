@@ -51,10 +51,11 @@ namespace NSM
                     vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(5).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[5])).setStride(sizeof(vk::DescriptorBufferInfo))
                 };
 
-                descriptorVInstanceUpdateTemplate = device->logical.createDescriptorUpdateTemplateKHR(vk::DescriptorUpdateTemplateCreateInfo()
-                    .setDescriptorSetLayout(loaderDescriptorLayout[1])
-                    .setPDescriptorUpdateEntries(entries.data()).setDescriptorUpdateEntryCount(entries.size())
-                    .setTemplateType(vk::DescriptorUpdateTemplateType::eDescriptorSet), nullptr, device->dldid);
+                // RenderDoc, LunarG and AMD hate its
+                //descriptorVInstanceUpdateTemplate = device->logical.createDescriptorUpdateTemplateKHR(vk::DescriptorUpdateTemplateCreateInfo()
+                //    .setDescriptorSetLayout(loaderDescriptorLayout[1])
+                //    .setPDescriptorUpdateEntries(entries.data()).setDescriptorUpdateEntryCount(entries.size())
+                //    .setTemplateType(vk::DescriptorUpdateTemplateType::eDescriptorSet), nullptr, device->dldid);
             }
 
             // vertex loader
@@ -122,7 +123,21 @@ namespace NSM
         }
 
         void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor) {
-            device->logical.updateDescriptorSetWithTemplateKHR(loaderDescriptorSets[1], descriptorVInstanceUpdateTemplate, &vertexInstance->getDescViewData(needUpdateDescriptor), device->dldid);
+            // RenderDoc, LunarG and AMD hate its
+            //device->logical.updateDescriptorSetWithTemplate(loaderDescriptorSets[1], descriptorVInstanceUpdateTemplate, &vertexInstance->getDescViewData(needUpdateDescriptor), device->dldid);
+
+            auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
+
+            // descriptor templates
+            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&dstruct.vInstanceBufferInfos[0]),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&dstruct.vInstanceBufferInfos[1]),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&dstruct.vInstanceBufferInfos[2]),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&dstruct.vInstanceBufferInfos[3]),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&dstruct.vInstanceBufferInfos[4]),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&dstruct.vInstanceBufferInfos[5]),
+            }, nullptr);
 
             auto commandBuffer = getCommandBuffer(device, true);
             commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, loaderDescriptorSets, nullptr);

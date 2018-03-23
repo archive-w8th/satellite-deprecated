@@ -29,6 +29,7 @@
 #define readFLane RLF_
 #define readLane RL_
 
+UVEC_BALLOT_WARP ballotHW(in bool i) { return subgroupBallot(i); }
 UVEC_BALLOT_WARP ballotHW() { return subgroupBallot(true); }
 bool electedInvoc() { return subgroupElect(); }
 
@@ -96,12 +97,14 @@ T fname(const uint WHERE, const T by) {\
 
 // statically multiplied
 #define initSubgroupIncFunctionTargetDual(mem, fname, by, T, T2)\
-T fname(const uint WHERE, in bvec2 a) {\
+T2 fname(const uint WHERE, in bvec2 a) {\
     const UVEC_BALLOT_WARP bitsx = ballotHW(a.x), bitsy = ballotHW(a.y);\
-    const uvec2 sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    const uvec2 \
+        sumInOrder = uvec2(subgroupBallotBitCount(bitsx), subgroupBallotBitCount(bitsy)),\
+        idxInOrder = uvec2(subgroupBallotExclusiveBitCount(bitsx), subgroupBallotExclusiveBitCount(bitsy));\
     T gadd = 0;\
-    if (subgroupElect() && any(greaterThan(sumInOrder, (0u).xx))) {gadd = add(mem, (T(sumInOrder.x)+T(sumInOrder.y))*T(by));}\
-    return readFLane(gadd).xx + T2(idxInOrder) * T(by);\
+    if (subgroupElect() && any(greaterThan(sumInOrder, (0u).xx))) {gadd = add(mem, T(sumInOrder.x+sumInOrder.y)*T(by));}\
+    return readFLane(gadd).xx + T2(idxInOrder.x, sumInOrder.x+idxInOrder.y) * T(by);\
 }
 
 

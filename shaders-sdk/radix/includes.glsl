@@ -23,11 +23,15 @@ uint LF_IDX = 0;
 #define UVEC_WARP uint
 #define BVEC_WARP bool
 #define UVEC64_WARP uvec2
+#define BVEC2_WARP bvec2
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#define URDC_WARP uint16_t
-#define URDC_WARP_LCM u16vec2
-#define URDC_WARP_DUAL u16vec2
+//#define URDC_WARP uint16_t
+//#define URDC_WARP_LCM u16vec2
+//#define URDC_WARP_DUAL u16vec2
+#define URDC_WARP uint
+#define URDC_WARP_LCM uvec2
+#define URDC_WARP_DUAL uvec2
 #else
 #define URDC_WARP uint
 #define URDC_WARP_LCM uint
@@ -36,7 +40,7 @@ uint LF_IDX = 0;
 
 // pointer of...
 #define WPTR uint
-
+#define WPTR2 uvec2
 
 #define READ_LANE(V, I) (uint(I >= 0 && I < WARP_SIZE_RT) * readLane(V, I))
 
@@ -70,9 +74,10 @@ layout (std430, binding = 28, set = 0 ) restrict buffer PrefixBlock {uint Prefix
 
 struct blocks_info { uint count; uint offset; uint limit; uint r0; };
 blocks_info get_blocks_info(in uint n) {
-    uint block_count = n > 0 ? ((n - 1) / (WARP_SIZE_RT * gl_NumWorkGroups.x) + 1) : 0;
-    uint block_offset = gl_WorkGroupID.x * WARP_SIZE_RT * block_count;
-    uint block_limit = min(block_offset + (tiled(n, block_count)*block_count), n);
-    return blocks_info(block_count, block_offset, block_limit, 0);
+    uint block_tile = WARP_SIZE_RT;
+    uint block_size = tiled(n, gl_NumWorkGroups.x);
+    uint block_count = tiled(n, block_tile * gl_NumWorkGroups.x);
+    uint block_offset = gl_WorkGroupID.x * block_tile * block_count;
+    return blocks_info(block_count, block_offset, min(block_offset + tiled(block_size, block_tile)*block_tile, n), 0);
 }
 

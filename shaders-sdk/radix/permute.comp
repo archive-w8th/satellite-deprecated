@@ -8,10 +8,21 @@ layout (local_size_x = BLOCK_SIZE) in;
 shared uint localHistogram[RADICES];
 
 // shared for 16 threads (with lanes)
-shared URDC_WARP_LCM _data[128];
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+shared mediump URDC_WARP_LCM _data[64];
+#else
+shared mediump URDC_WARP_LCM _data[128];
+#endif
+
 #define key _data[LANE_IDX]
 
+//initSubgroupIncFunctionTarget(localHistogram[WHERE], countOffset, 1, uint)
+
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+initSubgroupIncFunctionTargetDual(localHistogram[WHERE], countOffset, 1, uint, uvec2)
+#else
 initSubgroupIncFunctionTarget(localHistogram[WHERE], countOffset, 1, uint)
+#endif
 
 void main() {
     LT_IDX = gl_LocalInvocationID.x;
@@ -30,28 +41,57 @@ void main() {
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
-    uint bcount = min(blocks.count, 65536);
+
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    uint bcount = min(tiled(blocks.count, 2u), 65536u);
+    WPTR2 addr = WPTR(blocks.offset).xx + WPTR2(LANE_IDX, WARP_SIZE_RT + LANE_IDX);
+#else
+    uint bcount = min(blocks.count, 65536u);
     WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
+#endif
+
     for ( uint wk = 0; wk < bcount; wk++ ) {
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+        BVEC2_WARP validAddress = lessThan(addr, blocks.limit.xx);
+        IFALL(all(not(validAddress))) break;
+#else
         BVEC_WARP validAddress = addr < blocks.limit;
-        IFALL(!validAddress) break;
+        IFALL(!validAddress.x) break;
+#endif
 
         if (LF_IDX == 0) {
-            key.x = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
+            key.x = URDC_WARP(BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+            key.y = URDC_WARP(BFE(validAddress.y ? KeyTmp[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
+#endif
         }
         GROUP_BARRIER
 
         // WARP-optimized histogram calculation
-        for (UVEC_WARP rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
+        for (uint rk=0u;rk<RADICES;rk+=WRK_SIZE_RT) {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+            bvec2 owned = and(equal(key, radice.xx), validAddress);
+            if (any(owned)) {
+                WPTR2 offset = WPTR2(countOffset(uint(radice), owned));
+                if (owned.x) { KeyIn[offset.x] = KeyTmp[addr.x], ValueIn[offset.x] = ValueTmp[addr.x]; }
+                if (owned.y) { KeyIn[offset.y] = KeyTmp[addr.y], ValueIn[offset.y] = ValueTmp[addr.y]; }
+            }
+            IFALL (all(or((radice >= RADICES).xx, or(owned, not(validAddress))))) break;
+#else
             bool owned = key.x == radice && validAddress;
             if (owned) {
                 WPTR offset = WPTR(countOffset(uint(radice))); 
-                KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr];
+                KeyIn[offset.x] = KeyTmp[addr.x], ValueIn[offset.x] = ValueTmp[addr.x];
             }
             IFALL (radice >= RADICES || owned || !validAddress) break;
+#endif
         }
 
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+        addr += WARP_SIZE_RT*2;
+#else
         addr += WARP_SIZE_RT;
+#endif
     }
 }

@@ -33,7 +33,7 @@ void main() {
     uint bcount = min(blocks.count, 65536);
     WPTR addr = WPTR(blocks.offset) + WPTR(LANE_IDX);
     for ( uint wk = 0; wk < bcount; wk++ ) {
-        BVEC_WARP validAddress = addr < NumKeys;
+        BVEC_WARP validAddress = addr < blocks.limit;
         IFALL(!validAddress) break;
 
         if (LF_IDX == 0) {

@@ -65,8 +65,11 @@ layout (std430, binding = 27, set = 0 ) restrict buffer HistogramBlock {uint His
 layout (std430, binding = 28, set = 0 ) restrict buffer PrefixBlock {uint PrefixSum[]; };
 
 
-struct blocks_info { uint count; uint offset; };
+struct blocks_info { uint count; uint offset; uint limit; uint r0; };
 blocks_info get_blocks_info(in uint n) {
     uint block_count = n > 0 ? ((n - 1) / (WARP_SIZE_RT * gl_NumWorkGroups.x) + 1) : 0;
-    return blocks_info(block_count, gl_WorkGroupID.x * WARP_SIZE_RT * block_count);
+    uint block_offset = gl_WorkGroupID.x * WARP_SIZE_RT * block_count;
+    uint block_limit = min(block_offset + (tiled(n, block_count)*block_count), n);
+    return blocks_info(block_count, block_offset, block_limit, 0);
 }
+

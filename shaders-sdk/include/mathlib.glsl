@@ -200,6 +200,7 @@ uint BFI_HW(in uint base, in uint inserts, in int offset, in int bits) { return 
 
 // int operations
 int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
+uint tiled(in uint n, in uint d) {return uint(tiled(int(n), int(d)));}
 
 
 

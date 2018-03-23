@@ -22,8 +22,14 @@ uint LF_IDX = 0;
 
 #define UVEC_WARP uint
 #define BVEC_WARP bool
-#define UVEC64_WARP uint64_t
+#define UVEC64_WARP uvec2
+
+//#ifdef ENABLE_AMD_INSTRUCTION_SET
+//#define URDC_WARP uint16_t
+//#define URDC_WARP u16vec2
+//#else
 #define URDC_WARP uint
+//#endif
 
 // pointer of...
 #define WPTR uint
@@ -31,13 +37,16 @@ uint LF_IDX = 0;
 
 #define READ_LANE(V, I) (uint(I >= 0 && I < WARP_SIZE_RT) * readLane(V, I))
 
-uint64_t BFE(in uint64_t ua, in uint64_t o, in uint64_t n) {
-    return (ua >> o) & ((1ul << n)-1ul);
+uint BFE(in uint ua, in uint o, in uint n) {
+    return BFE_HW(ua, int(o), int(n));
 }
 
-uint BFE(in uint ua, in int o, in int n) {
-    return BFE_HW(ua, o, n);
+//planned extended support
+//uint64_t BFE(inout uint64_t ua, in uint64_t o, in uint64_t n) {
+uint BFE(in uvec2 ua, in uint o, in uint n) {
+    return uint(o >= 32u ? BFE_HW(ua.y, int(o-32u), int(n)) : BFE_HW(ua.x, int(o), int(n)));
 }
+
 
 
 #define KEYTYPE UVEC64_WARP

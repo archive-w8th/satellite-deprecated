@@ -25,7 +25,11 @@ vec2 float2Construct( in uvec2 m ) {
 }
 
 vec2 half2Construct ( in uint m ) {
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+    return vec2(clamp(fract(unpackFloat2x16((m & 0x03FF03FFu) | (0x3C003C00u))-1.hf.xx), 0.hf.xx, 1.hf.xx));
+#else
     return clamp(fract(unpackHalf2x16((m & 0x03FF03FFu) | (0x3C003C00u))-1.f.xx), 0.f.xx, 1.f.xx);
+#endif
 }
 
 

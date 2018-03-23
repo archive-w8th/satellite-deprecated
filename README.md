@@ -8,6 +8,12 @@
 * **20.03.2018**: Suspend of main support (only non-critical bug fixes)
 * **24.03.2018**: Shot of some bug fixes with fp16 BVH and precisions
 
+### What we can be do, if we had desires
+
+* Appveyor, etc. support 
+* Some validation tests
+* Suggestion for AMD GPUOpen partnership
+
 ### Features from carton box
 
 * Based on Vulkan API (compute purpose)

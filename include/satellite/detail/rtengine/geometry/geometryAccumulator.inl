@@ -58,7 +58,7 @@ namespace NSM
             }
 
             // vertex loader
-            geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/loader.comp.spv", pipelineLayout, pipelineCache);
+            geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/vloader.comp.spv", pipelineLayout, pipelineCache);
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb

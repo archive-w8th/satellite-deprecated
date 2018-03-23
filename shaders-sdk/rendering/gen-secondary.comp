@@ -23,7 +23,7 @@
 #include "../include/random.glsl"
 #include "../include/mathlib.glsl"
 #include "../include/shadinglib.glsl"
-#include "../rendering/environment.glsl"
+#include "./submodules/environment.glsl"
 
 struct SurfaceUnpacked {
      vec4 uvt; // UV, distance, triangle

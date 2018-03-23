@@ -61,11 +61,11 @@ namespace NSM
 
 
             // bvh builder pipelines 
-            buildBVHPpl.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/build-new.comp.spv", pipelineLayout, pipelineCache);
-            refitBVH.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/refit.comp.spv", pipelineLayout, pipelineCache);
-            boundPrimitives.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/minmax.comp.spv", pipelineLayout, pipelineCache);
-            childLink.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/child-link.comp.spv", pipelineLayout, pipelineCache);
-            aabbCalculate.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/aabbmaker.comp.spv", pipelineLayout, pipelineCache);
+            buildBVHPpl.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/bvh-build.comp.spv", pipelineLayout, pipelineCache);
+            refitBVH.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/bvh-fit.comp.spv", pipelineLayout, pipelineCache);
+            boundPrimitives.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/bound-calc.comp.spv", pipelineLayout, pipelineCache);
+            childLink.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/leaf-link.comp.spv", pipelineLayout, pipelineCache);
+            aabbCalculate.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/leaf-gen.comp.spv", pipelineLayout, pipelineCache);
 
             // build bvh command
             buildBVHPpl.dispatch = [&]() {

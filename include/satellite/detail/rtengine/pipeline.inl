@@ -115,15 +115,15 @@ namespace NSM
             samplingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(samplingDescriptorsLayout.data()).setSetLayoutCount(samplingDescriptorsLayout.size()));
             surfacePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(surfaceDescriptorsLayout.data()).setSetLayoutCount(surfaceDescriptorsLayout.size()));
 
-            // create pipelines
-            unorderedFormer.pipeline = createCompute(device, shadersPathPrefix + "/rendering/unordered.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            rayGeneration.pipeline = createCompute(device, shadersPathPrefix + "/rendering/generation.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            bvhTraverse.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bvh-traverse.comp.spv", rayTraversePipelineLayout, pipelineCache);
-            surfaceShadingPpl.pipeline = createCompute(device, shadersPathPrefix + "/rendering/surface.comp.spv", surfacePipelineLayout, pipelineCache);
-            rayShadePipeline.pipeline = createCompute(device, shadersPathPrefix + "/rendering/rayshading.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/scatter.comp.spv", samplingPipelineLayout, pipelineCache);
-            clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/clear.comp.spv", samplingPipelineLayout, pipelineCache);
-            binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/bin-collect.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            // create pipelines (TODO: make true names in C++ or host code)
+            unorderedFormer.pipeline = createCompute(device, shadersPathPrefix + "/rendering/traverse-pre.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            rayGeneration.pipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-primary.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            bvhTraverse.pipeline = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
+            surfaceShadingPpl.pipeline = createCompute(device, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout, pipelineCache);
+            rayShadePipeline.pipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pscatter.comp.spv", samplingPipelineLayout, pipelineCache);
+            clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pclear.comp.spv", samplingPipelineLayout, pipelineCache);
+            binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/accumulation.comp.spv", rayTracingPipelineLayout, pipelineCache);
         }
 
         void Pipeline::initLights()

@@ -6,6 +6,7 @@
 
 * **10.03.2018**: Support for Vulkan API 1.1.70 runtime 
 * **20.03.2018**: Suspend of main support (only non-critical bug fixes)
+* **24.03.2018**: Shot of some bug fixes with fp16 BVH and precisions
 
 ### Features from carton box
 
@@ -24,9 +25,6 @@
 
 * Windows platform with IDE (Visual Studio 2017 and higher)
 * GLM (https://github.com/g-truc/glm)
-* Vulkan API (preferly 1.1.70, includes Vulkan-Hpp) (https://www.lunarg.com/vulkan-sdk/)
+* Vulkan API 1.1 (https://www.lunarg.com/vulkan-sdk/)
 * Vulkan memory allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 
-### Remark 11.03.2018
-
-State GLSL compiler with SPIR-V tools works wrong (LunarG). Very recommended to recompile glslang with SPIR-V Tools. 

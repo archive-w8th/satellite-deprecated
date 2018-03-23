@@ -6,7 +6,7 @@
 
 * **10.03.2018**: Support for Vulkan API 1.1.70 runtime 
 * **20.03.2018**: Suspend of main support (only non-critical bug fixes)
-* **24.03.2018**: Shot of some bug fixes with fp16 BVH and precisions
+* **24.03.2018**: Shot of some bug fixes with fp16 BVH and precisions, make new shader names 
 
 ### What we can be do, if we had desires
 

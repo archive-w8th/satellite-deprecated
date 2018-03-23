@@ -1,4 +1,4 @@
-# Satellite OEM (VK-1.1.70)
+# Satellite OEM (VK-1.1)
 
 [![Gitter](https://badges.gitter.im/world8th/satellite-oem.svg)](https://gitter.im/world8th/satellite-oem?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) 
 

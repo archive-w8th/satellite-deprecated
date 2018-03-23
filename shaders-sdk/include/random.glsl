@@ -97,14 +97,22 @@ vec2 randf2x() { return randf2x(rayStreams[ rayBlock.samplerUniform.iterationCou
 
 // geometric random generators
 vec3 randomCosine(in uvec2 superseed) {
+#ifdef USE_HQUALITY_DIFFUSE
     vec2 hmsm = randf2q(superseed);
+#else
+    vec2 hmsm = randf2x(superseed);
+#endif
     float up = sqrt(1.f-hmsm.x), over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
 
 vec3 randomDirectionInSphere() {
+#ifdef USE_HQUALITY_DIFFUSE
     vec2 hmsm = randf2q();
+#else
+    vec2 hmsm = randf2x();
+#endif
     float up = (0.5f-hmsm.x)*2.f, over = sqrt(1.f - up * up), around = hmsm.y * TWO_PI;
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }

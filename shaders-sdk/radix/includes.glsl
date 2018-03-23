@@ -24,12 +24,15 @@ uint LF_IDX = 0;
 #define BVEC_WARP bool
 #define UVEC64_WARP uvec2
 
-//#ifdef ENABLE_AMD_INSTRUCTION_SET
-//#define URDC_WARP uint16_t
-//#define URDC_WARP u16vec2
-//#else
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+#define URDC_WARP uint16_t
+#define URDC_WARP_LCM u16vec2
+#define URDC_WARP_DUAL u16vec2
+#else
 #define URDC_WARP uint
-//#endif
+#define URDC_WARP_LCM uint
+#define URDC_WARP_DUAL uvec2
+#endif
 
 // pointer of...
 #define WPTR uint

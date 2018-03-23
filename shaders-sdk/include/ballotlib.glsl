@@ -93,6 +93,19 @@ T fname(const uint WHERE, const T by) {\
 }
 
 
+
+// statically multiplied
+#define initSubgroupIncFunctionTargetDual(mem, fname, by, T, T2)\
+T fname(const uint WHERE, in bvec2 a) {\
+    const UVEC_BALLOT_WARP bitsx = ballotHW(a.x), bitsy = ballotHW(a.y);\
+    const uvec2 sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
+    T gadd = 0;\
+    if (subgroupElect() && any(greaterThan(sumInOrder, (0u).xx))) {gadd = add(mem, (T(sumInOrder.x)+T(sumInOrder.y))*T(by));}\
+    return readFLane(gadd).xx + T2(idxInOrder) * T(by);\
+}
+
+
+
 // invoc vote
 bool allInvoc(in bool bc){ return subgroupAll(bc); }
 bool anyInvoc(in bool bc){ return subgroupAny(bc); }

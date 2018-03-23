@@ -8,7 +8,7 @@ layout (local_size_x = BLOCK_SIZE) in;
 shared uint localHistogram[RADICES];
 
 // shared for 16 threads (with lanes)
-shared URDC_WARP _data[128];
+shared URDC_WARP_LCM _data[128];
 #define key _data[LANE_IDX]
 
 initSubgroupIncFunctionTarget(localHistogram[WHERE], countOffset, 1, uint)
@@ -37,16 +37,16 @@ void main() {
         IFALL(!validAddress) break;
 
         if (LF_IDX == 0) {
-            key = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
+            key.x = URDC_WARP(BFE(validAddress ? KeyTmp[addr] : KEYTYPE(0xFFFFFFFFFFFFFFFFul), Shift*BITS_PER_PASS, BITS_PER_PASS));
         }
         GROUP_BARRIER
 
         // WARP-optimized histogram calculation
-        for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
+        for (UVEC_WARP rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
-            bool owned = key == radice && validAddress;
+            bool owned = key.x == radice && validAddress;
             if (owned) {
-                WPTR offset = WPTR(countOffset(radice)); 
+                WPTR offset = WPTR(countOffset(uint(radice))); 
                 KeyIn[offset] = KeyTmp[addr], ValueIn[offset] = ValueTmp[addr];
             }
             IFALL (radice >= RADICES || owned || !validAddress) break;

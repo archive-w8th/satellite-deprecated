@@ -477,7 +477,7 @@ BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in
 
     // precise error correct
 #ifdef AMD_F16_BVH
-    tNear -= 1e-5hf.xx, tFar += 1e-3hf.xx;
+    tNear -= 1e-4hf.xx, tFar += 1e-3hf.xx;
 #else
     tNear -= 1e-5f.xx, tFar += 1e-5f.xx;
 #endif

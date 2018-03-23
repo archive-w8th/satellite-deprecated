@@ -198,7 +198,8 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
 
     float toffset = max(near, 0.f);
     traverseState.bvhSpace.directInv = FVEC3_(dirproj);
-    traverseState.bvhSpace.minusOrig = FVEC3_(fma(torig, dirproj, -toffset.xxx));//fma(FVEC3_(torig), FVEC3_(dirproj), -FVEC3_(toffset).xxx);
+    traverseState.bvhSpace.minusOrig = fma(FVEC3_(torig), FVEC3_(dirproj), -FVEC3_(toffset).xxx);
+    //traverseState.bvhSpace.minusOrig = FVEC3_(fma(torig, dirproj, -toffset.xxx));
     traverseState.distMult = 1.f/precIssue(dirlenInv);
     traverseState.diffOffset = toffset;
 

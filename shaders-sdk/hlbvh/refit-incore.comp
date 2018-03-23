@@ -31,14 +31,6 @@ void unifyNodeBox(in int idx){
     bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
     bvhBoxesWork[bidx][sidx*2+1] = max(lmx, rmx);
 
-    
-
-    // they did our work, extend for imprecise result
-#ifndef USE_F32_BVH
-    lmn.xyzw -= 0.0005f, rmn -= 0.0005f;
-    lmx.xyzw += 0.0005f, rmx += 0.0005f;
-#endif
-
     // shuffle and transpose for traversing (resulting childrens)
 #ifdef USE_F32_BVH
     bvhBoxesResulting[sibid][0] = FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x);
@@ -47,10 +39,10 @@ void unifyNodeBox(in int idx){
     bvhBoxesResulting[sibid][3] = FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w);
 #else
     // TODO: support of corrections fields
-    bvhBoxesResulting[sibid][0].xy = packHalf2( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) );
-    bvhBoxesResulting[sibid][1].xy = packHalf2( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) );
-    bvhBoxesResulting[sibid][2].xy = packHalf2( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) );
-    bvhBoxesResulting[sibid][3].xy = packHalf2( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) );
+    bvhBoxesResulting[sibid][0].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x)) );
+    bvhBoxesResulting[sibid][1].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y)) );
+    bvhBoxesResulting[sibid][2].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z)) );
+    bvhBoxesResulting[sibid][3].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w)) );
 #endif
 }
 

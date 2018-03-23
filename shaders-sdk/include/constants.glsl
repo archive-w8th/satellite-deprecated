@@ -75,7 +75,7 @@
 #endif
 
 // System Constants
-#define PZERO 0.0001f
+#define PZERO 1e-4f
 
 // Platform-oriented compute
 #ifndef WORK_SIZE

@@ -15,7 +15,14 @@ layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
 
 // for traverse, or anything else
 #ifndef BVH_CREATION
-layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { uvec4 bvhBoxes[][4]; }; 
+
+// 
+#ifdef USE_F32_BVH
+layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { vec4 bvhBoxes[][4]; };
+#else
+layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { uvec2 bvhBoxes[][4]; }; 
+#endif
+
 layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
 #endif
 

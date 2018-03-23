@@ -27,7 +27,8 @@ namespace NSM
                 vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // counters
                 vk::DescriptorSetLayoutBinding(9, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // minmax buffer
                 vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // uniform buffer
-                vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr)   // bvh metadata
+                vk::DescriptorSetLayoutBinding(11, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr),   // bvh metadata
+                vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // BVH boxes (after refit)
             };
 
             // descriptor set layout of foreign storage (planned to sharing this structure by C++17)
@@ -348,7 +349,7 @@ namespace NSM
                 // copy images command
                 auto command = getCommandBuffer(device, true);
                 memoryCopyCmd(command, bvhMetaWorking, bvhMetaStorage, copyDesc);
-                memoryCopyCmd(command, bvhBoxWorking, bvhBoxStorage, { 0, 0, strided<bbox>(nodeCount) });
+                memoryCopyCmd(command, bvhBoxWorkingResulting, bvhBoxStorage, { 0, 0, strided<bbox>(nodeCount) });
                 flushCommandBuffer(device, command, true);
             }
         }
@@ -369,6 +370,7 @@ namespace NSM
             // these buffers will sharing 
             bvhMetaWorking = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT * 2), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
             bvhBoxWorking = createBuffer(device, strided<glm::mat4>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhBoxWorkingResulting = createBuffer(device, strided<glm::mat4>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // write buffer to bvh builder descriptors
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(builderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -382,6 +384,7 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(7).setPBufferInfo(&leafBVHIndicesBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(10).setPBufferInfo(&bvhBlockUniform.buffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageImage).setDstBinding(11).setPImageInfo(&bvhMetaWorking->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(12).setPBufferInfo(&bvhBoxWorkingResulting->descriptorInfo),
             }, nullptr);
         }
     }

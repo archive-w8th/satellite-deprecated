@@ -225,11 +225,11 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in BOOL_ valid) {
                 const int _cmp = cnode.x >> 1;
                 childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, 
 #ifdef USE_F32_BVH
-                    FMAT3X4_(uintBitsToFloat(bvhBoxes[_cmp][0]), uintBitsToFloat(bvhBoxes[_cmp][1]), uintBitsToFloat(bvhBoxes[_cmp][2])),
+                    FMAT3X4_(bvhBoxes[_cmp][0], bvhBoxes[_cmp][1], bvhBoxes[_cmp][2]),
                     FMAT3X4_(vec4(0.f), vec4(0.f), vec4(0.f))
 #else
-                    FMAT3X4_(UNPACK_HF(bvhBoxes[_cmp][0].xy), UNPACK_HF(bvhBoxes[_cmp][0].zw), UNPACK_HF(bvhBoxes[_cmp][1].xy)),
-                    FMAT3X4_(UNPACK_HF(bvhBoxes[_cmp][2].xy), UNPACK_HF(bvhBoxes[_cmp][2].zw), UNPACK_HF(bvhBoxes[_cmp][3].xy))
+                    FMAT3X4_(UNPACK_HF(bvhBoxes[_cmp][0].xy), UNPACK_HF(bvhBoxes[_cmp][1].xy), UNPACK_HF(bvhBoxes[_cmp][2].xy)),
+                    FMAT3X4_(vec4(0.f), vec4(0.f), vec4(0.f))
 #endif
                 , nears, fars);
                 childIntersect &= BVEC2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));

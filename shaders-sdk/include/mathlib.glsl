@@ -223,50 +223,10 @@ f16vec4 fmix(in f16vec4 a, in f16vec4 b, in f16vec4 c){ return _FMOP; }
 
 
 
-// texture utils
-vec4 composite(in vec4 src, in vec4 dst) {
-    float oa = src.a + dst.a * (1.0f - src.a);
-    return clamp(vec4((src.rgb * src.a + dst.rgb * dst.a * (1.0f - src.a)) / max(oa, 0.0001f), oa), vec4(0.0f), vec4(1.0f));
-}
+// color space utils
 
-vec4 cubic(in float v) {
-    vec4 s = vec4(1.0f,2.0f,3.0f,4.0f) - v; s *= s*s;
-    float x = s.x;
-    float y = fma(s.x,-4.f,s.y);
-    float z = fma(s.y,-4.f,s.z) + 6.0f*s.x;
-    float w = 6.0f-x-y-z;
-    return vec4(x,y,z,w)*(1.0f/6.0f);
-}
-
-vec4 textureBicubic(in sampler2D tx, in vec2 texCoords) {
-    vec2 texSize = textureSize(tx, 0);
-    vec2 invTexSize = 1.0f / texSize;
-
-    texCoords *= texSize;
-    vec2 fxy = fract(texCoords);
-    texCoords = floor(texCoords);
-
-    vec4 xcubic = cubic(fxy.x);
-    vec4 ycubic = cubic(fxy.y);
-
-    vec4 c = texCoords.xxyy + vec2(0.0f, 1.0f).xyxy;
-    vec4 s = vec4(xcubic.xz + xcubic.yw, ycubic.xz + ycubic.yw);
-    vec4 offset = vec4(c + vec4(xcubic.yw, ycubic.yw) / s) * invTexSize.xxyy;
-
-    vec4 sample0 = texture(tx, offset.xz);
-    vec4 sample1 = texture(tx, offset.yz);
-    vec4 sample2 = texture(tx, offset.xw);
-    vec4 sample3 = texture(tx, offset.yw);
-
-    float sx = s.x / (s.x + s.y);
-    float sy = s.z / (s.z + s.w);
-
-    return fmix(fmix(sample3, sample2, sx.xxxx), fmix(sample1, sample0, sx.xxxx), sy.xxxx);
-}
 
 const float HDR_GAMMA = 2.2f;
-
-
 
 vec3 fromLinear(in vec3 linearRGB) {
     return mix(vec3(1.055)*pow(linearRGB, vec3(1.0/2.4)) - vec3(0.055), linearRGB * vec3(12.92), lessThan(linearRGB, vec3(0.0031308)));
@@ -276,8 +236,6 @@ vec3 toLinear(in vec3 sRGB) {
     return mix(pow((sRGB + vec3(0.055))/vec3(1.055), vec3(2.4)), sRGB/vec3(12.92), lessThan(sRGB, vec3(0.04045)));
 }
 
-
-
 vec4 fromLinear(in vec4 linearRGB) {
     return vec4(fromLinear(linearRGB.xyz), linearRGB.w);
 }
@@ -286,6 +244,9 @@ vec4 toLinear(in vec4 sRGB) {
     return vec4(toLinear(sRGB.xyz), sRGB.w);
 }
 
+
+
+// planned to rework packing system with half floats
 
 
 
@@ -516,7 +477,7 @@ BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in
 
     // precise error correct
 #ifdef AMD_F16_BVH
-    tNear -= 1e-4hf.xx, tFar += 1e-3hf.xx;
+    tNear -= 1e-5hf.xx, tFar += 1e-3hf.xx;
 #else
     tNear -= 1e-5f.xx, tFar += 1e-5f.xx;
 #endif

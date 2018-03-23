@@ -33,16 +33,8 @@ void main() {
                 imageStore(bvhStorage, _idx2, ivec4(bvhmeta.xx, bvhmeta.z, leaf.pdata.w));
 
                 int bidx = idx>>1, sidx = idx&1;
-#ifdef USE_F32_BVH
-                // unshuffled box
-                bvhBoxes[bidx][sidx*2+0] = floatBitsToUint(leaf.lbox[0]);
-                bvhBoxes[bidx][sidx*2+1] = floatBitsToUint(leaf.lbox[1]);
-#else
-                // unshuffled box (16-bit), and correction
-                bvhBoxes[bidx][sidx+0] = uvec4(packHalf2(leaf.lbox[0]), packHalf2(leaf.lbox[1]));
-                bvhBoxes[bidx][sidx+2] = uvec4(0u.xxxx); // TODO: field of error corrections
-#endif
-
+                bvhBoxesWork[bidx][sidx*2+0] = leaf.lbox[0];
+                bvhBoxesWork[bidx][sidx*2+1] = leaf.lbox[1];
             }
         }
     }

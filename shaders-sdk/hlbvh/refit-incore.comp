@@ -23,37 +23,34 @@ void unifyNodeBox(in int idx){
     int sibid = imageLoad(bvhStorage, bvhLinear2D(idx)).x >> 1;
 
     // TODO: unpacking correction rows
-#ifdef USE_F32_BVH
-    FVEC4_  
-        lmn = uintBitsToFloat(bvhBoxes[sibid][0]), rmn = uintBitsToFloat(bvhBoxes[sibid][2]),
-        lmx = uintBitsToFloat(bvhBoxes[sibid][1]), rmx = uintBitsToFloat(bvhBoxes[sibid][3]);
-#else
-    FVEC4_  
-        lmn = UNPACK_HF(bvhBoxes[sibid][0].xy), rmn = UNPACK_HF(bvhBoxes[sibid][1].xy),
-        lmx = UNPACK_HF(bvhBoxes[sibid][0].zw), rmx = UNPACK_HF(bvhBoxes[sibid][1].zw);
-#endif
+    vec4  
+        lmn = bvhBoxesWork[sibid][0], rmn = bvhBoxesWork[sibid][2],
+        lmx = bvhBoxesWork[sibid][1], rmx = bvhBoxesWork[sibid][3];
 
     int bidx = idx>>1, sidx = idx&1;
-#ifdef USE_F32_BVH
-    bvhBoxes[bidx][sidx*2+0] = floatBitsToUint(min(lmn, rmn));
-    bvhBoxes[bidx][sidx*2+1] = floatBitsToUint(max(lmx, rmx));
-#else
-    bvhBoxes[bidx][sidx+0] = uvec4(packHalf2(min(lmn, rmn)), packHalf2(max(lmx, rmx)));
-    bvhBoxes[bidx][sidx+2] = uvec4(0u.xxxx);
+    bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
+    bvhBoxesWork[bidx][sidx*2+1] = max(lmx, rmx);
+
+    
+
+    // they did our work, extend for imprecise result
+#ifndef USE_F32_BVH
+    lmn.xyzw -= 0.0005f, rmn -= 0.0005f;
+    lmx.xyzw += 0.0005f, rmx += 0.0005f;
 #endif
 
-    // shuffle and transpose for traversing
+    // shuffle and transpose for traversing (resulting childrens)
 #ifdef USE_F32_BVH
-    bvhBoxes[sibid][0] = floatBitsToUint( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) );
-    bvhBoxes[sibid][1] = floatBitsToUint( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) );
-    bvhBoxes[sibid][2] = floatBitsToUint( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) );
-    bvhBoxes[sibid][3] = floatBitsToUint( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) );
+    bvhBoxesResulting[sibid][0] = FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x);
+    bvhBoxesResulting[sibid][1] = FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y);
+    bvhBoxesResulting[sibid][2] = FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z);
+    bvhBoxesResulting[sibid][3] = FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w);
 #else
     // TODO: support of corrections fields
-    bvhBoxes[sibid][0].xyzw = uvec4(packHalf2( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) ), packHalf2( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) ));
-    bvhBoxes[sibid][1].xyzw = uvec4(packHalf2( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) ), packHalf2( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) ));
-    bvhBoxes[sibid][2].xyzw = 0u.xxxx;
-    bvhBoxes[sibid][3].xyzw = 0u.xxxx;
+    bvhBoxesResulting[sibid][0].xy = packHalf2( FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x) );
+    bvhBoxesResulting[sibid][1].xy = packHalf2( FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y) );
+    bvhBoxesResulting[sibid][2].xy = packHalf2( FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z) );
+    bvhBoxesResulting[sibid][3].xy = packHalf2( FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w) );
 #endif
 }
 

@@ -16,7 +16,7 @@ LOCAL_SIZE_LAYOUT;
 int cdelta( in int a, in int b ){
     MORTONTYPE acode = Mortoncodes[a], bcode = Mortoncodes[b];
     int pfx = nlz(acode^bcode);
-    return pfx < 64 ? pfx : pfx+nlz(a^b);
+    return pfx + (pfx < 64 ? 0 : nlz(a^b));
 }
 
 int findSplit( in int first, in int last) {

@@ -99,7 +99,10 @@ struct BvhTraverseState {
     int idx, defTriangleID;
     float distMult, diffOffset;
 
+#ifdef USE_STACKLESS_BVH
     uint64_t bitStack;
+#endif
+
     GeometrySpace geometrySpace;
     BVHSpace bvhSpace;
 } traverseState;
@@ -129,7 +132,9 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
 
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
+#ifdef USE_STACKLESS_BVH
     traverseState.bitStack = 0ul;
+#endif
     traverseState.defTriangleID = -1;
     traverseState.distMult = 1.f;
     traverseState.diffOffset = 0.f;

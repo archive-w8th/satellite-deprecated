@@ -4,13 +4,13 @@
 #endif
 
 
-#ifdef ENABLE_AMD_INSTRUCTION_SET // RX Vega may have larger local shared memory and wider bandwidth
-const int stackPageCount = 2;
-const int localStackSize = 16;
-#else
+//#ifdef ENABLE_AMD_INSTRUCTION_SET // RX Vega may have larger local shared memory and wider bandwidth
+//const int stackPageCount = 2;
+//const int localStackSize = 16;
+//#else
 const int stackPageCount = 4;
 const int localStackSize = 8;
-#endif
+//#endif
 
 // for structured copying
 struct PagedStack { int stack[localStackSize]; };

@@ -467,8 +467,10 @@ bvec2_ intersectCubeDual(in fvec3_ origin, inout fvec3_ dr, inout bvec3_ sgn, in
 
 // BVH utility
 uint64_t bitfieldReverse64(in uint64_t a){uvec2 p = U2P(a);p=bitfieldReverse(p);return P2U(p.yx);}
-int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
-int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
+//int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
+//int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
+int nlz(in uint64_t x) { return 63 - msb(x); }
+int nlz(in uint x) { return 31 - msb(x); }
 int nlz(in int x) { return nlz(uint(x)); }
 
 // polar/cartesian coordinates

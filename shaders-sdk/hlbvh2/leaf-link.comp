@@ -25,16 +25,18 @@ void main() {
         if (globalID < wsize && globalID >= 0) {
             int idx = LeafIndices[globalID];
             if (idx >= 0) {
-                ivec2 _idx2 = bvhLinear2D(idx);
+                bvhT_ptr _idx2 = mk_bvhT_ptr(idx);
                 ivec4 bvhmeta = imageLoad(bvhStorage, _idx2);
-                uint leafID = MortoncodesIndices[bvhmeta.x];
-                Leafs[leafID].pdata.z = int(idx);
-                HlbvhNode leaf = Leafs[leafID];
-                imageStore(bvhStorage, _idx2, ivec4(bvhmeta.xx, bvhmeta.z, leaf.pdata.w));
+                if (bvhmeta.x == bvhmeta.y) { // if true leaf
+                    uint leafID = MortoncodesIndices[bvhmeta.x];
+                    Leafs[leafID].pdata.z = int(idx);
+                    bvhmeta.xy = ivec2(Leafs[leafID].pdata.w, 1);
+                    imageStore(bvhStorage, _idx2, bvhmeta);
 
-                int bidx = idx>>1, sidx = idx&1;
-                bvhBoxesWork[bidx][sidx*2+0] = leaf.lbox[0];
-                bvhBoxesWork[bidx][sidx*2+1] = leaf.lbox[1];
+                    int bidx = idx>>1, sidx = idx&1;
+                    bvhBoxesWork[bidx][sidx*2+0] = Leafs[leafID].lbox[0];
+                    bvhBoxesWork[bidx][sidx*2+1] = Leafs[leafID].lbox[1];
+                }
             }
         }
     }

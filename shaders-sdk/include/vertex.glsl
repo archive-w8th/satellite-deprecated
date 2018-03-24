@@ -117,9 +117,11 @@ float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout 
 
 const int _BVH_WIDTH = 2048;
 
-ivec2 bvhLinear2D(in int linear) {
+
+#define bvhT_ptr ivec2
+bvhT_ptr mk_bvhT_ptr(in int linear) {
     int md = linear & 1; linear >>= 1;
-    return ivec2(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
+    return bvhT_ptr(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
 }
 
 #ifndef BVH_CREATION

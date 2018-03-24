@@ -185,17 +185,17 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
 
         if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
-            ivec2 b2idx = bvhLinear2D(traverseState.idx);
+            bvhT_ptr b2idx = mk_bvhT_ptr(traverseState.idx);
             ivec2 cnode = traverseState.idx >= 0 ? texelFetch(bvhStorage, b2idx, 0).xy : (-1).xx;
             // planned another plan of "y" value in BVH 
 
-            // if not leaf 
-            if (cnode.x != cnode.y) {
+            // if not leaf and not wrong
+            IF (cnode.y == 0 && cnode.x != cnode.y) {
                 vec2 nears = INFINITY.xx, fars = INFINITY.xx; 
 
                 // intersect boxes
                 bvec2_ childIntersect = bvec2_((traverseState.idx >= 0).xx);
-                childIntersect &= bool_(cnode.x != cnode.y).xx; // base on fact 
+                childIntersect &= bool_(cnode.y == 0).xx; // base on fact 
 
                 // load 32-byte bounding box
                 const int _cmp = cnode.x >> 1;
@@ -237,10 +237,8 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
             } else  
             
             // if leaf, defer for intersection 
-            if (cnode.x == cnode.y) {
-                if (traverseState.defTriangleID < 0) {
-                    traverseState.defTriangleID = texelFetch(bvhStorage, b2idx, 0).w;
-                }
+            if (cnode.y == 1 && traverseState.defTriangleID < 0) {
+                traverseState.defTriangleID = cnode.x;
             }
 
 #ifdef USE_STACKLESS_BVH
@@ -250,7 +248,7 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
                     traverseState.bitStack >>= 1;
-                    traverseState.idx = traverseState.idx >= 0 ? texelFetch(bvhStorage, bvhLinear2D(traverseState.idx), 0).z : -1;
+                    traverseState.idx = traverseState.idx >= 0 ? texelFetch(bvhStorage, mk_bvhT_ptr(traverseState.idx), 0).z : -1;
                 }
 
                 // goto to sibling or break travers

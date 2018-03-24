@@ -19,7 +19,7 @@ LOCAL_SIZE_LAYOUT;
 initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 
 void unifyNodeBox(in int idx){
-    int sibid = imageLoad(bvhStorage, bvhLinear2D(idx)).x >> 1;
+    int sibid = imageLoad(bvhStorage, mk_bvhT_ptr(idx)).x >> 1;
 
     // TODO: unpacking correction rows
     vec4  
@@ -55,7 +55,7 @@ void main() {
         if (globalID < n && globalID >= 0) {
             int idx = exchange(LeafIndices[globalID], -1);
             for (int l=0;l<256;l++) {
-                ivec4 cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
+                ivec4 cmp4 = imageLoad(bvhStorage, mk_bvhT_ptr(idx));
 
                 bool validParent = cmp4.z >= 0 && idx >= 0;
                 if (validParent) {
@@ -67,7 +67,7 @@ void main() {
                 }
 
                 if (idx >= 0) {
-                    cmp4 = imageLoad(bvhStorage, bvhLinear2D(idx));
+                    cmp4 = imageLoad(bvhStorage, mk_bvhT_ptr(idx));
                     if (cmp4.x != cmp4.y) unifyNodeBox(idx);
                 } else {
                     break;

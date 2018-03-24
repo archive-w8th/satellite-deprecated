@@ -17,6 +17,7 @@ namespace NSM
 
             // BVH metrics
             const size_t _BVH_WIDTH = 2048;
+            const size_t ATTRIBUTE_EXTENT = 4;
 
             std::string shadersPathPrefix = "shaders-spv";
 

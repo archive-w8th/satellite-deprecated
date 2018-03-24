@@ -13,7 +13,9 @@ layout ( std430, binding = 3, set = 0 ) coherent buffer LeafBlock {
     HlbvhNode Leafs[];
 };
 
-layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBoxBlockWorking { vec4 bvhBoxesWork[][4];  };
+layout ( std430, binding = 4, set = 0 ) restrict buffer BVHBoxBlockWorking { 
+    vec4 bvhBoxesWork[][4];
+};
 
 layout ( std430, binding = 5, set = 0 ) restrict buffer FlagsBlock {
     int Flags[];

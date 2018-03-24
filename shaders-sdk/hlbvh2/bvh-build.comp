@@ -29,20 +29,19 @@ int findSplit( in int first, in int last) {
     return clamp(split, first, last-1);
 }
 
-initAtomicSubgroupIncFunctionDyn(lCounter, lCounterInc, int)
+initAtomicSubgroupIncFunction(lCounter, lCounterInc, 2, int)
 initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 initAtomicSubgroupIncFunction(cCounter, cCounterInc, 1, int)
 
 void splitNode(in int trID) {
     int prID = exchange(Actives[trID], -1);
 
-    //HlbvhNode parentNode = Nodes[prID];
-    ivec2 _hidx = bvhLinear2D(prID);
+    bvhT_ptr _hidx = mk_bvhT_ptr(prID);
     ivec4 _pdata = imageLoad(bvhStorage, _hidx);
-    if (_pdata.x != _pdata.y && prID != -1) {
+    if (_pdata.y > _pdata.x && prID != -1) { // when not leafs
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
-        int hid = lCounterInc(2);
+        int hid = lCounterInc();
         
         // encode with SIMD-like
         ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
@@ -63,11 +62,12 @@ void splitNode(in int trID) {
             Actives[aCounterInc()] = hd.y;
         }
 
-        ivec2 _lidx = bvhLinear2D(hd.x), _ridx = bvhLinear2D(hd.y);
+        bvhT_ptr _lidx = mk_bvhT_ptr(hd.x), _ridx = mk_bvhT_ptr(hd.y);
         Flags[hd.x] = 0, Flags[hd.y] = 0;
+
+        imageStore(bvhStorage, _hidx, ivec4(hd.x, 0, _pdata.z, -1)); // link parent with childs
         imageStore(bvhStorage, _lidx, ivec4(transplit.xy, prID, -1));
         imageStore(bvhStorage, _ridx, ivec4(transplit.zw, prID, -1));
-        imageStore(bvhStorage, _hidx, ivec4(hd.xy, _pdata.zw)); // link parent with childs
     }
 }
 
@@ -80,10 +80,10 @@ void main() {
     // create initial (root) node
     bool isBeginning = aRange[1] == 0;
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
-        int hid = lCounterInc(2); Actives[aCounterInc()] = hid;
+        int hid = lCounterInc(); Actives[aCounterInc()] = hid;
 
-        imageStore(bvhStorage, bvhLinear2D(hid), ivec4(0, aabbcount[0]-1, -1, -1));
-        Flags[hid] = 0;
+        imageStore(bvhStorage, mk_bvhT_ptr(hid), ivec4(0, aabbcount[0]-1, -1, -1));
+        Flags[hid] = 0, Flags[hid+1] = 0;
     }
 
     LGROUP_BARRIER

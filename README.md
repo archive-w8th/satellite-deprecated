@@ -45,3 +45,10 @@
 * Vulkan API 1.1 (https://www.lunarg.com/vulkan-sdk/)
 * Vulkan memory allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 
+### Eye bleeding picture
+
+<details>
+<summary>Prepare yourself...</summary>
+<img src="renders/city0.png" width="720">
+<img src="renders/city1.png" width="720">
+</details>

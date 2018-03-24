@@ -2,6 +2,10 @@
 
 #include "./structs.hpp"
 
+#ifdef EXPERIMENTAL_GLTF
+#include "tiny_gltf.h"
+#endif
+
 namespace NSM
 {
     namespace rt
@@ -31,7 +35,11 @@ namespace NSM
             std::vector<TextureType> &getTextures();
 
             int32_t loadTexture(const TextureType &texture);
-            int32_t loadTexture(std::string tex, bool force_write = false);
+
+            // planned merge to externaled
+#ifdef EXPERIMENTAL_GLTF
+            int32_t loadTexture(tinygltf::Image* image, bool force_write = false);
+#endif
         };
     } // namespace rt
 } // namespace NSM

@@ -1,9 +1,15 @@
 ﻿#pragma once
 
+
 #include "gltfViewer.hpp"
 
 // application space itself
 namespace SatelliteExample {
+
+
+
+
+
 
     void GltfViewer::parseArguments(const int32_t& argc, const char ** argv) {
         args::ArgumentParser parser("This is a test rendering program.", "GeForce GTX 560 still sucks in 2018 year...");
@@ -45,8 +51,10 @@ namespace SatelliteExample {
         samplerManager = std::shared_ptr<rt::SamplerSet>(new rt::SamplerSet(device));
 
         // load env map 
-        auto cbmap = loadCubemap(bgTexName, device);
-        if (cbmap && cbmap->initialized) rays->setSkybox(cbmap);
+        auto cbmap = loadEnvmap(bgTexName, device);
+        if (cbmap && cbmap->initialized) {
+            rays->setSkybox(cbmap);
+        }
 
         // camera contoller
         cam = std::shared_ptr<CameraController>(new CameraController());
@@ -60,10 +68,7 @@ namespace SatelliteExample {
         // load textures (TODO - native samplers support in ray tracers)
         for (int i = 0; i < gltfModel.textures.size(); i++) {
             tinygltf::Texture& gltfTexture = gltfModel.textures[i];
-            std::string uri = directory + "/" + gltfModel.images[gltfTexture.source].uri;
-            int32_t rtTexture = textureManager->loadTexture(uri);
-            // todo with rtTexture processing
-            rtTextures.push_back(rtTexture);
+            rtTextures.push_back(textureManager->loadTexture(&gltfModel.images[gltfTexture.source]));
         }
 
         // load materials (include PBR)
@@ -71,27 +76,23 @@ namespace SatelliteExample {
             tinygltf::Material & material = gltfModel.materials[i];
             rt::VirtualMaterial submat;
 
-            // diffuse? 
+            // initial material props
+            submat.diffuse = glm::vec4(1.0f);
+            submat.emissive = glm::vec4(0.0f);
+            submat.specular = glm::vec4(1.0f);
 
-            int32_t texId = getTextureIndex(material.values["baseColorTexture"].json_double_value);
-            submat.diffuseTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
 
+            // base color (diffuse)
             if (material.values["baseColorFactor"].number_array.size() >= 3) {
                 submat.diffuse = glm::vec4(glm::make_vec3(&material.values["baseColorFactor"].number_array[0]), 1.0f);
             }
-            else {
-                submat.diffuse = glm::vec4(1.0f);
-            }
-
-            // metallic roughness
-            texId = getTextureIndex(material.values["metallicRoughnessTexture"].json_double_value);
-            submat.specularTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
-            submat.specular = glm::vec4(1.0f);
-
+            
+            // metallic
             if (material.values["metallicFactor"].number_array.size() >= 1) {
                 submat.specular.z = material.values["metallicFactor"].number_array[0];
             }
 
+            // rought
             if (material.values["roughnessFactor"].number_array.size() >= 1) {
                 submat.specular.y = material.values["roughnessFactor"].number_array[0];
             }
@@ -100,9 +101,15 @@ namespace SatelliteExample {
             if (material.additionalValues["emissiveFactor"].number_array.size() >= 3) {
                 submat.emissive = glm::vec4(glm::make_vec3(&material.additionalValues["emissiveFactor"].number_array[0]), 1.0f);
             }
-            else {
-                submat.emissive = glm::vec4(0.0f);
-            }
+
+
+            // diffuse texture
+            int32_t texId = getTextureIndex(material.values["baseColorTexture"].json_double_value);
+            submat.diffuseTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
+
+            // metallic/roughness texture
+            texId = getTextureIndex(material.values["metallicRoughnessTexture"].json_double_value);
+            submat.specularTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
 
             // emissive texture
             texId = getTextureIndex(material.additionalValues["emissiveTexture"].json_double_value);
@@ -111,6 +118,7 @@ namespace SatelliteExample {
             // normal map
             texId = getTextureIndex(material.additionalValues["normalTexture"].json_double_value);
             submat.bumpTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
+
 
             // load material
             materialManager->addMaterial(submat);
@@ -241,16 +249,10 @@ namespace SatelliteExample {
         // init timing state
         time = glfwGetTime() * 1000.f, diff = 0;
 
-        // matrix with scaling
-        glm::dmat4 matrix(1.0);
-        matrix *= glm::scale(glm::dvec3(mscale))*glm::scale(glm::dvec3(1.f, 1.f, 1.f)); // invert Z coordinate
 
-        // loading/setup meshes 
-        geometryCollector->resetAccumulationCounter();
-
+        // make loader dispatcher
 #ifdef EXPERIMENTAL_GLTF
-        // load meshes
-        std::function<void(tinygltf::Node &, glm::dmat4, int)> traverse = [&](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
+        vertexLoader = std::make_shared<std::function<void(tinygltf::Node &, glm::dmat4, int)>>([&](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
             glm::dmat4 localTransform(1.0);
             localTransform *= (node.matrix.size() >= 16 ? glm::make_mat4(node.matrix.data()) : glm::dmat4(1.0));
             localTransform *= (node.translation.size() >= 3 ? glm::translate(glm::make_vec3(node.translation.data())) : glm::dmat4(1.0));
@@ -265,37 +267,41 @@ namespace SatelliteExample {
                     geom->setTransform(transform); // here is bottleneck with host-GPU exchange
                     geometryCollector->pushGeometry(geom);
                 }
-            }
-            else
-                if (node.children.size() > 0) {
-                    for (int n = 0; n < node.children.size(); n++) {
-                        if (recursive >= 0) traverse(gltfModel.nodes[node.children[n]], transform, recursive - 1);
-                    }
+            } else 
+            if (node.children.size() > 0) {
+                for (int n = 0; n < node.children.size(); n++) {
+                    if (recursive >= 0) (*vertexLoader)(gltfModel.nodes[node.children[n]], transform, recursive - 1);
                 }
-        };
-
-        // load scene
-        uint32_t sceneID = 0;
-        if (gltfModel.scenes.size() > 0) {
-            for (int n = 0; n < gltfModel.scenes[sceneID].nodes.size(); n++) {
-                tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
-                traverse(node, glm::dmat4(matrix), 16);
             }
-        }
+        });
 #endif
-
-
-        // load materials to GPU
-        materialManager->loadToVGA();
-
-        // build BVH in device (with linked data)
-        bvhBuilder->build(glm::dmat4(1.0));
 
         // bind resources
         rays->setMaterialSet(materialManager);
         rays->setTextureSet(textureManager);
         rays->setSamplerSet(samplerManager);
         rays->setHierarchyStorage(bvhStore);
+
+        // preload geometry and transform (may used dynamicly)
+#ifdef EXPERIMENTAL_GLTF
+        // matrix with scaling
+        glm::dmat4 matrix(1.0);
+        matrix *= glm::scale(glm::dvec3(mscale)); // invert Z coordinate
+
+        // reset scene data collector
+        geometryCollector->resetAccumulationCounter();
+
+        // load scene
+        uint32_t sceneID = 0;
+        if (gltfModel.scenes.size() > 0) {
+            for (int n = 0; n < gltfModel.scenes[sceneID].nodes.size(); n++) {
+                tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
+                (*vertexLoader)(node, glm::dmat4(matrix), 16);
+            }
+        }
+#endif
+
+        //bvhBuilder->build(glm::dmat4(1.0)); // build BVH in device (with linked data)
     }
 
     // processing
@@ -310,20 +316,12 @@ namespace SatelliteExample {
             switch360key = false;
         }
 
-        
+        // make camera projections
+        rays->setModelView(glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)));
+        rays->setPerspective(glm::perspectiveFov(glm::radians(60.0), double(canvasWidth), double(canvasHeight), 0.0001, 10000.0));
 
-        glm::dmat4 perspView = glm::perspectiveFov(glm::radians(60.0), double(canvasWidth), double(canvasHeight), 0.0001, 10000.0); // ray tracing better pickup coordinates at LH for RH dimension
-        glm::dmat4 modelView = glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)); // need rotated coordinate system in 180 degree (Vulkan API)
-        rays->setModelView(modelView);
-        rays->setPerspective(perspView);
-
-
-
-        // build BVH in device (with linked data)
-        bvhBuilder->build(glm::dmat4(1.0));
-
-        // dispatch ray tracing pipeline
-        rays->dispatchRayTracing();
+        bvhBuilder->build(glm::dmat4(1.0)); // build BVH dynamicly in device (with linked data)
+        rays->dispatchRayTracing(); // dispatch ray tracing pipeline
     }
 };
 

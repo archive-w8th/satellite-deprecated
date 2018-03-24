@@ -539,6 +539,7 @@ namespace NSM
         {
             if (!materialSet->haveMaterials()) return;
             boundMaterialSet = materialSet;
+            materialSet->loadToVGA();
 
             auto materialBuffer = materialSet->getMaterialBuffer();
             auto vtextureBuffer = materialSet->getVTextureBuffer();

@@ -155,6 +155,8 @@ namespace SatelliteExample {
         std::shared_ptr<CameraController> cam;
 
 
+        std::shared_ptr<std::function<void(tinygltf::Node &, glm::dmat4, int)>> vertexLoader;
+
         std::shared_ptr<rt::Pipeline> rays;
         std::shared_ptr<rt::HieararchyStorage> bvhStore;
         std::shared_ptr<rt::HieararchyBuilder> bvhBuilder;

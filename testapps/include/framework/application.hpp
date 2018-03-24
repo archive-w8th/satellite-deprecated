@@ -9,9 +9,12 @@ using U_MEM_HANDLE = uint8_t * ;
 namespace SatelliteExample {
     using namespace NSM;
 
-    TextureType loadCubemap(std::string bgTexName, DeviceQueueType& device) {
+    TextureType loadEnvmap(std::string bgTexName, DeviceQueueType& device) {
         cil::CImg<float> image(bgTexName.c_str());
+        if (!image) return nullptr;
+
         uint32_t width = image.width(), height = image.height();
+        if (width <= 0 || height <= 0) return nullptr;
         image.channels(0, 3);
         image.permute_axes("cxyz");
 

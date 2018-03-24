@@ -62,29 +62,29 @@ namespace NSM {
             return textures;
         }
 
-#ifdef USE_CIMG
-        int32_t TextureSet::loadTexture(std::string tex, bool force_write) {
-            cil::CImg<uint8_t> image(tex.c_str());
-            uint32_t width = image.width(), height = image.height(), spectrum = image.spectrum();
-            image.channels(0, 3);
-            if (spectrum == 3) image.get_shared_channel(3).fill(255); // if RGB, will alpha channel
-            image.permute_axes("cxyz");
+        // planned merge to externaled
+#ifdef EXPERIMENTAL_GLTF
+        int32_t TextureSet::loadTexture(tinygltf::Image* image, bool force_write) {
+            if (!image) return -1;
 
+            // TODO: grayscale support
+            auto format = vk::Format::eR8G8B8A8Unorm;
+            if (image->component == 3) format = vk::Format::eR8G8B8Unorm;
 
             // create texture
-            auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR8G8B8A8Unorm, 1);
-            auto tstage = createBuffer(device, image.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            auto texture = createTexture(device, vk::ImageViewType::e2D, { uint32_t(image->width), uint32_t(image->height), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, format, 1);
+            auto tstage = createBuffer(device, image->image.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
             // purple-black square
             {
                 auto command = getCommandBuffer(device, true);
-                bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(uint8_t), 0);
+                bufferSubData(command, tstage, (const uint8_t *)image->image.data(), image->image.size() * sizeof(uint8_t), 0);
                 memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
-                    .setImageExtent({ width, height, 1 })
+                    .setImageExtent({ uint32_t(image->width), uint32_t(image->height), 1 })
                     .setImageOffset({ 0, 0, 0 })
                     .setBufferOffset(0)
-                    .setBufferRowLength(width)
-                    .setBufferImageHeight(height)
+                    .setBufferRowLength(image->width)
+                    .setBufferImageHeight(image->height)
                     .setImageSubresource(texture->subresourceLayers));
                 flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
             }

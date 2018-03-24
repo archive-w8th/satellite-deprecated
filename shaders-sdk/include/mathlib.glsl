@@ -1,19 +1,10 @@
 #ifndef _MATHLIB_H
 #define _MATHLIB_H
 
+// short means barrier
+#define LGROUP_BARRIER memoryBarrier(),barrier(); 
 
-
-#ifdef AMD_F16_BVH
-    const bool amd_fp16_bvh = true;
-#else
-    const bool amd_fp16_bvh = false;
-#endif
-
-
-#define GROUP_BARRIER memoryBarrier(),barrier(); 
-
-
-// float 16 or 32 types
+// float 16 or 32 bit types
 #ifdef AMD_F16_BVH
 #define FTYPE_ float16_t
 #define FVEC3_ f16vec3
@@ -68,8 +59,6 @@
 #define PICK(m, i) m[i]
 #endif
 
-
-
 #define BVEC4_ ivec4
 #define BVEC3_ ivec3
 #define BVEC2_ ivec2
@@ -81,14 +70,28 @@
 #define FALSE2_ FALSE_.xx
 
 
-
-
 // null of indexing in float representation
 float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0
 
 
+
+
+
+
+// inprecise comparsion functions
+const float PRECERR = PZERO;
+BOOL_ lessEqualF   (in float a, in float b) { return BOOL_(   (a-b) <=  PRECERR); }
+BOOL_ lessF        (in float a, in float b) { return BOOL_(   (a-b) <  -PRECERR); }
+BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(   (a-b) >= -PRECERR); }
+BOOL_ greaterF     (in float a, in float b) { return BOOL_(   (a-b) >   PRECERR); }
+BOOL_ equalF       (in float a, in float b) { return BOOL_(abs(a-b) <=  PRECERR); }
+
+// precision utils
 float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 100000.f*sign(a); return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
+
+
+
 
 
 
@@ -109,14 +112,12 @@ float mlength(in vec3 mcolor) { return max(mcolor.x, max(mcolor.y, mcolor.z)); }
 
 // memory managment
 void swap(inout int a, inout int b) { int t = a; a = b; b = t; }
-
 uint exchange(inout uint mem, in uint v) { uint tmp = mem; mem = v; return tmp; }
 int exchange(inout int mem, in int v) { int tmp = mem; mem = v; return tmp; }
-
 int add(inout int mem, in int v) { int tmp = mem; mem += v; return tmp; }
 uint add(inout uint mem, in uint ops) { uint tmp = mem; mem += ops; return tmp; }
 
-// logical functions
+// logical functions (bvec2)
 bvec2 not(in bvec2 a) { return bvec2(!a.x, !a.y); }
 bvec2 and(in bvec2 a, in bvec2 b) { return bvec2(a.x && b.x, a.y && b.y); }
 bvec2 or(in bvec2 a, in bvec2 b) { return bvec2(a.x || b.x, a.y || b.y); }
@@ -154,11 +155,9 @@ uvec4 U4P(in u64vec2 pckg) { return uvec4(U2P(pckg.x), U2P(pckg.y)); }
 u64vec2 P4U(in uvec4 pckg) { return u64vec2(uint64_t(P2U(pckg.xy)), uint64_t(P2U(pckg.zw))); }
 
 
-
-
- int lsb(in uint vlc) { return findLSB(vlc); }
- int msb(in uint vlc) { return findMSB(vlc); }
-
+// bit utils
+int lsb(in uint vlc) { return findLSB(vlc); }
+int msb(in uint vlc) { return findMSB(vlc); }
 uint bitcnt(in uint vlc) { return uint(bitCount(vlc)); }
 uint bitcnt(in uvec2 lh) { ivec2 bic = bitCount(lh); return uint(bic.x+bic.y); }
 uint bitcnt(in uint64_t lh) { ivec2 bic = bitCount(U2P(lh)); return uint(bic.x+bic.y); }
@@ -226,7 +225,6 @@ f16vec4 fmix(in f16vec4 a, in f16vec4 b, in f16vec4 c){ return _FMOP; }
 
 // color space utils
 
-
 const float HDR_GAMMA = 2.2f;
 
 vec3 fromLinear(in vec3 linearRGB) {
@@ -248,8 +246,6 @@ vec4 toLinear(in vec4 sRGB) {
 
 
 // planned to rework packing system with half floats
-
-
 
 // half float packing (64-bit)
 vec4 unpackHalf(in uvec2 hilo) {
@@ -310,10 +306,6 @@ uvec4 packFloat2(in f16vec4 floats) {
 }
 #endif
 
-// planned double packing (256bit and 128bit)
-
-
-
 
 // optimized boolean operations
 BOOL_ any(in BVEC2_ b){return b.x|b.y;}
@@ -332,7 +324,6 @@ bvec2 SSC(in BVEC2_ b){return bvec2(b);}
 bvec4 SSC(in BVEC4_ b){return bvec4(b);}
 #endif
 
-
 bool SSC(in bool b){return b;}
 bvec2 SSC(in bvec2 b){return b;}
 bvec4 SSC(in bvec4 b){return b;}
@@ -340,14 +331,6 @@ bvec4 SSC(in bvec4 b){return b;}
 #define IF(b)if(SSC(b))
 
 
-
-// inprecise comparsion functions
-const float PRECERR = PZERO;
-BOOL_ lessEqualF   (in float a, in float b) { return BOOL_(   (a-b) <=  PRECERR); }
-BOOL_ lessF        (in float a, in float b) { return BOOL_(   (a-b) <  -PRECERR); }
-BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(   (a-b) >= -PRECERR); }
-BOOL_ greaterF     (in float a, in float b) { return BOOL_(   (a-b) >   PRECERR); }
-BOOL_ equalF       (in float a, in float b) { return BOOL_(abs(a-b) <=  PRECERR); }
 
 
 // selection product
@@ -370,9 +353,6 @@ float16_t mix(in float16_t a, in float16_t b, in BOOL_ c) { return mix(a,b,SSC(c
 f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
 f16vec4 mix(in f16vec4 a, in f16vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
 #endif
-
-
-
 
 
 // hacky pack for 64-bit uint and two 32-bit float
@@ -401,16 +381,12 @@ uint64_t fast32swap(in uint64_t b64, const BOOL_ nswp){
 // swap x and y swizzle by funnel shift (AMD half float)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 f16vec2 fast16swap(in f16vec2 b32, in BOOL_ nswp) { 
-    //return unpackFloat2x16(fast16swap(packFloat2x16(b32), nswp)); // use rotate shift version (when possible)
-    //return SSC(nswp) ? b32 : b32.yx;
     return mix(b32.yx, b32, nswp.xx); // use swizzle version (some device can be slower)
 }
 #endif
 
 // swap x and y swizzle by funnel shift
 vec2 fast32swap(in vec2 b64, in BOOL_ nswp) { 
-    //return unpackFloat2x32(fast32swap(packFloat2x32(b64), nswp)); // use rotate shift version (when possible)
-    //return SSC(nswp) ? b64 : b64.yx;
     return mix(b64.yx, b64, nswp.xx); // use swizzle version (some device can be slower)
 }
 
@@ -419,8 +395,6 @@ vec2 fast32swap(in vec2 b64, in BOOL_ nswp) {
 #else
 #define FSWP fast32swap
 #endif
-
-
 
 
 // single float 32-bit box intersection
@@ -491,41 +465,11 @@ BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in
     return isCube;
 }
 
-
 // BVH utility
 uint64_t bitfieldReverse64(in uint64_t a){uvec2 p = U2P(a);p=bitfieldReverse(p);return P2U(p.yx);}
 int nlz(in uint64_t x) { return x == 0 ? 64 : lsb(bitfieldReverse64(x)); }
 int nlz(in uint x) { return x == 0 ? 32 : lsb(bitfieldReverse(x)); }
-//int nlz(in uint64_t x) { return lsb(bitfieldReverse64(x)); }
-//int nlz(in uint x) { return lsb(bitfieldReverse(x)); }
 int nlz(in int x) { return nlz(uint(x)); }
-
-
-
-// reserved for future rasterizers
-// just for save
-vec3 barycentric2D(in vec3 p, in mat3x3 triangle) {
-    mat3x3 plc = transpose(mat3x3(triangle[2] - triangle[0], triangle[1] - triangle[0], triangle[0] - p));
-    vec3 u = cross(plc[0], plc[1]); // xy (2d) cross
-    if (abs(u.z) < 1.f) return vec3(-1.f,1.f,1.f); 
-    return vec3(u.z-(u.x+u.y), u.y, u.x)/u.z;
-}
-
-// also, create planar projection 
-mat3 make_stream_projection(in vec3 normal){
-    mat3 r;
-    r[0].x = 1.f - normal.x * normal.x;
-    r[0].y = -normal.x * normal.y;
-    r[0].z = -normal.x * normal.z;
-    r[1].x = -normal.x * normal.y;
-    r[1].y = 1.f - normal.y * normal.y;
-    r[1].z = -normal.y * normal.z;
-    r[2].x = -normal.x * normal.z;
-    r[2].y = -normal.y * normal.z;
-    r[2].z = 1.f - normal.z * normal.z;
-    return r;
-}
-
 
 // polar/cartesian coordinates
 vec2 lcts(in vec3 direct){
@@ -540,10 +484,5 @@ vec3 dcts(in vec2 hr) {
 
 #define f32_f16 packHalf2
 #define f16_f32 unpackHalf
-
-
-
-
-
 
 #endif

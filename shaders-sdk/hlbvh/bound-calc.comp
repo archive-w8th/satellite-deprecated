@@ -56,7 +56,7 @@ void main() {
         sdata[tid] = bboxunion(bound, bboxunion(getMinMaxPrimitive(i), getMinMaxPrimitive(i + gl_WorkGroupSize.x)));
         i += gridSize;
     };
-    GROUP_BARRIER
+    LGROUP_BARRIER
 
     [[unroll]]
     for (uint ki=(gl_WorkGroupSize.x>>1);ki>=1;ki>>=1) {
@@ -65,7 +65,7 @@ void main() {
             bbox opbound = sdata[tid + ki];
             sdata[tid] = bboxunion(bound, opbound); 
         }
-        if (ki > WARP_SIZE_RT) { GROUP_BARRIER }
+        if (ki > WARP_SIZE_RT) { LGROUP_BARRIER }
     }
 
     if (tid == 0) {

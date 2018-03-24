@@ -37,7 +37,7 @@ void main() {
         localHistogram[radice] = PrefixSum[radice + gl_WorkGroupID.x * RADICES];
     }
     
-    GROUP_BARRIER
+    LGROUP_BARRIER
 
     // calculate blocks
     blocks_info blocks = get_blocks_info(NumKeys);
@@ -69,7 +69,7 @@ void main() {
             key.x = URDC_WARP(BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
 #endif
         }
-        GROUP_BARRIER
+        LGROUP_BARRIER
 
         // WARP-optimized histogram calculation
         for (uint rk=0u;rk<RADICES;rk+=WRK_SIZE_RT) {

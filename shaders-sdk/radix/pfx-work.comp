@@ -13,13 +13,13 @@ layout (local_size_x = RADICES) in;
 // reductive prefix scan of work groups
 uint prefixScan(const uint limit) {
     UVEC_WARP ldx = LT_IDX;
-    GROUP_BARRIER
+    LGROUP_BARRIER
     {
         uint prv = ldx >= 1 ? ldx-1 : 0;
         uint tmp = ldx >= 1 && ldx < limit ? localHistogram[prv] : 0;
-        GROUP_BARRIER
+        LGROUP_BARRIER
         if (ldx < limit) localHistogram[ldx] = tmp;
-        GROUP_BARRIER
+        LGROUP_BARRIER
     }
 
     // reduction prefix-scan
@@ -28,13 +28,13 @@ uint prefixScan(const uint limit) {
         uint prv = ldx >= i ? ldx-i : 0;
         uint off = ldx >= i && ldx < limit ? localHistogram[prv] : 0, 
              hst =             ldx < limit ? localHistogram[ldx] : 0;
-        GROUP_BARRIER
+        LGROUP_BARRIER
         if (ldx < limit) localHistogram[ldx] = off + hst;
-        GROUP_BARRIER
+        LGROUP_BARRIER
     }
 
     uint res = localHistogram[ldx];
-    GROUP_BARRIER
+    LGROUP_BARRIER
     return res;
 }
 
@@ -47,7 +47,7 @@ void main() {
         
         // calculate prefix-sums of all work groups
         localHistogram[LT_IDX] = 0;
-        GROUP_BARRIER
+        LGROUP_BARRIER
 
         // calculate local prefix-sum in each work of each radice
         uint awHistogram = 0; // sum of work-group histograms (globalized histograms)

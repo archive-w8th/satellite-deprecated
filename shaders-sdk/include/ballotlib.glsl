@@ -4,40 +4,39 @@
 #include "../include/mathlib.glsl"
 
 // for constant maners
-#ifndef WARP_SIZE
+#ifndef Wave_Size
 #ifndef NVIDIA_PLATFORM
-#define WARP_SIZE 64
+#define Wave_Size 64
 #else
-#define WARP_SIZE 32
+#define Wave_Size 32
 #endif
 #endif
 
-#define WARP_SIZE_RT gl_SubgroupSize.x
+#define Wave_Size_RT gl_SubgroupSize.x
 
 #ifndef OUR_INVOC_TERM
-#define LT_IDX gl_LocalInvocationIndex.x
-#define LC_IDX gl_SubgroupID.x
-#define LANE_IDX gl_SubgroupInvocationID.x
+#define Local_Idx gl_LocalInvocationIndex.x
+#define Global_Wave_Idx gl_SubgroupID.x
+#define Lane_Idx gl_SubgroupInvocationID.x
 #endif
 
-#define UVEC_BALLOT_WARP uvec4
+#define uvec_wave_ballot uvec4
 #define RL_ subgroupBroadcast
 #define RLF_ subgroupBroadcastFirst
-
 
 // universal aliases
 #define readFLane RLF_
 #define readLane RL_
 
-UVEC_BALLOT_WARP ballotHW(in bool i) { return subgroupBallot(i); }
-UVEC_BALLOT_WARP ballotHW() { return subgroupBallot(true); }
+uvec_wave_ballot ballotHW(in bool i) { return subgroupBallot(i); }
+uvec_wave_ballot ballotHW() { return subgroupBallot(true); }
 bool electedInvoc() { return subgroupElect(); }
 
 
 // statically multiplied
 #define initAtomicSubgroupIncFunction(mem, fname, by, T)\
 T fname() {\
-    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uvec_wave_ballot bits = ballotHW();\
     const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
@@ -46,7 +45,7 @@ T fname() {\
 
 #define initAtomicSubgroupIncFunctionDyn(mem, fname, T)\
 T fname(const T by) {\
-    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uvec_wave_ballot bits = ballotHW();\
     const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
@@ -57,7 +56,7 @@ T fname(const T by) {\
 // statically multiplied
 #define initAtomicSubgroupIncFunctionTarget(mem, fname, by, T)\
 T fname(const uint WHERE) {\
-    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uvec_wave_ballot bits = ballotHW();\
     const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
@@ -66,7 +65,7 @@ T fname(const uint WHERE) {\
 
 #define initAtomicSubgroupIncFunctionByTarget(mem, fname, T)\
 T fname(const uint WHERE, const T by) {\
-    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uvec_wave_ballot bits = ballotHW();\
     const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = atomicAdd(mem, T(sumInOrder) * T(by));}\
@@ -77,7 +76,7 @@ T fname(const uint WHERE, const T by) {\
 // statically multiplied
 #define initSubgroupIncFunctionTarget(mem, fname, by, T)\
 T fname(const uint WHERE) {\
-    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uvec_wave_ballot bits = ballotHW();\
     const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = add(mem, T(sumInOrder) * T(by));}\
@@ -86,7 +85,7 @@ T fname(const uint WHERE) {\
 
 #define initSubgroupIncFunctionByTarget(mem, fname, T)\
 T fname(const uint WHERE, const T by) {\
-    const UVEC_BALLOT_WARP bits = ballotHW();\
+    const uvec_wave_ballot bits = ballotHW();\
     const uint sumInOrder = subgroupBallotBitCount(bits), idxInOrder = subgroupBallotExclusiveBitCount(bits);\
     T gadd = 0;\
     if (subgroupElect() && sumInOrder > 0) {gadd = add(mem, T(sumInOrder) * T(by));}\
@@ -98,7 +97,7 @@ T fname(const uint WHERE, const T by) {\
 // statically multiplied
 #define initSubgroupIncFunctionTargetDual(mem, fname, by, T, T2)\
 T2 fname(const uint WHERE, in bvec2 a) {\
-    const UVEC_BALLOT_WARP bitsx = ballotHW(a.x), bitsy = ballotHW(a.y);\
+    const uvec_wave_ballot bitsx = ballotHW(a.x), bitsy = ballotHW(a.y);\
     const uvec2 \
         sumInOrder = uvec2(subgroupBallotBitCount(bitsx), subgroupBallotBitCount(bitsy)),\
         idxInOrder = uvec2(subgroupBallotExclusiveBitCount(bitsx), subgroupBallotExclusiveBitCount(bitsy));\
@@ -115,8 +114,8 @@ bool anyInvoc(in bool bc){ return subgroupAny(bc); }
 
 
 // aliases
-bool allInvoc(in BOOL_ bc){ return allInvoc(SSC(bc)); }
-bool anyInvoc(in BOOL_ bc){ return anyInvoc(SSC(bc)); }
+bool allInvoc(in bool_ bc){ return allInvoc(SSC(bc)); }
+bool anyInvoc(in bool_ bc){ return anyInvoc(SSC(bc)); }
 #define IFALL(b)if(allInvoc(b))
 #define IFANY(b)if(anyInvoc(b))
 

@@ -33,16 +33,16 @@ void unifyNodeBox(in int idx){
 
     // shuffle and transpose for traversing (resulting childrens)
 #ifdef USE_F32_BVH
-    bvhBoxesResulting[sibid][0] = FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x);
-    bvhBoxesResulting[sibid][1] = FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y);
-    bvhBoxesResulting[sibid][2] = FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z);
-    bvhBoxesResulting[sibid][3] = FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w);
+    bvhBoxesResulting[sibid][0] = fvec4_(lmn.x, rmn.x, lmx.x, rmx.x);
+    bvhBoxesResulting[sibid][1] = fvec4_(lmn.y, rmn.y, lmx.y, rmx.y);
+    bvhBoxesResulting[sibid][2] = fvec4_(lmn.z, rmn.z, lmx.z, rmx.z);
+    bvhBoxesResulting[sibid][3] = fvec4_(lmn.w, rmn.w, lmx.w, rmx.w);
 #else
     // TODO: support of corrections fields
-    bvhBoxesResulting[sibid][0].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.x, rmn.x, lmx.x, rmx.x)) );
-    bvhBoxesResulting[sibid][1].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.y, rmn.y, lmx.y, rmx.y)) );
-    bvhBoxesResulting[sibid][2].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.z, rmn.z, lmx.z, rmx.z)) );
-    bvhBoxesResulting[sibid][3].xy = packHalf2( fma(FVEC4_(-1e-3f.xx, 1e-3f.xx), FVEC4_(0.5f.xxxx), FVEC4_(lmn.w, rmn.w, lmx.w, rmx.w)) );
+    bvhBoxesResulting[sibid][0].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.x, rmn.x, lmx.x, rmx.x)) );
+    bvhBoxesResulting[sibid][1].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.y, rmn.y, lmx.y, rmx.y)) );
+    bvhBoxesResulting[sibid][2].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.z, rmn.z, lmx.z, rmx.z)) );
+    bvhBoxesResulting[sibid][3].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.w, rmn.w, lmx.w, rmx.w)) );
 #endif
 }
 

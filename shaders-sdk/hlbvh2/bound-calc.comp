@@ -65,7 +65,7 @@ void main() {
             bbox opbound = sdata[tid + ki];
             sdata[tid] = bboxunion(bound, opbound); 
         }
-        if (ki > WARP_SIZE_RT) { LGROUP_BARRIER }
+        if (ki > Wave_Size_RT) { LGROUP_BARRIER }
     }
 
     if (tid == 0) {

@@ -57,7 +57,7 @@ float qrand(in float r){ return random() < r ? 1.f : 0.f; }
 // 2 - have intersection status or not
 
 int invokeSurface(inout bool overflow) {
-    HitRework firstHit; firstHit.bitfield = 0; HitActived(firstHit, FALSE_); wasHit = -1; // initial hit
+    HitRework firstHit; firstHit.bitfield = 0; HitActived(firstHit, false_); wasHit = -1; // initial hit
 
     // initial composition
     compositedHit.uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
@@ -88,7 +88,7 @@ int invokeSurface(inout bool overflow) {
     WriteColor(currentRay.dcolor, vec4(max(0.0f.xxxx, f16_f32(currentRay.dcolor)).xyz, 1.f));
     currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit.uvt.zzz, currentRay.origin.xyz); // current set origin by distance
     currentRay.origin.w = FINT_NULL; // reset chains
-    if (overflow) RayActived(currentRay, FALSE_); // if had overflow, invalidate ray
+    if (overflow) RayActived(currentRay, false_); // if had overflow, invalidate ray
 
     // getting ray state
     int rayState = 0; // invalid ray 
@@ -105,7 +105,7 @@ int invokeSurface(inout bool overflow) {
 
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
     if (overflow || SSC(RayActived(rayTemplate)) && (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f)) {
-        RayActived(rayTemplate, FALSE_);
+        RayActived(rayTemplate, false_);
         WriteColor(rayTemplate.dcolor, 0.f.xxxx); // no mechanism for detect emission
     }
 }
@@ -115,7 +115,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
 
     // bad ray
     if (skipping) {
-        RayActived(rayTemplate, FALSE_);
+        RayActived(rayTemplate, false_);
         WriteColor(rayTemplate.dcolor, 0.f.xxxx);
     }
 
@@ -139,7 +139,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
     if (lc >= 0 && (RayTargetLight(rayTemplate) == lc || RayType(rayTemplate) != 2) && SSC(RayActived(rayTemplate))) {
         // if diffuse, shade as non-shaded (absorb), because for it have direct light
         WriteColor(rayTemplate.dcolor, RayType(rayTemplate) == 1 ? 0.f.xxxx : f16_f32(rayTemplate.dcolor) * vec4(getLightColor(lc), 1.f));
-        RayActived(rayTemplate, FALSE_);
+        RayActived(rayTemplate, false_);
         skipping = true;
     }
 
@@ -147,13 +147,13 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
     vec4 color = vec4(0.0f); EnvironmentShader(color, rayTemplate); //color.xyz = toLinear(max(color.xyz, vec3(0.f)));
     if (wasHit == -1 && SSC(RayActived(rayTemplate)) && RayType(rayTemplate) != 2) {
         WriteColor(rayTemplate.dcolor, f16_f32(rayTemplate.dcolor) * vec4(color.xyz, 1.f));
-        RayActived(rayTemplate, FALSE_);
+        RayActived(rayTemplate, false_);
         skipping = true;
     }
 
     // wrong ray?
     if (wasHit == -1 && SSC(RayActived(rayTemplate))) {
-        RayActived(rayTemplate, FALSE_);
+        RayActived(rayTemplate, false_);
         WriteColor(rayTemplate.dcolor, 0.0f.xxxx);
         skipping = true;
     }
@@ -168,12 +168,12 @@ uint createBlockOnce(inout int block, in bool minimalCondition){
         if (electedInvoc()) { block = createBlock(block, currentBlockBin); }; block = readFLane(block);
 
         [[unroll]]
-        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
-            int nid = tb + int(LANE_IDX);
+        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+            int nid = tb + int(Lane_Idx);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
             rayBlockNodes[block][nid].data.origin.w = 0;
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
-            RayActived(rayBlockNodes[block][nid].data, FALSE_);
+            RayActived(rayBlockNodes[block][nid].data, false_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
             if (nid < R_BLOCK_SIZE) {
                 m16s(-1, blockIndiceHeader(block), nid);
@@ -219,8 +219,8 @@ void emitBlock(in int block) {
         bool hasIllumination = false;
 
         [[unroll]]
-        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) { 
-            int bidx = int(tb + LANE_IDX), idx = -1;
+        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) { 
+            int bidx = int(tb + Lane_Idx), idx = -1;
             if (bidx < int(R_BLOCK_SIZE)) {
                 idx = m16i(blockPreparingHeader(block), int(bidx));
                 m16s(idx, blockIndiceHeader(block), int(bidx));
@@ -252,7 +252,7 @@ LOCAL_SIZE_LAYOUT;
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.blockCount
     int wsize = RAY_BLOCK samplerUniform.blockCount;
-    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcsize = int(gl_WorkGroupSize.x) / int(Wave_Size_RT);
     int wcount = min(tiled(wsize, wcsize), 1000000);
 
     // invoke available blocks
@@ -260,7 +260,7 @@ void main() {
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
         globalInvocationSMP = globalID;
 
         // check if not reached blocks limit
@@ -280,8 +280,8 @@ void main() {
             // invoke block data
             if (!invld) {
                 int bts = min(int(R_BLOCK_SIZE), int(currentBlockSize));
-                for (int tb = 0; tb < bts; tb += int(WARP_SIZE_RT)) {
-                    int nid = tb + int(LANE_IDX);
+                for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
+                    int nid = tb + int(Lane_Idx);
                     randomClocks = 0, subHash = nid; // reset random clocks
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;
@@ -393,7 +393,7 @@ void main() {
                         RayRework envRay = enrollRay;
                         WriteColor(envRay.dcolor, f16_f32(envRay.dcolor) * qprom ); // shadows dims 
                         IF (RayActived(envRay)) WriteColor(envRay.dcolor, 0.0f.xxxx); // any actives inaccessible
-                        RayActived(envRay, FALSE_);
+                        RayActived(envRay, false_);
                         invokeBlockForNodes(envRay, envBlock, overwriteBlock);
                     }
 

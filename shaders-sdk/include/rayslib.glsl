@@ -208,7 +208,7 @@ void accquireNode(in int block, in int bidx){
         currentRay.dcolor = uvec2((0u).xx);
         currentRay.origin.w = 0;
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
-        RayActived(currentRay, FALSE_);
+        RayActived(currentRay, false_);
         RayBounce(currentRay, 0);
     }
 }
@@ -224,14 +224,14 @@ void accquireNodeOffload(in int block, in int bidx){
         rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
         rayBlockNodes[block][nid].data.origin.w = 0;
         WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
-        RayActived(rayBlockNodes[block][nid].data, FALSE_);
+        RayActived(rayBlockNodes[block][nid].data, false_);
         RayBounce(rayBlockNodes[block][nid].data, 0);
         m16s(-1, blockIndiceHeader(block), currentInBlockPtr);
     } else {
         currentRay.dcolor = uvec2((0u).xx);
         currentRay.origin.w = 0;
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
-        RayActived(currentRay, FALSE_);
+        RayActived(currentRay, false_);
         RayBounce(currentRay, 0);
     }
 }
@@ -369,7 +369,7 @@ void accquireNode(in int bidx) {
     accquireNode(currentBlock, bidx);
     if (bidx >= currentBlockSize) {
         currentBlockNode = -1;
-        RayActived(currentRay, FALSE_);
+        RayActived(currentRay, false_);
     }
 }
 
@@ -378,7 +378,7 @@ void accquireNodeOffload(in int bidx) {
     accquireNodeOffload(currentBlock, bidx);
     if (bidx >= currentBlockSize) {
         currentBlockNode = -1;
-        RayActived(currentRay, FALSE_);
+        RayActived(currentRay, false_);
     }
 }
 
@@ -406,7 +406,7 @@ void confirmNode(in bool actived) {
 }
 
 void confirmNode() {
-    confirmNode(RayActived(currentRay) == TRUE_); // confirm node by ray
+    confirmNode(RayActived(currentRay) == true_); // confirm node by ray
 }
 #endif
 

@@ -14,7 +14,7 @@ LOCAL_SIZE_LAYOUT;
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.blockBinCount
     int wsize = RAY_BLOCK samplerUniform.blockBinCount;
-    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcsize = int(gl_WorkGroupSize.x) / int(Wave_Size_RT);
     int wcount = min(tiled(wsize, wcsize), 1000000);
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
 
@@ -23,19 +23,19 @@ void main() {
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
 
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
         IFALL(overflow) break;
         if (!overflow) {
             int cnt = 256;
-            int idx = readLane(blockBins[globalID].blockStart , 0)-1; if (LANE_IDX == 0) blockBins[globalID].blockStart  = 0;
-            int prv = readLane(blockBins[globalID].previousReg, 0)-1; if (LANE_IDX == 0) blockBins[globalID].previousReg = 0;
+            int idx = readLane(blockBins[globalID].blockStart , 0)-1; if (Lane_Idx == 0) blockBins[globalID].blockStart  = 0;
+            int prv = readLane(blockBins[globalID].previousReg, 0)-1; if (Lane_Idx == 0) blockBins[globalID].previousReg = 0;
             int texelHeader = readLane(blockBinIndiceHeader(globalID), 0);
             int texelFrom = (blockBins[globalID].texelFrom)-1;
 
-            if (LANE_IDX == 0 && int(prv) >= 0) rayBlocks[prv].next = 0; // unlink weird block
+            if (Lane_Idx == 0 && int(prv) >= 0) rayBlocks[prv].next = 0; // unlink weird block
             if (int(texelHeader) < 0 || int(texelFrom) < 0) continue;
 
             // scatter colors from block bins
@@ -46,8 +46,8 @@ void main() {
                 inv = inv || anyInvoc(inv || anyInvoc(inv || int(idx) < 0));
                 IFALL(inv) break; // if overflow or bad texel
                 if (!inv) {
-                    for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
-                        int nid = tb + int(LANE_IDX);
+                    for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                        int nid = tb + int(Lane_Idx);
                         int ltex = m16i(texelHeader, nid);
                         int texel = texelFrom + ltex - 1;
 
@@ -58,11 +58,11 @@ void main() {
                                 texelBuf.nodes[texel].color.xyz += color.xyz;
                             }
                             WriteColor(rayBlockNodes[idx][nid].data.dcolor, 0.f.xxxx);
-                            RayActived(rayBlockNodes[idx][nid].data, FALSE_);
+                            RayActived(rayBlockNodes[idx][nid].data, false_);
                         }
                     }
                     int preidx = readLane(int(idx) >= 0 ? rayBlocks[idx].next : 0, 0);
-                    if (LANE_IDX == 0 && int(idx) >= 0) {
+                    if (Lane_Idx == 0 && int(idx) >= 0) {
                         rayBlocks[idx].next = 0;
                         rayBlocks[idx].indiceCount = 0;
                         rayBlocks[idx].blockBinId = 0;
@@ -70,7 +70,7 @@ void main() {
                     idx = preidx-1;
                 }
             }
-            if (LANE_IDX == 0 && int(idx) >= 0) rayBlocks[idx].next = 0;
+            if (Lane_Idx == 0 && int(idx) >= 0) rayBlocks[idx].next = 0;
         }
     }
 }

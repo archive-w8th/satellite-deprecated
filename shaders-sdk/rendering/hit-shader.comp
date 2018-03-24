@@ -184,7 +184,7 @@ const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
 HitRework interpolateMeshData(inout HitRework res) {
     int tri = floatBitsToInt(res.uvt.w);
-    BOOL_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & BOOL_(tri != LONGEST);
+    bool_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & bool_(tri != LONGEST);
     IFANY (validInterpolant) {
         // pre-calculate interpolators
         vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
@@ -226,7 +226,7 @@ HitRework interpolateMeshData(inout HitRework res) {
             res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
             res.bitangent = vec4(normalize(btng - normal * dot(normal, btng)), 0.f);
-            HitActived(res, TRUE_); // temporary enable
+            HitActived(res, true_); // temporary enable
         }
     }
     return res;
@@ -275,7 +275,7 @@ void main() {
             bool wasTextured = false;
 
             [[unroll]]
-            for (int wl=0;wl<WARP_SIZE_RT;wl++) {
+            for (int wl=0;wl<Wave_Size_RT;wl++) {
                 IFALL(wasTextured) break;
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
                     // do parallax mapping
@@ -314,7 +314,7 @@ void main() {
             hit.albedo.xy = packHalf2(diffuse.xyzw).xy;
             hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
             
-            HitActived(hit, TRUE_);
+            HitActived(hit, true_);
             hits[globalID] = hit;
             //if (!overflow) hits[globalID] = hit;
         }

@@ -20,7 +20,7 @@ void main() {
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(LT_IDX);
+        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(Local_Idx);
         IFALL(globalID >= wsize) break;
         if (globalID < wsize && globalID >= 0) {
             int idx = LeafIndices[globalID];

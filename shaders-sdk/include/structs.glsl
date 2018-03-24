@@ -133,11 +133,11 @@ void parameteri(const ivec2 parameter, inout uint bitfield, in int value) {
     bitfield = BFI_HW(bitfield, uint(value), parameter.x, parameter.y);
 }
 
-BOOL_ parameterb(const ivec2 parameter, inout uint bitfield) {
-    return BOOL_(BFE_HW(bitfield, parameter.x, 1));
+bool_ parameterb(const ivec2 parameter, inout uint bitfield) {
+    return bool_(BFE_HW(bitfield, parameter.x, 1));
 }
 
-void parameterb(const ivec2 parameter, inout uint bitfield, in BOOL_ value) {
+void parameterb(const ivec2 parameter, inout uint bitfield, in bool_ value) {
     bitfield = BFI_HW(bitfield, uint(value), parameter.x, 1);
 }
 
@@ -150,11 +150,11 @@ void parameteri(const ivec2 parameter, inout float bitfield, in int value) {
     bitfield = uintBitsToFloat(BFI_HW(floatBitsToUint(bitfield), uint(value), parameter.x, parameter.y));
 }
 
-BOOL_ parameterb(const ivec2 parameter, inout float bitfield) {
-    return BOOL_(BFE_HW(floatBitsToUint(bitfield), parameter.x, 1));
+bool_ parameterb(const ivec2 parameter, inout float bitfield) {
+    return bool_(BFE_HW(floatBitsToUint(bitfield), parameter.x, 1));
 }
 
-void parameterb(const ivec2 parameter, inout float bitfield, in BOOL_ value) {
+void parameterb(const ivec2 parameter, inout float bitfield, in bool_ value) {
     bitfield = uintBitsToFloat(BFI_HW(floatBitsToUint(bitfield), uint(value), parameter.x, 1));
 }
 
@@ -164,21 +164,21 @@ void parameterb(const ivec2 parameter, inout float bitfield, in BOOL_ value) {
 
 
 
-BOOL_ HitActived(inout HitRework hit) {
+bool_ HitActived(inout HitRework hit) {
     return parameterb(ACTIVED, HIT_BITFIELD_);
 }
 
-void HitActived(inout HitRework hit, in BOOL_ actived) {
+void HitActived(inout HitRework hit, in bool_ actived) {
     parameterb(ACTIVED, HIT_BITFIELD_, actived);
 }
 
 
 
-BOOL_ RayActived(inout RayRework ray) {
+bool_ RayActived(inout RayRework ray) {
     return parameterb(ACTIVED, RAY_BITFIELD_);
 }
 
-void RayActived(inout RayRework ray, in BOOL_ actived) {
+void RayActived(inout RayRework ray, in bool_ actived) {
     parameterb(ACTIVED, RAY_BITFIELD_, actived);
 }
 
@@ -196,11 +196,11 @@ void RayType(inout RayRework ray, in int type) {
 
 
 // restore law about direct light and caustics
-BOOL_ RayDL(inout RayRework ray) {
+bool_ RayDL(inout RayRework ray) {
     return parameterb(RAY_DL, RAY_BITFIELD_);
 }
 
-void RayDL(inout RayRework ray, in BOOL_ dl) {
+void RayDL(inout RayRework ray, in bool_ dl) {
     parameterb(RAY_DL, RAY_BITFIELD_, dl);
 }
 

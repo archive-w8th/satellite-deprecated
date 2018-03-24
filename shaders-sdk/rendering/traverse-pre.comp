@@ -17,7 +17,7 @@ LOCAL_SIZE_LAYOUT;
 void main() {
     #define wsize RAY_BLOCK samplerUniform.blockCount
     //int wsize = RAY_BLOCK samplerUniform.blockCount;
-    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcsize = int(gl_WorkGroupSize.x) / int(Wave_Size_RT);
     int wcount = min(tiled(wsize, wcsize), 1000000);
 
     // invoke available blocks
@@ -25,7 +25,7 @@ void main() {
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
         globalInvocationSMP = globalID;
 
         // check if not reached blocks limit
@@ -42,8 +42,8 @@ void main() {
             // invoke block data
             if (!invld) {
                 uint bts = min(R_BLOCK_SIZE, currentBlockSize);
-                for (int tb = 0; tb < bts; tb += int(WARP_SIZE_RT)) {
-                    int nid = tb + int(LANE_IDX);
+                for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
+                    int nid = tb + int(Lane_Idx);
                     randomClocks = 0, subHash = nid; // reset random clocks
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;

@@ -29,14 +29,14 @@ vec2 intersectCube(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 cubeMax
     float tNear = max(max(t1.x, t1.y), t1.z);
     float tFar  = min(min(t2.x, t2.y), t2.z);
 #endif
-    BOOL_ isCube = lessEqualF(tNear, tFar);
+    bool_ isCube = lessEqualF(tNear, tFar);
     return SSC(isCube) ? vec2(min(tNear, tFar), max(tNear, tFar)) : vec2(INFINITY);
 }
 
 vec4 points[6];
 
 // check if point is containing
-BOOL_ isContain(in vec4 point, in bbox abox){
+bool_ isContain(in vec4 point, in bbox abox){
     return (
         lessEqualF(point.x, abox.mx.x) & greaterEqualF(point.x, abox.mn.x) & 
         lessEqualF(point.y, abox.mx.y) & greaterEqualF(point.y, abox.mn.y) & 

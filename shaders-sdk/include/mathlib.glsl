@@ -6,32 +6,32 @@
 
 // float 16 or 32 bit types
 #ifdef AMD_F16_BVH
-#define FTYPE_ float16_t
-#define FVEC3_ f16vec3
-#define FVEC4_ f16vec4
-#define FVEC2_ f16vec2
-#define FMAT2X4_ f16mat2x4
-#define FMAT4X4_ f16mat4x4
-#define FMAT3X4_ f16mat3x4
-#define FMAT3X2_ f16mat3x2
-#define FMAT4X3_ f16mat4x3
+#define ftype_ float16_t
+#define fvec3_ f16vec3
+#define fvec4_ f16vec4
+#define fvec2_ f16vec2
+#define fmat2x4_ f16mat2x4
+#define fmat4x4_ f16mat4x4
+#define fmat3x4_ f16mat3x4
+#define fmat3x2_ f16mat3x2
+#define fmat4x3_ f16mat4x3
     #ifdef USE_F32_BVH
     #define UNPACKF_(a)a
     #define PACKF_(a)a
     #else
     #define UNPACKF_(a)a
-    #define PACKF_(a)FVEC4_(a)
+    #define PACKF_(a)fvec4_(a)
     #endif
 #else 
-#define FTYPE_ float
-#define FVEC2_ vec2
-#define FVEC3_ vec3
-#define FVEC4_ vec4
-#define FMAT2X4_ mat2x4
-#define FMAT4X4_ mat4x4
-#define FMAT3X4_ mat3x4
-#define FMAT3X2_ mat3x2
-#define FMAT4X3_ mat4x3
+#define ftype_ float
+#define fvec2_ vec2
+#define fvec3_ vec3
+#define fvec4_ vec4
+#define fmat2x4_ mat2x4
+#define fmat4x4_ mat4x4
+#define fmat3x4_ mat3x4
+#define fmat3x2_ mat3x2
+#define fmat4x3_ mat4x3
     #ifdef USE_F32_BVH
     #define UNPACKF_(a)a
     #define PACKF_(a)a
@@ -59,15 +59,15 @@
 #define PICK(m, i) m[i]
 #endif
 
-#define BVEC4_ ivec4
-#define BVEC3_ ivec3
-#define BVEC2_ ivec2
-#define BOOL_ int
-#define TRUE_ 1
-#define FALSE_ 0
+#define bvec4_ ivec4
+#define bvec3_ ivec3
+#define bvec2_ ivec2
+#define bool_ int
+#define true_ bool_(1)
+#define false_ bool_(0)
 
-#define TRUE2_ TRUE_.xx
-#define FALSE2_ FALSE_.xx
+#define true2_ true_.xx
+#define false2_ false_.xx
 
 
 // null of indexing in float representation
@@ -81,11 +81,11 @@ float FINT_ZERO = intBitsToFloat( 0); //  0
 
 // inprecise comparsion functions
 const float PRECERR = PZERO;
-BOOL_ lessEqualF   (in float a, in float b) { return BOOL_(   (a-b) <=  PRECERR); }
-BOOL_ lessF        (in float a, in float b) { return BOOL_(   (a-b) <  -PRECERR); }
-BOOL_ greaterEqualF(in float a, in float b) { return BOOL_(   (a-b) >= -PRECERR); }
-BOOL_ greaterF     (in float a, in float b) { return BOOL_(   (a-b) >   PRECERR); }
-BOOL_ equalF       (in float a, in float b) { return BOOL_(abs(a-b) <=  PRECERR); }
+bool_ lessEqualF   (in float a, in float b) { return bool_(   (a-b) <=  PRECERR); }
+bool_ lessF        (in float a, in float b) { return bool_(   (a-b) <  -PRECERR); }
+bool_ greaterEqualF(in float a, in float b) { return bool_(   (a-b) >= -PRECERR); }
+bool_ greaterF     (in float a, in float b) { return bool_(   (a-b) >   PRECERR); }
+bool_ equalF       (in float a, in float b) { return bool_(abs(a-b) <=  PRECERR); }
 
 // precision utils
 float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 100000.f*sign(a); return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
@@ -308,20 +308,20 @@ uvec4 packFloat2(in f16vec4 floats) {
 
 
 // optimized boolean operations
-BOOL_ any(in BVEC2_ b){return b.x|b.y;}
-BOOL_ all(in BVEC2_ b){return b.x&b.y;}
-BOOL_ not(in BOOL_ b){return TRUE_^b;}
-BVEC2_ not(in BVEC2_ b){return TRUE2_^b;}
+bool_ any(in bvec2_ b){return b.x|b.y;}
+bool_ all(in bvec2_ b){return b.x&b.y;}
+bool_ not(in bool_ b){return true_^b;}
+bvec2_ not(in bvec2_ b){return true2_^b;}
 
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-bool SSC(in BOOL_ b){return bool(b&TRUE_);}
-bvec2 SSC(in BVEC2_ b){return bvec2(b&TRUE_.xx);}
-bvec4 SSC(in BVEC4_ b){return bvec4(b&TRUE_.xxxx);}
+bool SSC(in bool_ b){return bool(b&true_);}
+bvec2 SSC(in bvec2_ b){return bvec2(b&true_.xx);}
+bvec4 SSC(in bvec4_ b){return bvec4(b&true_.xxxx);}
 #else
-bool SSC(in BOOL_ b){return bool(b);}
-bvec2 SSC(in BVEC2_ b){return bvec2(b);}
-bvec4 SSC(in BVEC4_ b){return bvec4(b);}
+bool SSC(in bool_ b){return bool(b);}
+bvec2 SSC(in bvec2_ b){return bvec2(b);}
+bvec4 SSC(in bvec4_ b){return bvec4(b);}
 #endif
 
 bool SSC(in bool b){return b;}
@@ -334,24 +334,24 @@ bvec4 SSC(in bvec4 b){return b;}
 
 
 // selection product
-int mix(in int a, in int b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-uint mix(in uint a, in uint b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-float mix(in float a, in float b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-ivec2 mix(in ivec2 a, in ivec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
-uvec2 mix(in uvec2 a, in uvec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
-vec2 mix(in vec2 a, in vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
-vec4 mix(in vec4 a, in vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
+int mix(in int a, in int b, in bool_ c) { return mix(a,b,SSC(c)); }
+uint mix(in uint a, in uint b, in bool_ c) { return mix(a,b,SSC(c)); }
+float mix(in float a, in float b, in bool_ c) { return mix(a,b,SSC(c)); }
+ivec2 mix(in ivec2 a, in ivec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+uvec2 mix(in uvec2 a, in uvec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+vec2 mix(in vec2 a, in vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+vec4 mix(in vec4 a, in vec4 b, in bvec4_ c) { return mix(a,b,SSC(c)); }
 #ifdef ENABLE_AMD_INT16
-int16_t mix(in int16_t a, in int16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-uint16_t mix(in uint16_t a, in uint16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-i16vec2 mix(in i16vec2 a, in i16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
-u16vec2 mix(in u16vec2 a, in u16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
+int16_t mix(in int16_t a, in int16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
+uint16_t mix(in uint16_t a, in uint16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
+i16vec2 mix(in i16vec2 a, in i16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+u16vec2 mix(in u16vec2 a, in u16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
 #endif
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-float16_t mix(in float16_t a, in float16_t b, in BOOL_ c) { return mix(a,b,SSC(c)); }
-f16vec2 mix(in f16vec2 a, in f16vec2 b, in BVEC2_ c) { return mix(a,b,SSC(c)); }
-f16vec4 mix(in f16vec4 a, in f16vec4 b, in BVEC4_ c) { return mix(a,b,SSC(c)); }
+float16_t mix(in float16_t a, in float16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
+f16vec2 mix(in f16vec2 a, in f16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+f16vec4 mix(in f16vec4 a, in f16vec4 b, in bvec4_ c) { return mix(a,b,SSC(c)); }
 #endif
 
 
@@ -367,26 +367,26 @@ vec2 unpackFloat2x32(in uint64_t b64){
 
 // swap of 16-bits by funnel shifts and mapping 
 //const uint vrt16[2] = {16u, 0u};
-uint fast16swap(in uint b32, const BOOL_ nswp){
+uint fast16swap(in uint b32, const bool_ nswp){
     const uint vrc = 16u - uint(nswp) * 16u;
     return (b32 << (vrc)) | (b32 >> (32u-vrc));
 }
 
 //const uint64_t vrt32[2] = {32ul, 0ul};
-uint64_t fast32swap(in uint64_t b64, const BOOL_ nswp){
+uint64_t fast32swap(in uint64_t b64, const bool_ nswp){
     const uint64_t vrc = 32ul - uint64_t(nswp) * 32ul;
     return (b64 << (vrc)) | (b64 >> (64ul-vrc));
 }
 
 // swap x and y swizzle by funnel shift (AMD half float)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-f16vec2 fast16swap(in f16vec2 b32, in BOOL_ nswp) { 
+f16vec2 fast16swap(in f16vec2 b32, in bool_ nswp) { 
     return mix(b32.yx, b32, nswp.xx); // use swizzle version (some device can be slower)
 }
 #endif
 
 // swap x and y swizzle by funnel shift
-vec2 fast32swap(in vec2 b64, in BOOL_ nswp) { 
+vec2 fast32swap(in vec2 b64, in bool_ nswp) { 
     return mix(b64.yx, b64, nswp.xx); // use swizzle version (some device can be slower)
 }
 
@@ -400,7 +400,7 @@ vec2 fast32swap(in vec2 b64, in BOOL_ nswp) {
 // single float 32-bit box intersection
 // some ideas been used from http://www.cs.utah.edu/~thiago/papers/robustBVH-v2.pdf
 // compatible with AMD radeon min3 and max3
-BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in mat3x2 tMinMax, inout float near, inout float far) {
+bool_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout bvec3_ sgn, in mat3x2 tMinMax, inout float near, inout float far) {
     tMinMax = mat3x2(
         fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].yx, dr.xx, origin.xx),
         fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].yx, dr.yy, origin.yy),
@@ -420,7 +420,7 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
     tNear += -1e-5f, tFar += 1e-5f;
 
     // validate hit
-    BOOL_ isCube = BOOL_(tFar>tNear) & BOOL_(tFar>0.f) & BOOL_(abs(tNear) <= INFINITY-PRECERR);
+    bool_ isCube = bool_(tFar>tNear) & bool_(tFar>0.f) & bool_(abs(tNear) <= INFINITY-PRECERR);
 
     // resolve hit
     const float inf = float(INFINITY);
@@ -434,14 +434,14 @@ BOOL_ intersectCubeF32Single(in vec3 origin, inout vec3 dr, inout BVEC3_ sgn, in
 // made by DevIL research group
 // also, optimized for RPM (Rapid Packed Math) https://radeon.com/_downloads/vega-whitepaper-11.6.17.pdf
 // compatible with NVidia GPU too
-BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in FMAT3X4_ tMinMax, in FMAT3X4_ tCorrections, inout vec2 near, inout vec2 far) {
-    tMinMax = FMAT3X4_(
+bvec2_ intersectCubeDual(in fvec3_ origin, inout fvec3_ dr, inout bvec3_ sgn, in fmat3x4_ tMinMax, in fmat3x4_ tCorrections, inout vec2 near, inout vec2 far) {
+    tMinMax = fmat3x4_(
         fma(SSC(sgn.x) ? tMinMax[0] : tMinMax[0].zwxy, dr.xxxx, origin.xxxx),
         fma(SSC(sgn.y) ? tMinMax[1] : tMinMax[1].zwxy, dr.yyyy, origin.yyyy),
         fma(SSC(sgn.z) ? tMinMax[2] : tMinMax[2].zwxy, dr.zzzz, origin.zzzz)
     );
 
-    FVEC2_ 
+    fvec2_ 
 #if (defined(ENABLE_AMD_INSTRUCTION_SET))
     tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
     tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
@@ -457,7 +457,7 @@ BVEC2_ intersectCubeDual(in FVEC3_ origin, inout FVEC3_ dr, inout BVEC3_ sgn, in
     tNear -= 1e-5f.xx, tFar += 1e-5f.xx;
 #endif
 
-    BVEC2_ isCube = BVEC2_(greaterThan(tFar, tNear)) & BVEC2_(greaterThan(tFar, FVEC2_(0.0f))) & BVEC2_(lessThanEqual(abs(tNear), FVEC2_(INFINITY-PRECERR)));
+    bvec2_ isCube = bvec2_(greaterThan(tFar, tNear)) & bvec2_(greaterThan(tFar, fvec2_(0.0f))) & bvec2_(lessThanEqual(abs(tNear), fvec2_(INFINITY-PRECERR)));
 
     const vec2 inf = vec2(INFINITY);
     near = mix(inf, vec2(tNear), isCube), 

@@ -18,12 +18,12 @@ int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
         if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
 
         [[unroll]]
-        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
-            int nid = tb + int(LANE_IDX);
+        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+            int nid = tb + int(Lane_Idx);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
             rayBlockNodes[block][nid].data.origin.w = 0;
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
-            RayActived(rayBlockNodes[block][nid].data, FALSE_);
+            RayActived(rayBlockNodes[block][nid].data, false_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
             m16s(-1, blockIndiceHeader(block), nid);
             m16s(-1, blockPreparingHeader(block), nid);
@@ -43,7 +43,7 @@ void main()
 
     vec2 sceneResInv = 1.0f / vec2(wh);
     int wsize = blk.x * blk.y;
-    int wcsize = int(gl_WorkGroupSize.x) / int(WARP_SIZE_RT);
+    int wcsize = int(gl_WorkGroupSize.x) / int(Wave_Size_RT);
     int wcount = min(tiled(wsize, wcsize), 1000000);
 
     // invoke available blocks
@@ -51,7 +51,7 @@ void main()
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(LC_IDX);
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
         globalInvocationSMP = globalID;
 
         int binID = globalID;
@@ -71,7 +71,7 @@ void main()
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
 
             // allocate texel heading (2x16-bit)
-            if (LANE_IDX == 0) {
+            if (Lane_Idx == 0) {
                 blockBins[binID].texelHeader = atomicIncRT(1)+1; 
             }
 
@@ -81,8 +81,8 @@ void main()
 
             // invoke block data
             [[unroll]]
-            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
-                int nid = tb + int(LANE_IDX);
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                int nid = tb + int(Lane_Idx);
                 randomClocks = 0, subHash = nid; // reset random clocks
                 accquirePlainNode(blockID, nid); // accquire by lane
                 
@@ -91,7 +91,7 @@ void main()
                 currentRay.origin = vec4(vec3(0.f.xxx), FINT_NULL);
 
                 // by default - disabled
-                RayActived(currentRay, FALSE_);
+                RayActived(currentRay, false_);
                 WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
                 // get 2D index
@@ -156,9 +156,9 @@ void main()
                     currentRay.dcolor = uvec2((0u).xx);
                     WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
 
-                    RayActived(currentRay, TRUE_);
+                    RayActived(currentRay, true_);
                     RayType(currentRay, 3); // primary rays
-                    RayDL(currentRay, FALSE_);
+                    RayDL(currentRay, false_);
 
                     // reserved bounces
                     RayBounce(currentRay, 3);
@@ -166,15 +166,15 @@ void main()
 
                     if (RAY_BLOCK cameraUniform.interlace == 1) {
                         if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) {
-                            RayActived(currentRay, FALSE_);
+                            RayActived(currentRay, false_);
                         }
                     }
 
-                    //RayActived(currentRay, FALSE_);
+                    //RayActived(currentRay, false_);
                     //WriteColor(currentRay.dcolor, vec4(dir.xyz*0.5f+0.5f, 0));
                 }
                 
-                confirmNode(blockID, RayActived(currentRay) == TRUE_);
+                confirmNode(blockID, RayActived(currentRay) == true_);
                 storeRay(blockID, currentRay);
             }
 
@@ -183,12 +183,12 @@ void main()
             SB_BARRIER
 
             [[unroll]]
-            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(WARP_SIZE_RT)) {
-                copyBlockIndices(currentBlock, tb + int(LANE_IDX));
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                copyBlockIndices(currentBlock, tb + int(Lane_Idx));
             }
 
             SB_BARRIER
-            if (LANE_IDX == 0) {
+            if (Lane_Idx == 0) {
                 if (blockLength(blockID) >= 1) {
                     confirmBlock(blockID);
                 } else {

@@ -82,10 +82,10 @@ ivec2 getUniformCoord(in uint indice) {
 
 
 #ifndef VERTEX_FILLING
-float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout vec2 UV, inout BOOL_ _valid, in float testdist) {
+float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout vec2 UV, inout bool_ _valid, in float testdist) {
     float T = INFINITY;
     //IFANY (_valid) {
-        BOOL_ valid = tri < 0 ? FALSE_ : _valid; // pre-define
+        bool_ valid = tri < 0 ? false_ : _valid; // pre-define
         const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
         //const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
         IFANY (valid) {
@@ -100,7 +100,7 @@ float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout 
             // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
             // http://jcgt.org/published/0002/01/05/paper.pdf
             vec3 UVW_ = D[axis] * inverse(ABC);
-            valid &= BOOL_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
+            valid &= bool_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
             IFANY (valid) {
                 float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.00001f)*(det>=0.f?1:-1));
                 UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances

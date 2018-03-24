@@ -42,8 +42,6 @@ int wasHit = -1;
 
 #define hit firstHit
 
-float qrand(in float r){ return random() < r ? 1.f : 0.f; }
-
 // ray hit states 
 // 0 - invalid hit
 // 1 - shadow, have no hit in traversing (enviroment only)

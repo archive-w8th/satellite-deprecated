@@ -121,4 +121,7 @@ vec3 randomDirectionInSphere() {
     return normalize(vec3( cos(around) * over, sin(around) * over, up ));
 }
 
+
+float qrand(in float r){ return random() < r ? 1.f : 0.f; }
+
 #endif

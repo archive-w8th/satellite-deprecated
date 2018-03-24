@@ -9,7 +9,7 @@ shared uint localHistogram[RADICES];
 
 // shared for 16 threads (with lanes)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-shared mediump URDC_WARP_LCM _data[64];
+shared URDC_WARP_LCM _data[64];
 #else
 shared mediump URDC_WARP_LCM _data[128];
 #endif
@@ -56,9 +56,13 @@ void main() {
 #endif
 
         if (LF_IDX == 0) {
-            key.x = URDC_WARP(BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-            key.y = URDC_WARP(BFE(validAddress.y ? KeyTmp[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
+            key = packUint2x16(URDC_WARP_DUAL(
+                BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS),
+                BFE(validAddress.y ? KeyTmp[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS)
+            ));
+#else
+            key.x = URDC_WARP(BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
 #endif
         }
         GROUP_BARRIER
@@ -67,7 +71,7 @@ void main() {
         for (uint rk=0u;rk<RADICES;rk+=WRK_SIZE_RT) {
             UVEC_WARP radice = UVEC_WARP(rk + LC_IDX);
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-            bvec2 owned = and(equal(key, radice.xx), validAddress);
+            bvec2 owned = and(equal(unpackUint2x16(key), radice.xx), validAddress);
             if (any(owned)) countHistogram(uint(radice), owned);
             IFALL (all(or((radice >= RADICES).xx, or(owned, not(validAddress))))) break;
 #else

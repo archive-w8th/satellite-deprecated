@@ -29,9 +29,9 @@ uint LF_IDX = 0;
 //#define URDC_WARP uint16_t
 //#define URDC_WARP_LCM u16vec2
 //#define URDC_WARP_DUAL u16vec2
-#define URDC_WARP uint
-#define URDC_WARP_LCM uvec2
-#define URDC_WARP_DUAL uvec2
+#define URDC_WARP uint16_t
+#define URDC_WARP_LCM uint
+#define URDC_WARP_DUAL u16vec2
 #else
 #define URDC_WARP uint
 #define URDC_WARP_LCM uint

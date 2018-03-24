@@ -24,6 +24,10 @@
 * One testing example application (source code)
 * Around 40MRays/s throughput in Sponza scenes (RX Vega 64)
 
+### Demo and preview videos
+
+* https://www.youtube.com/watch?v=ix-Jwl2OchE (from author, preview video, 720p)
+
 ### Contacts 
 
 * [Discord channel](https://discordapp.com/invite/HFfADHH)

@@ -9,7 +9,6 @@
 
 //#define USE_STACKLESS_BVH
 
-
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -153,7 +152,7 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in bool_ valid) {
     stackPtr = 0, pageIdx = -1;
 
     // auto-clean stack from sh*t
-#ifndef USE_FAST_OFFLOAD
+#if (!defined(USE_FAST_OFFLOAD) && !defined(USE_STACKLESS_BVH))
     [[unroll]]
     for (int i=0;i<localStackSize;i++) { LOCAL_STACK[i] = -1; }
 #endif
@@ -241,12 +240,16 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in bool_ valid) {
                 if (fmask >= 0) {
                     _continue = true;
 
+#ifdef USE_STACKLESS_BVH
+                    traverseState.bitStack <<= 1;
+#endif
+
                     [[flatten]]
                     if (fmask == 2) { // if both has intersection
                         ivec2 ordered = cnode.xx + (SSC(lessEqualF(nears.x, nears.y)) ? ivec2(0,1) : ivec2(1,0));
                         traverseState.idx = ordered.x;
 #ifdef USE_STACKLESS_BVH
-                        IF (all(childIntersect)) traverseState.bitStack |= 1ul;
+                        IF (all(childIntersect)) traverseState.bitStack |= 1ul; 
 #else
                         IF (all(childIntersect) & bool_(!stackIsFull())) storeStack(ordered.y);
 #endif
@@ -298,12 +301,6 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in bool_ valid) {
 
         IFANY (traverseState.defTriangleID >= 0) { SB_BARRIER doIntersection(); }
     }
-
-    // if has any intersection, include to result list
-    SB_BARRIER
-    IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
-        includeChain(traverseState.geometrySpace.lastIntersection);
-    }
 }
 
 
@@ -327,6 +324,12 @@ void main() {
 
         // do BVH traversing 
         doBvhTraverse(currentRayTmp.origin.xyz, dcts(currentRayTmp.cdirect.xy), not(overflow));
+
+        // if has any intersection, include to result list
+        SB_BARRIER
+        IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
+            includeChain(traverseState.geometrySpace.lastIntersection);
+        }
 
         // save result if present (planned binding lately)
         IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {

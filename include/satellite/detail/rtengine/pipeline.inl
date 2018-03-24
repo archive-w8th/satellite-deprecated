@@ -489,15 +489,9 @@ namespace NSM
             memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) });                     // don't touch criticals
             memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
 
-            // shade commands
-            auto shadeCommandBuffer = getCommandBuffer(device, true);
-            shadeCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTracingPipelineLayout, 0, rayTracingDescriptors, nullptr);
-            shadeCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, rayShadePipeline.pipeline);
-            shadeCommandBuffer.dispatch(INTENSIVITY, 1, 1);
-
             // flush commands
             flushCommandBuffer(device, copyCommandBuffer, true);
-            flushCommandBuffer(device, shadeCommandBuffer, true);
+            dispatchCompute(rayShadePipeline, INTENSIVITY, rayTracingDescriptors);
 
             // refine rays
             reloadQueuedRays();

@@ -31,12 +31,14 @@ namespace NSM
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
         };
 
+        // submit and don't disagree sequences
+        for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
+        auto fence = async ? deviceQueue->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
+        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
+
         if (async)
         {
             std::async([=]() { // async submit and await for destruction command buffers
-                for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
-                vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-                deviceQueue->mainQueue->queue.submit(submitInfos, fence);
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
@@ -44,9 +46,6 @@ namespace NSM
         }
         else
         {
-            for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
-            auto fence = deviceQueue->fence;
-            deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async([=]() {
                 deviceQueue->logical.resetFences(1, &fence);
@@ -60,17 +59,16 @@ namespace NSM
         const std::vector<vk::CommandBuffer> &commandBuffers,
         const std::function<void()> &asyncCallback)
     {
-        for (auto &cmdf : commandBuffers)
-            cmdf.end(); // end cmd buffers
+        for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
 
-        std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
-        };
+        std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) };
+
+        // submit and don't disagree sequences
+        for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
+        vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
 
         std::async([=]() { // async submit and await for destruction command buffers
-            for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
-            vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-            deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async([=]() {
                 deviceQueue->logical.destroyFence(fence);
@@ -85,15 +83,15 @@ namespace NSM
     {
         commandBuffer.end();
 
-        std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) 
-        };
+        std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
+
+        // submit and don't disagree sequences
+        auto fence = async ? deviceQueue->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
+        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
 
         if (async)
         {
             std::async([=]() { // async submit and await for destruction command buffers
-                vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-                deviceQueue->mainQueue->queue.submit(submitInfos, fence);
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
@@ -101,8 +99,6 @@ namespace NSM
         }
         else
         {
-            auto fence = deviceQueue->fence;
-            deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async([=]() {
                 deviceQueue->logical.resetFences(1, &fence);
@@ -112,19 +108,14 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue,
-        const vk::CommandBuffer &commandBuffer,
-        const std::function<void()> &asyncCallback)
-    {
+    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
-        std::vector<vk::SubmitInfo> submitInfos = {
-            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) 
-        };
+        std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
+        auto fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
 
         std::async([=]() { // async submit and await for destruction command buffers
-            vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-            deviceQueue->mainQueue->queue.submit(submitInfos, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async([=]() {
                 deviceQueue->logical.destroyFence(fence);
@@ -135,22 +126,20 @@ namespace NSM
     };
 
     // flush command for rendering
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue,
-        const vk::CommandBuffer &commandBuffer,
-        vk::SubmitInfo kernel,
-        const std::function<void()> &asyncCallback)
-    {
+    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
+        auto fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->mainQueue->queue.submit(1, &kernel, fence);
+
         std::async([=]() { // async submit and await for destruction command buffers
-            vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-            deviceQueue->mainQueue->queue.submit(1, &kernel, fence);
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            std::async([=]() {
+                deviceQueue->logical.destroyFence(fence);
+                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+            });
             asyncCallback();
-            deviceQueue->logical.destroyFence(fence);
-            deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1,
-                &commandBuffer);
         });
     };
 

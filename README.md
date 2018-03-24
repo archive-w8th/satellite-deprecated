@@ -27,6 +27,10 @@
 
 * [Discord channel](https://discordapp.com/invite/HFfADHH)
 
+### Patreons
+
+* [Make ray-tracing forces with Patreon](https://www.patreon.com/open_ray_traced_forces)
+
 ### Minimal requirement for minimal product
 
 * Windows platform with IDE (Visual Studio 2017 and higher)

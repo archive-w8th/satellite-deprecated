@@ -27,6 +27,7 @@
 ### Demo and preview videos
 
 * https://www.youtube.com/watch?v=ix-Jwl2OchE (from author, preview video, 720p)
+* https://www.youtube.com/watch?v=eh9Tp86x8Ps (from author, another scene, 720p)
 
 ### Contacts 
 

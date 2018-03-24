@@ -73,12 +73,12 @@ namespace NSM {
 
             // create texture
             auto texture = createTexture(device, vk::ImageViewType::e2D, { uint32_t(image->width), uint32_t(image->height), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, format, 1);
-            auto tstage = createBuffer(device, image->image.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            auto tstage = createBuffer(device, image->width * image->height * 4 * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
             // purple-black square
             {
                 auto command = getCommandBuffer(device, true);
-                bufferSubData(command, tstage, (const uint8_t *)image->image.data(), image->image.size() * sizeof(uint8_t), 0);
+                bufferSubData(command, tstage, (const uint8_t *)image->image.data(), image->image.size(), 0);
                 memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                     .setImageExtent({ uint32_t(image->width), uint32_t(image->height), 1 })
                     .setImageOffset({ 0, 0, 0 })

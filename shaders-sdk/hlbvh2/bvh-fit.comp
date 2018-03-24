@@ -1,7 +1,6 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-//#define FLATTEN_BOX // simplify bvh traversing by transposing in builder level
 #define BVH_CREATION
 
 #include "../include/constants.glsl"

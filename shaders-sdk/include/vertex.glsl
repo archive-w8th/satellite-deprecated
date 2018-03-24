@@ -131,4 +131,62 @@ vec2 bvhGatherifyStorage(in ivec2 ipt){
 #endif
 #endif
 
+
+
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+// barycentric map (for corrections tangents in POM)
+const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
+
+HitRework interpolateMeshData(inout HitRework res) {
+    int tri = floatBitsToInt(res.uvt.w);
+    bool_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & bool_(tri != LONGEST);
+    IFANY (validInterpolant) {
+        // pre-calculate interpolators
+        vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
+        vec2 sz = 1.f / textureSize(attrib_texture, 0);
+
+        // gather normal 
+        vec2 trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
+        vec3 normal = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
+
+        // gather texcoord 
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+TEXCOORD_TID))), sz, sz * 0.9999f);
+        mat2x3 texcoords = mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
+
+        // calculate texcoord delta 
+        mat3x2 txds = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
+        mat2x2 dlts = mat2x2(txds[1]-txds[0],txds[2]-txds[0]);
+        if (all(lessThan(abs(dlts[0]), 0.00001f.xx)) && all(lessThan(abs(dlts[1]), 0.00001f.xx))) {
+            dlts[0] = vec2( 1.f, 0.f ), dlts[1] = vec2( 0.f, 1.f );
+        }
+
+        // get delta vertex 
+        const int itri = tri*9;
+        mat3x3 triverts = mat3x3(
+            lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
+            lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
+            lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
+        );
+        vec3 deltaPos0 = triverts[1] - triverts[0], deltaPos1 = triverts[2] - triverts[0];
+
+        // calculate tangent and bitangent 
+        // planned support in loader stage 
+        float idet = 1.f/precIssue(determinant(dlts));
+        vec3 btng = fma(dlts[1].xxx, deltaPos0, -dlts[0].xxx * deltaPos1) / idet;
+        vec3 tang = fma(dlts[1].yyy, deltaPos0, -dlts[0].yyy * deltaPos1) / idet;
+
+        IF (validInterpolant) {
+            res.normalHeight = vec4(normal, 0.0f);
+            res.tangent = vec4(normalize(tang - normal * dot(normal, tang)), 0.f);
+            res.texcoord.xy = vs * texcoords; // mult matrix
+            res.materialID = materials[tri];
+            res.bitangent = vec4(normalize(btng - normal * dot(normal, btng)), 0.f);
+            HitActived(res, true_); // temporary enable
+        }
+    }
+    return res;
+}
+#endif
+
+
 #endif

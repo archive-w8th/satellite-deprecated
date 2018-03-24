@@ -22,6 +22,7 @@
 * Optimized radix-sort (64/4-bits)
 * Optimized ray tracing pipeline (tile-based)
 * One testing example application (source code)
+* Around 40MRays/s throughput in Sponza scenes (RX Vega 64)
 
 ### Contacts 
 

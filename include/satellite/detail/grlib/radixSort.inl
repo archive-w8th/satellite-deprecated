@@ -121,18 +121,15 @@ namespace NSM {
             bufferSubData(commandBuffer, VarStaging, steps, 0);
             flushCommandBuffer(device, commandBuffer, true);
 
-
             // copy headers buffer command
             std::vector<vk::CommandBuffer> copyBuffers;
             for (int i = 0; i < stepCount; i++) {
-                auto copyCommand = getCommandBuffer(device, true);
-                memoryCopyCmd(copyCommand, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
-                memoryCopyCmd(copyCommand, InKeys, TmpKeys, { 0, 0, strided<uint64_t>(size) });
-                memoryCopyCmd(copyCommand, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
-                copyCommand.end();
-                copyBuffers.push_back(copyCommand);
+                auto copyCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) }); 
+                memoryCopyCmd(copyCmd, InKeys, TmpKeys, { 0, 0, strided<uint64_t>(size) });
+                memoryCopyCmd(copyCmd, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
+                copyCmd.end();
+                copyBuffers.push_back(copyCmd);
             }
-
 
             // histogram command (include copy command)
             auto histogramCommand = getCommandBuffer(device, true);

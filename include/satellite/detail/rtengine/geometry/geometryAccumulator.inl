@@ -59,7 +59,7 @@ namespace NSM
             }
 
             // vertex loader
-            geometryLoader.pipeline = createCompute(device, shadersPathPrefix + "/vertex/vloader.comp.spv", pipelineLayout, pipelineCache);
+            geometryLoader = createCompute(device, shadersPathPrefix + "/vertex/vloader.comp.spv", pipelineLayout, pipelineCache);
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb
@@ -139,11 +139,7 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&dstruct.vInstanceBufferInfos[5]),
             }, nullptr);
 
-            auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, loaderDescriptorSets, nullptr);
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, geometryLoader.pipeline);
-            commandBuffer.dispatch(INTENSIVITY, 1, 1);
-            flushCommandBuffer(device, commandBuffer, true);
+            dispatchCompute(geometryLoader, INTENSIVITY, loaderDescriptorSets);
         }
 
     }

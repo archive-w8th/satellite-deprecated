@@ -36,9 +36,9 @@ namespace NSM {
             pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
 
             // pipelines
-            histogram.pipeline = createCompute(device, shadersPathPrefix + "/radix/histogram.comp.spv", pipelineLayout, pipelineCache);
-            permute.pipeline = createCompute(device, shadersPathPrefix + "/radix/permute.comp.spv", pipelineLayout, pipelineCache);
-            workPrefixSum.pipeline = createCompute(device, shadersPathPrefix + "/radix/pfx-work.comp.spv", pipelineLayout, pipelineCache);
+            histogram = createCompute(device, shadersPathPrefix + "/radix/histogram.comp.spv", pipelineLayout, pipelineCache);
+            permute = createCompute(device, shadersPathPrefix + "/radix/permute.comp.spv", pipelineLayout, pipelineCache);
+            workPrefixSum = createCompute(device, shadersPathPrefix + "/radix/pfx-work.comp.spv", pipelineLayout, pipelineCache);
 
             // buffers
             VarStaging = createBuffer(device, strided<Consts>(8), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -106,15 +106,13 @@ namespace NSM {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPBufferInfo(&InKeys->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(21).setPBufferInfo(&InVals->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(21).setPBufferInfo(&InVals->descriptorInfo),
             }, nullptr);
-
             
             // create steps data
             const uint32_t stepCount = 16;
             std::vector<Consts> steps(stepCount);
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
-
 
             // upload to buffer
             auto commandBuffer = getCommandBuffer(device, true);
@@ -131,30 +129,11 @@ namespace NSM {
                 copyBuffers.push_back(copyCmd);
             }
 
-            // histogram command (include copy command)
-            auto histogramCommand = getCommandBuffer(device, true);
-            histogramCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
-            histogramCommand.bindPipeline(vk::PipelineBindPoint::eCompute, histogram.pipeline);
-            histogramCommand.dispatch(WG_COUNT, RADICE_AFFINE, 1); // dispatch few counts
-            histogramCommand.end();
-
-
-            // work prefix command
-            auto workPrefixCommand = getCommandBuffer(device, true);
-            workPrefixCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
-            workPrefixCommand.bindPipeline(vk::PipelineBindPoint::eCompute, workPrefixSum.pipeline);
-            workPrefixCommand.dispatch(1, 1, 1); // dispatch few counts
-            workPrefixCommand.end();
-
-
-            // permute command
-            auto permuteCommand = getCommandBuffer(device, true);
-            permuteCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, descriptorSets, nullptr);
-            permuteCommand.bindPipeline(vk::PipelineBindPoint::eCompute, permute.pipeline);
-            permuteCommand.dispatch(WG_COUNT, RADICE_AFFINE, 1); // dispatch few counts
-            permuteCommand.end();
-
-
+            // make command buffers
+            auto histogramCommand = makeDispatchCommand(histogram, glm::uvec2(WG_COUNT, RADICE_AFFINE), descriptorSets);
+            auto workPrefixCommand = makeDispatchCommand(workPrefixSum, 1, descriptorSets);
+            auto permuteCommand = makeDispatchCommand(permute, glm::uvec2(WG_COUNT, RADICE_AFFINE), descriptorSets);
+            
             // stepped radix sort
             std::vector<vk::SubmitInfo> buildSubmitInfos;
             for (int j = 0; j < stepCount; j++) {
@@ -163,7 +142,6 @@ namespace NSM {
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&workPrefixCommand)); // prefix sum
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&permuteCommand)); // permute 
             }
-
 
             // submit radix sort
             std::async([=](){

@@ -116,14 +116,14 @@ namespace NSM
             surfacePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(surfaceDescriptorsLayout.data()).setSetLayoutCount(surfaceDescriptorsLayout.size()));
 
             // create pipelines (TODO: make true names in C++ or host code)
-            unorderedFormer.pipeline = createCompute(device, shadersPathPrefix + "/rendering/traverse-pre.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            rayGeneration.pipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-primary.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            bvhTraverse.pipeline = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
-            surfaceShadingPpl.pipeline = createCompute(device, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout, pipelineCache);
-            rayShadePipeline.pipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            sampleCollection.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pgather.comp.spv", samplingPipelineLayout, pipelineCache);
-            clearSamples.pipeline = createCompute(device, shadersPathPrefix + "/rendering/pclear.comp.spv", samplingPipelineLayout, pipelineCache);
-            binCollect.pipeline = createCompute(device, shadersPathPrefix + "/rendering/accumulation.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            unorderedFormer = createCompute(device, shadersPathPrefix + "/rendering/traverse-pre.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            rayGeneration = createCompute(device, shadersPathPrefix + "/rendering/gen-primary.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            bvhTraverse = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
+            surfaceShadingPpl = createCompute(device, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout, pipelineCache);
+            rayShadePipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout, pipelineCache);
+            sampleCollection = createCompute(device, shadersPathPrefix + "/rendering/pgather.comp.spv", samplingPipelineLayout, pipelineCache);
+            clearSamples = createCompute(device, shadersPathPrefix + "/rendering/pclear.comp.spv", samplingPipelineLayout, pipelineCache);
+            binCollect = createCompute(device, shadersPathPrefix + "/rendering/accumulation.comp.spv", rayTracingPipelineLayout, pipelineCache);
         }
 
         void Pipeline::initLights()
@@ -140,13 +140,8 @@ namespace NSM
 
         void Pipeline::reloadQueuedRays()
         {
-
             // collect colors to texels
-            auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTracingPipelineLayout, 0, rayTracingDescriptors, nullptr);
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, binCollect.pipeline);
-            commandBuffer.dispatch(INTENSIVITY, 1, 1);
-            flushCommandBuffer(device, commandBuffer, true);
+            dispatchCompute(binCollect, INTENSIVITY, rayTracingDescriptors);
 
             // getting counters values
             std::vector<int32_t> counters(8);
@@ -462,10 +457,6 @@ namespace NSM
             copyDesc.dstSubresource = accumulationImage->subresourceLayers;
             memoryCopyCmd(copyCommand, accumulationImage, accumulationImage, copyDesc);
 
-            //copyDesc.srcSubresource = depthImage->subresourceLayers;
-            //copyDesc.dstSubresource = depthImage->subresourceLayers;
-            //memoryCopyCmd(copyCommand, depthImage, depthImage, copyDesc);
-
             copyDesc.srcSubresource = flagsImage->subresourceLayers;
             copyDesc.dstSubresource = flagsImage->subresourceLayers;
             memoryCopyCmd(copyCommand, flagsImage, flagsImage, copyDesc);
@@ -475,26 +466,9 @@ namespace NSM
             copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight) * 2, 1 };
             memoryCopyCmd(copyCommand, accumulationImage, filteredImage, copyDesc);
 
-            // clear command
-            vk::CommandBuffer clearCommand;
-            if (doCleanSamples)
-            {
-                clearCommand = getCommandBuffer(device, true);
-                clearCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, samplingPipelineLayout, 0, samplingDescriptors, nullptr);
-                clearCommand.bindPipeline(vk::PipelineBindPoint::eCompute, clearSamples.pipeline);
-                clearCommand.dispatch(INTENSIVITY, 1, 1);
-            }
-
-            // collect command
-            auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, samplingPipelineLayout, 0, samplingDescriptors, nullptr);
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, sampleCollection.pipeline);
-            commandBuffer.dispatch(INTENSIVITY, 1, 1);
-
             // execute commands
-            if (doCleanSamples)
-                flushCommandBuffer(device, clearCommand, true);
-            flushCommandBuffer(device, commandBuffer, true);
+            if (doCleanSamples) dispatchCompute(clearSamples, INTENSIVITY, samplingDescriptors);
+            dispatchCompute(sampleCollection, INTENSIVITY, samplingDescriptors);
             flushCommandBuffer(device, copyCommand, true);
 
             // unflag
@@ -560,12 +534,8 @@ namespace NSM
             rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
             syncUniforms();
 
-            //
-            auto commandBuffer = getCommandBuffer(device, true);
-            commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTracingPipelineLayout, 0, rayTracingDescriptors, nullptr);
-            commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, rayGeneration.pipeline);
-            commandBuffer.dispatch(INTENSIVITY, 1, 1);
-            flushCommandBuffer(device, commandBuffer, true);
+            // shorter dispatcher of generation
+            dispatchCompute(rayGeneration, INTENSIVITY, rayTracingDescriptors);
 
             // refine rays
             reloadQueuedRays();
@@ -661,18 +631,6 @@ namespace NSM
         void Pipeline::traverse() {
             if (!rayTraverseDescriptors[1]) return; // no valid geometry or hierarchy
 
-            // unordered former
-            auto unrdrCommandBuffer = getCommandBuffer(device, true);
-            unrdrCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTracingPipelineLayout, 0, rayTracingDescriptors, nullptr);
-            unrdrCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, unorderedFormer.pipeline);
-            unrdrCommandBuffer.dispatch(INTENSIVITY, 1, 1);
-
-            // traverse BVH
-            auto bvhCommandBuffer = getCommandBuffer(device, true);
-            bvhCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, rayTraversePipelineLayout, 0, rayTraverseDescriptors, nullptr);
-            bvhCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, bvhTraverse.pipeline);
-            bvhCommandBuffer.dispatch(INTENSIVITY, 1, 1);
-
             // copy to surfaces
             auto copyCommand = getCommandBuffer(device, true);
             memoryCopyCmd(copyCommand, this->boundMaterialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
@@ -682,17 +640,11 @@ namespace NSM
                 memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
             }
 
-            // surface shading command
-            auto srfCommandBuffer = getCommandBuffer(device, true);
-            srfCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, surfacePipelineLayout, 0, surfaceDescriptors, nullptr);
-            srfCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, surfaceShadingPpl.pipeline);
-            srfCommandBuffer.dispatch(INTENSIVITY, 1, 1);
-
             // push commands
-            flushCommandBuffer(device, unrdrCommandBuffer, true);
-            flushCommandBuffer(device, bvhCommandBuffer, true);
+            dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
+            dispatchCompute(bvhTraverse, INTENSIVITY, rayTraverseDescriptors);
             flushCommandBuffer(device, copyCommand, true);
-            flushCommandBuffer(device, srfCommandBuffer, true);
+            dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
         }
 
         void Pipeline::enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; clearSampling(); }

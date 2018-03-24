@@ -178,9 +178,9 @@ namespace NSM
         DeviceQueueType device;          // used device by context
         vk::CommandBuffer commandBuffer; // command buffer of compute context
         vk::Pipeline pipeline;           // current pipeline
-        vk::Fence waitFence;             // wait fence of computing
-        vk::PipelineLayout pipelineLayout;
         vk::PipelineCache pipelineCache;
+        vk::PipelineLayout pipelineLayout;
+        vk::Fence waitFence;             // wait fence of computing
         vk::DescriptorPool descriptorPool;             // current descriptor pool
         std::vector<vk::DescriptorSet> descriptorSets; // descriptor sets
         std::function<void()> dispatch;

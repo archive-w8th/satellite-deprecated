@@ -59,58 +59,37 @@ namespace NSM
             // another part if foreign object (where storing)
             builderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&builderDescriptorLayout[0]));
 
-
             // bvh builder pipelines 
-            buildBVHPpl.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/bvh-build.comp.spv", pipelineLayout, pipelineCache);
-            refitBVH.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/bvh-fit.comp.spv", pipelineLayout, pipelineCache);
-            boundPrimitives.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/bound-calc.comp.spv", pipelineLayout, pipelineCache);
-            childLink.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/leaf-link.comp.spv", pipelineLayout, pipelineCache);
-            aabbCalculate.pipeline = createCompute(device, shadersPathPrefix + "/hlbvh/leaf-gen.comp.spv", pipelineLayout, pipelineCache);
+            buildBVHPpl = createCompute(device, shadersPathPrefix + "/hlbvh/bvh-build.comp.spv", pipelineLayout, pipelineCache);
+            refitBVH = createCompute(device, shadersPathPrefix + "/hlbvh/bvh-fit.comp.spv", pipelineLayout, pipelineCache);
+            boundPrimitives = createCompute(device, shadersPathPrefix + "/hlbvh/bound-calc.comp.spv", pipelineLayout, pipelineCache);
+            childLink = createCompute(device, shadersPathPrefix + "/hlbvh/leaf-link.comp.spv", pipelineLayout, pipelineCache);
+            aabbCalculate = createCompute(device, shadersPathPrefix + "/hlbvh/leaf-gen.comp.spv", pipelineLayout, pipelineCache);
 
             // build bvh command
             buildBVHPpl.dispatch = [&]() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, buildBVHPpl.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1); // dispatch few counts
-                flushCommandBuffer(device, commandBuffer, true);
+                dispatchCompute(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
             };
 
             // build global boundary
             boundPrimitives.dispatch = [&]() {
-                auto cCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) });
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, boundPrimitives.pipeline);
-                commandBuffer.dispatch(CACHED_BBOX, 1, 1);
-                flushCommandBuffers(device, std::vector<vk::CommandBuffer>{ {cCmd, commandBuffer}}, true);
+                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
+                dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
             };
 
             // link childrens
             childLink.dispatch = [&]() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, childLink.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
+                dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
             };
 
             // refit BVH
             refitBVH.dispatch = [&]() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, refitBVH.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
+                dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
             };
 
             // dispatch aabb per nodes
             aabbCalculate.dispatch = [&]() {
-                auto commandBuffer = getCommandBuffer(device, true);
-                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
-                commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, aabbCalculate.pipeline);
-                commandBuffer.dispatch(INTENSIVITY, 1, 1);
-                flushCommandBuffer(device, commandBuffer, true);
+                dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
             };
 
             { // boundary buffer cache
@@ -271,11 +250,7 @@ namespace NSM
             memoryCopyCmd(copyCounterCommand, countersBuffer, countersBuffer, { 2 * sizeof(int32_t), 5 * sizeof(int32_t), sizeof(int32_t) });
             copyCounterCommand.end();
 
-            auto buildCommand = getCommandBuffer(device, true);
-            buildCommand.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() }, nullptr);
-            buildCommand.bindPipeline(vk::PipelineBindPoint::eCompute, buildBVHPpl.pipeline);
-            buildCommand.dispatch(INTENSIVITY, 1, 1); // dispatch few counts
-            buildCommand.end();
+            auto buildCommand = makeDispatchCommand(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
 
             auto stagingCounterCommand = getCommandBuffer(device, true);
             memoryCopyCmd(stagingCounterCommand, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });

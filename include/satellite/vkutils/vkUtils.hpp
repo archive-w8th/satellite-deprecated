@@ -561,13 +561,17 @@ namespace NSM
     auto createCompute(DeviceQueueType &device, std::string path,
         vk::PipelineLayout &layout, vk::PipelineCache &cache)
     {
-        vk::ComputePipelineCreateInfo cmpi;
-        cmpi.setStage(vk::PipelineShaderStageCreateInfo()
+        ComputeContext cmpx;
+        cmpx.device = device;
+        cmpx.pipelineLayout = layout;
+        cmpx.pipelineCache = cache;
+
+        auto cmpi = vk::ComputePipelineCreateInfo()
+            .setStage(vk::PipelineShaderStageCreateInfo()
             .setModule(loadAndCreateShaderModule(device, path))
             .setPName("main")
-            .setStage(vk::ShaderStageFlagBits::eCompute));
-        ;
-        cmpi.setLayout(layout);
+            .setStage(vk::ShaderStageFlagBits::eCompute))
+            .setLayout(layout);
 
         vk::Pipeline pipeline;
         try
@@ -578,7 +582,53 @@ namespace NSM
         {
             std::cerr << e.what() << std::endl;
         }
-        return pipeline;
+
+        cmpx.pipeline = pipeline;
+        return cmpx;
     }
+
+
+
+
+
+    auto makeDispatchCommand(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+        auto commandBuffer = getCommandBuffer(compute.device, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+        commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
+        if (end) commandBuffer.end();
+        return commandBuffer;
+    }
+
+    auto dispatchCompute(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets) {
+        auto commandBuffer = getCommandBuffer(compute.device, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+        commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
+        flushCommandBuffer(compute.device, commandBuffer, true);
+    }
+
+
+
+
+    auto makeDispatchCommand(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+        auto commandBuffer = getCommandBuffer(compute.device, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+        commandBuffer.dispatch(workGroups1D, 1, 1);
+        if (end) commandBuffer.end();
+        return commandBuffer;
+    }
+
+    auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets) {
+        auto commandBuffer = getCommandBuffer(compute.device, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+        commandBuffer.dispatch(workGroups1D, 1, 1);
+        flushCommandBuffer(compute.device, commandBuffer, true);
+    }
+
+
+
 
 }; // namespace NSM

@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
+#define USE_EXTENDED_RAYLIB
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -12,26 +13,6 @@
 
 
 const int _SEED_ID = 14;
-
-int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
-    if (anyInvoc(int(block) < 0 && minimalCondition)) {
-        if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
-
-        [[unroll]]
-        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
-            int nid = tb + int(Lane_Idx);
-            rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
-            rayBlockNodes[block][nid].data.origin.w = 0;
-            WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
-            RayActived(rayBlockNodes[block][nid].data, false_);
-            RayBounce(rayBlockNodes[block][nid].data, 0);
-            m16s(-1, blockIndiceHeader(block), nid);
-            m16s(-1, blockPreparingHeader(block), nid);
-        }
-    }
-    return block;
-}
-
 
 LOCAL_SIZE_LAYOUT;
 

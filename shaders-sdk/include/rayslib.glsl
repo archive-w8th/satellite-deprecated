@@ -410,4 +410,110 @@ void confirmNode() {
 }
 #endif
 
+
+
+
+
+
+
+
+#ifdef USE_EXTENDED_RAYLIB
+void invalidateRay(inout RayRework rayTemplate, in bool overflow){
+    if (overflow || SSC(RayActived(rayTemplate)) && (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f)) {
+        RayActived(rayTemplate, false_);
+        WriteColor(rayTemplate.dcolor, 0.f.xxxx); // no mechanism for detect emission
+    }
+}
+
+
+int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
+    SB_BARRIER
+    if (anyInvoc(int(block) < 0 && minimalCondition)) {
+        if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
+
+        [[unroll]]
+        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+            int nid = tb + int(Lane_Idx);
+            rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
+            rayBlockNodes[block][nid].data.origin.w = 0;
+            WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
+            RayActived(rayBlockNodes[block][nid].data, false_);
+            RayBounce(rayBlockNodes[block][nid].data, 0);
+            if (nid < R_BLOCK_SIZE) {
+                m16s(-1, blockIndiceHeader(block), nid);
+                m16s(-1, blockPreparingHeader(block), nid);
+            }
+        }
+    }
+
+    SB_BARRIER
+    return block;
+}
+
+
+int createBlockOnce(inout int block, in bool minimalCondition){
+    return createBlockOnce(block, minimalCondition, currentBlockBin);
+}
+
+
+void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock) {
+    invalidateRay(rayTemplate, false);
+    bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
+
+    // occupy early block
+    if (occupyCriteria && !confirmNodeOccupied(prevNonOccupiedBlock)) {
+        storeRay(prevNonOccupiedBlock, rayTemplate);
+        confirmNode(prevNonOccupiedBlock, SSC(RayActived(rayTemplate)));
+        occupyCriteria = false;
+    }
+
+    // create block if not occupied 
+    createBlockOnce(outNewBlock, occupyCriteria && confirmNodeOccupied(prevNonOccupiedBlock));
+
+    // occupy these block
+    if (occupyCriteria && outNewBlock >= 0 && !confirmNodeOccupied(outNewBlock)) {
+        storeRay(outNewBlock, rayTemplate);
+        confirmNode(outNewBlock, SSC(RayActived(rayTemplate)));
+    }
+
+    // recommend or not new block if have
+    SB_BARRIER
+    prevNonOccupiedBlock = allInvoc(!confirmNodeOccupied(prevNonOccupiedBlock) || int(outNewBlock) < 0) ? int(prevNonOccupiedBlock) : int(outNewBlock);
+}
+
+
+void emitBlock(in int block) {
+    SB_BARRIER
+    if (anyInvoc(block >= 0)) {
+        bool hasIllumination = false;
+
+        [[unroll]]
+        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) { 
+            int bidx = int(tb + Lane_Idx), idx = -1;
+            if (bidx < int(R_BLOCK_SIZE)) {
+                idx = m16i(blockPreparingHeader(block), int(bidx));
+                m16s(idx, blockIndiceHeader(block), int(bidx));
+            }
+            if (int(bidx) >= 0) {
+                bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
+                hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
+            }
+        }
+
+        SB_BARRIER
+        hasIllumination = hasIllumination || anyInvoc(hasIllumination);
+        
+        // confirm block or flush
+        if (electedInvoc()) {
+            if (blockLength(block) >= 1) { 
+                confirmBlock(block);
+            } else {
+                flushBlock(block, hasIllumination); 
+            }
+        }
+    }
+}
+#endif
+
+
 #endif

@@ -17,8 +17,6 @@
 #include "../include/mathlib.glsl"
 #include "../include/vertex.glsl"
 
-// terrorist ray
-ElectedRay currentRayTmp;
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET // RX Vega may have larger local shared memory and wider bandwidth
 const int stackPageCount = 2;
@@ -31,8 +29,6 @@ const int localStackSize = 8;
 // for structured copying
 struct PagedStack { int stack[localStackSize]; };
 
-
-
 // dedicated BVH stack
 struct NodeCache { PagedStack stackPages[stackPageCount]; };
 layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
@@ -41,7 +37,8 @@ layout ( std430, binding = 16, set = 0 ) restrict buffer TraverseNodes { NodeCac
 layout ( std430, binding = 17, set = 0 ) restrict buffer TraverseBlock { uvec4 blockCache[]; };
 
 
-int stackPtr = 0, pageIdx = -1; int rayID = 0;
+int stackPtr = 0, pageIdx = -1, rayID = 0, _r0 = -1; // 128-bit layout
+
 
 #ifndef USE_STACKLESS_BVH
 #define LOCAL_STACK localStack[Local_Idx].stack
@@ -86,22 +83,6 @@ bool stackIsEmpty() { return stackPtr <= 0 && pageIdx < 0; }
 
 
 
-
-// merge cached intersections to hit buffer
-void includeChain(inout vec4 intersection) {
-    uint hid = atomicIncHT()+1;
-    HitRework hitp = hits[hid-1];
-    hitp.uvt = intersection;
-    hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
-    hitp.ray = int(currentRayTmp.uindex.x)-1;
-    hitp.bitfield = 0;
-    hitp.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
-    hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
-    hitp.emission = packHalf2(vec4(0.f));
-    hits[hid-1] = hitp;
-    currentRayTmp.origin.w = uintBitsToFloat(hid);
-}
-
 struct GeometrySpace {
     int axis; mat3 iM;
     vec4 lastIntersection;
@@ -113,6 +94,8 @@ struct BVHSpace {
 };
 
 struct BvhTraverseState {
+    ElectedRay currentRayTmp;
+
     int idx, defTriangleID;
     float distMult, diffOffset;
 
@@ -122,10 +105,11 @@ struct BvhTraverseState {
 } traverseState;
 
 
+
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
+    float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }
@@ -138,8 +122,11 @@ void doIntersection() {
     traverseState.defTriangleID = -1;
 }
 
+void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
+    traverseState.currentRayTmp = rayIn;
+    vec3 origin = traverseState.currentRayTmp.origin.xyz;
+    vec3 direct = dcts(traverseState.currentRayTmp.cdirect.xy);
 
-void doBvhTraverse(inout vec3 origin, in vec3 direct, in bool_ valid) {
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.bitStack = 0ul;
@@ -306,6 +293,25 @@ void doBvhTraverse(inout vec3 origin, in vec3 direct, in bool_ valid) {
 
 
 
+
+
+
+
+// merge cached intersections to hit buffer
+void includeChain(inout vec4 intersection) {
+    uint hid = atomicIncHT()+1;
+    HitRework hitp = hits[hid-1];
+    hitp.uvt = intersection;
+    hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
+    hitp.ray = int(traverseState.currentRayTmp.uindex.x)-1;
+    hitp.bitfield = 0;
+    hitp.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
+    hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
+    hitp.emission = packHalf2(vec4(0.f));
+    hits[hid-1] = hitp;
+    traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
+}
+
 LOCAL_SIZE_LAYOUT;
 
 void main() {
@@ -320,10 +326,9 @@ void main() {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); //rayID = it;
         bool_ overflow = bool_(it >= wsize);
         IFALL(overflow) break;
-        currentRayTmp = unorderedRays[it];
 
         // do BVH traversing 
-        doBvhTraverse(currentRayTmp.origin.xyz, dcts(currentRayTmp.cdirect.xy), not(overflow));
+        doBvhTraverse(not(overflow), unorderedRays[it]);
 
         // if has any intersection, include to result list
         SB_BARRIER
@@ -333,11 +338,11 @@ void main() {
 
         // save result if present (planned binding lately)
         IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
-            accquireUnordered(int(currentRayTmp.uindex.x)-1);
-            currentRay.origin.w = currentRayTmp.origin.w;
+            accquireUnordered(int(traverseState.currentRayTmp.uindex.x)-1);
+            currentRay.origin.w = traverseState.currentRayTmp.origin.w;
             storeRay();
         }
         
-        unorderedRays[it] = currentRayTmp;
+        unorderedRays[it] = traverseState.currentRayTmp;
     }
 }

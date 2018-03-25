@@ -119,7 +119,7 @@ namespace SatelliteExample {
 
 
     int32_t getTextureIndex(std::map<std::string, double> &mapped) {
-        return mapped.count("index") > 0 ? mapped["index"] : -1;
+        return int32_t(mapped.size() > 0 ? double(mapped["index"]) : -1.0);
     }
 
     uint32_t _byType(const int &type) {

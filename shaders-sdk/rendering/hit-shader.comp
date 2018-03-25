@@ -105,10 +105,10 @@ vec3 getNormalMapping(in vec2 texcoordi) {
         vec4 txu = vec4(-1.f,-1.f,1.f,1.f)*0.5f;
 
         const float hsize = 4.f;
-        vec3 t00 = vec3(txu.xy, getUVH(texcoordi + tx4.xy).z) * vec3(1.f,1.f,hsize);
-        vec3 t01 = vec3(txu.xw, getUVH(texcoordi + tx4.xw).z) * vec3(1.f,1.f,hsize);
-        vec3 t10 = vec3(txu.zy, getUVH(texcoordi + tx4.zy).z) * vec3(1.f,1.f,hsize);
-        vec3 bump = normalize(cross( t10 - t00, t01 - t00 ));
+        vec3 t00 = vec3(txu.xy, getUVH(texcoordi + tx4.xy).z) * vec3(1.f, -1.f, hsize);
+        vec3 t01 = vec3(txu.xw, getUVH(texcoordi + tx4.xw).z) * vec3(1.f, -1.f, hsize);
+        vec3 t10 = vec3(txu.zy, getUVH(texcoordi + tx4.zy).z) * vec3(1.f, -1.f, hsize);
+        vec3 bump = normalize(cross( t01 - t00, t10 - t00 ));
         normal = faceforward(bump, normal, bump);
     } else {
         normal = normalize(fmix(vec3(0.0f, 0.0f, 1.0f), fma(tc, vec3(2.0f), vec3(-1.0f)), vec3(1.0f)));
@@ -146,7 +146,7 @@ vec2 parallaxMapping(in vec3 V, in vec2 T, out float parallaxHeight) {
 
     float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
     float layerHeight = 1.0f / numLayers;
-    vec2 dtex = parallaxScale * V.xy * vec2(1.f,1.f) / V.z * layerHeight;
+    vec2 dtex = parallaxScale * V.xy * vec2(1.f, -1.f) / V.z * layerHeight;
     vec3 chv = vec3(-dtex, layerHeight);
     
     // start pos
@@ -226,6 +226,8 @@ void main() {
                 if (!wasTextured && readLane(hit.materialID, wl) == hit.materialID) { // don't occupy warpy
                     // do parallax mapping
                     wasTextured = true;
+                    //SB_BARRIER
+                    //texcoord = parallaxMapping(pV, texcoord, hW);
                     SB_BARRIER
                     textured.bump.xyz = getNormalMapping(texcoord);
                     SB_BARRIER
@@ -239,6 +241,8 @@ void main() {
             }
 #else
             // do parallax mapping
+            //SB_BARRIER
+            //texcoord = parallaxMapping(pV, texcoord, hW);
             SB_BARRIER
             textured.bump.xyz = getNormalMapping(texcoord);
             SB_BARRIER

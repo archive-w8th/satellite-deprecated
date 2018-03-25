@@ -1243,6 +1243,9 @@ bool LoadImageData(Image *image, std::string *err, int req_width,
     }
   }
 
+  // make RGBA format
+  if (comp != 4) data = stbi__convert_format(data, comp, 4, w, h); comp = 4;
+
   image->width = w;
   image->height = h;
   image->component = comp;

@@ -186,22 +186,26 @@ void main(){
 
             // default values
             vec4 vertice[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
-            vec3 normal[4] = {vec3(0.0f), vec3(0.0f), vec3(0.0f), vec3(0.0f)};
-            vec4 texcoord[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
-            vec4 colors[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
-            vec4 mods[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
-
-
             const int mode = meshUniform.primitiveType, trp = mode == 1 ? 4 : 3;
 
             [[unroll]]
             for (int i=0;i<trp;i++) {
                 uint indiceID = globalID * trp + i;
                 readByAccessorIndice(meshUniform.indiceAccessor, indiceID, indiceID);
+                readByAccessor(meshUniform.vertexAccessor, indiceID, vertice[i]);
+            }
 
-                { // vertex accessor are required
-                    readByAccessor(meshUniform.vertexAccessor, indiceID, vertice[i]);
-                }
+            vec3 vnorm = normalize(cross(vertice[1].xyz - vertice[0].xyz, vertice[2].xyz - vertice[0].xyz));
+            vec3 normal[4] = {vnorm, vnorm, vnorm, vnorm};
+            vec4 texcoord[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
+            vec4 colors[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
+            vec4 mods[4] = {vec4(0.0f), vec4(0.0f), vec4(0.0f), vec4(0.0f)};
+
+            [[unroll]]
+            for (int i=0;i<trp;i++) {
+                uint indiceID = globalID * trp + i;
+                readByAccessorIndice(meshUniform.indiceAccessor, indiceID, indiceID);
+
                 if (meshUniform.normalAccessor != -1) {
                     readByAccessor(meshUniform.normalAccessor, indiceID, normal[i].xyz);
                 }
@@ -220,7 +224,7 @@ void main(){
             //const ivec2 isize = ivec2(imageSize(vertex_texture_out)); 
             const int istride = mode == 1 ? 2 : 1;
             int ordr = int(globalID*istride), tidc = tcounterInc(istride);
-            vec3 offsetnormal = normalize(cross(vertice[1].xyz - vertice[0].xyz, vertice[2].xyz - vertice[0].xyz));
+            //vec3 offsetnormal = normalize(cross(vertice[1].xyz - vertice[0].xyz, vertice[2].xyz - vertice[0].xyz));
 
             {
                 vorders[tidc] = ordr;
@@ -233,9 +237,10 @@ void main(){
                 for (int i=0;i<3;i++) {
                     const int mi = i;
 
-                    vec3 nrml = offsetnormal.xyz;
-                    if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) nrml = normal[mi];
-                    
+                    //vec3 nrml = offsetnormal.xyz;
+                    //if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) nrml = normal[mi];
+                    vec3 nrml = normal[mi];
+
                     ISTORE(attrib_texture_out, mosaicIdc(NORMAL_TXF, i), vec4(normalize(nrml), 0.0f));
                     ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
 
@@ -261,9 +266,10 @@ void main(){
                 for (int i=0;i<3;i++) {
                     const int mi = m[i];
 
-                    vec3 nrml = offsetnormal.xyz;
-                    if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) nrml = normal[mi];
-                    
+                    //vec3 nrml = offsetnormal.xyz;
+                    //if (mlength(abs(normal[mi])) >= 0.0001f && meshUniform.normalAccessor != -1) nrml = normal[mi];
+                    vec3 nrml = normal[mi];
+
                     ISTORE(attrib_texture_out, mosaicIdc(NORMAL_TXF, i), vec4(normalize(nrml), 0.0f));
                     ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
 

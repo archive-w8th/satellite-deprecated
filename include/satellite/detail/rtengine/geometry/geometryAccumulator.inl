@@ -125,13 +125,8 @@ namespace NSM
         }
 
         void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor, uint32_t instanceConst) {
-            // RenderDoc, LunarG and AMD hate its
-            //device->logical.updateDescriptorSetWithTemplate(loaderDescriptorSets[1], descriptorVInstanceUpdateTemplate, &vertexInstance->getDescViewData(needUpdateDescriptor), device->dldid);
-
+            auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
             if (needUpdateDescriptor) {
-                auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
-
-                // descriptor templates
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&dstruct.vInstanceBufferInfos[0]),

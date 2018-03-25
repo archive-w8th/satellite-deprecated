@@ -104,7 +104,7 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     RayActived(ray, RayType(ray) == 2 ? false_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 
-    vec3 sdr = normalOrient(randomCosine(rayStreams[RayDiffBounce(ray)].superseed[1]), tbn);
+    vec3 sdr = randomCosineNormalOriented(rayStreams[RayDiffBounce(ray)].superseed[1], tbn[2]);
     sdr = faceforward(sdr, sdr, -tbn[2]);
     ray.cdirect.xy = lcts(sdr);
     ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);
@@ -153,7 +153,7 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     RayBounce(ray, min(RayType(ray)==1?caustics_bounces:reflection_bounces, max(RayBounce(ray) - (RayType(ray)==3?0:1), 0)));
     if ( RayType(ray) != 2 ) RayType(ray, 0); // reflection ray transfer (primary)
 
-    vec3 sdr = normalOrient(randomCosine(rayStreams[RayBounce(ray)].superseed[2]), tbn);
+    vec3 sdr = randomCosineNormalOriented(rayStreams[RayBounce(ray)].superseed[2], tbn[2]);
     sdr = faceforward(sdr, sdr, -tbn[2]);
     sdr = normalize(fmix(reflect(dcts(ray.cdirect.xy), tbn[2]), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
     sdr = faceforward(sdr, sdr, -tbn[2]);

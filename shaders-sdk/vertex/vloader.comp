@@ -84,7 +84,7 @@ layout ( std430, binding = 3, set = 1 ) readonly buffer DataFormat {VirtualDataA
 layout ( std430, binding = 4, set = 1 ) readonly buffer AccessBinding {VirtualBufferBinding dataBindings[]; };
 layout ( std430, binding = 5, set = 1 ) readonly buffer IMeshUniform {MeshUniformStruct uMeshUniform[]; };
 
-#define meshUniform uMeshUniform[push_block.uniformBlock]
+#define meshUniform uMeshUniform[push_block.uniformBlock + gl_GlobalInvocationID.y]
 
 
 

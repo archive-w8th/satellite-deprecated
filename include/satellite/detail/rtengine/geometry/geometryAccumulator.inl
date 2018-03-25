@@ -124,6 +124,24 @@ namespace NSM
             }, nullptr);
         }
 
+
+        // WARNING! Geometry may disorder
+        void GeometryAccumulator::pushGeometryMulti(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor, uint32_t count, uint32_t instanceConst) {
+            auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
+            if (needUpdateDescriptor) {
+                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&dstruct.vInstanceBufferInfos[0]),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&dstruct.vInstanceBufferInfos[1]),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&dstruct.vInstanceBufferInfos[2]),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&dstruct.vInstanceBufferInfos[3]),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&dstruct.vInstanceBufferInfos[4]),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&dstruct.vInstanceBufferInfos[5]),
+                }, nullptr);
+            }
+            dispatchCompute(geometryLoader, glm::uvec2(INTENSIVITY, count), loaderDescriptorSets, instanceConst);
+        };
+
         void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor, uint32_t instanceConst) {
             auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
             if (needUpdateDescriptor) {

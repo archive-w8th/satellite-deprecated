@@ -273,12 +273,9 @@ namespace SatelliteExample {
                 std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
                 for (int p = 0; p < mesh.size(); p++) {
                     std::shared_ptr<rt::VertexInstance>& geom = mesh[p];
-                    geom->setUPtr(p);
-                    geom->setTransform(transform); // here is bottleneck with host-GPU exchange
+                    geom->setUPtr(p).setTransform(transform); // here is bottleneck with host-GPU exchange
                 }
-                for (int p = 0; p < mesh.size(); p++) { // load every primitive
-                    geometryCollector->pushGeometry(mesh[p], p == 0 ? true : false, p);
-                }
+                geometryCollector->pushGeometryMulti(mesh[0], true, mesh.size()); // multi-loader 
             } else 
             if (node.children.size() > 0) {
                 for (int n = 0; n < node.children.size(); n++) {
@@ -322,9 +319,7 @@ namespace SatelliteExample {
             // without matrix matrix updating (less overheading to PCI-E)
             if (node.mesh >= 0) {
                 std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
-                for (int p = 0; p < mesh.size(); p++) { // load every primitive
-                    geometryCollector->pushGeometry(mesh[p], p == 0 ? true : false, p); // load by instancing
-                }
+                geometryCollector->pushGeometryMulti(mesh[0], true, mesh.size()); // multi-loader 
             }
             else
                 if (node.children.size() > 0) {
@@ -366,8 +361,8 @@ namespace SatelliteExample {
                 tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
                 (*vertexLoader)(node, glm::dmat4(matrix), 16);
             }
-        }
-        */
+        }*/
+        
 
 
         // make camera projections

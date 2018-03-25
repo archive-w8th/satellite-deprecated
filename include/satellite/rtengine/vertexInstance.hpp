@@ -55,7 +55,7 @@ namespace NSM
             void setDataAccessSet(std::shared_ptr<DataAccessSet> &accessDataSet);
             VertexInstanceViews getDescViewData(bool needUpdate = true);
 
-            void setUPtr(size_t p) { this->uptr = p; }
+            VertexInstance& setUPtr(size_t p) { this->uptr = p; return *this; }
             void makeMultiVersion(size_t ucount);
 
         protected:

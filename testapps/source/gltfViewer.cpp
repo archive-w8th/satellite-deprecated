@@ -271,11 +271,13 @@ namespace SatelliteExample {
             glm::dmat4 transform = inTransform * localTransform;
             if (node.mesh >= 0) {
                 std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
-                for (int p = 0; p < mesh.size(); p++) { // load every primitive
+                for (int p = 0; p < mesh.size(); p++) {
                     std::shared_ptr<rt::VertexInstance>& geom = mesh[p];
                     geom->setUPtr(p);
                     geom->setTransform(transform); // here is bottleneck with host-GPU exchange
-                    geometryCollector->pushGeometry(geom, p == 0 ? true : false, p);
+                }
+                for (int p = 0; p < mesh.size(); p++) { // load every primitive
+                    geometryCollector->pushGeometry(mesh[p], p == 0 ? true : false, p);
                 }
             } else 
             if (node.children.size() > 0) {

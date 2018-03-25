@@ -87,6 +87,7 @@ namespace NSM
 
         VertexInstanceViews VertexInstance::getDescViewData(bool needUpdate)
         {
+            this->syncUniform();
             if (needUpdate) {
                 descViews.vInstanceBufferInfos[0] = this->getBufferSpaceBuffer()->descriptorInfo,
                 descViews.vInstanceBufferInfos[1] = this->getBufferSpaceRegions()->descriptorInfo,

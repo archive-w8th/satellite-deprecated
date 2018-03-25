@@ -38,7 +38,7 @@ namespace NSM
 
         if (async)
         {
-            std::async([=]() { // async submit and await for destruction command buffers
+            std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
@@ -47,7 +47,7 @@ namespace NSM
         else
         {
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async([=]() {
+            std::async(std::launch::async | std::launch::deferred, [=]() {
                 deviceQueue->logical.resetFences(1, &fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
             });
@@ -68,9 +68,9 @@ namespace NSM
         vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
         deviceQueue->mainQueue->queue.submit(submitInfos, fence);
 
-        std::async([=]() { // async submit and await for destruction command buffers
+        std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async([=]() {
+            std::async(std::launch::async | std::launch::deferred, [=]() {
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
             });
@@ -91,7 +91,7 @@ namespace NSM
 
         if (async)
         {
-            std::async([=]() { // async submit and await for destruction command buffers
+            std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
                 deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
@@ -100,7 +100,7 @@ namespace NSM
         else
         {
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async([=]() {
+            std::async(std::launch::async | std::launch::deferred, [=]() {
                 deviceQueue->logical.resetFences(1, &fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
@@ -115,9 +115,9 @@ namespace NSM
         auto fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
         deviceQueue->mainQueue->queue.submit(submitInfos, fence);
 
-        std::async([=]() { // async submit and await for destruction command buffers
+        std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async([=]() {
+            std::async(std::launch::async | std::launch::deferred, [=]() {
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
@@ -133,9 +133,9 @@ namespace NSM
         auto fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
         deviceQueue->mainQueue->queue.submit(1, &kernel, fence);
 
-        std::async([=]() { // async submit and await for destruction command buffers
+        std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
             deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async([=]() {
+            std::async(std::launch::async | std::launch::deferred, [=]() {
                 deviceQueue->logical.destroyFence(fence);
                 deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });

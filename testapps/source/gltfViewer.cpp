@@ -357,8 +357,8 @@ namespace SatelliteExample {
                 tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
                 (*vertexLoader)(node, glm::dmat4(matrix), 16);
             }
-        }
-        */
+        }*/
+        
 
 
         // make camera projections

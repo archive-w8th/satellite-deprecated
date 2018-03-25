@@ -49,6 +49,6 @@
 
 <details>
 <summary>Prepare yourself...</summary>
-<img src="renders/city0.png" width="720">
-<img src="renders/city1.png" width="720">
+<img src="renders-fixed/city0.png" width="720">
+<img src="renders-fixed/city1.png" width="720">
 </details>

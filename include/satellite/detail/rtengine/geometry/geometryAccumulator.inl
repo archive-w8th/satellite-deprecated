@@ -37,8 +37,10 @@ namespace NSM
             };
             loaderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(loaderDescriptorLayout.size()).setPSetLayouts(loaderDescriptorLayout.data()));
 
+
             // create pipeline layout and caches
-            pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(loaderDescriptorLayout.data()).setSetLayoutCount(loaderDescriptorLayout.size()));
+            vk::PushConstantRange pconst = vk::PushConstantRange().setOffset(0).setSize(sizeof(uint32_t)).setStageFlags(vk::ShaderStageFlagBits::eCompute); // make life bit simpler
+            pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPushConstantRangeCount(1).setPPushConstantRanges(&pconst).setPSetLayouts(loaderDescriptorLayout.data()).setSetLayoutCount(loaderDescriptorLayout.size()));
             pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
 
             {
@@ -122,24 +124,26 @@ namespace NSM
             }, nullptr);
         }
 
-        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor) {
+        void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor, uint32_t instanceConst) {
             // RenderDoc, LunarG and AMD hate its
             //device->logical.updateDescriptorSetWithTemplate(loaderDescriptorSets[1], descriptorVInstanceUpdateTemplate, &vertexInstance->getDescViewData(needUpdateDescriptor), device->dldid);
 
-            auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
+            if (needUpdateDescriptor) {
+                auto dstruct = vertexInstance->getDescViewData(needUpdateDescriptor);
 
-            // descriptor templates
-            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&dstruct.vInstanceBufferInfos[0]),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&dstruct.vInstanceBufferInfos[1]),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&dstruct.vInstanceBufferInfos[2]),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&dstruct.vInstanceBufferInfos[3]),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&dstruct.vInstanceBufferInfos[4]),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&dstruct.vInstanceBufferInfos[5]),
-            }, nullptr);
+                // descriptor templates
+                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&dstruct.vInstanceBufferInfos[0]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&dstruct.vInstanceBufferInfos[1]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&dstruct.vInstanceBufferInfos[2]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&dstruct.vInstanceBufferInfos[3]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&dstruct.vInstanceBufferInfos[4]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&dstruct.vInstanceBufferInfos[5]),
+                }, nullptr);
+            }
 
-            dispatchCompute(geometryLoader, INTENSIVITY, loaderDescriptorSets);
+            dispatchCompute(geometryLoader, INTENSIVITY, loaderDescriptorSets, instanceConst);
         }
 
     }

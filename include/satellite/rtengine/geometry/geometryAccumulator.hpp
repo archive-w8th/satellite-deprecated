@@ -46,7 +46,7 @@ namespace NSM
                 init(device);
             }
 
-            void pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor = true); // planned support for transformations
+            void pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor = true, uint32_t instanceConst = 0); // planned support for transformations
             void resetAccumulationCounter();
             void allocatePrimitiveReserve(size_t primitiveCount);
 

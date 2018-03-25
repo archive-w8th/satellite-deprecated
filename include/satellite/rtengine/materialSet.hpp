@@ -20,11 +20,9 @@ namespace NSM
             BufferType materialStaging;
             BufferType vtexturesBuffer;
 
-
             intptr_t loadOffset = 0;
             void init(DeviceQueueType &device);
-
-            
+            bool needUpdate = true;
 
         public:
             MaterialSet() {}
@@ -51,8 +49,8 @@ namespace NSM
             bool haveMaterials();
 
             // resets
-            void resetMaterialSet() { materials.resize(0); }
-            void resetVirtualTextures() { vtextures.resize(0); }
+            void resetMaterialSet() { materials.resize(0); needUpdate = true; }
+            void resetVirtualTextures() { vtextures.resize(0); needUpdate = true; }
             
         };
 

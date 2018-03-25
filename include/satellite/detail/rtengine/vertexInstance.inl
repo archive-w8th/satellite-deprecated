@@ -23,14 +23,28 @@ namespace NSM
             meshUniformData = std::vector<MeshUniformStruct>{ MeshUniformStruct() };
             meshUniformBuffer = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             meshUniformStager = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            needUpdateUniform = true;
         }
+
+
+        void VertexInstance::makeMultiVersion(size_t ucount) {
+            this->ucount = ucount;
+            meshUniformData = std::vector<MeshUniformStruct>{ ucount };
+            meshUniformBuffer = createBuffer(device, strided<MeshUniformStruct>(ucount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            meshUniformStager = createBuffer(device, strided<MeshUniformStruct>(ucount), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            needUpdateUniform = true;
+        }
+
 
         void VertexInstance::syncUniform()
         {
-            auto commandBuffer = getCommandBuffer(device, true);
-            bufferSubData(commandBuffer, meshUniformStager, meshUniformData, 0);
-            memoryCopyCmd(commandBuffer, meshUniformStager, meshUniformBuffer, { 0, 0, strided<MeshUniformStruct>(1) });
-            flushCommandBuffer(device, commandBuffer, true);
+            if (needUpdateUniform) {
+                auto commandBuffer = getCommandBuffer(device, true);
+                bufferSubData(commandBuffer, meshUniformStager, meshUniformData, 0);
+                memoryCopyCmd(commandBuffer, meshUniformStager, meshUniformBuffer, { 0, 0, strided<MeshUniformStruct>(ucount) });
+                flushCommandBuffer(device, commandBuffer, true);
+            }
+            needUpdateUniform = false;
         }
 
         VertexInstance::VertexInstance(VertexInstance &&another)
@@ -86,70 +100,76 @@ namespace NSM
 
         size_t VertexInstance::getNodeCount()
         {
-            return meshUniformData[0].nodeCount;
+            return meshUniformData[this->uptr].nodeCount;
         }
-
-        // deprecated, indice or vertex index should be defined in buffer bindings
-        //void VertexInstance::setLoadingOffset(const int32_t &off) {
-        //meshUniformData[0].loadingOffset = off;
-        //};
 
         // setting of accessors
         void VertexInstance::useIndex16bit(bool b16)
         {
-            meshUniformData[0].int16bit = int(b16);
+            meshUniformData[this->uptr].int16bit = int(b16);
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setVertexBinding(int32_t bindingID)
         {
-            meshUniformData[0].vertexAccessor = bindingID;
+            meshUniformData[this->uptr].vertexAccessor = bindingID;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setIndiceBinding(int32_t bindingID)
         {
-            meshUniformData[0].indiceAccessor = bindingID;
+            meshUniformData[this->uptr].indiceAccessor = bindingID;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setMaterialBinding(int32_t bindingID)
         {
-            meshUniformData[0].materialAccessor = bindingID;
+            meshUniformData[this->uptr].materialAccessor = bindingID;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setNormalBinding(int32_t bindingID)
         {
-            meshUniformData[0].normalAccessor = bindingID;
+            meshUniformData[this->uptr].normalAccessor = bindingID;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setTexcoordBinding(int32_t bindingID)
         {
-            meshUniformData[0].texcoordAccessor = bindingID;
+            meshUniformData[this->uptr].texcoordAccessor = bindingID;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setModifierBinding(int32_t bindingID)
         {
-            meshUniformData[0].modifierAccessor = bindingID;
+            meshUniformData[this->uptr].modifierAccessor = bindingID;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setTransform(glm::mat4 t)
         {
-            meshUniformData[0].transform = glm::transpose(t);
-            meshUniformData[0].transformInv = glm::inverse(t);
+            meshUniformData[this->uptr].transform = glm::transpose(t);
+            meshUniformData[this->uptr].transformInv = glm::inverse(t);
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setTransform(glm::dmat4 t)
         {
             this->setTransform(glm::mat4(t));
+            needUpdateUniform = true;
         }
 
         // getting of user defined
         void VertexInstance::setNodeCount(size_t tcount)
         {
-            meshUniformData[0].nodeCount = tcount;
+            meshUniformData[this->uptr].nodeCount = tcount;
+            needUpdateUniform = true;
         }
 
         void VertexInstance::setMaterialOffset(int32_t id)
         {
-            meshUniformData[0].materialID = id;
+            meshUniformData[this->uptr].materialID = id;
+            needUpdateUniform = true;
         }
     }
 }

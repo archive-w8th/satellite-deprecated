@@ -12,6 +12,10 @@
 LOCAL_SIZE_LAYOUT;
 
 
+layout(push_constant) uniform PushBlock {
+    uint uniformBlock;
+} push_block;
+
 
 struct MeshUniformStruct {
     int vertexAccessor;
@@ -78,7 +82,9 @@ layout ( std430, binding = 1, set = 1 ) readonly buffer BufferRegions {uvec2 buf
 layout ( std430, binding = 2, set = 1 ) readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };
 layout ( std430, binding = 3, set = 1 ) readonly buffer DataFormat {VirtualDataAccess dataFormats[]; };
 layout ( std430, binding = 4, set = 1 ) readonly buffer AccessBinding {VirtualBufferBinding dataBindings[]; };
-layout ( std430, binding = 5, set = 1 ) readonly buffer IMeshUniform {MeshUniformStruct meshUniform; };
+layout ( std430, binding = 5, set = 1 ) readonly buffer IMeshUniform {MeshUniformStruct uMeshUniform[]; };
+
+#define meshUniform uMeshUniform[push_block.uniformBlock]
 
 
 

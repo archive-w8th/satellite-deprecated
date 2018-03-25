@@ -160,21 +160,30 @@ namespace SatelliteExample {
             acs->addElement(dst);
         }
 
+
+
+
+
         // load mesh templates (better view objectivity)
         for (int m = 0; m < gltfModel.meshes.size(); m++) {
             std::vector<std::shared_ptr<rt::VertexInstance>> primitiveVec = std::vector<std::shared_ptr<rt::VertexInstance>>();
 
+            // create vertex instance
+            std::shared_ptr<rt::VertexInstance> geom = std::shared_ptr<rt::VertexInstance>(new rt::VertexInstance(device));
+            geom->setBufferSpace(vtbSpace);
+            geom->setDataAccessSet(acs);
+            geom->setBufferViewSet(bfvi);
+            geom->setBindingSet(bnds);
+            
             // load instances
             tinygltf::Mesh &glMesh = gltfModel.meshes[m];
+            geom->makeMultiVersion(glMesh.primitives.size()); // for simple switch uniforms without descriptor set changes
+
+
+            // load primitives of mesh
             for (int i = 0; i < glMesh.primitives.size(); i++) {
                 tinygltf::Primitive & prim = glMesh.primitives[i];
-
-                // create vertex instance
-                std::shared_ptr<rt::VertexInstance> geom = std::shared_ptr<rt::VertexInstance>(new rt::VertexInstance(device));
-                geom->setBufferSpace(vtbSpace);
-                geom->setDataAccessSet(acs);
-                geom->setBufferViewSet(bfvi);
-                geom->setBindingSet(bnds);
+                geom->setUPtr(i);
 
                 // make attributes
                 std::map<std::string, int>::const_iterator it(prim.attributes.begin());
@@ -226,7 +235,7 @@ namespace SatelliteExample {
                 geom->useIndex16bit(isInt16);
 
                 // if triangles, then load mesh
-                if (prim.mode == TINYGLTF_MODE_TRIANGLES) { primitiveVec.push_back(geom); }
+                if (prim.mode == TINYGLTF_MODE_TRIANGLES) { primitiveVec.push_back(geom); } // anyways will loaded same "geom" pointer i.e. VertexInstance, so you can oriented by only uniform pointer index
             }
 
             meshVec.push_back(primitiveVec);
@@ -264,8 +273,9 @@ namespace SatelliteExample {
                 std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
                 for (int p = 0; p < mesh.size(); p++) { // load every primitive
                     std::shared_ptr<rt::VertexInstance>& geom = mesh[p];
+                    geom->setUPtr(p);
                     geom->setTransform(transform); // here is bottleneck with host-GPU exchange
-                    geometryCollector->pushGeometry(geom);
+                    geometryCollector->pushGeometry(geom, p == 0 ? true : false, p);
                 }
             } else 
             if (node.children.size() > 0) {
@@ -275,6 +285,7 @@ namespace SatelliteExample {
             }
         });
 #endif
+
 
         // bind resources
         rays->setMaterialSet(materialManager);
@@ -301,6 +312,29 @@ namespace SatelliteExample {
         }
 #endif
 
+
+
+
+#ifdef EXPERIMENTAL_GLTF
+        vertexLoader = std::make_shared<std::function<void(tinygltf::Node &, glm::dmat4, int)>>([&](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
+            // without matrix matrix updating (less overheading to PCI-E)
+            if (node.mesh >= 0) {
+                std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
+                for (int p = 0; p < mesh.size(); p++) { // load every primitive
+                    geometryCollector->pushGeometry(mesh[p], p == 0 ? true : false, p); // load by instancing
+                }
+            }
+            else
+                if (node.children.size() > 0) {
+                    for (int n = 0; n < node.children.size(); n++) {
+                        if (recursive >= 0) (*vertexLoader)(gltfModel.nodes[node.children[n]], inTransform, recursive - 1);
+                    }
+                }
+        });
+#endif
+
+
+
         //bvhBuilder->build(glm::dmat4(1.0)); // build BVH in device (with linked data)
     }
 
@@ -315,6 +349,24 @@ namespace SatelliteExample {
             e360m = !e360m; rays->enable360mode(e360m);
             switch360key = false;
         }
+
+
+        /*
+        // reset scene data collector
+        geometryCollector->resetAccumulationCounter();
+
+        // load scene
+        uint32_t sceneID = 0;
+        glm::dmat4 matrix(1.0);
+        matrix *= glm::scale(glm::dvec3(mscale)); // invert Z coordinate
+        if (gltfModel.scenes.size() > 0) {
+            for (int n = 0; n < gltfModel.scenes[sceneID].nodes.size(); n++) {
+                tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
+                (*vertexLoader)(node, glm::dmat4(matrix), 16);
+            }
+        }
+        */
+
 
         // make camera projections
         rays->setModelView(glm::lookAt(glm::dvec3(cam->eye), glm::dvec3(cam->view), glm::dvec3(0.f, 1.f, 0.f)));

@@ -60,6 +60,7 @@ namespace NSM
                 idx = samplers.size();
                 samplers.push_back(sampler);
             }
+            
             return idx;
         }
 

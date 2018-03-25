@@ -609,6 +609,21 @@ namespace NSM
         return commandBuffer;
     }
 
+
+
+    
+
+
+    auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
+        auto commandBuffer = getCommandBuffer(compute.device, true);
+        commandBuffer.pushConstants(compute.pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+        commandBuffer.dispatch(workGroups1D, 1, 1);
+        flushCommandBuffer(compute.device, commandBuffer, true);
+    }
+
+
     auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets) {
         auto commandBuffer = getCommandBuffer(compute.device, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);

@@ -25,7 +25,9 @@ namespace NSM
             BufferType meshUniformStager, meshUniformBuffer;
 
             VertexInstanceViews descViews;
-
+            bool needUpdateUniform = true;
+            size_t ucount = 1;
+            size_t uptr = 0;
 
         public:
             VertexInstance() {}
@@ -52,6 +54,9 @@ namespace NSM
             void setBufferViewSet(std::shared_ptr<BufferViewSet> &bufferViewSet);
             void setDataAccessSet(std::shared_ptr<DataAccessSet> &accessDataSet);
             VertexInstanceViews getDescViewData(bool needUpdate = true);
+
+            void setUPtr(size_t p) { this->uptr = p; }
+            void makeMultiVersion(size_t ucount);
 
         protected:
             // getters of buffers

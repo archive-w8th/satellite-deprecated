@@ -168,18 +168,13 @@ HitRework interpolateMeshData(inout HitRework res) {
         );
 
         // calc deltas
-        mat2x2 dlts = mat2x2(
-            txds[1]-txds[0],
-            txds[2]-txds[0]
-        );
+        mat2x2 dlts = mat2x2(txds[1]-txds[0], txds[2]-txds[0]);
+        mat2x3 dlps = mat2x3(triverts[1]-triverts[0], triverts[2]-triverts[0]);
+        float idet = 1.f/precIssue(determinant(dlts));
 
-        mat2x3 dlps = mat2x3(
-            triverts[1]-triverts[0],
-            triverts[2]-triverts[0]
-        );
-
+        // pre-tbn
         vec3 t = fma(dlts[1].yyy, dlps[0], -dlts[0].y * dlps[1]);
-        vec3 b = fma(dlts[1].xxx, dlps[0], -dlts[0].x * dlps[1]);
+        vec3 b = fma(dlts[0].xxx, dlps[1], -dlts[1].x * dlps[0]);
         vec3 n = normal;
 
         // if texcoord not found or incorrect, calculate by axis
@@ -187,19 +182,23 @@ HitRework interpolateMeshData(inout HitRework res) {
             vec3 c0 = cross(n, vec3(0.f, 0.f, 1.f));
             vec3 c1 = cross(n, vec3(0.f, 1.f, 0.f));
             t = length(c0) >= length(c1) ? c0 : c1, b = cross(t, n);
+            idet = 1.f;
         }
 
-        t = t - n * dot( t, n ); // orthonormalization ot the tangent vectors
-        b = b - n * dot( b, n ); // orthonormalization of the binormal vectors to the normal vector 
-        b = b - t * dot( b, t ); // orthonormalization of the binormal vectors to the tangent vector
-        mat3 tbn = mat3( normalize(t), normalize(b), n );
+        {
+            t -= n * dot( t, n ); // orthonormalization ot the tangent vectors
+            b -= n * dot( b, n ); // orthonormalization of the binormal vectors to the normal vector 
+            b -= t * dot( b, t ); // orthonormalization of the binormal vectors to the tangent vector
+        }
+
+        
 
         IF (validInterpolant) {
-            res.normalHeight = vec4(normal, 0.0f);
-            res.tangent = vec4(tbn[0], 0.f);
+            res.normalHeight = vec4( normalize(n), 0.0f);
+            res.tangent =      vec4( normalize(t*idet), 0.0f);
+            res.bitangent =    vec4( normalize(b*idet), 0.0f);
             res.texcoord.xy = vs * texcoords; // mult matrix
             res.materialID = materials[tri];
-            res.bitangent = vec4(tbn[1], 0.f);
             HitActived(res, true_); // temporary enable
         }
     }

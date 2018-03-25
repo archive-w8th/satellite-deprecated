@@ -12,6 +12,7 @@ namespace NSM
         {
         protected:
             friend class BufferComposer<BINDING, STRUCTURE>;
+            bool needUpdateBuffer = true;
 
         public:
             BufferComposer(BufferComposer<BINDING, STRUCTURE> &another);
@@ -19,8 +20,7 @@ namespace NSM
             BufferComposer(DeviceQueueType &device, const size_t bsize = 1024 * 128);
             int32_t addElement(STRUCTURE accessorDesc);
             BufferType getBuffer();
-
-            void resetStack() { data.resize(0); }
+            void resetStack() { needUpdateBuffer = true; data.resize(0); }
 
         protected:
             BufferType cache;
@@ -38,20 +38,17 @@ namespace NSM
             int32_t addRegionDesc(BufferRegion accessorDesc);
 
             intptr_t copyGPUBuffer(BufferType external, const size_t size);
-            intptr_t copyGPUBuffer(BufferType external, const size_t size,
-                const intptr_t offset);
+            intptr_t copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset);
 
             intptr_t copyHostBuffer(const uint8_t *external, const size_t size);
-            intptr_t copyHostBuffer(const uint8_t *external, const size_t size,
-                const intptr_t offset);
+            intptr_t copyHostBuffer(const uint8_t *external, const size_t size, const intptr_t offset);
 
             template <class T>
             intptr_t copyHostBuffer(const std::vector<T> external, const intptr_t offset);
-
             intptr_t getLastKnownOffset();
 
-            void resetRegionStack() { regions.resize(0); }
-            void resetOffsetCounter() { lastKnownOffset = 0; }
+            void resetRegionStack() { needUpdateSpaceDescs = true; regions.resize(0); }
+            void resetOffsetCounter() { needUpdateSpaceDescs = true; lastKnownOffset = 0; }
 
         protected:
             std::vector<BufferRegion> regions;
@@ -61,6 +58,8 @@ namespace NSM
             BufferType dataBuffer;
             DeviceQueueType device;
             intptr_t lastKnownOffset = 0;
+
+            bool needUpdateSpaceDescs = true;
         };
 
         using BufferViewSet = BufferComposer<3, VirtualBufferView>;

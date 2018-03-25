@@ -46,6 +46,7 @@ namespace NSM
         template <int BINDING, class STRUCTURE>
         int32_t BufferComposer<BINDING, STRUCTURE>::addElement(STRUCTURE accessorDesc)
         {
+            needUpdateBuffer = true;
             int32_t ptr = data.size();
             data.push_back(accessorDesc);
             return ptr;
@@ -54,14 +55,13 @@ namespace NSM
         template <int BINDING, class STRUCTURE>
         BufferType BufferComposer<BINDING, STRUCTURE>::getBuffer()
         {
-            if (data.size() > 0)
-            {
+            if (data.size() > 0 && needUpdateBuffer) {
                 auto commandBuffer = getCommandBuffer(device, true);
                 bufferSubData(commandBuffer, stager, data, 0);
-                memoryCopyCmd(commandBuffer, stager, cache,
-                    { 0, 0, strided<STRUCTURE>(data.size()) });
+                memoryCopyCmd(commandBuffer, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) });
                 flushCommandBuffer(device, commandBuffer, true);
             }
+            needUpdateBuffer = false;
             return cache;
         }
 
@@ -96,28 +96,19 @@ namespace NSM
 
         BufferType BufferSpace::getRegionsBuffer()
         {
-            if (regions.size() > 0)
-            {
+            if (regions.size() > 0 && needUpdateSpaceDescs) {
                 auto commandBuffer = getCommandBuffer(device, true);
                 bufferSubData(commandBuffer, regionsStage, regions, 0);
-                memoryCopyCmd(commandBuffer, regionsStage, regionsBuffer,
-                    { 0, 0, strided<BufferRegion>(regions.size()) });
+                memoryCopyCmd(commandBuffer, regionsStage, regionsBuffer, { 0, 0, strided<BufferRegion>(regions.size()) });
                 flushCommandBuffer(device, commandBuffer, true);
             }
+            needUpdateSpaceDescs = false;
             return regionsBuffer;
         }
 
-        intptr_t BufferSpace::copyGPUBuffer(BufferType external, const size_t size,
-            const intptr_t offset)
-        {
-            if (size > 0)
-            {
-                flushCommandBuffer(
-                    device,
-                    createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(
-                        device, external, dataBuffer,
-                        { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }),
-                    true);
+        intptr_t BufferSpace::copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset) {
+            if (size > 0) {
+                flushCommandBuffer( device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>( device, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }), true);
             }
             return offset;
         }
@@ -126,47 +117,37 @@ namespace NSM
         {
             const intptr_t offset = lastKnownOffset;
             lastKnownOffset += size;
-            lastKnownOffset =
-                tiled(lastKnownOffset, 4) *
-                4; // correct by hardware 32-bit (for avoid errors in shaders)
+            lastKnownOffset = tiled(lastKnownOffset, 4) * 4; // correct by hardware 32-bit (for avoid errors in shaders)
             return copyGPUBuffer(external, size, offset);
         }
 
-        intptr_t BufferSpace::copyHostBuffer(const uint8_t *external, const size_t size,
-            const intptr_t offset)
-        {
+        intptr_t BufferSpace::copyHostBuffer(const uint8_t *external, const size_t size, const intptr_t offset) {
             if (size > 0)
             {
                 auto commandBuffer = getCommandBuffer(device, true);
                 bufferSubData(commandBuffer, dataStage, external, size, 0);
-                memoryCopyCmd(commandBuffer, dataStage, dataBuffer,
-                    { 0, vk::DeviceSize(offset), vk::DeviceSize(size) });
+                memoryCopyCmd(commandBuffer, dataStage, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) });
                 flushCommandBuffer(device, commandBuffer, true);
             }
             return offset;
         }
 
-        intptr_t BufferSpace::copyHostBuffer(const uint8_t *external,
-            const size_t size)
-        {
+        intptr_t BufferSpace::copyHostBuffer(const uint8_t *external, const size_t size) {
             const intptr_t offset = lastKnownOffset;
             lastKnownOffset += size;
-            lastKnownOffset =
-                tiled(lastKnownOffset, 4) *
-                4; // correct by hardware 32-bit (for avoid errors in shaders)
+            lastKnownOffset = tiled(lastKnownOffset, 4) * 4; // correct by hardware 32-bit (for avoid errors in shaders)
             return copyHostBuffer(external, size, offset);
         }
 
         template <class T>
-        intptr_t BufferSpace::copyHostBuffer(const std::vector<T> external,
-            const intptr_t offset)
+        intptr_t BufferSpace::copyHostBuffer(const std::vector<T> external, const intptr_t offset)
         {
-            return copyHostBuffer((const uint8_t *)external.data(),
-                external.size() * sizeof(T), offset);
+            return copyHostBuffer((const uint8_t *)external.data(), external.size() * sizeof(T), offset);
         }
 
         int32_t BufferSpace::addRegionDesc(BufferRegion region)
         {
+            needUpdateSpaceDescs = true;
             int32_t ptr = regions.size();
             regions.push_back(region);
             return ptr;

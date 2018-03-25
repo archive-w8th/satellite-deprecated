@@ -261,7 +261,7 @@ namespace SatelliteExample {
 
         // make loader dispatcher
 #ifdef EXPERIMENTAL_GLTF
-        vertexLoader = std::make_shared<std::function<void(tinygltf::Node &, glm::dmat4, int)>>([&](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
+        vertexLoader = std::make_shared<std::function<void(tinygltf::Node &, glm::dmat4, int)>>([=](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
             glm::dmat4 localTransform(1.0);
             localTransform *= (node.matrix.size() >= 16 ? glm::make_mat4(node.matrix.data()) : glm::dmat4(1.0));
             localTransform *= (node.translation.size() >= 3 ? glm::translate(glm::make_vec3(node.translation.data())) : glm::dmat4(1.0));
@@ -311,11 +311,8 @@ namespace SatelliteExample {
         }
 #endif
 
-
-
-
-#ifdef EXPERIMENTAL_GLTF
-        vertexLoader = std::make_shared<std::function<void(tinygltf::Node &, glm::dmat4, int)>>([&](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
+#ifdef EXPERIMENTAL_GLTF 
+        std::shared_ptr<std::function<void(tinygltf::Node &, glm::dmat4, int)>> vrload = std::make_shared<std::function<void(tinygltf::Node &, glm::dmat4, int)>>([=](tinygltf::Node & node, glm::dmat4 inTransform, int recursive)->void {
             // without matrix matrix updating (less overheading to PCI-E)
             if (node.mesh >= 0) {
                 std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
@@ -324,13 +321,12 @@ namespace SatelliteExample {
             else
                 if (node.children.size() > 0) {
                     for (int n = 0; n < node.children.size(); n++) {
-                        if (recursive >= 0) (*vertexLoader)(gltfModel.nodes[node.children[n]], inTransform, recursive - 1);
+                        if (recursive >= 0) (*vrload)(gltfModel.nodes[node.children[n]], inTransform, recursive - 1);
                     }
                 }
         });
+        vertexLoader = vrload;
 #endif
-
-
 
         //bvhBuilder->build(glm::dmat4(1.0)); // build BVH in device (with linked data)
     }
@@ -361,8 +357,8 @@ namespace SatelliteExample {
                 tinygltf::Node & node = gltfModel.nodes[gltfModel.scenes[sceneID].nodes[n]];
                 (*vertexLoader)(node, glm::dmat4(matrix), 16);
             }
-        }*/
-        
+        }
+        */
 
 
         // make camera projections

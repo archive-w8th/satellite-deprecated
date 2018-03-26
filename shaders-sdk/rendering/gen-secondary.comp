@@ -283,7 +283,7 @@ void main() {
                     }
 
 
-                    overwriteBlock = -1;
+                    //overwriteBlock = -1;
 
                     { // shadow rays from surface
                         RayRework shadowRay = directLight(0, enrollRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);

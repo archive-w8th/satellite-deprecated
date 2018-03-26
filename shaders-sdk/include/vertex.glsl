@@ -178,7 +178,12 @@ HitRework interpolateMeshData(inout HitRework res) {
         vec3 n = normal;
 
         // if texcoord not found or incorrect, calculate by axis
-        if (all(lessThanEqual(abs(dlts[0]), 1e-5f.xx)) || all(lessThanEqual(abs(dlts[1]), 1e-5f.xx))) {
+        if (
+            all(lessThanEqual(abs(dlts[0]), 1e-5f.xx)) || 
+            all(lessThanEqual(abs(dlts[1]), 1e-5f.xx)) || 
+            all(lessThanEqual(abs(dlps[0]), 1e-5f.xxx)) || 
+            all(lessThanEqual(abs(dlps[1]), 1e-5f.xxx))
+        ) {
             vec3 c0 = cross(n, vec3(0.f, 0.f, 1.f));
             vec3 c1 = cross(n, vec3(0.f, 1.f, 0.f));
             t = length(c0) >= length(c1) ? c0 : c1, b = cross(t, n);
@@ -190,8 +195,6 @@ HitRework interpolateMeshData(inout HitRework res) {
             b -= n * dot( b, n ); // orthonormalization of the binormal vectors to the normal vector 
             b -= t * dot( b, t ); // orthonormalization of the binormal vectors to the tangent vector
         }
-
-        
 
         IF (validInterpolant) {
             res.normalHeight = vec4( normalize(n), 0.0f);

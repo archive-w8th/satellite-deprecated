@@ -88,7 +88,7 @@ bool_ greaterF     (in float a, in float b) { return bool_(   (a-b) >   PRECERR)
 bool_ equalF       (in float a, in float b) { return bool_(abs(a-b) <=  PRECERR); }
 
 // precision utils
-float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 100000.f*sign(a); return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
+float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 1.f*sign(a); return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
 
 
 

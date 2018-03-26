@@ -109,7 +109,7 @@ vec3 getNormalMapping(in vec2 texcoordi) {
         vec3 t01 = vec3(txu.xw, getUVH(texcoordi + tx4.xw).z) * vec3(1.f, -1.f, hsize);
         vec3 t10 = vec3(txu.zy, getUVH(texcoordi + tx4.zy).z) * vec3(1.f, -1.f, hsize);
         vec3 bump = normalize(cross( t01 - t00, t10 - t00 ));
-        normal = faceforward(bump, normal, bump);
+        normal = faceforward(bump, -bump, normal);
     } else {
         normal = normalize(fmix(vec3(0.0f, 0.0f, 1.0f), fma(tc, vec3(2.0f), vec3(-1.0f)), vec3(1.0f)));
     }
@@ -178,6 +178,8 @@ vec2 parallaxMapping(in vec3 V, in vec2 T, out float parallaxHeight) {
     return mix(chd_b.xy, chd_a.xy, weight);
 }
 
+
+
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.hitCount
     int wsize = RAY_BLOCK samplerUniform.hitCount;
@@ -209,12 +211,12 @@ void main() {
 
             // AMD not supported per-lane texture data loading, if texture index is not constant
             vec2 texcoord = hit.texcoord.xy;
-            vec3 normal = normalize(hit.normalHeight.xyz);
-            vec3 bitang = normalize(hit.bitangent.xyz);
-            vec3 tangent = normalize(hit.tangent.xyz);
+            vec3 normal = hit.normalHeight.xyz;
+            vec3 bitang = hit.bitangent.xyz;
+            vec3 tangent = hit.tangent.xyz;
 
-            mat3 tbn = mat3(tangent.xyz, bitang.xyz, normal.xyz);
-            vec3 pV = normalize((-dcts(ray.cdirect.xy) * hit.uvt.z) * tbn);
+            mat3 tbn = transpose(mat3(tangent.xyz, bitang.xyz, normal.xyz));
+            vec3 pV = normalize(tbn * (-dcts(ray.cdirect.xy) * hit.uvt.z));
             float hW = 0.f;
 
 #ifndef PLAIN_BINDLESS_TEXTURE_FETCH
@@ -254,12 +256,22 @@ void main() {
             SB_BARRIER
 #endif
 
-
             vec4 diffuse = textured.diffuse; diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
             vec4 emission = textured.emissive; emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
             vec4 spc = clamp01(textured.specular);
 
-            hit.normalHeight.xyzw = vec4(normalize(tbn*textured.bump.xyz), 1.f).xyzw;
+            // apply TBN with normal mapping
+            if (validateTexture(material.bumpTexture)) { // block TBN change manually if non valid normal mapped texture
+                hit.normalHeight.xyz = textured.bump.xyz * tbn;
+            }
+
+            // if normal goes wrong, restore normal
+            if ((length(hit.normalHeight.xyz) <= 1e-5) || (length(hit.normalHeight.xyz) >= INFINITY) || any(isnan(hit.normalHeight.xyz)) || any(isinf(hit.normalHeight.xyz)) || dot(hit.normalHeight.xyz, normal.xyz) <= 1e-5) {
+                hit.normalHeight.xyz = normal.xyz;
+            }
+
+            // normalize normal again
+            hit.normalHeight.xyz = normalize(hit.normalHeight.xyz);
             hit.emission.xy = packHalf2(emission.xyzw).xy;
             hit.albedo.xy = packHalf2(diffuse.xyzw).xy;
             hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;

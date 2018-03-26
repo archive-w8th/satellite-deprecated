@@ -120,8 +120,9 @@ const int _BVH_WIDTH = 2048;
 
 #define bvhT_ptr ivec2
 bvhT_ptr mk_bvhT_ptr(in int linear) {
-    int md = linear & 1; linear >>= 1;
-    return bvhT_ptr(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
+    //int md = linear & 1; linear >>= 1;
+    //return bvhT_ptr(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
+    return bvhT_ptr(linear % _BVH_WIDTH, linear / _BVH_WIDTH); // just make linear (gather by tops of...)
 }
 
 #ifndef BVH_CREATION

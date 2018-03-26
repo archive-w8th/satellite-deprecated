@@ -51,4 +51,5 @@
 <summary>Prepare yourself...</summary>
 <img src="renders-fixed/city0.png" width="720">
 <img src="renders-fixed/city1.png" width="720">
+<img src="renders-fixed/city2.png" width="720">
 </details>

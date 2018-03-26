@@ -7,6 +7,8 @@
 * **10.03.2018**: Support for Vulkan API 1.1.70 runtime 
 * **20.03.2018**: Suspend of main support (only non-critical bug fixes)
 * **24.03.2018**: Shot of some bug fixes with fp16 BVH and precisions, make new shader names 
+* **26.03.2018**: Complete first charging of our project sources 
+* **27.03.2018**: Begin of new ray-tracing saga... 
 
 ### What we can be do, if we had desires
 

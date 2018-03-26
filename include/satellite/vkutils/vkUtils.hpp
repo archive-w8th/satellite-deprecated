@@ -470,29 +470,25 @@ namespace NSM
     // destroy buffer function (by linked device)
     void destroyBuffer(BufferType &buffer)
     {
-        if (buffer && buffer->initialized)
-        {
-            vmaDestroyBuffer(buffer->device->allocator, buffer->buffer,
-                buffer->allocation);
-            buffer->initialized = false;
-        }
+        std::async(std::launch::async | std::launch::deferred, [=]() {
+            if (buffer && buffer->initialized) {
+                buffer->device->logical.waitIdle();
+                vmaDestroyBuffer(buffer->device->allocator, buffer->buffer, buffer->allocation);
+                buffer->initialized = false;
+            }
+        });
     }
 
     void destroyTexture(TextureType &image)
     {
-        if (image && image->initialized)
-        {
-            vmaDestroyImage(image->device->allocator, image->image, image->allocation);
-            image->initialized = false;
-        }
+        std::async(std::launch::async | std::launch::deferred, [=]() {
+            if (image && image->initialized) {
+                image->device->logical.waitIdle();
+                vmaDestroyImage(image->device->allocator, image->image, image->allocation);
+                image->initialized = false;
+            }
+        });
     }
-
-    // void destroyBuffer(Buffer& buffer) {
-    //    if (buffer.initialized) {
-    //        vmaDestroyBuffer(buffer.device->allocator, buffer.buffer,
-    //        buffer.allocation); buffer.initialized = false;
-    //    }
-    //}
 
     // read source (unused)
     std::string readSource(const std::string &filePath,

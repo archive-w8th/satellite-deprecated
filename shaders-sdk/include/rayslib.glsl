@@ -44,7 +44,7 @@ layout ( std430, binding = 6, set = 0 ) buffer TexelsSSBO { Texel nodes[]; } tex
 #endif
 
 // intersection vertices
-layout ( std430, binding = 9, set = 0 ) buffer HitsSSBO { HitRework hits[]; }; // 96byte per node
+layout ( std430, binding = 9, set = 0 ) buffer HitsSSBO { HitData hits[]; }; 
 
 // for faster BVH traverse
 layout ( std430, binding = 10, set = 0 ) buffer UnorderedSSBO { ElectedRay unorderedRays[]; };
@@ -63,6 +63,9 @@ layout ( std430, binding = 11, set = 0 ) buffer BlockIndexedSpace { mediump uint
 #define m16i(b,i) (int(ispace[b][i])-1)
 #define m16s(a,b,i) (ispace[b][i] = uint(a+1))
 #endif
+
+layout ( std430, binding = 15, set = 0 ) buffer HitPayloadSSBO { HitPayload hitPayload[]; }; 
+
 
 
 // extraction of block length
@@ -158,7 +161,7 @@ layout ( std430, binding = 8, set = 0 ) buffer CounterBlock {
     int rT; // allocator of indice blocks 
 
     int hT; // hits vertices counters
-    int iT; // ???
+    int iT; // hits payload counters
 } arcounter;
 
 
@@ -167,19 +170,18 @@ layout ( std430, binding = 8, set = 0 ) buffer CounterBlock {
 #define atomicIncBT() (true?atomicAdd(arcounter.bT,1):0)
 #define atomicIncAT() (true?atomicAdd(arcounter.aT,1):0)
 #define atomicIncPT() (true?atomicAdd(arcounter.pT,1):0)
-#define atomicIncIT() (true?atomicAdd(arcounter.iT,1):0)
 #define atomicDecMT() (true?atomicAdd(arcounter.mT,-1):0)
 #define atomicIncRT(cct) (cct>0?atomicAdd(arcounter.rT,cct):0)
 #else
 initAtomicSubgroupIncFunction(arcounter.bT, atomicIncBT,  1, int)
 initAtomicSubgroupIncFunction(arcounter.aT, atomicIncAT,  1, int)
 initAtomicSubgroupIncFunction(arcounter.pT, atomicIncPT,  1, int)
-initAtomicSubgroupIncFunction(arcounter.iT, atomicIncIT,  1, int)
 initAtomicSubgroupIncFunction(arcounter.mT, atomicDecMT, -1, int)
 initAtomicSubgroupIncFunctionDyn(arcounter.rT, atomicIncRT,  int)
 #endif
 initAtomicSubgroupIncFunction(arcounter.tT, atomicIncTT, 1, int)
 initAtomicSubgroupIncFunction(arcounter.hT, atomicIncHT, 1, int)
+initAtomicSubgroupIncFunction(arcounter.iT, atomicIncIT,  1, int)
 
 // should functions have layouts
 initSubgroupIncFunctionTarget(rayBlocks[WHERE].indiceCount, atomicIncCM, 1, int)

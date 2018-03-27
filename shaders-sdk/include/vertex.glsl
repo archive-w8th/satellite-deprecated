@@ -20,7 +20,6 @@
 #else
     #ifdef ENABLE_VERTEX_INTERPOLATOR
         layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
-        layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
         layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
     #endif
 
@@ -35,14 +34,15 @@
             layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
         #endif
         #endif
-        
-        
+
+        layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
         layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
-#ifdef VTX_TRANSPLIT // for leaf gens
-        layout ( std430, binding = 7, set = 1 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
-#else
-        layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
-#endif
+        #ifdef VTX_TRANSPLIT // for leaf gens
+            layout ( std430, binding = 7, set = 1 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
+        #else
+            layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
+        #endif
+
     #endif
 #endif
 
@@ -145,7 +145,7 @@ float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout ve
     uv = f * vec2(dot(s,h),dot(dir,q));
 
     if (uv.x < 0.f || uv.y < 0.f || (uv.x+uv.y) > 1.f) { _valid = false_; }
-    
+
     float T = f * dot(e2,q);
     if (T >= INFINITY || T < 0.f) { _valid = false_; } 
     IF (not(_valid)) T = INFINITY;
@@ -175,13 +175,13 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
 // barycentric map (for corrections tangents in POM)
 const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
-HitRework interpolateMeshData(inout HitRework res) {
-    int tri = floatBitsToInt(res.uvt.w);
-    bool_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & bool_(tri != LONGEST);
+HitPayload interpolateMeshData(in HitData ht, inout HitPayload res) {
+    int tri = floatBitsToInt(ht.uvt.w);
+    bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST);
     
-    IFANY (validInterpolant & not(HitInterpolated(res))) {
+    IFANY (validInterpolant) {
         // pre-calculate interpolators
-        const vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
+        const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy);
         const vec2 sz = 1.f / textureSize(attrib_texture, 0);
 
         // gather normal 
@@ -233,14 +233,11 @@ HitRework interpolateMeshData(inout HitRework res) {
             b -= t * dot( b, t ); // orthonormalization of the binormal vectors to the tangent vector
         }
 
-        IF (validInterpolant & not(HitInterpolated(res))) {
+        IF (validInterpolant) {
             res.normalHeight = vec4( normalize(n), 0.0f);
             res.tangent =      vec4( normalize(t*idet), 0.0f);
             res.bitangent =    vec4( normalize(b*idet), 0.0f);
             res.texcoord.xy = vs * texcoords; // mult matrix
-            res.materialID = materials[tri];
-            HitActived(res, true_); // temporary enable
-            HitInterpolated(res, true_);
         }
     }
     return res;

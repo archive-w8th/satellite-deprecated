@@ -93,11 +93,16 @@ uvec2 WriteColor(inout uvec2 rwby, in vec4 color){
 }
 
 
+struct HitData {
+    vec4 uvt; // UV, distance, triangle (base data)
 
-struct HitRework {
-    // getting under intersections
-     vec4 uvt; // UV, distance, triangle (base data)
+    int rayID; // ray index
+    int payloadID; // hit shaded index
+    int materialID; // may not necessary 
+    int next; // next chainged hit
+};
 
+struct HitPayload {
     // surface shaders and interpolators
      vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
      vec4 tangent; // 
@@ -107,13 +112,8 @@ struct HitRework {
     // textured data
     uvec2 metallicRoughness, unk16;
     uvec2 emission, albedo;
-
-    // integer metadata
-    uint bitfield; 
-     int ray; // ray index
-     int materialID; // may not necessary 
-     int next;
 };
+
 
 
 const int B16FT = 16;
@@ -162,28 +162,6 @@ void parameterb(const ivec2 parameter, inout float bitfield, in bool_ value) {
 
 
 #define RAY_BITFIELD_ ray.dcolor.y
-#define HIT_BITFIELD_ hit.bitfield
-
-
-
-bool_ HitActived(inout HitRework hit) {
-    return parameterb(ACTIVED, HIT_BITFIELD_);
-}
-
-void HitActived(inout HitRework hit, in bool_ actived) {
-    parameterb(ACTIVED, HIT_BITFIELD_, actived);
-}
-
-bool_ HitInterpolated(inout HitRework hit) {
-    return parameterb(INTERPOLATED, HIT_BITFIELD_);
-}
-
-void HitInterpolated(inout HitRework hit, in bool_ interpolated) {
-    parameterb(INTERPOLATED, HIT_BITFIELD_, interpolated);
-}
-
-
-
 
 
 

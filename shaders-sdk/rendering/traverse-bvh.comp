@@ -20,23 +20,16 @@
 //#define USE_STACKLESS_BVH
 #include "./submodules/traverse-bvh2.glsl"
 
-
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
     uint hid = atomicIncHT()+1;
-    HitRework hitp = hits[hid-1];
-    hitp.uvt = intersection;
-    hitp.ray = int(traverseState.currentRayTmp.uindex.x)-1;
-    hitp.bitfield = 0u;
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-    interpolateMeshData(hitp);
-#endif
-
-    hitp.next = -1; //nodeCache[rayID].info.nextHt; // for future overriding
-    hitp.albedo = packHalf2(vec4(1.f, 1.f, 1.f, 1.f));
-    hitp.metallicRoughness = packHalf2(vec4(vec2(1.f, 0.f), 0.f, 0.f));
-    hitp.emission = packHalf2(vec4(0.f));
-    hits[hid-1] = hitp;
+    HitData hit = hits[hid-1];
+    hit.uvt = intersection;
+    hit.rayID = int(traverseState.currentRayTmp.uindex.x)-1;
+    hit.payloadID = 0;
+    hit.next = 0;
+    hit.materialID = materials[floatBitsToInt(intersection.w)];
+    hits[hid-1] = hit;
     traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
 }
 

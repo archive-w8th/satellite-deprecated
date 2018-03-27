@@ -85,7 +85,7 @@ namespace NSM
         void HieararchyStorage::allocateNodeReserve(size_t nodeCount)
         {
             // bvh storage (32-bits elements)
-            size_t _MAX_HEIGHT = tiled(nodeCount*2, _BVH_WIDTH);
+            size_t _MAX_HEIGHT = tiled(nodeCount*2, _BVH_WIDTH)+1;
             bvhMetaStorage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
             bvhBoxStorage = createBuffer(device, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 

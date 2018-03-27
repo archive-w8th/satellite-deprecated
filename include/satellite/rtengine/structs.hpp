@@ -25,27 +25,17 @@ namespace NSM
             glm::vec4 a, b;
         };
 
-        struct HitRework
+        struct HitPayload
         {
-            // getting under intersections
-            glm::vec4 uvt; // UV, distance, triangle (base data)
-
-            // surface shaders and interpolators
-            glm::vec4 normalHeight; // normal with height mapping, will already
-                                    // interpolated with geometry
-            glm::vec4 tangent;      //
-            glm::vec4 bitangent;    //
-            glm::vec4 texcoord;     // critical texcoords
+            // interpolated with geometry
+            glm::vec4 normalHeight;
+            glm::vec4 tangent; 
+            glm::vec4 bitangent;
+            glm::vec4 texcoord;
 
             // textured data
             glm::uvec2 metallicRoughness, unk16;
             glm::uvec2 emission, albedo;
-
-            // integer metadata
-            glm::uint bitfield;
-            int ray;        // ray index
-            int materialID; // may not necessary
-            int next;
         };
 
         struct Texel

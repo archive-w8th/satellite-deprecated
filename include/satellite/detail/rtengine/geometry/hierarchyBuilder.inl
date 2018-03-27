@@ -158,7 +158,7 @@ namespace NSM
             if (triangleCount[0] <= 0) return; // no need to build BVH
 
             { // copy geometry accumulation to hierarchy storage
-                size_t _ALLOCATED_HEIGHT = (size_t(triangleCount[0]) > 0 ? (size_t(triangleCount[0]) * ATTRIBUTE_EXTENT - 1) / WARPED_WIDTH + 1 : 0) + 1;
+                size_t _ALLOCATED_HEIGHT = tiled(triangleCount[0]*ATTRIBUTE_EXTENT, WARPED_WIDTH) + 1;
 
                 // copy texel storage data
                 vk::ImageCopy copyDesc;
@@ -310,7 +310,7 @@ namespace NSM
             { // resolve BVH buffers for copying
                 auto bvhBoxStorage = hierarchyStorageLink->getBvhBox();
                 auto bvhMetaStorage = hierarchyStorageLink->getBvhMeta();
-                size_t nodeCount = triangleCount[0] * 2, _ALLOCATED_HEIGHT = std::max(nodeCount > 0 ? (nodeCount * ATTRIBUTE_EXTENT - 1) / WARPED_WIDTH + 1 : 0, WARPED_WIDTH) + 1;
+                size_t _ALLOCATED_HEIGHT = tiled(triangleCount[0] * 2, _BVH_WIDTH)+1;
 
                 // copy texel storage data
                 vk::ImageCopy copyDesc;
@@ -323,7 +323,7 @@ namespace NSM
                 // copy images command
                 auto command = getCommandBuffer(device, true);
                 memoryCopyCmd(command, bvhMetaWorking, bvhMetaStorage, copyDesc);
-                memoryCopyCmd(command, bvhBoxWorkingResulting, bvhBoxStorage, { 0, 0, strided<bbox>(nodeCount) });
+                memoryCopyCmd(command, bvhBoxWorkingResulting, bvhBoxStorage, { 0, 0, strided<bbox>(triangleCount[0] * 2) });
                 flushCommandBuffer(device, command, true);
             }
         }
@@ -339,7 +339,7 @@ namespace NSM
             leafsBuffer = createBuffer(device, strided<HlbvhNode>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // these buffers will sharing 
-            size_t _MAX_HEIGHT = tiled(nodeCount * 2, _BVH_WIDTH);
+            size_t _MAX_HEIGHT = tiled(nodeCount * 2, _BVH_WIDTH)+1;
             bvhMetaWorking = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_BVH_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sint);
             bvhBoxWorking = createBuffer(device, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             bvhBoxWorkingResulting = createBuffer(device, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);

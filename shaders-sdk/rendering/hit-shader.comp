@@ -10,8 +10,7 @@
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
 #define ENABLE_VERTEX_INTERPOLATOR
-#define ENABLE_SRC // store rays in registers if possible
-//#define ENABLE_DHA
+#define CACHE_HIT
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -129,15 +128,11 @@ struct Textured {
     vec4 emissive;
 } textured;
 
-#define dsray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE].data
-
-#ifndef ENABLE_SRC
-#define cray dsray
-#else
-#define cray rayCache[Local_Idx]
-#endif
+#define cray rayBlockNodes[hit.rayID / R_BLOCK_SIZE][hit.rayID % R_BLOCK_SIZE].data
 
 LOCAL_SIZE_LAYOUT;
+
+shared HitData hitCache[WORK_SIZE];
 
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.hitCount
@@ -153,19 +148,17 @@ void main() {
         matID = -1;
         IFALL(overflow) break;
         {
-#ifdef ENABLE_DHA
-            #define hit hits[globalID]
+#ifdef CACHE_HIT
+            #define hit hitCache[Local_Idx]
+            hit = hits[globalID];
 #else
-            HitRework hit = hits[globalID];
-#endif
-#ifdef ENABLE_SRC
-            cray = dsray;
+            HitData hit = hits[globalID];
 #endif
 
-#ifdef ENABLE_VERTEX_INTERPOLATOR
+            HitPayload hitp;
+
             // deferred intersection interpolation
-            if (!overflow) interpolateMeshData(hit);
-#endif
+            if (!overflow) interpolateMeshData(hit, hitp);
 
             vec3 viewVec = dcts(cray.cdirect.xy);
             globalInvocationSMP = globalID;
@@ -180,10 +173,10 @@ void main() {
             textured.emissive = material.emissive;
 
             // AMD not supported per-lane texture data loading, if texture index is not constant
-            vec2 texcoord = hit.texcoord.xy;
-            vec3 normal = hit.normalHeight.xyz;
-            vec3 bitang = hit.bitangent.xyz;
-            vec3 tangent = hit.tangent.xyz;
+            vec2 texcoord = hitp.texcoord.xy;
+            vec3 normal = hitp.normalHeight.xyz;
+            vec3 bitang = hitp.bitangent.xyz;
+            vec3 tangent = hitp.tangent.xyz;
 
             mat3 tbn = transpose(mat3(tangent.xyz, bitang.xyz, normal.xyz));
             vec3 pV = normalize(tbn * (-viewVec * hit.uvt.z));
@@ -220,29 +213,27 @@ void main() {
 
             // apply TBN with normal mapping
             if (validateTexture(material.bumpTexture)) { // block TBN change manually if non valid normal mapped texture
-                hit.normalHeight.xyz = textured.bump.xyz * tbn;
+                hitp.normalHeight.xyz = textured.bump.xyz * tbn;
             }
 
             // if normal goes wrong, restore normal
-            if ((length(hit.normalHeight.xyz) <= 1e-5) || (length(hit.normalHeight.xyz) >= INFINITY) || any(isnan(hit.normalHeight.xyz)) || any(isinf(hit.normalHeight.xyz)) || dot(hit.normalHeight.xyz, normal.xyz) <= 1e-5) {
-                hit.normalHeight.xyz = normal.xyz;
+            if ((length(hitp.normalHeight.xyz) <= 1e-5) || (length(hitp.normalHeight.xyz) >= INFINITY) || any(isnan(hitp.normalHeight.xyz)) || any(isinf(hitp.normalHeight.xyz)) || dot(hitp.normalHeight.xyz, normal.xyz) <= 1e-5) {
+                hitp.normalHeight.xyz = normal.xyz;
             }
 
             // normalize normal again
-            hit.normalHeight.xyz = normalize(hit.normalHeight.xyz);
-            hit.emission.xy = packHalf2(emission.xyzw).xy;
-            hit.albedo.xy = packHalf2(diffuse.xyzw).xy;
-            hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
+            hitp.normalHeight.xyz = normalize(hitp.normalHeight.xyz);
+            hitp.emission.xy = packHalf2(emission.xyzw).xy;
+            hitp.albedo.xy = packHalf2(diffuse.xyzw).xy;
+            hitp.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
             
-            HitActived(hit, true_);
+            // offload by payloads
             if (!overflow && globalID >= 0) {
+                int pid = atomicIncIT()+1;
+                hitPayload[pid-1] = hitp;
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray
-#ifdef ENABLE_SRC
-                dsray = cray;
-#endif
-#ifndef ENABLE_DHA
+                hit.payloadID = pid;
                 hits[globalID] = hit;
-#endif
             }
         }
     }

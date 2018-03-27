@@ -54,7 +54,7 @@ int wasHit = -1;
 // 2 - have intersection status or not
 
 int invokeSurface(inout bool overflow) {
-    HitRework firstHit; firstHit.bitfield = 0; HitActived(firstHit, false_); wasHit = -1; // initial hit
+    HitData firstHit; firstHit.payloadID = 0; wasHit = -1; // initial hit
 
     // initial composition
     compositedHit.uvt = vec4(vec2(0.f), INFINITY, intBitsToFloat(-1));
@@ -66,17 +66,18 @@ int invokeSurface(inout bool overflow) {
 
     // if hit was had
     wasHit = overflow ? -1 : floatBitsToInt(currentRay.origin.w)-1;
-    if (wasHit >= 0) firstHit = hits[wasHit];
+    if (wasHit >= 0) hit = hits[wasHit];
 
-    // if not found
-    IF (HitActived(firstHit)) { // if none, make as transparent
-        compositedHit.uvt = firstHit.uvt;
-        compositedHit.albedo = f16_f32(firstHit.albedo);
-        compositedHit.emission = f16_f32(firstHit.emission);
-        compositedHit.metallicRoughness.xy = f16_f32(hit.metallicRoughness).xy;
-        compositedHit.normalHeight = firstHit.normalHeight;
-        compositedHit.tangent = firstHit.tangent;
-        compositedHit.bitangent = firstHit.bitangent;
+    // load from payload if has
+    IF (hit.payloadID > 0) { // if none, make as transparent
+        HitPayload hitp = hitPayload[hit.payloadID-1];
+        compositedHit.uvt = hit.uvt;
+        compositedHit.albedo = f16_f32(hitp.albedo);
+        compositedHit.emission = f16_f32(hitp.emission);
+        compositedHit.metallicRoughness.xy = f16_f32(hitp.metallicRoughness).xy;
+        compositedHit.normalHeight = hitp.normalHeight;
+        compositedHit.tangent = hitp.tangent;
+        compositedHit.bitangent = hitp.bitangent;
     } else {
         wasHit = -1;
     }

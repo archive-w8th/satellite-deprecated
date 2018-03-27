@@ -21,8 +21,9 @@ namespace NSM
             const size_t CLEANING_COUNTER = 2;
             const size_t UNORDERED_COUNTER = 3;
             const size_t AVAILABLE_COUNTER = 4;
+            const size_t BLOCK_INDEX_COUNTER = 5;
             const size_t HIT_COUNTER = 6;
-            const size_t INTERSECTIONS_COUNTER = 7;
+            const size_t HIT_PAYLOAD_COUNTER = 7;
 
             // current compute device
             DeviceQueueType device;
@@ -46,7 +47,7 @@ namespace NSM
 
             // blocks
             BufferType rayNodeBuffer, rayBlockBuffer, rayIndexSpaceBuffer, blockBinBuffer, texelBuffer,
-                hitBuffer, countersBuffer, unorderedTempBuffer; //
+                hitBuffer, hitPayloadBuffer, countersBuffer, unorderedTempBuffer; //
 
             // active blocks
             BufferType currentBlocks, preparingBlocks;

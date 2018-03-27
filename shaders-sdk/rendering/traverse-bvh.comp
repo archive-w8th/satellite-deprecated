@@ -57,14 +57,8 @@ void main() {
         IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
             includeChain(traverseState.geometrySpace.lastIntersection);
         }
-
-        // save result if present (planned binding lately)
-        IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
-            accquireUnordered(int(traverseState.currentRayTmp.uindex.x)-1);
-            currentRay.origin.w = traverseState.currentRayTmp.origin.w;
-            storeRay();
-        }
         
+        // save for some-next operations (for example, hit chaining)
         unorderedRays[it] = traverseState.currentRayTmp;
     }
 }

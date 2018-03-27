@@ -8,8 +8,9 @@
 
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
-#define DISCARD_SHARED_CACHING // store rays in registers if possible
 #define ENABLE_VERTEX_INTERPOLATOR
+#define DISCARD_SHARED_CACHING // store rays in registers if possible
+//#define ENABLE_DHA
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -17,7 +18,10 @@
 #include "../include/rayslib.glsl"
 #include "../include/random.glsl"
 #include "../include/mathlib.glsl"
+
+#ifdef ENABLE_VERTEX_INTERPOLATOR
 #include "../include/vertex.glsl"
+#endif
 
 struct Material {
      vec4 diffuse;
@@ -117,9 +121,6 @@ vec3 getNormalMapping(in vec2 texcoordi) {
     return normal;
 }
 
-
-
-
 struct Textured {
     vec4 diffuse;
     vec4 specular;
@@ -127,58 +128,17 @@ struct Textured {
     vec4 emissive;
 } textured;
 
-#define cray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE].data
+shared RayRework _rayCache[WORK_SIZE];
+
+#define dsray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE].data
+
+#ifdef DISCARD_SHARED_CACHING
+#define cray dsray
+#else
+#define cray _rayCache[Local_Idx]
+#endif
 
 LOCAL_SIZE_LAYOUT;
-
-vec3 viewVec = vec3(0.f);
-float vSgn = 1.f;
-
-
-
-const float parallaxScale = 0.02f;
-const float minLayers = 10, maxLayers = 20;
-const int refLayers = 10;
-
-
-vec2 parallaxMapping(in vec3 V, in vec2 T, out float parallaxHeight) {
-    const uint tbinding = material.bumpTexture;
-
-    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0, 0, 1), V)));
-    float layerHeight = 1.0f / numLayers;
-    vec2 dtex = parallaxScale * V.xy * vec2(1.f, -1.f) / V.z * layerHeight;
-    vec3 chv = vec3(-dtex, layerHeight);
-    
-    // start pos
-    vec3 chd_a = vec3(T, 0.f), chd_b = chd_a;
-
-    // parallax sample tracing 
-    for(int l=0;l<256;l++){
-        float heightFromTexture = 1.f-fetchTexture(tbinding, chd_b.xy).z;
-        if ( heightFromTexture <= chd_b.z ) break;
-        chd_a = chd_b, chd_b += chv;
-    }
-    
-    // refinement
-    [[unroll]]
-    for(int l=0;l<refLayers;l++){
-        vec3 chd = mix(chd_a, chd_b, 0.5f);
-        float heightFromTexture = 1.f-fetchTexture(tbinding, chd.xy).z;
-        if ( heightFromTexture <= chd.z ) { chd_b = chd; } else { chd_a = chd; }
-    }
-
-    // do occlusion
-    float nextH	= (1.f-fetchTexture(tbinding, chd_b.xy).z) - chd_b.z;
-    float prevH = (1.f-fetchTexture(tbinding, chd_a.xy).z) - chd_a.z;
-
-    float dvh = (nextH - prevH);
-    float weight = nextH / precIssue(dvh);
-    
-    parallaxHeight = chd_b.z+mix(nextH, prevH, weight);
-    return mix(chd_b.xy, chd_a.xy, weight);
-}
-
-
 
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.hitCount
@@ -194,10 +154,21 @@ void main() {
         matID = -1;
         IFALL(overflow) break;
         {
-            //#define hit hits[globalID]
+#ifdef ENABLE_DHA
+            #define hit hits[globalID]
+#else
             HitRework hit = hits[globalID];
-            interpolateMeshData(hit);
-            viewVec = dcts(cray.cdirect.xy);
+#endif
+#ifndef DISCARD_SHARED_CACHING
+            cray = dsray;
+#endif
+
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+            // deferred intersection interpolation
+            if (!overflow) interpolateMeshData(hit);
+#endif
+
+            vec3 viewVec = dcts(cray.cdirect.xy);
             globalInvocationSMP = globalID;
 
             matID = hit.materialID - RAY_BLOCK materialUniform.materialOffset;
@@ -221,7 +192,6 @@ void main() {
 
 #ifndef PLAIN_BINDLESS_TEXTURE_FETCH
             bool wasTextured = false;
-
             [[unroll]]
             for (int wl=0;wl<Wave_Size_RT;wl++) {
                 IFALL(wasTextured) break;
@@ -230,6 +200,7 @@ void main() {
                     wasTextured = true;
                     //SB_BARRIER
                     //texcoord = parallaxMapping(pV, texcoord, hW);
+#endif
                     SB_BARRIER
                     textured.bump.xyz = getNormalMapping(texcoord);
                     SB_BARRIER
@@ -239,21 +210,9 @@ void main() {
                     SB_BARRIER
                     textured.emissive = fetchEmission(texcoord);
                     SB_BARRIER
+#ifndef PLAIN_BINDLESS_TEXTURE_FETCH
                 }
             }
-#else
-            // do parallax mapping
-            //SB_BARRIER
-            //texcoord = parallaxMapping(pV, texcoord, hW);
-            SB_BARRIER
-            textured.bump.xyz = getNormalMapping(texcoord);
-            SB_BARRIER
-            textured.diffuse = fetchDiffuse(texcoord);
-            SB_BARRIER
-            textured.specular = fetchSpecular(texcoord);
-            SB_BARRIER
-            textured.emissive = fetchEmission(texcoord);
-            SB_BARRIER
 #endif
 
             vec4 diffuse = textured.diffuse; diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
@@ -277,9 +236,14 @@ void main() {
             hit.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
             
             HitActived(hit, true_);
-            if (!overflow) {
+            if (!overflow && globalID >= 0) {
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray
+#ifndef DISCARD_SHARED_CACHING
+                dsray = cray;
+#endif
+#ifndef ENABLE_DHA
                 hits[globalID] = hit;
+#endif
             }
         }
     }

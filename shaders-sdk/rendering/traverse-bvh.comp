@@ -1,10 +1,11 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
 #define DISCARD_SHARED_CACHING // store rays in registers if possible
-//#define ENABLE_VERTEX_INTERPOLATOR
+#define ENABLE_VSTORAGE_DATA
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"

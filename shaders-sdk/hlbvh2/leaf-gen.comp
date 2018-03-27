@@ -1,6 +1,8 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#define VTX_TRANSPLIT
+#define ENABLE_VSTORAGE_DATA
 #define BVH_CREATION
 #include "../include/constants.glsl"
 #include "../include/mathlib.glsl"
@@ -121,6 +123,22 @@ void main() {
                 divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5], 1.f))), 
                 divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8], 1.f)))
             );
+
+#ifdef VTX_TRANSPLIT
+            { // transpose VTX
+                mat3x3 vtxL = transpose(mat3(
+                    vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
+                    vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
+                    vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
+                ));
+
+                { // transpose type
+                    lvtx[itri+0] = vtxL[0].x, lvtx[itri+1] = vtxL[0].y, lvtx[itri+2] = vtxL[0].z;
+                    lvtx[itri+3] = vtxL[1].x, lvtx[itri+4] = vtxL[1].y, lvtx[itri+5] = vtxL[1].z;
+                    lvtx[itri+6] = vtxL[2].x, lvtx[itri+7] = vtxL[2].y, lvtx[itri+8] = vtxL[2].z;
+                }
+            }
+#endif
 
             const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
             if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {

@@ -3,34 +3,44 @@
 
 #include "../include/mathlib.glsl"
 
+// enable this data for interpolation meshes
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+#ifndef ENABLE_VSTORAGE_DATA
+#define ENABLE_VSTORAGE_DATA
+#endif
+#endif
 
 // for geometry accumulators
 #ifdef VERTEX_FILLING
-layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[1]; };
-layout ( std430, binding = 1, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
-layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
-layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
-layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
+    layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[1]; };
+    layout ( std430, binding = 1, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
+    layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
+    layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
+    layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
 #else
+    #ifdef ENABLE_VERTEX_INTERPOLATOR
+        layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
+        layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
+    #endif
 
-// for traverse, or anything else
-#ifndef BVH_CREATION
-
-// 
-#ifdef USE_F32_BVH
-layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { vec4 bvhBoxes[][4]; };
+    #ifdef ENABLE_VSTORAGE_DATA
+        #ifndef BVH_CREATION
+            #ifdef USE_F32_BVH
+            layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { vec4 bvhBoxes[][4]; };
+            #else
+            layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { uvec2 bvhBoxes[][4]; }; 
+            #endif
+            layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
+        #endif
+        
+        layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
+        layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
+#ifdef VTX_TRANSPLIT // for leaf gens
+        layout ( std430, binding = 7, set = 1 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
 #else
-layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { uvec2 bvhBoxes[][4]; }; 
+        layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
 #endif
-
-layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
-#endif
-
-layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
-layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
-layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
-layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
-layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
+    #endif
 #endif
 
 const int ATTRIB_EXTENT = 4;
@@ -82,7 +92,9 @@ ivec2 getUniformCoord(in uint indice) {
 
 
 #ifndef VERTEX_FILLING
-float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout vec2 UV, inout bool_ _valid, in float testdist) {
+#ifndef BVH_CREATION
+#ifdef ENABLE_VSTORAGE_DATA
+float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, inout bool_ _valid, const float testdist) {
     float T = INFINITY;
     //IFANY (_valid) {
         bool_ valid = tri < 0 ? false_ : _valid; // pre-define
@@ -91,11 +103,11 @@ float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout 
         IFANY (valid) {
             // gather patterns
             const int itri = tri*9;
-            const mat3 ABC = transpose(mat3(
-                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2])-orig,
-                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5])-orig,
-                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])-orig
-            ))*M;
+            const mat3 ABC = (mat3(
+                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
+                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
+                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
+            )-mat3(orig.xxx, orig.yyy, orig.zzz))*M;
 
             // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
             // http://jcgt.org/published/0002/01/05/paper.pdf
@@ -112,6 +124,8 @@ float intersectTriangle(in vec3 orig, in mat3 M, in int axis, in int tri, inout 
     return T;
 }
 #endif
+#endif
+#endif
 
 
 
@@ -125,17 +139,8 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
     return bvhT_ptr(linear % _BVH_WIDTH, linear / _BVH_WIDTH); // just make linear (gather by tops of...)
 }
 
-#ifndef BVH_CREATION
-#ifndef VERTEX_FILLING
-vec2 bvhGatherifyStorage(in ivec2 ipt){
-    const vec2 sz = 1.f / textureSize(bvhStorage, 0), hs = sz * 0.9999f;
-    return fma(vec2(ipt), sz, hs);
-}
-#endif
-#endif
 
-
-
+#ifdef ENABLE_VSTORAGE_DATA
 #ifdef ENABLE_VERTEX_INTERPOLATOR
 // barycentric map (for corrections tangents in POM)
 const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
@@ -145,32 +150,31 @@ HitRework interpolateMeshData(inout HitRework res) {
     bool_ validInterpolant = greaterEqualF(res.uvt.z, 0.0f) & lessF(res.uvt.z, INFINITY) & bool_(tri != LONGEST);
     IFANY (validInterpolant) {
         // pre-calculate interpolators
-        vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
-        vec2 sz = 1.f / textureSize(attrib_texture, 0);
+        const vec3 vs = vec3(1.0f - res.uvt.x - res.uvt.y, res.uvt.xy);
+        const vec2 sz = 1.f / textureSize(attrib_texture, 0);
 
         // gather normal 
         vec2 trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
-        vec3 normal = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
+        const vec3 normal = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
 
         // gather texcoord 
         trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+TEXCOORD_TID))), sz, sz * 0.9999f);
-        mat2x3 texcoords = mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
+        const mat2x3 texcoords = mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
 
         // calculate texcoord transposed 
-        mat3x2 txds = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
+        const mat3x2 txds = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
 
         // get delta vertex 
         const int itri = tri*9;
-
-        mat3x3 triverts = mat3x3(
+        const mat3x3 triverts = transpose(mat3x3(
             lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
             lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
             lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
-        );
+        ));
 
         // calc deltas
-        mat2x2 dlts = mat2x2(txds[1]-txds[0], txds[2]-txds[0]);
-        mat2x3 dlps = mat2x3(triverts[1]-triverts[0], triverts[2]-triverts[0]);
+        const mat2x2 dlts = mat2x2(txds[1]-txds[0], txds[2]-txds[0]);
+        const mat2x3 dlps = mat2x3(triverts[1]-triverts[0], triverts[2]-triverts[0]);
         float idet = 1.f/precIssue(determinant(dlts));
 
         // pre-tbn
@@ -209,6 +213,6 @@ HitRework interpolateMeshData(inout HitRework res) {
     return res;
 }
 #endif
-
+#endif
 
 #endif

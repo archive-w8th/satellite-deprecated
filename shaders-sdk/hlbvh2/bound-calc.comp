@@ -1,6 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#define ENABLE_VSTORAGE_DATA
 #define BVH_CREATION
 #include "../include/constants.glsl"
 #include "../include/ballotlib.glsl"

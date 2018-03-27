@@ -29,6 +29,17 @@ void includeChain(inout vec4 intersection) {
     hit.payloadID = 0;
     hit.next = 0;
     hit.materialID = materials[floatBitsToInt(intersection.w)];
+
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+    { // use vertex interpolator, and pre-define payload
+        int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
+        if (hit.payloadID <= 0) {
+            interpolateMeshData(hit, hitPayload[pid-1]);
+            hit.payloadID = pid;
+        }
+    }
+#endif
+
     hits[hid-1] = hit;
     traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
 }

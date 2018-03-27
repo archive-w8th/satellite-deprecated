@@ -158,7 +158,15 @@ void main() {
             HitPayload hitp;
 
             // deferred intersection interpolation
-            if (!overflow) interpolateMeshData(hit, hitp);
+            if (!overflow) {
+                if (hit.payloadID <= 0) {
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+                    interpolateMeshData(hit, hitp);
+#endif
+                } else {
+                    hitp = hitPayload[hit.payloadID-1];
+                }
+            }
 
             vec3 viewVec = dcts(cray.cdirect.xy);
             globalInvocationSMP = globalID;
@@ -229,11 +237,14 @@ void main() {
             
             // offload by payloads
             if (!overflow && globalID >= 0) {
-                int pid = atomicIncIT()+1;
+                int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray
-                hit.payloadID = pid;
-                hits[globalID] = hit;
+
+                if (hit.payloadID <= 0) {
+                    hit.payloadID = pid;
+                    hits[globalID] = hit;
+                }
             }
         }
     }

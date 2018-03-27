@@ -97,6 +97,7 @@ ivec2 getUniformCoord(in uint indice) {
 #ifndef VERTEX_FILLING
 #ifndef BVH_CREATION
 #ifdef ENABLE_VSTORAGE_DATA
+/*
 float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, inout bool_ _valid, const float testdist) {
     float T = INFINITY;
     //IFANY (_valid) {
@@ -125,7 +126,33 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
         }
     //}
     return T;
+}*/
+
+float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout vec2 uv, inout bool_ _valid, const float testdist) {
+    const int itri = tri*9;
+    const mat3 vT = mat3(
+        vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
+        vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
+        vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
+    );
+    const vec3 e1 = vT[1]-vT[0], e2 = vT[2]-vT[0];
+    const vec3 h = cross(dir, e2);
+    const float a = dot(e1,h);
+    if (abs(a) < 1e-5f) { _valid = false_; }
+
+    const float f = 1.f/a;
+    const vec3 s = orig - vT[0], q = cross(s, e1);
+    uv = f * vec2(dot(s,h),dot(dir,q));
+
+    if (uv.x < 0.f || uv.y < 0.f || (uv.x+uv.y) > 1.f) { _valid = false_; }
+    
+    float T = f * dot(e2,q);
+    if (T >= INFINITY || T < 0.f) { _valid = false_; } 
+    IF (not(_valid)) T = INFINITY;
+    return T;
 }
+
+
 #endif
 #endif
 #endif
@@ -170,11 +197,12 @@ HitRework interpolateMeshData(inout HitRework res) {
 
         // get delta vertex 
         const int itri = tri*9;
-        const mat3x3 triverts = transpose(mat3x3(
+        //const mat3x3 triverts = transpose(mat3x3(
+        const mat3x3 triverts = mat3x3(
             lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
             lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
             lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
-        ));
+        );
 
         // calc deltas
         const mat2x2 dlts = mat2x2(txds[1]-txds[0], txds[2]-txds[0]);

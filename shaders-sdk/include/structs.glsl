@@ -124,6 +124,8 @@ const ivec2 BOUNCE = ivec2(B16FT+8, 3);
 const ivec2 DBOUNCE = ivec2(B16FT+11, 3);
 const ivec2 RAY_DL = ivec2(B16FT+14, 1);
 
+//const ivec2 ACTIVED = ivec2(B16FT+0, 1);
+  const ivec2 INTERPOLATED = ivec2(B16FT+1, 1);
 
 int parameteri(const ivec2 parameter, inout uint bitfield) {
     return int(BFE_HW(bitfield, parameter.x, parameter.y));
@@ -171,6 +173,17 @@ bool_ HitActived(inout HitRework hit) {
 void HitActived(inout HitRework hit, in bool_ actived) {
     parameterb(ACTIVED, HIT_BITFIELD_, actived);
 }
+
+bool_ HitInterpolated(inout HitRework hit) {
+    return parameterb(INTERPOLATED, HIT_BITFIELD_);
+}
+
+void HitInterpolated(inout HitRework hit, in bool_ interpolated) {
+    parameterb(INTERPOLATED, HIT_BITFIELD_, interpolated);
+}
+
+
+
 
 
 

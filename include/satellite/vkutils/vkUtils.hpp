@@ -25,7 +25,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffers(const DeviceQueueType &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = false) 
+    auto flushCommandBuffers(const DeviceQueueType &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true) 
     {
         std::vector<vk::SubmitInfo> submitInfos = {
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
@@ -79,7 +79,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = false)
+    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
     {
         commandBuffer.end();
 

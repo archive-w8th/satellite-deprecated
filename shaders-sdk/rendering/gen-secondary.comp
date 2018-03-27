@@ -13,7 +13,6 @@
 
 #define USE_EXTENDED_RAYLIB
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
-//#define DISCARD_SHARED_CACHING
 #define ROLE_ABILATION
 
 #include "../include/constants.glsl"

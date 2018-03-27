@@ -1,11 +1,6 @@
 #ifndef _RAYS_H
 #define _RAYS_H
 
-// don't use shared memory for rays (need 32-byte aligment per rays)
-//#ifndef EXTENDED_SHARED_CACHE_SUPPORT
-//#define DISCARD_SHARED_CACHING
-//#endif
-
 // include
 #include "../include/mathlib.glsl"
 #include "../include/morton.glsl"
@@ -121,7 +116,12 @@ int currentBlockSize = 0;
 int currentBlock = -1;
 
 // static cached ray
+#ifndef DISCARD_SHARED_CACHING
+shared RayRework rayCache[WORK_SIZE];
+#define currentRay rayCache[Local_Idx]
+#else
 RayRework currentRay;
+#endif
 
 // refering by 
 #define currentBlockBin (currentBlock >= 0 ? (int(rayBlocks[currentBlock].blockBinId)-1) : -1)

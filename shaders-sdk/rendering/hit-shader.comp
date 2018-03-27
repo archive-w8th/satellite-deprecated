@@ -6,10 +6,11 @@
 #endif
 #define WORK_SIZE 512
 
+//#define DISCARD_SHARED_CACHING
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
 #define ENABLE_VERTEX_INTERPOLATOR
-#define DISCARD_SHARED_CACHING // store rays in registers if possible
+#define ENABLE_SRC // store rays in registers if possible
 //#define ENABLE_DHA
 
 #include "../include/constants.glsl"
@@ -128,14 +129,12 @@ struct Textured {
     vec4 emissive;
 } textured;
 
-shared RayRework _rayCache[WORK_SIZE];
-
 #define dsray rayBlockNodes[hit.ray / R_BLOCK_SIZE][hit.ray % R_BLOCK_SIZE].data
 
-#ifdef DISCARD_SHARED_CACHING
+#ifndef ENABLE_SRC
 #define cray dsray
 #else
-#define cray _rayCache[Local_Idx]
+#define cray rayCache[Local_Idx]
 #endif
 
 LOCAL_SIZE_LAYOUT;
@@ -159,7 +158,7 @@ void main() {
 #else
             HitRework hit = hits[globalID];
 #endif
-#ifndef DISCARD_SHARED_CACHING
+#ifdef ENABLE_SRC
             cray = dsray;
 #endif
 
@@ -238,7 +237,7 @@ void main() {
             HitActived(hit, true_);
             if (!overflow && globalID >= 0) {
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray
-#ifndef DISCARD_SHARED_CACHING
+#ifdef ENABLE_SRC
                 dsray = cray;
 #endif
 #ifndef ENABLE_DHA

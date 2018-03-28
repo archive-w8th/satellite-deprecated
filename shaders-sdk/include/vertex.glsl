@@ -175,8 +175,9 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
 // barycentric map (for corrections tangents in POM)
 const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
-HitPayload interpolateMeshData(in HitData ht, inout HitPayload res) {
-    int tri = floatBitsToInt(ht.uvt.w);
+//HitPayload interpolateMeshData(in HitData ht, inout HitPayload res) {
+HitData interpolateMeshData(inout HitData ht) {
+    const int tri = floatBitsToInt(ht.uvt.w), itri = tri*9; vec2 trig = vec2(0.f.xx);
     bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST) & bool_(materials[tri] == ht.materialID);
     
     IFANY (validInterpolant) {
@@ -185,62 +186,55 @@ HitPayload interpolateMeshData(in HitData ht, inout HitPayload res) {
         const vec2 sz = 1.f / textureSize(attrib_texture, 0);
 
         // gather normal 
-        vec2 trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
         const vec3 normal = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
 
         // gather texcoord 
         trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+TEXCOORD_TID))), sz, sz * 0.9999f);
         const mat2x3 texcoords = mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
+        const vec2 texcoord = vs * texcoords;
 
-        // calculate texcoord transposed 
-        const mat3x2 txds = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
-
-        // get delta vertex 
-        const int itri = tri*9;
-        //const mat3x3 triverts = transpose(mat3x3(
-        const mat3x3 triverts = mat3x3(
+        // get delta vertex
+        mat3x2 dlts = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
+        mat3x3 dlps = mat3x3(
             lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
             lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
             lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
         );
 
-        // calc deltas
-        const mat2x2 dlts = mat2x2(txds[1]-txds[0], txds[2]-txds[0]);
-        const mat2x3 dlps = mat2x3(triverts[1]-triverts[0], triverts[2]-triverts[0]);
-        float idet = 1.f/precIssue(determinant(dlts));
+        // deltas of positions and texcoords
+        dlps[1] -= dlps[0], dlps[2] -= dlps[0], dlts[1] -= dlts[0], dlts[2] -= dlts[0];
 
-        // pre-tbn
-        vec3 t = fma(dlts[1].yyy, dlps[0], -dlts[0].y * dlps[1]);
-        vec3 b = fma(dlts[0].xxx, dlps[1], -dlts[1].x * dlps[0]);
-        vec3 n = normal;
+        // calc raw TBN 
+        float idet = 1.f/precIssue(determinant(mat2(dlts[1],dlts[2]))); // inv determinant
+        vec3 t = fma(dlts[2].yyy, dlps[1], -dlts[1].y * dlps[2]), b = fma(dlts[1].xxx, dlps[2], -dlts[2].x * dlps[1]), n = normal; // pre-tbn
 
         // if texcoord not found or incorrect, calculate by axis
         if (
-            all(lessThanEqual(abs(dlts[0]), 1e-5f.xx)) || 
             all(lessThanEqual(abs(dlts[1]), 1e-5f.xx)) || 
-            all(lessThanEqual(abs(dlps[0]), 1e-5f.xxx)) || 
-            all(lessThanEqual(abs(dlps[1]), 1e-5f.xxx))
+            all(lessThanEqual(abs(dlts[2]), 1e-5f.xx)) || 
+            all(lessThanEqual(abs(dlps[1]), 1e-5f.xxx)) || 
+            all(lessThanEqual(abs(dlps[2]), 1e-5f.xxx))
         ) {
-            vec3 c0 = cross(n, vec3(0.f, 0.f, 1.f));
-            vec3 c1 = cross(n, vec3(0.f, 1.f, 0.f));
+            vec3 c0 = cross(n, vec3(0.f, 0.f, 1.f)), c1 = cross(n, vec3(0.f, 1.f, 0.f));
             t = length(c0) >= length(c1) ? c0 : c1, b = cross(t, n);
             idet = 1.f;
         }
 
-        {
-            t -= n * dot( t, n ); // orthonormalization ot the tangent vectors
-            b -= n * dot( b, n ); // orthonormalization of the binormal vectors to the normal vector 
-            b -= t * dot( b, t ); // orthonormalization of the binormal vectors to the tangent vector
+        { // orthonormalization process
+            t -= n * dot( t, n );
+            b -= n * dot( b, n );
+            b -= t * dot( b, t );
         }
 
         IF (validInterpolant) {
-            res.normalHeight = vec4( normalize(n), 0.0f);
-            res.tangent =      vec4( normalize(t*idet), 0.0f);
-            res.bitangent =    vec4( normalize(b*idet), 0.0f);
-            res.texcoord.xy = vs * texcoords; // mult matrix
+            ht.normal      = vec4( normalize(n), 0.0f);
+            ht.tangent     = vec4( normalize(t*idet), 0.0f);
+            ht.bitangent   = vec4( normalize(b*idet), 0.0f);
+            ht.texcoord.xy = texcoord;
         }
     }
-    return res;
+    return ht;
 }
 #endif
 #endif

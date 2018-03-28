@@ -386,8 +386,8 @@ namespace NSM
 
             // block headers 
             rayNodeBuffer = createBuffer(device, BLOCK_NODES_SIZE * BLOCK_SIZE * blockLimit, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            hitBuffer = createBuffer(device, strided<glm::u64vec4>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            hitPayloadBuffer = createBuffer(device, strided<HitPayload>(blockLimit * BLOCK_SIZE / 4), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            hitBuffer = createBuffer(device, strided<HitData>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            hitPayloadBuffer = createBuffer(device, strided<HitPayload>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // blocked isolated index spaces
             rayIndexSpaceBuffer = createBuffer(device, strided<uint32_t>(blockLimit * BLOCK_SIZE * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -645,18 +645,13 @@ namespace NSM
             // push bvh traverse commands
             dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
             for (auto& him : hstorages) {
-                rayTraverseDescriptors[1] = him->getClientDescriptorSet();
+                surfaceDescriptors[1] = rayTraverseDescriptors[1] = him->getClientDescriptorSet();
                 dispatchCompute(bvhTraverse, INTENSIVITY, rayTraverseDescriptors);
             }
 
             // push surface shaders commands
             flushCommandBuffer(device, copyCommand, true);
-
-            // planned hit reducing counts
-            for (auto& him : hstorages) {
-                surfaceDescriptors[1] = him->getClientDescriptorSet();
-                dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
-            }
+            dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
         }
 
         void Pipeline::enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; clearSampling(); }

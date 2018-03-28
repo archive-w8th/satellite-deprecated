@@ -95,21 +95,21 @@ uvec2 WriteColor(inout uvec2 rwby, in vec4 color){
 
 struct HitData {
     vec4 uvt; // UV, distance, triangle (base data)
-
     int rayID; // ray index
     int payloadID; // hit shaded index
     int materialID; // may not necessary 
     int next; // next chainged hit
-};
 
-struct HitPayload {
-    // surface shaders and interpolators
-     vec4 normalHeight; // normal with height mapping, will already interpolated with geometry
+    // attribute block (planned to move to another buffer)
+     vec4 normal; // normal 
      vec4 tangent; // 
      vec4 bitangent; // 
      vec4 texcoord; // critical texcoords 
+};
 
-    // textured data
+struct HitPayload {
+    // hit shaded data
+    vec4 normalHeight;
     uvec2 metallicRoughness, unk16;
     uvec2 emission, albedo;
 };

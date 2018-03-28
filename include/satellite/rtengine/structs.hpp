@@ -25,15 +25,24 @@ namespace NSM
             glm::vec4 a, b;
         };
 
-        struct HitPayload
+
+
+        struct HitData
         {
-            // interpolated with geometry
-            glm::vec4 normalHeight;
-            glm::vec4 tangent; 
+            glm::vec4 uvt; // UV, distance, triangle (base data)
+            glm::ivec4 meta;
+
+            // attributed block (planned to move to another buffer)
+            glm::vec4 normal;
+            glm::vec4 tangent;
             glm::vec4 bitangent;
             glm::vec4 texcoord;
+        };
 
-            // textured data
+        struct HitPayload
+        {
+            // hit shaded data
+            glm::vec4 normalHeight;
             glm::uvec2 metallicRoughness, unk16;
             glm::uvec2 emission, albedo;
         };

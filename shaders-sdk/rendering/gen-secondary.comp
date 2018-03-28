@@ -76,8 +76,8 @@ int invokeSurface(inout bool overflow) {
         compositedHit.emission = f16_f32(hitp.emission);
         compositedHit.metallicRoughness.xy = f16_f32(hitp.metallicRoughness).xy;
         compositedHit.normalHeight = hitp.normalHeight;
-        compositedHit.tangent = hitp.tangent;
-        compositedHit.bitangent = hitp.bitangent;
+        compositedHit.tangent = hit.tangent;
+        compositedHit.bitangent = hit.bitangent;
     } else {
         wasHit = -1;
     }
@@ -301,7 +301,7 @@ void main() {
                         RayActived(envRay, false_);
                         invokeBlockForNodes(envRay, envBlock, overwriteBlock);
                     }
-
+                    
 #ifdef USE_SIMPLIFIED_MODE // fake diffuse (beginner shading mode)
                     { // simple shading + possible emissions
                         vec3 lightVec = sLight(0) - enrollRay.origin.xyz;

@@ -9,7 +9,7 @@
 //#define DISCARD_SHARED_CACHING
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
-#define ENABLE_VERTEX_INTERPOLATOR
+//#define ENABLE_VERTEX_INTERPOLATOR
 #define CACHE_HIT
 
 #include "../include/constants.glsl"
@@ -160,7 +160,7 @@ void main() {
             // deferred intersection interpolation
 #ifdef ENABLE_VERTEX_INTERPOLATOR
             if (!overflow && hit.payloadID <= 0) {
-                interpolateMeshData(hit, hitp);
+                interpolateMeshData(hit);
             }
 #endif
 
@@ -177,10 +177,10 @@ void main() {
             textured.emissive = material.emissive;
 
             // AMD not supported per-lane texture data loading, if texture index is not constant
-            vec2 texcoord = hitp.texcoord.xy;
-            vec3 normal = hitp.normalHeight.xyz;
-            vec3 bitang = hitp.bitangent.xyz;
-            vec3 tangent = hitp.tangent.xyz;
+            vec2 texcoord = hit.texcoord.xy;
+            vec3 normal = hit.normal.xyz;
+            vec3 bitang = hit.bitangent.xyz;
+            vec3 tangent = hit.tangent.xyz;
 
             mat3 tbn = transpose(mat3(tangent.xyz, bitang.xyz, normal.xyz));
             vec3 pV = normalize(tbn * (-viewVec * hit.uvt.z));
@@ -214,6 +214,9 @@ void main() {
             vec4 diffuse = textured.diffuse; diffuse.xyz = toLinear(max(diffuse.xyz, vec3(0.f)));
             vec4 emission = textured.emissive; emission.xyz = toLinear(max(emission.xyz, vec3(0.f)));
             vec4 spc = clamp01(textured.specular);
+
+            // default normal
+            hitp.normalHeight.xyz = normal.xyz;
 
             // apply TBN with normal mapping
             if (validateTexture(material.bumpTexture)) { // block TBN change manually if non valid normal mapped texture
@@ -249,7 +252,12 @@ void main() {
 #endif
 
             // offload by payloads
-            if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)] && validHit) {
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+            if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)] && validHit) 
+#else
+            if (!overflow && globalID >= 0 && validHit) 
+#endif
+            {
                 int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray

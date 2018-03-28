@@ -181,7 +181,7 @@ initAtomicSubgroupIncFunctionDyn(arcounter.rT, atomicIncRT,  int)
 #endif
 initAtomicSubgroupIncFunction(arcounter.tT, atomicIncTT, 1, int)
 initAtomicSubgroupIncFunction(arcounter.hT, atomicIncHT, 1, int)
-initAtomicSubgroupIncFunction(arcounter.iT, atomicIncIT,  1, int)
+initAtomicSubgroupIncFunction(arcounter.iT, atomicIncIT, 1, int)
 
 // should functions have layouts
 initSubgroupIncFunctionTarget(rayBlocks[WHERE].indiceCount, atomicIncCM, 1, int)

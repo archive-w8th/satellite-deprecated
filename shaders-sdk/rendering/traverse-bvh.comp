@@ -7,7 +7,7 @@
 #define DISCARD_SHARED_CACHING // store rays in registers if possible
 #define ENABLE_TRAVERSE_DATA
 #define ENABLE_VSTORAGE_DATA
-
+#define ENABLE_VERTEX_INTERPOLATOR
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -20,20 +20,6 @@
 //#define USE_STACKLESS_BVH
 #include "./submodules/traverse-bvh2.glsl"
 
-
-// merge cached intersections to hit buffer
-void includeChain(inout vec4 intersection) {
-    uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
-    uint hid = eht > 0u ? eht : atomicIncHT()+1;
-    HitData hit = hits[hid-1];
-    hit.uvt = intersection;
-    hit.rayID = int(traverseState.currentRayTmp.uindex.x)-1;
-    hit.payloadID = 0;
-    hit.next = 0;
-    hit.materialID = materials[floatBitsToInt(intersection.w)];
-    hits[hid-1] = hit;
-    traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
-}
 
 
 LOCAL_SIZE_LAYOUT;
@@ -54,12 +40,34 @@ void main() {
         // do BVH traversing 
         doBvhTraverse(not(overflow), unorderedRays[it]);
 
-        // if has any intersection, include to result list
-        SB_BARRIER
-        IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL)) {
-            includeChain(traverseState.geometrySpace.lastIntersection);
+        { // verify intersection
+            bool_ vintersect = lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL);
+            IFANY (vintersect) {
+                uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
+
+                vintersect &= bool_(eht <= 0).x | lessF(traverseState.geometrySpace.lastIntersection.z, hits[eht-1].uvt.z);
+                IFANY (vintersect) {
+                    HitData hit = hits[eht-1];
+                    hit.uvt = traverseState.geometrySpace.lastIntersection;
+                    hit.rayID = int(traverseState.currentRayTmp.uindex.x)-1;
+                    hit.payloadID = 0;
+                    hit.next = 0;
+                    hit.materialID = materials[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)];
+
+// slowing down performance, but it required for multiple-BVH traversing and independed hit shading
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+                    interpolateMeshData(hit);
+#endif
+
+                    IF (vintersect) {
+                        uint hid = eht > 0u ? eht : atomicIncHT()+1;
+                        hits[hid-1] = hit;
+                        traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
+                    }
+                }
+            }
         }
-        
+
         // save for some-next operations (for example, hit chaining)
         unorderedRays[it] = traverseState.currentRayTmp;
     }

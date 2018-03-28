@@ -158,13 +158,11 @@ void main() {
             HitPayload hitp = hitPayload[hit.payloadID-1];
 
             // deferred intersection interpolation
-            if (!overflow) {
-                if (hit.payloadID <= 0) {
 #ifdef ENABLE_VERTEX_INTERPOLATOR
-                    interpolateMeshData(hit, hitp);
-#endif
-                }
+            if (!overflow && hit.payloadID <= 0) {
+                interpolateMeshData(hit, hitp);
             }
+#endif
 
             vec3 viewVec = dcts(cray.cdirect.xy);
             globalInvocationSMP = globalID;

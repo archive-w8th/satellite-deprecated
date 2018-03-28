@@ -124,7 +124,7 @@ namespace NSM
             void setTextureSet(std::shared_ptr<TextureSet> &textureSet);
             void setMaterialSet(std::shared_ptr<MaterialSet> &materialSet);
             void setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy);
-            void setHierarchyStorages(std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies);
+            void setHierarchyStorages(const std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies);
 
             uint32_t getCanvasWidth();
             uint32_t getCanvasHeight();

@@ -623,7 +623,7 @@ namespace NSM
         }
 
 
-        void Pipeline::setHierarchyStorages(std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies) {
+        void Pipeline::setHierarchyStorages(const std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies) {
             hstorages.resize(0);
             for (auto& em : hierarchies) { hstorages.push_back(em); }
         }

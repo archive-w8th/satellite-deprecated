@@ -18,6 +18,8 @@
     layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
     layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
 #else
+    layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
+
     #ifdef ENABLE_VERTEX_INTERPOLATOR
         layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
         layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
@@ -34,15 +36,13 @@
             layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
         #endif
         #endif
-
-        layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
+        
         layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
         #ifdef VTX_TRANSPLIT // for leaf gens
             layout ( std430, binding = 7, set = 1 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
         #else
             layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
         #endif
-
     #endif
 #endif
 
@@ -177,7 +177,7 @@ const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
 HitPayload interpolateMeshData(in HitData ht, inout HitPayload res) {
     int tri = floatBitsToInt(ht.uvt.w);
-    bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST);
+    bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST) & bool_(materials[tri] == ht.materialID);
     
     IFANY (validInterpolant) {
         // pre-calculate interpolators

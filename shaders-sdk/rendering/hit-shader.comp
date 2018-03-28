@@ -155,7 +155,7 @@ void main() {
             HitData hit = hits[globalID];
 #endif
 
-            HitPayload hitp;
+            HitPayload hitp = hitPayload[hit.payloadID-1];
 
             // deferred intersection interpolation
             if (!overflow) {
@@ -163,8 +163,6 @@ void main() {
 #ifdef ENABLE_VERTEX_INTERPOLATOR
                     interpolateMeshData(hit, hitp);
 #endif
-                } else {
-                    hitp = hitPayload[hit.payloadID-1];
                 }
             }
 
@@ -236,7 +234,7 @@ void main() {
             hitp.metallicRoughness.xy = packHalf2(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
             
             // offload by payloads
-            if (!overflow && globalID >= 0) {
+            if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)]) {
                 int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray

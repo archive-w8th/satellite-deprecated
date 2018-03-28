@@ -7,7 +7,7 @@
 #define DISCARD_SHARED_CACHING // store rays in registers if possible
 #define ENABLE_TRAVERSE_DATA
 #define ENABLE_VSTORAGE_DATA
-//#define ENABLE_VERTEX_INTERPOLATOR
+
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -20,6 +20,7 @@
 //#define USE_STACKLESS_BVH
 #include "./submodules/traverse-bvh2.glsl"
 
+
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
     uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
@@ -30,21 +31,9 @@ void includeChain(inout vec4 intersection) {
     hit.payloadID = 0;
     hit.next = 0;
     hit.materialID = materials[floatBitsToInt(intersection.w)];
-
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-    { // use vertex interpolator, and pre-define payload
-        int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
-        if (hit.payloadID <= 0) {
-            interpolateMeshData(hit, hitPayload[pid-1]);
-            hit.payloadID = pid;
-        }
-    }
-#endif
-
     hits[hid-1] = hit;
     traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
 }
-
 
 
 LOCAL_SIZE_LAYOUT;

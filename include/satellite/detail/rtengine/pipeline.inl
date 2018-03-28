@@ -651,6 +651,8 @@ namespace NSM
 
             // push surface shaders commands
             flushCommandBuffer(device, copyCommand, true);
+
+            // planned hit reducing counts
             for (auto& him : hstorages) {
                 surfaceDescriptors[1] = him->getClientDescriptorSet();
                 dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);

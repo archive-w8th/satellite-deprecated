@@ -236,6 +236,7 @@ void main() {
 
             // additional validation of hit (hit point interpolated offset test)
             bool validHit = true;
+#ifdef ENABLE_VERTEX_INTERPOLATOR
             {
                 const int itri = floatBitsToInt(hit.uvt.w)*9;
                 const vec3 vs = vec3(1.0f - hit.uvt.x - hit.uvt.y, hit.uvt.xy);
@@ -247,7 +248,7 @@ void main() {
                 vec3 vorig = triverts * vs, horig = fma(viewVec.xyz, hit.uvt.zzz, cray.origin.xyz);
                 if (length(vorig - horig) >= 1e-2) validHit = false;
             }
-            
+#endif
 
             // offload by payloads
             if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)] && validHit) {

@@ -623,28 +623,38 @@ namespace NSM
         }
 
 
+        void Pipeline::setHierarchyStorages(std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies) {
+            hstorages.resize(0);
+            for (auto& em : hierarchies) { hstorages.push_back(em); }
+        }
+
         void Pipeline::setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy) {
-            rayTraverseDescriptors[1] = hierarchy->getClientDescriptorSet();
-            surfaceDescriptors[1] = rayTraverseDescriptors[1];
+            hstorages.resize(0);
+            hstorages.push_back(hierarchy);
         }
 
         void Pipeline::traverse() {
-            if (!rayTraverseDescriptors[1]) return; // no valid geometry or hierarchy
+            if (hstorages.size() <= 0) return; // no valid geometry or hierarchy
 
             // copy to surfaces
             auto copyCommand = getCommandBuffer(device, true);
             memoryCopyCmd(copyCommand, this->boundMaterialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-            if (!hitCountGot)
-            {
-                memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
-                memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
+            memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
+            memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
+
+            // push bvh traverse commands
+            dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
+            for (auto& him : hstorages) {
+                rayTraverseDescriptors[1] = him->getClientDescriptorSet();
+                dispatchCompute(bvhTraverse, INTENSIVITY, rayTraverseDescriptors);
             }
 
-            // push commands
-            dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
-            dispatchCompute(bvhTraverse, INTENSIVITY, rayTraverseDescriptors);
+            // push surface shaders commands
             flushCommandBuffer(device, copyCommand, true);
-            dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
+            for (auto& him : hstorages) {
+                surfaceDescriptors[1] = him->getClientDescriptorSet();
+                dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
+            }
         }
 
         void Pipeline::enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; clearSampling(); }

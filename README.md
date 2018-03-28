@@ -33,7 +33,7 @@
 
 ### Contacts 
 
-* [Discord channel](https://discordapp.com/invite/HFfADHH)
+* [Discord](https://discordapp.com/invite/HFfADHH)
 * [Our Reddit](https://www.reddit.com/user/elviras9t/)
 
 ### Patreons

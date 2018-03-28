@@ -218,15 +218,17 @@ void main() {
             // default normal
             hitp.normalHeight.xyz = normal.xyz;
 
-            // apply TBN with normal mapping
+            
+#ifdef GENERATE_TBN // if TBN not generated, we have no support for normal or bump mapping
             if (validateTexture(material.bumpTexture)) { // block TBN change manually if non valid normal mapped texture
-                hitp.normalHeight.xyz = textured.bump.xyz * tbn;
+                hitp.normalHeight.xyz = textured.bump.xyz * tbn; // apply TBN with normal mapping
             }
 
             // if normal goes wrong, restore normal
             if ((length(hitp.normalHeight.xyz) <= 1e-5) || (length(hitp.normalHeight.xyz) >= INFINITY) || any(isnan(hitp.normalHeight.xyz)) || any(isinf(hitp.normalHeight.xyz)) || dot(hitp.normalHeight.xyz, normal.xyz) <= 1e-5) {
                 hitp.normalHeight.xyz = normal.xyz;
             }
+#endif
 
             // normalize normal again
             hitp.normalHeight.xyz = normalize(hitp.normalHeight.xyz);

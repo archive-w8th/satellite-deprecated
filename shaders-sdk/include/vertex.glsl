@@ -185,17 +185,17 @@ HitData interpolateMeshData(inout HitData ht) {
         const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy);
         const vec2 sz = 1.f / textureSize(attrib_texture, 0);
 
-        // gather normal 
-        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
-        const vec3 normal = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
-
         // gather texcoord 
         trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+TEXCOORD_TID))), sz, sz * 0.9999f);
-        const mat2x3 texcoords = mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
-        const vec2 texcoord = vs * texcoords;
+        const vec2 texcoord = vs * mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
 
+        // gather normal 
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
+        vec3 n = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
+
+#ifdef GENERATE_TBN // we have no system for lightweight TBN generation, that not occupy much GPU registers
         // get delta vertex
-        mat3x2 dlts = transpose(mat2x3(texcoords[0], 1.f-texcoords[1]));
+        mat3x2 dlts = transpose(mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, 1.f-SGATHER(attrib_texture, trig, 1)._SWIZV));
         mat3x3 dlps = mat3x3(
             lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
             lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
@@ -207,7 +207,7 @@ HitData interpolateMeshData(inout HitData ht) {
 
         // calc raw TBN 
         float idet = 1.f/precIssue(determinant(mat2(dlts[1],dlts[2]))); // inv determinant
-        vec3 t = fma(dlts[2].yyy, dlps[1], -dlts[1].y * dlps[2]), b = fma(dlts[1].xxx, dlps[2], -dlts[2].x * dlps[1]), n = normal; // pre-tbn
+        vec3 t = fma(dlts[2].yyy, dlps[1], -dlts[1].y * dlps[2]), b = fma(dlts[1].xxx, dlps[2], -dlts[2].x * dlps[1]); // pre-tbn
 
         // if texcoord not found or incorrect, calculate by axis
         if (
@@ -226,11 +226,14 @@ HitData interpolateMeshData(inout HitData ht) {
             b -= n * dot( b, n );
             b -= t * dot( b, t );
         }
+#endif
 
         IF (validInterpolant) {
             ht.normal      = vec4( normalize(n), 0.0f);
+#ifdef GENERATE_TBN
             ht.tangent     = vec4( normalize(t*idet), 0.0f);
             ht.bitangent   = vec4( normalize(b*idet), 0.0f);
+#endif
             ht.texcoord.xy = texcoord;
         }
     }

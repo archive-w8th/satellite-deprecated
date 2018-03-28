@@ -51,8 +51,8 @@ const int ATTRIB_EXTENT = 4;
 // attribute formating
 const int NORMAL_TID = 0;
 const int TEXCOORD_TID = 1;
-const int COLOR_TID = 2; // unused
-const int MODF_TID = 3; // at now no supported 
+const int TANGENT_TID = 2;
+const int BITANGENT_TID = 3;
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
@@ -175,67 +175,21 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
 // barycentric map (for corrections tangents in POM)
 const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
-//HitPayload interpolateMeshData(in HitData ht, inout HitPayload res) {
 HitData interpolateMeshData(inout HitData ht) {
-    const int tri = floatBitsToInt(ht.uvt.w), itri = tri*9; vec2 trig = vec2(0.f.xx);
-    bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST) & bool_(materials[tri] == ht.materialID);
-    
+    const int tri = floatBitsToInt(ht.uvt.w); 
+    const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy); 
+    const vec2 sz = 1.f.xx / textureSize(attrib_texture, 0), szt = sz * 0.9999f;
+    const bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST && tri >= 0) & bool_(materials[tri] == ht.materialID);
     IFANY (validInterpolant) {
-        // pre-calculate interpolators
-        const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy);
-        const vec2 sz = 1.f / textureSize(attrib_texture, 0);
+        const vec2 txtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+ TEXCOORD_TID))), sz, szt),
+                   nrtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+   NORMAL_TID))), sz, szt),
+                   tgtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+  TANGENT_TID))), sz, szt),
+                   bttrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+BITANGENT_TID))), sz, szt);
 
-        // gather texcoord 
-        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+TEXCOORD_TID))), sz, sz * 0.9999f);
-        const vec2 texcoord = vs * mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
-
-        // gather normal 
-        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+NORMAL_TID))), sz, sz * 0.9999f);
-        vec3 n = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
-
-#ifdef GENERATE_TBN // we have no system for lightweight TBN generation, that not occupy much GPU registers
-        // get delta vertex
-        mat3x2 dlts = transpose(mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, 1.f-SGATHER(attrib_texture, trig, 1)._SWIZV));
-        mat3x3 dlps = mat3x3(
-            lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
-            lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
-            lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
-        );
-
-        // deltas of positions and texcoords
-        dlps[1] -= dlps[0], dlps[2] -= dlps[0], dlts[1] -= dlts[0], dlts[2] -= dlts[0];
-
-        // calc raw TBN 
-        float idet = 1.f/precIssue(determinant(mat2(dlts[1],dlts[2]))); // inv determinant
-        vec3 t = fma(dlts[2].yyy, dlps[1], -dlts[1].y * dlps[2]), b = fma(dlts[1].xxx, dlps[2], -dlts[2].x * dlps[1]); // pre-tbn
-
-        // if texcoord not found or incorrect, calculate by axis
-        if (
-            all(lessThanEqual(abs(dlts[1]), 1e-5f.xx)) || 
-            all(lessThanEqual(abs(dlts[2]), 1e-5f.xx)) || 
-            all(lessThanEqual(abs(dlps[1]), 1e-5f.xxx)) || 
-            all(lessThanEqual(abs(dlps[2]), 1e-5f.xxx))
-        ) {
-            vec3 c0 = cross(n, vec3(0.f, 0.f, 1.f)), c1 = cross(n, vec3(0.f, 1.f, 0.f));
-            t = length(c0) >= length(c1) ? c0 : c1, b = cross(t, n);
-            idet = 1.f;
-        }
-
-        { // orthonormalization process
-            t -= n * dot( t, n );
-            b -= n * dot( b, n );
-            b -= t * dot( b, t );
-        }
-#endif
-
-        IF (validInterpolant) {
-            ht.normal      = vec4( normalize(n), 0.0f);
-#ifdef GENERATE_TBN
-            ht.tangent     = vec4( normalize(t*idet), 0.0f);
-            ht.bitangent   = vec4( normalize(b*idet), 0.0f);
-#endif
-            ht.texcoord.xy = texcoord;
-        }
+        ht.texcoord.xy = vs * mat2x3(SGATHER(attrib_texture, txtrig, 0)._SWIZV, SGATHER(attrib_texture, txtrig, 1)._SWIZV);
+        ht.normal      = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, nrtrig, 0)._SWIZV, SGATHER(attrib_texture, nrtrig, 1)._SWIZV, SGATHER(attrib_texture, nrtrig, 2)._SWIZV)), 0.0f);
+        ht.tangent     = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, tgtrig, 0)._SWIZV, SGATHER(attrib_texture, tgtrig, 1)._SWIZV, SGATHER(attrib_texture, tgtrig, 2)._SWIZV)), 0.0f);
+        ht.bitangent   = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, bttrig, 0)._SWIZV, SGATHER(attrib_texture, bttrig, 1)._SWIZV, SGATHER(attrib_texture, bttrig, 2)._SWIZV)), 0.0f);    
     }
     return ht;
 }

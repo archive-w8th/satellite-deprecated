@@ -21,10 +21,7 @@
 #include "./submodules/traverse-bvh2.glsl"
 
 
-
 LOCAL_SIZE_LAYOUT;
-
-int subgroupHit = -1;
 
 void main() {
     //int wsize = arcounter.tT;
@@ -55,17 +52,11 @@ void main() {
                     hit.payloadID = 0;
                     hit.next = 0;
                     hit.materialID = materials[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)];
-
+#ifdef ENABLE_VERTEX_INTERPOLATOR
+                    interpolateMeshData(hit);
+#endif
                     IF (vintersect) {
                         uint hid = eht > 0u ? eht : atomicIncHT()+1;
-
-                        if (subgroupHit >= 0) {
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-                            interpolateMeshData(hit);
-#endif
-                        } else { 
-                            subgroupHit = int(hid)-1; 
-                        }
                         hits[hid-1] = hit;
                         traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
                     }
@@ -73,23 +64,7 @@ void main() {
             }
         }
 
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-        // if all subgroups are busy, do deferred interpolation
-        IFALL (subgroupHit >= 0) {
-            interpolateMeshData(hits[subgroupHit]);
-            subgroupHit = -1;
-        }
-#endif
-
         // save for some-next operations (for example, hit chaining)
         unorderedRays[it] = traverseState.currentRayTmp;
     }
-
-    // interpolate rest meshes
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-    if (subgroupHit >= 0) {
-        interpolateMeshData(hits[subgroupHit]);
-        subgroupHit = -1;
-    }
-#endif
 }

@@ -208,7 +208,7 @@ void accquireNode(in int block, in int bidx){
 
     if (currentBlockNode < 0) {
         currentRay.dcolor = uvec2((0u).xx);
-        currentRay.origin.w = 0;
+        currentRay.origin.w = FINT_ZERO;
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
         RayActived(currentRay, false_);
         RayBounce(currentRay, 0);
@@ -224,14 +224,14 @@ void accquireNodeOffload(in int block, in int bidx){
     if (int(currentBlockNode) >= 0) { // for avoid errors with occupancy, temporarely clean in working memory
         int nid = currentBlockNode;
         rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
-        rayBlockNodes[block][nid].data.origin.w = 0;
+        rayBlockNodes[block][nid].data.origin.w = FINT_ZERO;
         WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
         RayActived(rayBlockNodes[block][nid].data, false_);
         RayBounce(rayBlockNodes[block][nid].data, 0);
         m16s(-1, blockIndiceHeader(block), currentInBlockPtr);
     } else {
         currentRay.dcolor = uvec2((0u).xx);
-        currentRay.origin.w = 0;
+        currentRay.origin.w = FINT_ZERO;
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
         RayActived(currentRay, false_);
         RayBounce(currentRay, 0);
@@ -437,7 +437,7 @@ int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
             int nid = tb + int(Lane_Idx);
             rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
-            rayBlockNodes[block][nid].data.origin.w = 0;
+            rayBlockNodes[block][nid].data.origin.w = FINT_ZERO;
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, false_);
             RayBounce(rayBlockNodes[block][nid].data, 0);

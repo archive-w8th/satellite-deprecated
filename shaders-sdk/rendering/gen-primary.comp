@@ -69,7 +69,7 @@ void main()
                 
                 // by default is inactive
                 currentRay.cdirect = vec2(0.f.xx);
-                currentRay.origin = vec4(vec3(0.f.xxx), FINT_NULL);
+                currentRay.origin = vec4(vec3(0.f.xxx), FINT_ZERO);
 
                 // by default - disabled
                 RayActived(currentRay, false_);
@@ -131,7 +131,7 @@ void main()
 #endif
 
                     currentRay.cdirect = lcts(dir.xyz);//vec4(dir.xyz, FINT_ZERO);
-                    currentRay.origin = vec4(orig.xyz, FINT_NULL);
+                    currentRay.origin = vec4(orig.xyz, FINT_ZERO);
                     
                     // set default bitset
                     currentRay.dcolor = uvec2((0u).xx);

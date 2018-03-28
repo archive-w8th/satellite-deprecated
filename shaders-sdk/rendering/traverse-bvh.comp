@@ -22,7 +22,8 @@
 
 // merge cached intersections to hit buffer
 void includeChain(inout vec4 intersection) {
-    uint hid = atomicIncHT()+1;
+    uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
+    uint hid = eht > 0u ? eht : atomicIncHT()+1;
     HitData hit = hits[hid-1];
     hit.uvt = intersection;
     hit.rayID = int(traverseState.currentRayTmp.uindex.x)-1;

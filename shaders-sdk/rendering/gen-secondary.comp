@@ -85,7 +85,7 @@ int invokeSurface(inout bool overflow) {
     IF (greaterEqualF(compositedHit.uvt.z, INFINITY-0.0001f)) wasHit = -1;
     WriteColor(currentRay.dcolor, vec4(max(0.0f.xxxx, f16_f32(currentRay.dcolor)).xyz, 1.f));
     currentRay.origin.xyz = fma(dcts(currentRay.cdirect.xy), compositedHit.uvt.zzz, currentRay.origin.xyz); // current set origin by distance
-    currentRay.origin.w = FINT_NULL; // reset chains
+    currentRay.origin.w = FINT_ZERO; // reset chains
     if (overflow) RayActived(currentRay, false_); // if had overflow, invalidate ray
 
     // getting ray state

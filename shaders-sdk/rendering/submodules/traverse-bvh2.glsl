@@ -114,6 +114,7 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
     traverseState.currentRayTmp = rayIn;
     vec3 origin = traverseState.currentRayTmp.origin.xyz;
     vec3 direct = dcts(traverseState.currentRayTmp.cdirect.xy);
+    uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
 
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
@@ -166,8 +167,9 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
     ));
     */
 
+    // continue traversing when needed
     traverseState.geometrySpace.dir = vec4(direct, 1.f);
-    traverseState.geometrySpace.lastIntersection = vec4(0.f.xx, INFINITY, FINT_NULL);
+    traverseState.geometrySpace.lastIntersection = eht > 0 ? hits[eht-1].uvt : vec4(0.f.xx, INFINITY, FINT_NULL);
 
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
@@ -182,6 +184,10 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
     //traverseState.bvhSpace.minusOrig = fvec3_(fma(torig, dirproj, -toffset.xxx));
     traverseState.distMult = 1.f/precIssue(dirlenInv);
     traverseState.diffOffset = toffset;
+
+    IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY)) { 
+        traverseState.bvhSpace.cutOut = traverseState.geometrySpace.lastIntersection.z * traverseState.distMult; 
+    }
 
     // begin of traverse BVH 
     const int max_iteraction = 8192;

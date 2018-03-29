@@ -237,7 +237,7 @@ void main(){
 
                 mat3x2 dlts = mat3x2(texcoord[m[0]].xy, texcoord[m[1]].xy, texcoord[m[2]].xy); 
                 mat3x3 dlps = mat3x3(vertice[m[0]].xyz, vertice[m[1]].xyz, vertice[m[2]].xyz);
-                dlts[0].y = 1.f-dlts[0].y, dlts[1].y = 1.f-dlts[1].y, dlts[2].y = 1.f-dlts[2].y;
+                //dlts[0].y = 1.f-dlts[0].y, dlts[1].y = 1.f-dlts[1].y, dlts[2].y = 1.f-dlts[2].y;
                 dlps[1] -= dlps[0], dlps[2] -= dlps[0], dlts[1] -= dlts[0], dlts[2] -= dlts[0];
 
                 [[unroll]]

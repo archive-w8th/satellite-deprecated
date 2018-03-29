@@ -2,9 +2,7 @@
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
-<img src="renders-fixed/city0.png" width="320">
-<img src="renders-fixed/city1.png" width="320">
-<img src="renders-fixed/city2.png" width="320">
+<img src="renders-fixed/city0.png" width="240" alt="0"> <img src="renders-fixed/city1.png" width="240" alt="1"> <img src="renders-fixed/city2.png" width="240" alt="2">
 
 ### What we can be do, if we had desires
 

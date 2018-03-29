@@ -2,6 +2,10 @@
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
+<img src="renders-fixed/city0.png" width="320">
+<img src="renders-fixed/city1.png" width="320">
+<img src="renders-fixed/city2.png" width="320">
+
 ### What we can be do, if we had desires
 
 * Appveyor, etc. support 
@@ -35,11 +39,3 @@
 * Vulkan API 1.1 (https://www.lunarg.com/vulkan-sdk/)
 * Vulkan memory allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 
-### Eye bleeding picture
-
-<details>
-<summary>Prepare yourself...</summary>
-<img src="renders-fixed/city0.png" width="720">
-<img src="renders-fixed/city1.png" width="720">
-<img src="renders-fixed/city2.png" width="720">
-</details>

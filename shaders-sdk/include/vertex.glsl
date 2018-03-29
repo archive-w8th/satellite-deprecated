@@ -94,37 +94,33 @@ ivec2 getUniformCoord(in uint indice) {
 }
 
 
+const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
+
 #ifndef VERTEX_FILLING
 #ifndef BVH_CREATION
 #ifdef ENABLE_VSTORAGE_DATA
-
-float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, inout bool_ _valid, const float testdist) {
+float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, in bool valid) {
     float T = INFINITY;
-    //IFANY (_valid) {
-        bool_ valid = tri < 0 ? false_ : _valid; // pre-define
-        const vec3 D[3] = {vec3(1.f, 0.f, 0.f), vec3(0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)};
-        //const vec2 sz = 1.f / textureSize(vertex_texture, 0), hs = sz * 0.9999f;
-        IFANY (valid) {
-            // gather patterns
-            const int itri = tri*9;
-            const mat3 ABC = mat3(
-                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2])-orig.x,
-                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5])-orig.y,
-                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])-orig.z
-            )*M;
+    IF (valid) {
+        // gather patterns
+        const int itri = tri*9;
+        const mat3 ABC = mat3(
+            vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2])-orig.x,
+            vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5])-orig.y,
+            vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])-orig.z
+        )*M;
 
-            // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
-            // http://jcgt.org/published/0002/01/05/paper.pdf
-            vec3 UVW_ = D[axis] * inverse(ABC);
-            valid &= bool_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
-            IFANY (valid) {
-                const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),1e-5f)*(det>=0.f?1:-1));
-                UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
-                T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
-                T = mix(INFINITY, T, greaterEqualF(T, 0.0f) & valid);
-            }
+        // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
+        // http://jcgt.org/published/0002/01/05/paper.pdf
+        vec3 UVW_ = uvwMap[axis] * inverse(ABC);
+        valid = valid && (all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
+        IF (valid) {
+            const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),1e-5f)*(det>=0.f?1:-1));
+            UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
+            T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
+            T = mix(INFINITY, T, (T >= -(1e-5f)) && valid);
         }
-    //}
+    }
     return T;
 }
 
@@ -161,7 +157,6 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
 
 const int _BVH_WIDTH = 2048;
 
-
 #define bvhT_ptr ivec2
 bvhT_ptr mk_bvhT_ptr(in int linear) {
     //int md = linear & 1; linear >>= 1;
@@ -173,8 +168,6 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
 #ifdef ENABLE_VSTORAGE_DATA
 #ifdef ENABLE_VERTEX_INTERPOLATOR
 // barycentric map (for corrections tangents in POM)
-const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
-
 HitData interpolateMeshData(inout HitData ht) {
     const int tri = floatBitsToInt(ht.uvt.w); 
     const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy); 

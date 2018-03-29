@@ -97,8 +97,8 @@ struct BvhTraverseState {
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    //float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
-    float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, near.x, traverseState.geometrySpace.lastIntersection.z);
+    //float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }

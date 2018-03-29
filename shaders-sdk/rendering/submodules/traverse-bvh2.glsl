@@ -115,7 +115,7 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
     traverseState.currentRayTmp = rayIn;
     vec3 origin = traverseState.currentRayTmp.origin.xyz;
     vec3 direct = dcts(traverseState.currentRayTmp.cdirect.xy);
-    uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
+    int eht = floatBitsToInt(traverseState.currentRayTmp.origin.w);
 
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;

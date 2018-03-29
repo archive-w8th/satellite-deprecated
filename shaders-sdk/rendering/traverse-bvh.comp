@@ -42,7 +42,7 @@ void main() {
         { // verify intersection
             bool_ vintersect = lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL);
             IFANY (vintersect) {
-                uint eht = floatBitsToUint(traverseState.currentRayTmp.origin.w);
+                int eht = floatBitsToInt(traverseState.currentRayTmp.origin.w);
 
                 vintersect &= bool_(eht <= 0).x | lessF(traverseState.geometrySpace.lastIntersection.z, hits[eht-1].uvt.z);
                 IFANY (vintersect) {
@@ -56,9 +56,9 @@ void main() {
                     interpolateMeshData(hit);
 #endif
                     IF (vintersect) {
-                        uint hid = eht > 0u ? eht : atomicIncHT()+1;
+                        int hid = eht > 0 ? eht : atomicIncHT()+1;
                         hits[hid-1] = hit;
-                        traverseState.currentRayTmp.origin.w = uintBitsToFloat(hid);
+                        traverseState.currentRayTmp.origin.w = intBitsToFloat(hid);
                     }
                 }
             }

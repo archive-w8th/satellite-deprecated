@@ -271,7 +271,7 @@ void main() {
             {
                 int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;
-                cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray
+                cray.origin.w = intBitsToFloat(int(globalID)+1); // save hit index to ray
 
                 // make payload ID
                 if (hit.payloadID <= 0) {

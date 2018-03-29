@@ -2,8 +2,10 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
-//#define USE_OPTIMIZED_PT
+//#define USE_HARD_SHADOWS // working only in simplified mode
 //#define USE_SIMPLIFIED_MODE
+
+//#define USE_OPTIMIZED_PT
 //#define USE_MULTIPLICANT_TRANSPARENCY
 
 
@@ -127,7 +129,13 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
     // shade light
     if (lc >= 0 && (RayTargetLight(rayTemplate) == lc || RayType(rayTemplate) != 2) && SSC(RayActived(rayTemplate))) {
         // if diffuse, shade as non-shaded (absorb), because for it have direct light
-        WriteColor(rayTemplate.dcolor, RayType(rayTemplate) == 1 ? 0.f.xxxx : f16_f32(rayTemplate.dcolor) * vec4(getLightColor(lc), 1.f));
+#ifdef USE_SIMPLIFIED_MODE
+        vec4 lcolor = vec4(1.f.xxx, 1.f);
+#else
+        vec4 lcolor = vec4(getLightColor(lc), 1.f);
+#endif
+
+        WriteColor(rayTemplate.dcolor, RayType(rayTemplate) == 1 ? 0.f.xxxx : f16_f32(rayTemplate.dcolor) * lcolor);
         RayActived(rayTemplate, false_);
         skipping = true;
     }
@@ -215,12 +223,17 @@ void main() {
                     float refly = compositedHit.metallicRoughness.x; // roughness
                     float metallic = sqrt(compositedHit.metallicRoughness.y); // metallic
 
-                    vec3 freflcolor = fmix(max_fresnel_color * 1.f, min_fresnel_color * 0.1f, clamp(pow(abs(dot(dcts(currentRay.cdirect.xy), normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
+                    vec3 freflcolor = fmix(max_fresnel_color * 0.9f, min_fresnel_color * 0.04f, clamp(pow(abs(dot(dcts(currentRay.cdirect.xy), normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
                     vec3 speccolor = fmix(freflcolor * mix(1.f.xxx, diffcolor.xyz, 0.04f.xxx), diffcolor.xyz, metallic.xxx);
                     
                     // coefficents
                     float prom = clamp01(1.f - diffcolor.w); // transmission power
+
+#ifdef USE_SIMPLIFIED_MODE
+                    float spca = fmix(mlength(freflcolor), 1.f, metallic.x * (1.f - refly));
+#else
                     float spca = fmix(mlength(freflcolor), 1.f, metallic.x);
+#endif
 
                     // if environment shaded, do by defaultly as transaparent, by inactive
                     if ( rayState == 3 || rayState == 1 ) prom = 1.0f;
@@ -273,17 +286,27 @@ void main() {
 #endif
 
 #ifdef USE_SIMPLIFIED_MODE
+                    vec3 lightVec = sLight(0) - enrollRay.origin.xyz;
+                    vec3 ambient_diffuse = diffcolor.xyz * 0.1f.xxx;
+                    vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 2.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f));
+                    vec3 emission_addition = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - qprom);
+
                     { // reflection rays from surface
                         invokeBlockForNodes(reflectionRay, reflectionBlock, overwriteBlock);
                     }
+
+#ifdef USE_HARD_SHADOWS
+                    { // shadow rays from surface
+                        fake_diffusion -= ambient_diffuse;
+                        RayRework shadowRay = directLight(0, enrollRay, fake_diffusion.xyz * (1.f - spca) * (1.f - prom), tbn);
+                        invokeBlockForNodes(shadowRay, shadowBlock, overwriteBlock);
+                    }
+#endif
 #else
                     { // diffuse rays from surface
                         invokeBlockForNodes(reflectionRay, reflectionBlock, overwriteBlock);
                         invokeBlockForNodes(diffuseRay, diffuseBlock, overwriteBlock);
                     }
-
-
-                    //overwriteBlock = -1;
 
                     { // shadow rays from surface
                         RayRework shadowRay = directLight(0, enrollRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
@@ -304,10 +327,12 @@ void main() {
                     
 #ifdef USE_SIMPLIFIED_MODE // fake diffuse (beginner shading mode)
                     { // simple shading + possible emissions
-                        vec3 lightVec = sLight(0) - enrollRay.origin.xyz;
-                        vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 2.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f));
-                        vec3 emission_addition = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - qprom);
-                        RayRework rayTemplate = emissive(enrollRay, emission_addition + fake_diffusion * (1.f - qspca) * (1.f - qprom), tbn);
+#ifdef USE_HARD_SHADOWS
+                        vec3 a_diffuse = ambient_diffuse;
+#else
+                        vec3 a_diffuse = fake_diffusion;
+#endif
+                        RayRework rayTemplate = emissive(enrollRay, emission_addition + a_diffuse * (1.f - qspca) * (1.f - qprom), tbn);
                         IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
                         invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
                     }

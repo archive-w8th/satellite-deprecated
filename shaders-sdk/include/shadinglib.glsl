@@ -59,6 +59,17 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
     RayType(directRay, 2);
     RayDL(directRay, true_); // always illuminated by sunlight
 
+#ifdef USE_SIMPLIFIED_MODE
+    vec3 lpath = lightCenter(i).xyz - directRay.origin.xyz; // hard shadows
+    vec3 ldirect = normalize(lpath);
+    float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
+    float weight = 1.f; // no weighting
+    //samplingWeight(ldirect, tbn[2], lightUniform.lightNode[i].lightColor.w, dist); 
+
+    directRay.cdirect.xy = lcts(ldirect);
+    directRay.origin.xyz = fma(ldirect.xyz, vec3(GAP), directRay.origin.xyz);
+    WriteColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
+#else
     vec3 lpath = sLight(i) - directRay.origin.xyz;
     vec3 ldirect = normalize(lpath);
     float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
@@ -67,6 +78,7 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
     directRay.cdirect.xy = lcts(ldirect);
     directRay.origin.xyz = fma(ldirect.xyz, vec3(GAP), directRay.origin.xyz);
     WriteColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
+#endif
 
     IF (lessF(dot(ldirect.xyz, tbn[2]), 0.f)) {
         RayActived(directRay, false_); // wrong direction, so invalid

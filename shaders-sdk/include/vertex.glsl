@@ -97,7 +97,7 @@ ivec2 getUniformCoord(in uint indice) {
 #ifndef VERTEX_FILLING
 #ifndef BVH_CREATION
 #ifdef ENABLE_VSTORAGE_DATA
-/*
+
 float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, inout bool_ _valid, const float testdist) {
     float T = INFINITY;
     //IFANY (_valid) {
@@ -107,18 +107,18 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
         IFANY (valid) {
             // gather patterns
             const int itri = tri*9;
-            const mat3 ABC = (mat3(
-                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
-                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
-                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
-            )-mat3(orig.xxx, orig.yyy, orig.zzz))*M;
+            const mat3 ABC = mat3(
+                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2])-orig.x,
+                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5])-orig.y,
+                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])-orig.z
+            )*M;
 
             // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
             // http://jcgt.org/published/0002/01/05/paper.pdf
             vec3 UVW_ = D[axis] * inverse(ABC);
             valid &= bool_(all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
             IFANY (valid) {
-                float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),0.00001f)*(det>=0.f?1:-1));
+                const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/(max(abs(det),1e-5f)*(det>=0.f?1:-1));
                 UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
                 T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
                 T = mix(INFINITY, T, greaterEqualF(T, 0.0f) & valid);
@@ -126,9 +126,9 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
         }
     //}
     return T;
-}*/
+}
 
-float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout vec2 uv, inout bool_ _valid, const float testdist) {
+/*float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout vec2 uv, inout bool_ _valid, const float testdist) {
     const int itri = tri*9;
     const mat3 vT = mat3(
         vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
@@ -150,7 +150,7 @@ float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout ve
     if (T >= INFINITY || T < 0.f) { _valid = false_; } 
     IF (not(_valid)) T = INFINITY;
     return T;
-}
+}*/
 
 
 #endif

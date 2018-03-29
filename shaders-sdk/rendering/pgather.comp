@@ -6,15 +6,15 @@
 #include "../include/uniforms.glsl"
 #include "../include/rayslib.glsl"
 
-layout ( binding = 0, set = 1, rgba32f ) uniform image2D presampled;
-layout ( binding = 1, set = 1, rgba32f ) uniform image2D prefiltered;
-layout ( binding = 2, set = 1, r32i ) uniform iimage2D sampleflags;
+layout ( binding = 0, set = 1, rgba32f ) restrict uniform image2D presampled;
+layout ( binding = 1, set = 1, rgba32f ) restrict uniform image2D prefiltered;
+layout ( binding = 2, set = 1, r32i ) restrict uniform iimage2D sampleflags;
 
 // additional buffers
 #ifdef ENABLE_ADDITIONAL_BUFFERS
-layout ( binding = 3, set = 1, rgba32f ) uniform image2D currdepth;
-layout ( binding = 4, set = 1, rgba32f ) uniform image2D normalbuf;
-layout ( binding = 5, set = 1, rgba32f ) uniform image2D albedobuf;
+layout ( binding = 3, set = 1, rgba32f ) restrict uniform image2D currdepth;
+layout ( binding = 4, set = 1, rgba32f ) restrict uniform image2D normalbuf;
+layout ( binding = 5, set = 1, rgba32f ) restrict uniform image2D albedobuf;
 #endif
 
 LOCAL_SIZE_LAYOUT;

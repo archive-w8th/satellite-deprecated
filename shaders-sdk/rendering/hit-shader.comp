@@ -6,7 +6,7 @@
 #endif
 #define WORK_SIZE 512
 
-//#define DISCARD_SHARED_CACHING
+#define DISCARD_SHARED_CACHING
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
 //#define ENABLE_VERTEX_INTERPOLATOR
@@ -48,8 +48,8 @@ struct Material {
 const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 16;
 
 // material set (in main descriptor set)
-layout ( std430, binding = 2, set = 2 ) readonly buffer MaterialsSSBO {Material submats[]; };
-layout ( std430, binding = 3, set = 2 ) readonly buffer VirtualTextures {uvec2 vtexures[]; };
+layout ( std430, binding = 2, set = 2 ) restrict readonly buffer MaterialsSSBO {Material submats[]; };
+layout ( std430, binding = 3, set = 2 ) restrict readonly buffer VirtualTextures {uvec2 vtexures[]; };
 
 // textrue/sampler set
 layout ( binding = 0, set = 2 ) uniform texture2D textures[MAX_TEXTURES];

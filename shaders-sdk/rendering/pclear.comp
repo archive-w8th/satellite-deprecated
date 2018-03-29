@@ -6,7 +6,7 @@
 #include "../include/uniforms.glsl"
 #include "../include/mathlib.glsl"
 
-layout ( binding = 2, set = 1, r32i ) uniform iimage2D sampleflags;
+layout ( binding = 2, set = 1, r32i ) restrict uniform iimage2D sampleflags;
 
 LOCAL_SIZE_LAYOUT;
 

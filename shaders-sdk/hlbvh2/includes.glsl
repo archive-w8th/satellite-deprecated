@@ -45,7 +45,7 @@ layout ( std430, binding = 12, set = 0 ) restrict buffer BVHBoxBlockResulting { 
 #endif
 
 
-layout ( rgba32i, binding = 11, set = 0 ) uniform iimage2D bvhStorage;
+layout ( rgba32i, binding = 11, set = 0 ) restrict uniform iimage2D bvhStorage;
 
 
 

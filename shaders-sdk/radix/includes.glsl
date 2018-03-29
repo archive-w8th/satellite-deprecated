@@ -60,7 +60,7 @@ uint BFE(in uvec2 ua, in uint o, in uint n) {
 //#define KEYTYPE uvec_wave
 layout (std430, binding = 20, set = 0 ) restrict buffer KeyInBlock {KEYTYPE KeyIn[]; };
 layout (std430, binding = 21, set = 0 ) restrict buffer ValueInBlock {uint ValueIn[]; };
-layout (std430, binding = 24, set = 0 ) readonly buffer VarsBlock {
+layout (std430, binding = 24, set = 0 ) restrict readonly buffer VarsBlock {
     uint NumKeys;
     uint Shift;
     uint Descending;

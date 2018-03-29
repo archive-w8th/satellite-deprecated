@@ -16,32 +16,32 @@
     layout ( std430, binding = 1, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
     layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
     layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
-    layout ( rgba32f, binding = 4, set = 0 ) uniform image2D attrib_texture_out;
+    layout ( rgba32f, binding = 4, set = 0 ) restrict uniform image2D attrib_texture_out;
 #else
-    layout ( std430, binding = 1, set = 1 ) readonly buffer GeomMaterialsSSBO { int materials[]; };
+    layout ( std430, binding = 1, set = 1 ) restrict readonly buffer GeomMaterialsSSBO { int materials[]; };
 
     #ifdef ENABLE_VERTEX_INTERPOLATOR
         layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
-        layout ( std430, binding = 2, set = 1 ) readonly buffer OrderIdxSSBO { int vorders[]; };
+        layout ( std430, binding = 2, set = 1 ) restrict readonly buffer OrderIdxSSBO { int vorders[]; };
     #endif
 
     #ifdef ENABLE_VSTORAGE_DATA
         #ifdef ENABLE_TRAVERSE_DATA
         #ifndef BVH_CREATION
             #ifdef USE_F32_BVH
-            layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { vec4 bvhBoxes[][4]; };
+            layout ( std430, binding = 0, set = 1 ) restrict readonly buffer BVHBoxBlock { vec4 bvhBoxes[][4]; };
             #else
-            layout ( std430, binding = 0, set = 1 ) readonly buffer BVHBoxBlock { uvec2 bvhBoxes[][4]; }; 
+            layout ( std430, binding = 0, set = 1 ) restrict readonly buffer BVHBoxBlock { uvec2 bvhBoxes[][4]; }; 
             #endif
             layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
         #endif
         #endif
         
-        layout ( std430, binding = 3, set = 1 ) readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
+        layout ( std430, binding = 3, set = 1 ) restrict readonly buffer GeometryBlockUniform { GeometryUniformStruct geometryUniform;} geometryBlock;
         #ifdef VTX_TRANSPLIT // for leaf gens
             layout ( std430, binding = 7, set = 1 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
         #else
-            layout ( std430, binding = 7, set = 1 ) readonly buffer VertexLinearSSBO { float lvtx[]; };
+            layout ( std430, binding = 7, set = 1 ) restrict readonly buffer VertexLinearSSBO { float lvtx[]; };
         #endif
     #endif
 #endif

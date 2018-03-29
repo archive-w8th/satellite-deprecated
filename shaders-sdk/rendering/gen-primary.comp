@@ -63,48 +63,44 @@ void main()
             // invoke block data
             [[unroll]]
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                // in-block Id
                 int nid = tb + int(Lane_Idx);
-                randomClocks = 0, subHash = nid; // reset random clocks
-                accquirePlainNode(blockID, nid); // accquire by lane
-                
-                // by default is inactive
-                currentRay.cdirect = vec2(0.f.xx);
-                currentRay.origin = vec4(vec3(0.f.xxx), FINT_ZERO);
-
-                // by default - disabled
-                RayActived(currentRay, false_);
-                WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
                 // get 2D index
-                ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH);
-                ivec2 xy = divxy + bc;
-                overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
-                IFALL(overflow) break;
-
-                // prison coding
+                ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH), xy = divxy + bc;
                 int idx = xy.x + xy.y * wh.x;
-                {
-                    Texel txfi = texelBuf.nodes[idx];
-                    txfi.coord.x = -1.f;
-                    txfi.coord.y = -1.f;
-                    txfi.color = 0.f.xxxx; // debug white
-                    texelBuf.nodes[idx] = txfi;
-                }
 
-                m16s(-1, blockBins[binID].texelHeader-1, nid);
+                { // in invalid areas default values
+                    randomClocks = 0, subHash = nid; // reset random clocks
+                    accquirePlainNode(blockID, nid); // accquire by lane
+                    
+                    // by default is inactive
+                    currentRay.cdirect = vec2(0.f.xx);
+                    currentRay.origin = vec4(vec3(0.f.xxx), FINT_ZERO);
+
+                    // by default - disabled
+                    RayActived(currentRay, false_);
+                    WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
+
+                    overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
+                    IFALL(overflow) break;
+
+                    // prison coding
+                    {
+                        texelBuf.nodes[idx].coord.x = -1.f;
+                        texelBuf.nodes[idx].coord.y = -1.f;
+                        texelBuf.nodes[idx].color = 0.f.xxxx;
+                    }
+                    m16s(-1, blockBins[binID].texelHeader-1, nid);
+                }
+                
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
-                if (vbn) {
+                if (vbn) { // if potential texel if valid
                     m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
                     vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
-                    
-                    Texel txfi = texelBuf.nodes[idx];
-                    txfi.coord.x = coord.x;
-                    txfi.coord.y = coord.y;
-                    txfi.color = 0.f.xxxx; // debug white
-                    texelBuf.nodes[idx] = txfi;
-                    
+
                     vec4 dir = vec4(0.f), orig = mult4(RAY_BLOCK cameraUniform.camInv, vec4(vec3(0.0f), 1.0f)), eye = orig;
                     if (RAY_BLOCK cameraUniform.enable360 == 1) {
                         vec2 pic = (coord * vec2(2.f,1.f) + vec2(0.5f,0.0f)) * PI;
@@ -115,6 +111,9 @@ void main()
                         dir = vec4(normalize(co.xyz - orig.xyz)*vec3(1.f,1.f,1.f), 0.0f);
                     }
 
+                    texelBuf.nodes[idx].coord.x = coord.x;
+                    texelBuf.nodes[idx].coord.y = coord.y;
+                    texelBuf.nodes[idx].color = 0.f.xxxx;
                     texelBuf.nodes[idx].p3d = vec4(fma(dir.xyz, INFINITY.xxx, eye.xyz), 1.f);
                     texelBuf.nodes[idx].albedo = vec4(0.f);
                     texelBuf.nodes[idx].normal = vec4(0.0f, 0.0f, 1.f, 0.f);
@@ -130,36 +129,23 @@ void main()
                     dir = vec4(normalize(focus.xyz - offsetEye.xyz), 0.0f);
 #endif
 
-                    currentRay.cdirect = lcts(dir.xyz);//vec4(dir.xyz, FINT_ZERO);
+                    // set ray state
+                    currentRay.cdirect = lcts(dir.xyz);
                     currentRay.origin = vec4(orig.xyz, FINT_ZERO);
-                    
-                    // set default bitset
-                    currentRay.dcolor = uvec2((0u).xx);
-                    WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
+                    currentRay.dcolor = (0u).xx;  // set default bitset
 
+                    // set default bitfield values
+                    WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
                     RayActived(currentRay, true_);
                     RayType(currentRay, 3); // primary rays
                     RayDL(currentRay, false_);
-
-                    // reserved bounces
                     RayBounce(currentRay, 3);
                     RayDiffBounce(currentRay, 2);
-
-                    if (RAY_BLOCK cameraUniform.interlace == 1) {
-                        if ((abs(xy.x + xy.y) % 2) == RAY_BLOCK cameraUniform.interlaceStage) {
-                            RayActived(currentRay, false_);
-                        }
-                    }
-
-                    //RayActived(currentRay, false_);
-                    //WriteColor(currentRay.dcolor, vec4(dir.xyz*0.5f+0.5f, 0));
                 }
                 
                 confirmNode(blockID, RayActived(currentRay) == true_);
                 storeRay(blockID, currentRay);
             }
-
-            blockBins[binID].texelFrom += 1;
 
             SB_BARRIER
 

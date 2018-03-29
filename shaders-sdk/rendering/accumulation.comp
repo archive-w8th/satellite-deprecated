@@ -49,7 +49,7 @@ void main() {
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
                         int nid = tb + int(Lane_Idx);
                         int ltex = m16i(texelHeader, nid);
-                        int texel = texelFrom + ltex - 1;
+                        int texel = texelFrom + ltex;
 
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE && ltex >= 0) {

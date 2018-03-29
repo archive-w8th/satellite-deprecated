@@ -59,7 +59,7 @@ struct BVHCreatorUniformStruct {
     int leafCount;
 };
 
-layout ( std430, binding = 10, set = 0 ) readonly buffer BVHCreatorBlockUniform { BVHCreatorUniformStruct creatorUniform;} bvhBlock;
+layout ( std430, binding = 10, set = 0 ) restrict readonly buffer BVHCreatorBlockUniform { BVHCreatorUniformStruct creatorUniform;} bvhBlock;
 
 
 

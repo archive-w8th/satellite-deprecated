@@ -9,8 +9,8 @@
 #define DISCARD_SHARED_CACHING
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
-//#define ENABLE_VERTEX_INTERPOLATOR
-#define CACHE_HIT
+#define CACHE_HIT_PAYLOAD
+#define DMA_HIT
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -19,9 +19,9 @@
 #include "../include/random.glsl"
 #include "../include/mathlib.glsl"
 
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-#include "../include/vertex.glsl"
-#endif
+//#ifdef ENABLE_VERTEX_INTERPOLATOR
+//#include "../include/vertex.glsl"
+//#endif
 
 struct Material {
      vec4 diffuse;
@@ -132,7 +132,9 @@ struct Textured {
 
 LOCAL_SIZE_LAYOUT;
 
-shared HitData hitCache[WORK_SIZE];
+#ifdef CACHE_HIT_PAYLOAD
+shared HitPayload hitPayloadCache[WORK_SIZE];
+#endif
 
 void main() {
     //#define wsize RAY_BLOCK samplerUniform.hitCount
@@ -148,21 +150,26 @@ void main() {
         matID = -1;
         IFALL(overflow) break;
         {
-#ifdef CACHE_HIT
-            #define hit hitCache[Local_Idx]
-            hit = hits[globalID];
+#ifdef DMA_HIT
+            #define hit hits[globalID]
 #else
             HitData hit = hits[globalID];
 #endif
 
+#ifdef CACHE_HIT_PAYLOAD
+            #define hitp hitPayloadCache[Local_Idx]
+            hitp = hitPayload[hit.payloadID-1];
+#else
             HitPayload hitp = hitPayload[hit.payloadID-1];
+#endif
 
+/*
             // deferred intersection interpolation
 #ifdef ENABLE_VERTEX_INTERPOLATOR
             if (!overflow && hit.payloadID <= 0) {
                 interpolateMeshData(hit);
             }
-#endif
+#endif*/
 
             vec3 viewVec = dcts(cray.cdirect.xy);
             globalInvocationSMP = globalID;
@@ -239,6 +246,7 @@ void main() {
 
             // additional validation of hit (hit point interpolated offset test)
             bool validHit = true;
+/*
 #ifdef ENABLE_VERTEX_INTERPOLATOR
             {
                 const int itri = floatBitsToInt(hit.uvt.w)*9;
@@ -252,21 +260,25 @@ void main() {
                 if (length(vorig - horig) >= 1e-2) validHit = false;
             }
 #endif
+*/
 
             // offload by payloads
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-            if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)] && validHit) 
-#else
+//#ifdef ENABLE_VERTEX_INTERPOLATOR
+//            if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)] && validHit) 
+//#else
             if (!overflow && globalID >= 0 && validHit) 
-#endif
+//#endif
             {
                 int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;
                 cray.origin.w = uintBitsToFloat(globalID+1); // save hit index to ray
 
+                // make payload ID
                 if (hit.payloadID <= 0) {
                     hit.payloadID = pid;
+#ifndef DMA_HIT
                     hits[globalID] = hit;
+#endif
                 }
             }
         }

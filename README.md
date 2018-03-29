@@ -1,7 +1,5 @@
 # Satellite OEM (VK-1.1)
 
-[![Gitter](https://badges.gitter.im/world8th/satellite-oem.svg)](https://gitter.im/world8th/satellite-oem?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) 
-
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
 ### What we can be do, if we had desires

@@ -51,14 +51,6 @@
 #define M32(m, i) m[i]
 #endif
 
-#ifdef ENABLE_INT16_LOADING
-#define INDICE_T INDEX16
-#define PICK(m, i) M16(m, i)
-#else
-#define INDICE_T uint
-#define PICK(m, i) m[i]
-#endif
-
 #define bvec4_ ivec4
 #define bvec3_ ivec3
 #define bvec2_ ivec2

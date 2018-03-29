@@ -17,6 +17,7 @@
 * Optimized ray tracing pipeline (tile-based)
 * One testing example application (source code)
 * Around 40MRays/s throughput in Sponza scenes (RX Vega 64)
+* Windows platform support (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond)
 
 ### Contacts 
 

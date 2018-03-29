@@ -54,13 +54,13 @@ const int TEXCOORD_TID = 1;
 const int TANGENT_TID = 2;
 const int BITANGENT_TID = 3;
 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
-#define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp, crd, 0, chnl)
-#else
+//#ifdef ENABLE_AMD_INSTRUCTION_SET
+//#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
+//#define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp, crd, 0, chnl)
+//#else
 #define ISTORE(img, crd, data) imageStore(img, crd, data)
 #define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
-#endif
+//#endif
 
 //#define _SWIZV wzx
 #define _SWIZV xyz

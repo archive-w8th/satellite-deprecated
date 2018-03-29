@@ -28,7 +28,7 @@
 
 ### Patreons
 
-* [Make ray-tracing forces with Patreon](https://www.patreon.com/open_ray_traced_forces)
+* [Make ray-tracing forces with Patreon](https://www.patreon.com/ray_tracing_forces)
 
 ### Minimal requirement for minimal product
 

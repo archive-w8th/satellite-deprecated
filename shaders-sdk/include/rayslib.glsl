@@ -482,7 +482,7 @@ void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, ino
     SB_BARRIER
 
     bool prevOccopied = confirmNodeOccupied(prevNonOccupiedBlock) && int(outNewBlock) >= 0;
-    prevNonOccupiedBlock = anyInvoc(prevOccopied) ? int(outNewBlock) : int(prevNonOccupiedBlock);
+    prevNonOccupiedBlock = allInvoc(prevOccopied) ? int(outNewBlock) : int(prevNonOccupiedBlock);
 }
 
 

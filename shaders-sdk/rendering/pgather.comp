@@ -96,25 +96,25 @@ void main() {
         
         if (samplecount > 0) {
             if (imageLoad(sampleflags, cid).x > 0) {
-                imageStore(sampleflags, cid, ivec4(0));
-                imageStore(presampled, cid, vec4(0.f));
+                ISTORE(sampleflags, cid, ivec4(0));
+                ISTORE(presampled, cid, vec4(0.f));
 
 #ifdef ENABLE_ADDITIONAL_BUFFERS
                 // additional buffers (for filters)
-                imageStore(normalbuf, cid, vec4(0.f));
-                imageStore(albedobuf, cid, vec4(0.f));
+                ISTORE(normalbuf, cid, vec4(0.f));
+                ISTORE(albedobuf, cid, vec4(0.f));
 #endif
             }
 
 #ifdef ENABLE_ADDITIONAL_BUFFERS
-            imageStore(normalbuf, cid, mix(normal * 0.5f + 0.5f, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
-            imageStore(albedobuf, cid, mix(albedo              , imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
-            imageStore(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
+            ISTORE(normalbuf, cid, mix(normal * 0.5f + 0.5f, imageLoad(normalbuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
+            ISTORE(albedobuf, cid, mix(albedo              , imageLoad(albedobuf, cid), clamp((newc.w - samplecount) / newc.w, 0.f, 1.f)));
+            ISTORE(currdepth, cid, vec4(depth.xyz/depth.w, 1.f));
 #endif
 
             vec4 xsample = imageLoad(presampled, cid); // get previous (reprojected) sample
             xsample = vec4(newc.xyz/newc.w, newc.w);
-            imageStore(presampled, cid, vec4(xsample)); // store in current projection
+            ISTORE(presampled, cid, vec4(xsample)); // store in current projection
         }
     }
 }

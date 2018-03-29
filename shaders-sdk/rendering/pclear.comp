@@ -18,6 +18,6 @@ void main()
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        imageStore(sampleflags, ivec2(it % int(whs.x), it / int(whs.x)), ivec4(1));
+        ISTORE(sampleflags, ivec2(it % int(whs.x), it / int(whs.x)), ivec4(1));
     }
 }

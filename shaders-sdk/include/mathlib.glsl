@@ -70,6 +70,18 @@
 #define false2_ false_.xx
 
 
+
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
+#else
+#define ISTORE(img, crd, data) imageStore(img, crd, data)
+#endif
+
+#define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
+
+
+
+
 // null of indexing in float representation
 float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0

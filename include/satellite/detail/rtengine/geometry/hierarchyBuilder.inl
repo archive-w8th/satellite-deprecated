@@ -227,7 +227,6 @@ namespace NSM
             if (triangleCount[0] <= 0) return;
 
             // need update geometry uniform optimization matrices, and sort morton codes
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true);
             radixSort->sort(mortonCodesBuffer, mortonIndicesBuffer, triangleCount[0]); // do radix sort
 
             // debug code

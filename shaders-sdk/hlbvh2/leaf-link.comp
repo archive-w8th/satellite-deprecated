@@ -15,8 +15,7 @@
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    //int wsize = bvhBlock.creatorUniform.leafCount;
-    #define wsize (bvhBlock.creatorUniform.leafCount)
+    int wsize = cCounter;
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {

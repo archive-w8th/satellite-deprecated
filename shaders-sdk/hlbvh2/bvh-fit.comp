@@ -49,13 +49,13 @@ void unifyNodeBox(in int idx){
 
 
 void main() {
-    int n = bvhBlock.creatorUniform.leafCount;
-    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
+    int wsize = cCounter;
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); 
-        if (globalID >= n) break;
-        if (globalID < n && globalID >= 0) {
+        IFALL (globalID >= wsize) break;
+        if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
             int idx = exchange(LeafIndices[globalID], -1);
             

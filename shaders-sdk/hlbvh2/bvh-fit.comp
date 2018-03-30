@@ -13,20 +13,17 @@
 
 LOCAL_SIZE_LAYOUT;
 
-//const int work_size = 1024;
-//layout ( local_size_x = work_size ) in;
-
-initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
-
 void unifyNodeBox(in int idx){
-    int sibid = imageLoad(bvhStorage, mk_bvhT_ptr(idx)).x >> 1;
+    // contributor node must be complete node!
+    ivec4 comp = imageLoad(bvhStorage, mk_bvhT_ptr(idx)); // contributor meta
+    int sibid = comp.x >> 1; // contributor box ID
 
     // pick up boxes of node
     vec4  
         lmn = bvhBoxesWork[sibid][0], rmn = bvhBoxesWork[sibid][2],
         lmx = bvhBoxesWork[sibid][1], rmx = bvhBoxesWork[sibid][3];
 
-    // pre-complete parent task
+    // pre-complete parent 
     int bidx = idx>>1, sidx = idx&1;
     if (bidx >= 0) {
         bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
@@ -47,7 +44,6 @@ void unifyNodeBox(in int idx){
 #endif
 }
 
-
 void main() {
     int wsize = cCounter;
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 50000);
@@ -61,23 +57,27 @@ void main() {
             
             // reductive unity boxes
             for (int l=0;l<256;l++) {
+                
+                // do contribution to parent node box host
                 ivec4 cmp4 = imageLoad(bvhStorage, mk_bvhT_ptr(idx));
-                idx = idx >= 0 ? cmp4.z : -1; // give to parent node
-
-                // complete voting of our node
-                bool completeNode = idx >= 0;
-                if (completeNode) {
-                    int _swp = atomicCompSwap(Flags[idx], 0, 1);
-                    completeNode = completeNode && _swp == 1;
-                }
-                idx = completeNode ? idx : -1;
-
-                // do contribution to parent node host
                 if (idx >= 0) {
-                    unifyNodeBox(idx);
+                    if (cmp4.y == 0) unifyNodeBox(idx);
                 } else { 
-                    break; 
+                    break;
                 }
+
+                // set contributor ID to parent node ID
+                idx = idx >= 0 ? cmp4.z : -1;
+
+                // solve contribution question 
+                bool nextContrib = idx >= 0;
+                if (nextContrib) {
+                    int _swp = atomicAdd(Flags[idx], 1);//atomicCompSwap(Flags[idx], 0, 1); // make sure contribution to parent complete
+                    nextContrib = nextContrib && _swp == 1; 
+                }
+
+                // only one candidate can contribute to own parent (if has)
+                idx = nextContrib ? idx : -1;
             }
         }
     }

@@ -34,13 +34,13 @@ initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 initAtomicSubgroupIncFunction(cCounter, cCounterInc, 1, int)
 
 void splitNode(in int trID) {
-    int prID = Actives[trID]|(int(Local_Idx)&1); //exchange(Actives[trID], -1);
+    int prID = Actives[trID]|(int(Local_Idx)&1);
     SB_BARRIER
     exchange(Actives[trID], -1); // put -1
 
     bvhT_ptr _hidx = mk_bvhT_ptr(prID);
     ivec4 _pdata = imageLoad(bvhStorage, _hidx);
-    if (_pdata.y > _pdata.x && prID != -1) { // when not leafs
+    if (_pdata.y > _pdata.x && prID >= 0) { // when not leafs
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
         int hid = lCounterInc();

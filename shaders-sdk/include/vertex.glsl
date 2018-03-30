@@ -119,7 +119,7 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
     return T;
 }
 
-/*float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout vec2 uv, inout bool_ _valid, const float testdist) {
+float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout vec2 uv, in bool _valid) {
     const int itri = tri*9;
     const mat3 vT = mat3(
         vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
@@ -129,19 +129,19 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
     const vec3 e1 = vT[1]-vT[0], e2 = vT[2]-vT[0];
     const vec3 h = cross(dir, e2);
     const float a = dot(e1,h);
-    if (abs(a) < 1e-5f) { _valid = false_; }
+    if (abs(a) < 1e-5f) { _valid = false; }
 
     const float f = 1.f/a;
     const vec3 s = orig - vT[0], q = cross(s, e1);
     uv = f * vec2(dot(s,h),dot(dir,q));
 
-    if (uv.x < 0.f || uv.y < 0.f || (uv.x+uv.y) > 1.f) { _valid = false_; }
+    if (uv.x < 0.f || uv.y < 0.f || (uv.x+uv.y) > 1.f) { _valid = false; }
 
     float T = f * dot(e2,q);
-    if (T >= INFINITY || T < 0.f) { _valid = false_; } 
-    IF (not(_valid)) T = INFINITY;
+    if (T >= INFINITY || T < 0.f) { _valid = false; } 
+    IF (!_valid) T = INFINITY;
     return T;
-}*/
+}
 
 
 #endif

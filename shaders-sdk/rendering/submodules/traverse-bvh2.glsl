@@ -68,8 +68,8 @@ bool stackIsEmpty() { return stackPtr <= 0 && pageIdx < 0; }
 
 
 struct GeometrySpace {
-    int axis; mat3 iM;
-    //vec4 dir;
+    //int axis; mat3 iM;
+    vec4 dir;
     vec4 lastIntersection;
 };
 
@@ -97,8 +97,8 @@ struct BvhTraverseState {
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    //float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
-    float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    //float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }
@@ -142,8 +142,8 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
         torigTo = divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin+direct, 1.0f))).xyz,
         dirproj = torigTo+torig;
 
-    float dirlenInv = 1.f / max(length(dirproj), 1e-4f);
-    dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), 1e-4f.xxx) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
+    float dirlenInv = 1.f / max(length(dirproj), 1e-5f);
+    dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), 1e-5f.xxx) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
 
     // limitation of distance
     bvec3_ bsgn = (bvec3_(sign(dirproj)*ftype_(1.0001f))+true_)>>true_;
@@ -151,6 +151,7 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
     // bvh space precalculations 
     traverseState.bvhSpace.boxSide = bsgn;
     
+    /*
     { // calculate longest axis
         vec3 drs = abs(direct); traverseState.geometrySpace.axis = 2;
         if (drs.y >= drs.x && drs.y > drs.z) traverseState.geometrySpace.axis = 1;
@@ -164,10 +165,10 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
         traverseState.geometrySpace.axis == 0 ? vm.wyz : vec3(1.f,0.f,0.f),
         traverseState.geometrySpace.axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
         traverseState.geometrySpace.axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
-    ));
+    ));*/
 
     // continue traversing when needed
-    //traverseState.geometrySpace.dir = vec4(direct, 1.f);
+    traverseState.geometrySpace.dir = vec4(direct, 1.f);
     traverseState.geometrySpace.lastIntersection = eht > 0 ? hits[eht-1].uvt : vec4(0.f.xx, INFINITY, FINT_NULL);
 
     // test intersection with main box

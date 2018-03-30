@@ -29,10 +29,10 @@ void main() {
                 ivec4 bvhmeta = imageLoad(bvhStorage, _idx2);
                 if (bvhmeta.x == bvhmeta.y) { // if true leaf
                     uint leafID = MortoncodesIndices[bvhmeta.x];
-                    Leafs[leafID].pdata.z = int(idx);
                     bvhmeta.xy = ivec2(Leafs[leafID].pdata.w, 1);
                     ISTORE(bvhStorage, _idx2, bvhmeta);
 
+                    // 
                     int bidx = idx>>1, sidx = idx&1;
                     bvhBoxesWork[bidx][sidx*2+0] = Leafs[leafID].lbox[0];
                     bvhBoxesWork[bidx][sidx*2+1] = Leafs[leafID].lbox[1];

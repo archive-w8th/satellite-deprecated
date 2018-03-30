@@ -198,17 +198,13 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
             bool _continue = false;
             bvhT_ptr b2idx = mk_bvhT_ptr(traverseState.idx);
             ivec2 cnode = traverseState.idx >= 0 ? texelFetch(bvhStorage, b2idx, 0).xy : (-1).xx;
-            // planned another plan of "y" value in BVH 
 
             // if not leaf and not wrong
             IF (cnode.y == 0 && cnode.x != cnode.y) {
-                vec2 nears = INFINITY.xx, fars = INFINITY.xx; 
+                vec2 nears = INFINITY.xx, fars = INFINITY.xx;
+                bvec2_ childIntersect = bvec2_((traverseState.idx >= 0).xx);
 
                 // intersect boxes
-                bvec2_ childIntersect = bvec2_((traverseState.idx >= 0).xx);
-                childIntersect &= bool_(cnode.y == 0).xx; // base on fact 
-
-                // load 32-byte bounding box
                 const int _cmp = cnode.x >> 1;
                 childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, 
 #ifdef USE_F32_BVH
@@ -219,6 +215,8 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
                     fmat3x4_(vec4(0.f), vec4(0.f), vec4(0.f))
 #endif
                 , nears, fars);
+                
+                childIntersect &= bool_(cnode.y == 0).xx; // base on fact
                 childIntersect &= bvec2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection

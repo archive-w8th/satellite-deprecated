@@ -21,14 +21,17 @@ initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 void unifyNodeBox(in int idx){
     int sibid = imageLoad(bvhStorage, mk_bvhT_ptr(idx)).x >> 1;
 
-    // TODO: unpacking correction rows
+    // pick up boxes of node
     vec4  
         lmn = bvhBoxesWork[sibid][0], rmn = bvhBoxesWork[sibid][2],
         lmx = bvhBoxesWork[sibid][1], rmx = bvhBoxesWork[sibid][3];
 
+    // pre-complete parent task
     int bidx = idx>>1, sidx = idx&1;
-    bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
-    bvhBoxesWork[bidx][sidx*2+1] = max(lmx, rmx);
+    if (bidx >= 0) {
+        bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
+        bvhBoxesWork[bidx][sidx*2+1] = max(lmx, rmx);
+    }
 
     // shuffle and transpose for traversing (resulting childrens)
 #ifdef USE_F32_BVH
@@ -37,7 +40,6 @@ void unifyNodeBox(in int idx){
     bvhBoxesResulting[sibid][2] = fvec4_(lmn.z, rmn.z, lmx.z, rmx.z);
     bvhBoxesResulting[sibid][3] = fvec4_(lmn.w, rmn.w, lmx.w, rmx.w);
 #else
-    // TODO: support of corrections fields
     bvhBoxesResulting[sibid][0].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.x, rmn.x, lmx.x, rmx.x)) );
     bvhBoxesResulting[sibid][1].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.y, rmn.y, lmx.y, rmx.y)) );
     bvhBoxesResulting[sibid][2].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.z, rmn.z, lmx.z, rmx.z)) );
@@ -51,26 +53,30 @@ void main() {
     int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;
+        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); 
+        if (globalID >= n) break;
         if (globalID < n && globalID >= 0) {
+            // get bbox host node of leafs
             int idx = exchange(LeafIndices[globalID], -1);
+            
+            // reductive unity boxes
             for (int l=0;l<256;l++) {
                 ivec4 cmp4 = imageLoad(bvhStorage, mk_bvhT_ptr(idx));
+                idx = idx >= 0 ? cmp4.z : -1; // give to parent node
 
-                bool validParent = cmp4.z >= 0 && idx >= 0;
-                if (validParent) {
-                    int _swp = atomicCompSwap(Flags[cmp4.z], 0, 1);
-                    validParent = validParent && _swp == 1; // resolve race condition
-                    if (validParent) { idx = cmp4.z; } else { idx = -1; }
-                } else {
-                    idx = -1;
+                // complete voting of our node
+                bool completeNode = idx >= 0;
+                if (completeNode) {
+                    int _swp = atomicCompSwap(Flags[idx], 0, 1);
+                    completeNode = completeNode && _swp == 1;
                 }
+                idx = completeNode ? idx : -1;
 
+                // do contribution to parent node host
                 if (idx >= 0) {
-                    cmp4 = imageLoad(bvhStorage, mk_bvhT_ptr(idx));
-                    if (cmp4.x != cmp4.y) unifyNodeBox(idx);
-                } else {
-                    break;
+                    unifyNodeBox(idx);
+                } else { 
+                    break; 
                 }
             }
         }

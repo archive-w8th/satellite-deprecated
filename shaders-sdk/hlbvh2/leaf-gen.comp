@@ -104,9 +104,6 @@ bbox compactBoxByTriangle(in bbox abox, in mat3x4 triverts){
     return result;
 }
 
-
-
-
 void main() {
     int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
     int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);

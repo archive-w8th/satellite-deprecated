@@ -163,7 +163,7 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
 #ifdef ENABLE_VSTORAGE_DATA
 #ifdef ENABLE_VERTEX_INTERPOLATOR
 // barycentric map (for corrections tangents in POM)
-HitData interpolateMeshData(inout HitData ht) {
+void interpolateMeshData(inout HitData ht) {
     const int tri = floatBitsToInt(ht.uvt.w); 
     const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy); 
     const vec2 sz = 1.f.xx / textureSize(attrib_texture, 0), szt = sz * 0.9999f;
@@ -179,7 +179,6 @@ HitData interpolateMeshData(inout HitData ht) {
         ht.tangent     = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, tgtrig, 0)._SWIZV, SGATHER(attrib_texture, tgtrig, 1)._SWIZV, SGATHER(attrib_texture, tgtrig, 2)._SWIZV)), 0.0f);
         ht.bitangent   = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, bttrig, 0)._SWIZV, SGATHER(attrib_texture, bttrig, 1)._SWIZV, SGATHER(attrib_texture, bttrig, 2)._SWIZV)), 0.0f);    
     }
-    return ht;
 }
 #endif
 #endif

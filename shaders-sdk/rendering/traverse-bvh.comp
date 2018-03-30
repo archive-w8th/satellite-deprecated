@@ -45,8 +45,9 @@ void main() {
                 int eht = floatBitsToInt(traverseState.currentRayTmp.origin.w);
 
                 vintersect &= bool_(eht <= 0).x | lessF(traverseState.geometrySpace.lastIntersection.z, hits[eht-1].uvt.z);
-                IFANY (vintersect) {
-                    HitData hit = hits[eht-1];
+                IF (vintersect) {
+                    int hid = eht > 0 ? eht : atomicIncHT()+1;
+                    HitData hit = hits[hid-1];
                     hit.uvt = traverseState.geometrySpace.lastIntersection;
                     hit.rayID = int(traverseState.currentRayTmp.uindex.x)-1;
                     hit.payloadID = 0;
@@ -55,11 +56,8 @@ void main() {
 #ifdef ENABLE_VERTEX_INTERPOLATOR
                     interpolateMeshData(hit);
 #endif
-                    IF (vintersect) {
-                        int hid = eht > 0 ? eht : atomicIncHT()+1;
-                        hits[hid-1] = hit;
-                        traverseState.currentRayTmp.origin.w = intBitsToFloat(hid);
-                    }
+                    hits[hid-1] = hit;
+                    traverseState.currentRayTmp.origin.w = intBitsToFloat(hid);
                 }
             }
         }

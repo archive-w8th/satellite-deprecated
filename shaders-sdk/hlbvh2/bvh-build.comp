@@ -34,7 +34,9 @@ initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
 initAtomicSubgroupIncFunction(cCounter, cCounterInc, 1, int)
 
 void splitNode(in int trID) {
-    int prID = exchange(Actives[trID], -1);
+    int prID = Actives[trID]|(int(Local_Idx)&1); //exchange(Actives[trID], -1);
+    SB_BARRIER
+    exchange(Actives[trID], -1); // put -1
 
     bvhT_ptr _hidx = mk_bvhT_ptr(prID);
     ivec4 _pdata = imageLoad(bvhStorage, _hidx);
@@ -48,19 +50,9 @@ void splitNode(in int trID) {
         bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1));
         ivec2 hd = hid + ivec2(0, 1);
 
-        // left child
-        if (isLeaf.x) {
-            LeafIndices[cCounterInc()] = hd.x;
-        } else { // add to next works
-            Actives[aCounterInc()] = hd.x;
-        }
-
-        // right child
-        if (isLeaf.y) {
-            LeafIndices[cCounterInc()] = hd.y;
-        } else { // add to next works
-            Actives[aCounterInc()] = hd.y;
-        }
+        if (any(not(isLeaf))) { Actives[aCounterInc()] = hd.x; }
+        if (isLeaf.x) LeafIndices[cCounterInc()] = hd.x;
+        if (isLeaf.y) LeafIndices[cCounterInc()] = hd.y;
 
         bvhT_ptr _lidx = mk_bvhT_ptr(hd.x), _ridx = mk_bvhT_ptr(hd.y);
         Flags[hd.x] = 0, Flags[hd.y] = 0;
@@ -75,26 +67,25 @@ void main() {
     uint threadID = uint(gl_LocalInvocationID.x);
     int workID = int(gl_WorkGroupID.x);
     int WS = int(gl_WorkGroupSize.x);
-    int hWS = int(gl_WorkGroupSize.x) / 2;
 
     // create initial (root) node
     bool isBeginning = aRange[1] == 0;
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
         int hid = lCounterInc(); Actives[aCounterInc()] = hid;
-
-        ISTORE(bvhStorage, mk_bvhT_ptr(hid), ivec4(0, aabbcount[0]-1, -1, -1));
+        ISTORE(bvhStorage, mk_bvhT_ptr(hid+0), ivec4(0, aabbcount[0]-1, -1, -1));
+        ISTORE(bvhStorage, mk_bvhT_ptr(hid+1), ivec4(0, 0, -1, -1));
         Flags[hid] = 0, Flags[hid+1] = 0;
     }
 
     LGROUP_BARRIER
 
     // begin work on splitting
-    int ranged[2] = (isBeginning && workID == 0) ? int[2](0, 1) : int[2](aRange[0], aRange[1]);
-    uint workSize = min((ranged[1] <= ranged[0]) ? 0 : (((ranged[1] - ranged[0]) - 1) / WS + 1), 8192);
+    ivec2 ranged = (isBeginning && workID == 0) ? ivec2(0, 1) : ivec2(aRange[0], aRange[1]);
+    uint workSize = min(tiled(ranged.y-ranged.x, tiled(WS,2)), 8192);
     int wgs = int(gl_NumWorkGroups);
     for (int i=0;i<workSize;i+=wgs) {
-        int trID = ranged[0] + WS * (i+workID) + int(threadID);
-        if (trID >= ranged[1]) break;
-        if (trID < ranged[1]) splitNode(trID);
+        int trID = ranged.x + ((WS * (i+workID) + int(threadID))>>1);
+        IFALL (trID >= ranged.y) break; 
+        if (trID < ranged.y) splitNode(trID);
     }
 }

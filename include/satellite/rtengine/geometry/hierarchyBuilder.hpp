@@ -39,7 +39,8 @@ namespace NSM
             ComputeContext buildBVHPpl, aabbCalculate, refitBVH, boundPrimitives, childLink;
             BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
             BufferType bvhBoxWorking, bvhBoxWorkingResulting, leafsBuffer, countersBuffer, mortonCodesBuffer, mortonIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
-            TextureType bvhMetaWorking;
+            BufferType bvhMetaWorking;
+            //TextureType bvhMetaWorking;
 
             std::vector<vk::DescriptorSet> builderDescriptorSets;
             std::vector<vk::DescriptorSetLayout> builderDescriptorLayout; // may be single layout

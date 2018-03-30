@@ -33,7 +33,7 @@
             #else
             layout ( std430, binding = 0, set = 1 ) restrict readonly buffer BVHBoxBlock { uvec2 bvhBoxes[][4]; }; 
             #endif
-            layout ( binding = 5, set = 1 ) uniform isampler2D bvhStorage;
+            layout ( std430, binding = 5, set = 1 ) restrict readonly buffer BVHMetaBlock { ivec4 bvhMeta[]; };
         #endif
         #endif
         
@@ -152,12 +152,13 @@ float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout ve
 
 const int _BVH_WIDTH = 2048;
 
+/*
 #define bvhT_ptr ivec2
 bvhT_ptr mk_bvhT_ptr(in int linear) {
     //int md = linear & 1; linear >>= 1;
     //return bvhT_ptr(linear % _BVH_WIDTH, ((linear / _BVH_WIDTH) << 1) + md);
     return bvhT_ptr(linear % _BVH_WIDTH, linear / _BVH_WIDTH); // just make linear (gather by tops of...)
-}
+}*/
 
 
 #ifdef ENABLE_VSTORAGE_DATA

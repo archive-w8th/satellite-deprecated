@@ -196,8 +196,7 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
 
         if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
-            bvhT_ptr b2idx = mk_bvhT_ptr(traverseState.idx);
-            ivec2 cnode = traverseState.idx >= 0 ? texelFetch(bvhStorage, b2idx, 0).xy : (-1).xx;
+            ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
 
             // if not leaf and not wrong
             IF (cnode.y == 0 && cnode.x != cnode.y) {
@@ -257,7 +256,7 @@ void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
                     traverseState.bitStack >>= 1;
-                    traverseState.idx = traverseState.idx >= 0 ? texelFetch(bvhStorage, mk_bvhT_ptr(traverseState.idx), 0).z : -1;
+                    traverseState.idx = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].z : -1;
                 }
 
                 // goto to sibling or break travers

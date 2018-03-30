@@ -28,7 +28,7 @@ namespace NSM
 
             // BVH storage
             BufferType bvhBoxStorage;
-            TextureType bvhMetaStorage;
+            BufferType bvhMetaStorage;
 
             // vertex data storage
             TextureType attributeTexelStorage;
@@ -70,7 +70,7 @@ namespace NSM
 
             // for bvh building (loads from geometry accumulator and builder)
             BufferType getBvhBox() { return bvhBoxStorage; }
-            TextureType getBvhMeta() { return bvhMetaStorage; }
+            BufferType getBvhMeta() { return bvhMetaStorage; }
 
             // geometry related buffers
             TextureType getAttributeTexel() { return attributeTexelStorage; }

@@ -15,7 +15,7 @@ LOCAL_SIZE_LAYOUT;
 
 void unifyNodeBox(in int idx){
     // contributor node must be complete node!
-    ivec4 comp = imageLoad(bvhStorage, mk_bvhT_ptr(idx)); // contributor meta
+    ivec4 comp = bvhMeta[idx]; // contributor meta
     int sibid = comp.x >> 1; // contributor box ID
 
     // pick up boxes of node
@@ -59,7 +59,7 @@ void main() {
             for (int l=0;l<256;l++) {
                 
                 // do contribution to parent node box host
-                ivec4 cmp4 = imageLoad(bvhStorage, mk_bvhT_ptr(idx));
+                ivec4 cmp4 = bvhMeta[idx];
                 if (idx >= 0) {
                     if (cmp4.y == 0) unifyNodeBox(idx);
                 } else { 

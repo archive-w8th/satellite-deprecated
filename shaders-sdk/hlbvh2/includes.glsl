@@ -44,11 +44,7 @@ layout ( std430, binding = 12, set = 0 ) restrict buffer BVHBoxBlockResulting { 
 layout ( std430, binding = 12, set = 0 ) restrict buffer BVHBoxBlockResulting { uvec2 bvhBoxesResulting[][4]; }; 
 #endif
 
-
-layout ( rgba32i, binding = 11, set = 0 ) restrict uniform iimage2D bvhStorage;
-
-
-
+layout ( std430, binding = 11, set = 0 ) restrict buffer BVHMetaBlock { ivec4 bvhMeta[]; };
 
 
 struct BVHCreatorUniformStruct {

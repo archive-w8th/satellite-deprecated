@@ -13,24 +13,24 @@
 
 LOCAL_SIZE_LAYOUT;
 
+#define CONTRIB_TO_PARENT_HOST
+
 void unifyNodeBox(in int idx){
-    // contributor node must be complete node!
-    ivec4 comp = bvhMeta[idx]; // contributor meta
-    int sibid = comp.x >> 1; // contributor box ID
-
-    // pick up boxes of node
-    vec4  
-        lmn = bvhBoxesWork[sibid][0], rmn = bvhBoxesWork[sibid][2],
-        lmx = bvhBoxesWork[sibid][1], rmx = bvhBoxesWork[sibid][3];
-
-    // pre-complete parent 
+    ivec4 comp = bvhMeta[idx]; // meta of contributable
+    int sibid = comp.x >> 1; // contributor prefix box id
     int bidx = idx>>1, sidx = idx&1;
+
+    // collect box data from contributor
+    vec4 lmn = bvhBoxesWork[sibid][0], rmn = bvhBoxesWork[sibid][2],
+         lmx = bvhBoxesWork[sibid][1], rmx = bvhBoxesWork[sibid][3];
+
+    // contribute to current node
     if (bidx >= 0) {
         bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
         bvhBoxesWork[bidx][sidx*2+1] = max(lmx, rmx);
     }
 
-    // shuffle and transpose for traversing (resulting childrens)
+    // transpose and compress boxes of contributor
 #ifdef USE_F32_BVH
     bvhBoxesResulting[sibid][0] = fvec4_(lmn.x, rmn.x, lmx.x, rmx.x);
     bvhBoxesResulting[sibid][1] = fvec4_(lmn.y, rmn.y, lmx.y, rmx.y);

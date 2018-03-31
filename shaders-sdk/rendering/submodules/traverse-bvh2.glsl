@@ -1,6 +1,12 @@
 
-#ifndef CACHE_BINDING
-#define CACHE_BINDING 16
+// default definitions
+
+#ifndef _CACHE_BINDING
+#define _CACHE_BINDING 16
+#endif
+
+#ifndef _RAY_TYPE
+#define _RAY_TYPE ElectedRay
 #endif
 
 
@@ -17,7 +23,7 @@ struct PagedStack { int stack[localStackSize]; };
 
 // dedicated BVH stack
 struct NodeCache { PagedStack stackPages[stackPageCount]; };
-layout ( std430, binding = CACHE_BINDING, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
+layout ( std430, binding = _CACHE_BINDING, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 
 
 // 128-bit payload
@@ -79,7 +85,7 @@ struct BVHSpace {
 };
 
 struct BvhTraverseState {
-    ElectedRay currentRayTmp;
+    _RAY_TYPE currentRayTmp;
 
     int idx, defTriangleID;
     float distMult, diffOffset;
@@ -111,7 +117,7 @@ void doIntersection() {
     traverseState.defTriangleID = -1;
 }
 
-void doBvhTraverse(in bool_ valid, inout ElectedRay rayIn) {
+void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     traverseState.currentRayTmp = rayIn;
     vec3 origin = traverseState.currentRayTmp.origin.xyz;
     vec3 direct = dcts(traverseState.currentRayTmp.cdirect.xy);

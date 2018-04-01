@@ -41,12 +41,8 @@ set(SOURCES_LIST
 
 set (DEFINES
     -DNOMINMAX
-    -DGLM_FORCE_SWIZZLE
     -DGLM_ENABLE_EXPERIMENTAL
     -DGLFW_INCLUDE_NONE
-    -DGLM_FORCE_INLINE
-    -DGLM_FORCE_EXPLICIT_CTOR
-    -DGLM_FORCE_CXX14
     -DUSE_CIMG
     -DEXPERIMENTAL_GLTF
     -DNSM=ste
@@ -63,7 +59,7 @@ endif()
 
 set (DEP_DIR "${PROJECT_SOURCE_DIR}")
 set (LIB_DIR "${CMAKE_MODULE_PATH}/lib"     "${DEP_DIR}/lib"     "${DEP_DIR}/testapps/lib")
-set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/testapps/include" "${DEP_DIR}/testapps/imgui" "${PROJECT_SOURCE_DIR}")
+set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/testapps/" "${DEP_DIR}/testapps/include" "${DEP_DIR}/testapps/imgui" "${PROJECT_SOURCE_DIR}")
 
 set (CMAKE_MODULE_PATH 
     "${DEP_DIR}/modules" 

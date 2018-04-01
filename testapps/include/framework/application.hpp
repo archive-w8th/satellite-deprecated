@@ -1,8 +1,8 @@
 #pragma once
 
 #include <sstream>
-#include "satellite/appBase.hpp"
-#include "service/ambientIO.hpp"
+#include <satellite/appBase.hpp>
+#include <service/ambientIO.hpp>
 
 using U_MEM_HANDLE = uint8_t * ;
 
@@ -10,6 +10,7 @@ namespace SatelliteExample {
     using namespace NSM;
 
     TextureType loadEnvmap(std::string bgTexName, DeviceQueueType& device) {
+#ifdef USE_CIMG
         cil::CImg<float> image(bgTexName.c_str());
         if (!image) return nullptr;
 
@@ -39,6 +40,9 @@ namespace SatelliteExample {
         // create sampler for combined
         texture->descriptorInfo.sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
         return texture;
+#else
+        return nullptr;
+#endif
     }
 
 

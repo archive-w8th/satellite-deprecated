@@ -25,7 +25,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffers(const DeviceQueueType &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true) 
+    void flushCommandBuffers(const DeviceQueueType &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true) 
     {
         std::vector<vk::SubmitInfo> submitInfos = {
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
@@ -55,7 +55,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffers(const DeviceQueueType &deviceQueue,
+    void flushCommandBuffers(const DeviceQueueType &deviceQueue,
         const std::vector<vk::CommandBuffer> &commandBuffers,
         const std::function<void()> &asyncCallback)
     {
@@ -79,7 +79,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
+    void flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
     {
         commandBuffer.end();
 
@@ -108,7 +108,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
+    void flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
@@ -126,7 +126,7 @@ namespace NSM
     };
 
     // flush command for rendering
-    auto flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
+    void flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);

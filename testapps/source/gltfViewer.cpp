@@ -1,15 +1,9 @@
 ﻿#pragma once
 
-
-#include "gltfViewer.hpp"
+#include "./gltfViewer.hpp"
 
 // application space itself
 namespace SatelliteExample {
-
-
-
-
-
 
     void GltfViewer::parseArguments(const int32_t& argc, const char ** argv) {
         args::ArgumentParser parser("This is a test rendering program.", "GeForce GTX 560 still sucks in 2018 year...");

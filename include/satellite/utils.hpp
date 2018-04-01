@@ -15,8 +15,11 @@
 #include <execution>
 #include <iterator>
 
+#define GLM_FORCE_SWIZZLE
+
 #include <half.hpp> // force include half's
 #include <glm/glm.hpp>
+#include <glm/gtx/vec_swizzle.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/random.hpp>

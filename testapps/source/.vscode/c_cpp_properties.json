@@ -5,8 +5,10 @@
             "includePath": [
                 "/usr/include",
                 "/usr/local/include",
+                "${workspaceFolder}",
                 "${workspaceFolder}/../",
-                "${workspaceFolder}"
+                "${workspaceFolder}/../include",
+                "${workspaceFolder}/../../include"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
@@ -14,8 +16,10 @@
                 "path": [
                     "/usr/include",
                     "/usr/local/include",
+                    "${workspaceFolder}",
                     "${workspaceFolder}/../",
-                    "${workspaceFolder}"
+                    "${workspaceFolder}/../include",
+                    "${workspaceFolder}/../../include"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
@@ -30,8 +34,10 @@
             "includePath": [
                 "/usr/include",
                 "/usr/local/include",
+                "${workspaceFolder}",
                 "${workspaceFolder}/../",
-                "${workspaceFolder}"
+                "${workspaceFolder}/../include",
+                "${workspaceFolder}/../../include"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
@@ -39,8 +45,10 @@
                 "path": [
                     "/usr/include",
                     "/usr/local/include",
+                    "${workspaceFolder}",
                     "${workspaceFolder}/../",
-                    "${workspaceFolder}"
+                    "${workspaceFolder}/../include",
+                    "${workspaceFolder}/../../include"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
@@ -51,6 +59,8 @@
             "includePath": [
                 "${workspaceFolder}",
                 "${workspaceFolder}/../",
+                "${workspaceFolder}/../include",
+                "${workspaceFolder}/../../include",
                 "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.14.26316/include/*",
                 "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.14.26316/atlmfc/include/*",
                 "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/um",
@@ -58,7 +68,7 @@
                 "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/shared",
                 "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/winrt",
                 "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/cppwinrt",
-                "C:/VulkanSDK/1.1.70.1/include"
+                "C:/VulkanSDK/1.1.70.1/Include"
             ],
             "defines": [
                 "_DEBUG",
@@ -72,6 +82,8 @@
                 "path": [
                     "${workspaceFolder}",
                     "${workspaceFolder}/../",
+                    "${workspaceFolder}/../include",
+                    "${workspaceFolder}/../../include",
                     "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.14.26316/include/*",
                     "C:/Program Files (x86)/Microsoft Visual Studio/Preview/Community/VC/Tools/MSVC/14.14.26316/atlmfc/include/*",
                     "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/um",
@@ -79,7 +91,7 @@
                     "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/shared",
                     "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/winrt",
                     "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17120.0/cppwinrt",
-                    "C:/VulkanSDK/1.1.70.1/include"
+                    "C:/VulkanSDK/1.1.70.1/Include"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""

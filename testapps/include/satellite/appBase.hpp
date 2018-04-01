@@ -1,6 +1,7 @@
 #pragma once
 
-#include "./gapi.hpp"
+#include <satellite/utils.hpp>
+#include <satellite/gapi.hpp>
 
 #ifdef OS_WIN
 #define GLFW_EXPOSE_NATIVE_WIN32

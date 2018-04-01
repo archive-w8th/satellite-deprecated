@@ -20,6 +20,7 @@
 namespace SatelliteExample {
 
     class CameraController {
+    protected:
         bool monteCarlo = true;
 
     public:
@@ -200,6 +201,7 @@ namespace SatelliteExample {
     void GltfViewer::resize(const int32_t& width, const int32_t& height) { rays->resizeCanvas(width, height); }
 
     void GltfViewer::saveHdr(std::string name) {
+#ifdef USE_CIMG
         auto width = rays->getCanvasWidth(), height = rays->getCanvasHeight();
         std::vector<float> imageData(width * height * 4);
 
@@ -225,5 +227,6 @@ namespace SatelliteExample {
             image.get_shared_channel(3).fill(1.f);
             image.save_exr_adv(name.c_str());
         }
+#endif
     }
 };

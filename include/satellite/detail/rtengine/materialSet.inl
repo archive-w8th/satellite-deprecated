@@ -7,6 +7,7 @@ namespace NSM
     namespace rt
     {
 
+        /*
         void MaterialSet::init(DeviceQueueType &device)
         {
             this->device = device;
@@ -124,5 +125,6 @@ namespace NSM
         {
             return materials.size() > 0;
         }
+        */
     }
 }

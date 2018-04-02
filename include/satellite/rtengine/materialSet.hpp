@@ -1,12 +1,17 @@
 #pragma once
 
 #include "./structs.hpp"
+#include "./vertexSubnodes.hpp"
 
 namespace NSM
 {
     namespace rt
     {
+        using MaterialSet = BufferComposer<2, VirtualMaterial>;
+        using VirtualTextureSet = BufferComposer<3, VirtualTexture>;
 
+
+        /*
         class MaterialSet
         {
         protected:
@@ -53,6 +58,7 @@ namespace NSM
             void resetVirtualTextures() { vtextures.resize(0); needUpdate = true; }
             
         };
+        */
 
     } // namespace rt
 } // namespace NSM

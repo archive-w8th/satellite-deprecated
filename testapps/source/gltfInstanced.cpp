@@ -46,6 +46,8 @@ namespace SatelliteExample {
         materialManager = std::shared_ptr<rt::MaterialSet>(new rt::MaterialSet(device));
         textureManager = std::shared_ptr<rt::TextureSet>(new rt::TextureSet(device));
         samplerManager = std::shared_ptr<rt::SamplerSet>(new rt::SamplerSet(device));
+        vTextureSet = std::shared_ptr<rt::VirtualTextureSet>(new rt::VirtualTextureSet(device));
+
 
         // load env map 
         auto cbmap = loadEnvmap(bgTexName, device);
@@ -68,6 +70,7 @@ namespace SatelliteExample {
             rtTextures.push_back(textureManager->loadTexture(&gltfModel.images[gltfTexture.source]));
         }
 
+
         // load materials (include PBR)
         for (int i = 0; i < gltfModel.materials.size(); i++) {
             tinygltf::Material & material = gltfModel.materials[i];
@@ -83,7 +86,7 @@ namespace SatelliteExample {
             if (material.values["baseColorFactor"].number_array.size() >= 3) {
                 submat.diffuse = glm::vec4(glm::make_vec3(&material.values["baseColorFactor"].number_array[0]), 1.0f);
             }
-            
+
             // metallic
             if (material.values["metallicFactor"].number_array.size() >= 1) {
                 submat.specular.z = material.values["metallicFactor"].number_array[0];
@@ -102,23 +105,23 @@ namespace SatelliteExample {
 
             // diffuse texture
             int32_t texId = getTextureIndex(material.values["baseColorTexture"].json_double_value);
-            submat.diffuseTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
+            submat.diffuseTexture = texId >= 0 ? vTextureSet->addElement(rt::VirtualTexture{ uint32_t(rtTextures[texId]), 0u }) + 1 : 0;
 
             // metallic/roughness texture
             texId = getTextureIndex(material.values["metallicRoughnessTexture"].json_double_value);
-            submat.specularTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
+            submat.specularTexture = texId >= 0 ? vTextureSet->addElement(rt::VirtualTexture{ uint32_t(rtTextures[texId]), 0u }) + 1 : 0;
 
             // emissive texture
             texId = getTextureIndex(material.additionalValues["emissiveTexture"].json_double_value);
-            submat.emissiveTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
+            submat.emissiveTexture = texId >= 0 ? vTextureSet->addElement(rt::VirtualTexture{ uint32_t(rtTextures[texId]), 0u }) + 1 : 0;
 
             // normal map
             texId = getTextureIndex(material.additionalValues["normalTexture"].json_double_value);
-            submat.bumpTexture = texId >= 0 ? materialManager->addVTexture(glm::uvec2(rtTextures[texId], 0)) : 0;
+            submat.bumpTexture = texId >= 0 ? vTextureSet->addElement(rt::VirtualTexture{ uint32_t(rtTextures[texId]), 0u }) + 1 : 0;
 
 
             // load material
-            materialManager->addMaterial(submat);
+            materialManager->addElement(submat);
         }
 
 
@@ -289,6 +292,7 @@ namespace SatelliteExample {
 
 
         // bind resources
+        rays->setVirtualTextureSet(vTextureSet);
         rays->setMaterialSet(materialManager);
         rays->setTextureSet(textureManager);
         rays->setSamplerSet(samplerManager);

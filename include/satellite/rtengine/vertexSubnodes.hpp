@@ -21,6 +21,9 @@ namespace NSM
             int32_t addElement(STRUCTURE accessorDesc);
             BufferType getBuffer();
             void resetStack() { needUpdateBuffer = true; data.resize(0); }
+            uint32_t getCount() { return data.size(); }
+            bool haveElements() { return data.size() > 0; }
+            bool needUpdateStatus() { return needUpdateBuffer; }
 
             // borrow edit and view
             STRUCTURE& getStructure(intptr_t ptr = 0);
@@ -51,8 +54,6 @@ namespace NSM
 
             void resetOffsetCounter() { needUpdateSpaceDescs = true; lastKnownOffset = 0; }
 
-            
-
         protected:
             BufferType dataStage;
             BufferType dataBuffer;
@@ -67,6 +68,5 @@ namespace NSM
         using DataAccessSet = BufferComposer<3, VirtualDataAccess>;
         using DataBindingSet = BufferComposer<4, VirtualBufferBinding>;
         using MeshUniformSet = BufferComposer<5, MeshUniformStruct>;
-
     } // namespace rt
 } // namespace NSM

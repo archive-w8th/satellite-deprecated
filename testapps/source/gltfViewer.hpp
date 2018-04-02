@@ -162,6 +162,7 @@ namespace SatelliteExample {
         std::shared_ptr<rt::HieararchyBuilder> bvhBuilder;
         std::shared_ptr<rt::GeometryAccumulator> geometryCollector;
         std::shared_ptr<rt::MaterialSet> materialManager;
+        std::shared_ptr<rt::VirtualTextureSet> vTextureSet;
         std::shared_ptr<rt::TextureSet> textureManager;
         std::shared_ptr<rt::SamplerSet> samplerManager;
 

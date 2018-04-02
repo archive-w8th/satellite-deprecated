@@ -4,6 +4,7 @@
 #include "./materialSet.hpp"
 #include "./samplerSet.hpp"
 #include "./textureSet.hpp"
+#include "./vertexSubnodes.hpp"
 #include "./triangleHierarchy.hpp"
 
 namespace NSM
@@ -92,6 +93,7 @@ namespace NSM
             bool hitCountGot = false, doCleanSamples = false;
 
             std::shared_ptr<MaterialSet> boundMaterialSet;
+            std::shared_ptr<VirtualTextureSet> boundVirtualTextureSet;
 
         protected:
             void syncUniforms();
@@ -126,6 +128,7 @@ namespace NSM
             void setSamplerSet(std::shared_ptr<SamplerSet> &samplerSet);
             void setTextureSet(std::shared_ptr<TextureSet> &textureSet);
             void setMaterialSet(std::shared_ptr<MaterialSet> &materialSet);
+            void setVirtualTextureSet(std::shared_ptr<VirtualTextureSet> &vTexSet);
             void setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy);
             void setHierarchyStorages(const std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies);
             //TraversibleData& getTraverseDescriptorSet() { return tbsData; };

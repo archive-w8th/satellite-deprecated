@@ -517,26 +517,15 @@ namespace NSM
             reloadQueuedRays();
         }
 
-        void Pipeline::setMaterialSet(std::shared_ptr<MaterialSet> &materialSet)
+
+        void Pipeline::setVirtualTextureSet(std::shared_ptr<VirtualTextureSet> &vTextureSet)
         {
-            if (!materialSet->haveMaterials()) return;
-            boundMaterialSet = materialSet;
-            materialSet->loadToVGA();
+            if (!vTextureSet->haveElements()) return;
+            boundVirtualTextureSet = vTextureSet;
 
-            auto materialBuffer = materialSet->getMaterialBuffer();
-            auto vtextureBuffer = materialSet->getVTextureBuffer();
-
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>
-            {
+            auto vtextureBuffer = vTextureSet->getBuffer();
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet> {
                 vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[1])
-                    .setDstBinding(2)
-                    .setDstArrayElement(0)
-                    .setDescriptorCount(1)
-                    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
-                    .setPBufferInfo(&materialBuffer->descriptorInfo),
-                    
-               vk::WriteDescriptorSet()
                     .setDstSet(surfaceDescriptors[1])
                     .setDstBinding(3)
                     .setDstArrayElement(0)
@@ -545,6 +534,39 @@ namespace NSM
                     .setPBufferInfo(&vtextureBuffer->descriptorInfo)
             }, nullptr);
         }
+
+
+        void Pipeline::setMaterialSet(std::shared_ptr<MaterialSet> &materialSet)
+        {
+            if (!materialSet->haveElements()) return;
+            boundMaterialSet = materialSet;
+
+            // if material set needs to update
+            if (boundMaterialSet && boundMaterialSet->needUpdateStatus()) {
+
+                // make material update
+                std::vector<glm::uvec2> mcount{ glm::uvec2(0, boundMaterialSet->getCount()) };
+                memcpy(&rayBlockData[0].materialUniform.materialOffset, mcount.data(), mcount.size() * sizeof(glm::uvec2)); // copy to original uniform
+
+                // copy to surfaces and update material set
+                auto copyCommand = getCommandBuffer(device, true);
+                bufferSubData(copyCommand, generalStagingBuffer, mcount, 0); // upload to staging
+                memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
+                flushCommandBuffer(device, copyCommand, true);
+            }
+
+            auto materialBuffer = boundMaterialSet->getBuffer();
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet> {
+                vk::WriteDescriptorSet()
+                    .setDstSet(surfaceDescriptors[1])
+                    .setDstBinding(2)
+                    .setDstArrayElement(0)
+                    .setDescriptorCount(1)
+                    .setDescriptorType(vk::DescriptorType::eStorageBuffer)
+                    .setPBufferInfo(&materialBuffer->descriptorInfo)
+            }, nullptr);
+        }
+
 
         void Pipeline::setSamplerSet(std::shared_ptr<SamplerSet> &samplerSet)
         {
@@ -572,6 +594,7 @@ namespace NSM
                     .setPImageInfo(images.data())
             }, nullptr);
         }
+
 
         void Pipeline::setTextureSet(std::shared_ptr<TextureSet> &textureSet)
         {
@@ -605,25 +628,48 @@ namespace NSM
             for (auto& em : hierarchies) { hstorages.push_back(em); }
         }
 
+
         void Pipeline::setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy) {
             hstorages.resize(0);
             hstorages.push_back(hierarchy);
         }
 
+
         void Pipeline::traverse() {
             if (hstorages.size() <= 0) return; // no valid geometry or hierarchy
 
-            // copy to surfaces
+            // if material set needs to update
+            if (boundMaterialSet && boundMaterialSet->needUpdateStatus()) {
+
+                // make material update
+                std::vector<glm::uvec2> mcount{ glm::uvec2(0, boundMaterialSet->getCount()) };
+                memcpy(&rayBlockData[0].materialUniform.materialOffset, mcount.data(), mcount.size() * sizeof(glm::uvec2)); // copy to original uniform
+
+                // copy to surfaces and update material set
+                auto copyCommand = getCommandBuffer(device, true);
+                bufferSubData(copyCommand, generalStagingBuffer, mcount); // upload to staging
+                memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
+                flushCommandBuffer(device, copyCommand, true);
+
+                // trigger update 
+                boundMaterialSet->getBuffer();
+            }
+
+            // update virtual texture set
+            if (boundVirtualTextureSet && boundVirtualTextureSet->needUpdateStatus()) {
+                boundVirtualTextureSet->getBuffer(); // trigger update
+            }
+
+            // updateing hit counter (planned multi-GPU support)
             auto copyCommand = getCommandBuffer(device, true);
-            memoryCopyCmd(copyCommand, this->boundMaterialSet->getCountBuffer(), rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
             memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
             memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
 
             // form descriptors for traversers
             TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
+            dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
 
             // push bvh traverse commands
-            dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
             for (auto& him : hstorages) { him->queryTraverse(tbsData); }
 
             // push surface shaders commands

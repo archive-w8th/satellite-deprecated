@@ -232,6 +232,16 @@ namespace NSM
             int32_t bitfield = 0;
         };
 
+        struct VirtualTextureDetail { uint32_t texture = 0, sampler = 0; };
+
+        struct VirtualTexture
+        {
+            union {
+                VirtualTextureDetail textureSamplerDet;
+                glm::uvec2 textureSampler;
+            };
+        };
+
         struct BlockCacheInfo
         {
             int indiceCount;   // count of indices in traverse

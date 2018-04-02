@@ -132,3 +132,16 @@ foreach(source IN LISTS RSOURCES)
 endforeach()
 
 
+
+
+add_executable(${APPLICATION_NAME}-instance testapps/source/gltfInstanced.cpp ${RSOURCES})
+target_link_libraries(${APPLICATION_NAME}-instance ${LIBS})
+
+foreach(source IN LISTS RSOURCES)
+    get_filename_component(source_path "${source}" PATH)
+    string(REPLACE "/" "\\" source_path_msvc "${source_path}")
+    source_group("${source_path_msvc}" FILES "${source}")
+endforeach()
+
+
+

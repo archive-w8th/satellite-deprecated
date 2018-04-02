@@ -36,7 +36,9 @@ set(SOURCES_LIST
     "./include/*/*/*/*/*.h"
     "./include/*/*/*/*/*.hpp"
     "./include/*/*/*/*/*.inl"
-    
+    "./include/*/*/*/*/*/*.h"
+    "./include/*/*/*/*/*/*.hpp"
+    "./include/*/*/*/*/*/*.inl"
 )
 
 set (DEFINES

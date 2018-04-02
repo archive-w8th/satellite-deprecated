@@ -19,12 +19,16 @@ namespace NSM
             const size_t _BVH_WIDTH = 2048;
             const size_t ATTRIBUTE_EXTENT = 4;
 
+            // for traversing
+            const size_t INTENSIVITY = 1024;
+
             std::string shadersPathPrefix = "shaders-spv";
 
             DeviceQueueType device;
-            ComputeContext buildBVHPpl, aabbCalculate, refitBVH, boundPrimitives, childLink;
+            ComputeContext bvhTraverse;
 
             BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
+            BufferType traverseBlockData, traverseCacheData;
 
             // BVH storage
             BufferType bvhBoxStorage;
@@ -38,6 +42,7 @@ namespace NSM
             UniformBuffer geometryBlockUniform; // buffer of uniforms
 
             // will shared for
+            vk::PipelineLayout rayTraversePipelineLayout;
             std::vector<vk::DescriptorSet> clientDescriptorSets;
             std::vector<vk::DescriptorSetLayout> clientDescriptorLayout; // may be single layout
 
@@ -56,7 +61,6 @@ namespace NSM
             {
                 // confirm geometry accumulation by counter (planned locking ops)
                 auto geometrySourceCounterHandler = zerosBufferReference;
-                auto geometryBlockUniform = this->getGeometryBlockUniform();
                 flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); //
             };
 
@@ -65,7 +69,6 @@ namespace NSM
             void allocateNodeReserve(size_t maxt);
 
             // share for client state
-            vk::DescriptorSet &getClientDescriptorSet() { return clientDescriptorSets[0]; };
             UniformBuffer &getGeometryBlockUniform() { return geometryBlockUniform; }; // here will confirmation and copying counters
 
             // for bvh building (loads from geometry accumulator and builder)
@@ -77,6 +80,12 @@ namespace NSM
             BufferType getVertexLinear() { return vertexLinearStorage; }
             BufferType getMaterialIndices() { return materialIndicesStorage; }
             BufferType getOrderIndices() { return orderIndicesStorage; }
+
+            // getter for hierarchy builder
+            vk::DescriptorSet& getStorageDescSec() { return clientDescriptorSets[1]; };
+
+            // traversing with shared ray-tracer data
+            void queryTraverse(TraversibleData& tbsData);
 
         protected:
             void init(DeviceQueueType &device);

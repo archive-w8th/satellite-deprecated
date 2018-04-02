@@ -21,17 +21,6 @@ namespace NSM
 
         void Pipeline::initDescriptorSets()
         {
-            // descriptor set layout of foreign storage (planned to sharing this structure by C++17)
-            std::vector<vk::DescriptorSetLayoutBinding> clientDescriptorSetLayoutBindings = {
-                vk::DescriptorSetLayoutBinding(10, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // attribute (alpha footage)
-                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // BVH boxes
-                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // materials
-                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // orders
-                vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // geometryUniform
-                vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // BVH metadata
-                vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // reserved
-                vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // vertex linear buffer
-            };
 
             // ray tracing unified descriptors
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
@@ -57,10 +46,6 @@ namespace NSM
                 // hit payloads
                 vk::DescriptorSetLayoutBinding(15, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
 
-                // BVH cache binding set
-                vk::DescriptorSetLayoutBinding(16, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                vk::DescriptorSetLayoutBinding(17, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-
                 // environment map for ray tracing
                 vk::DescriptorSetLayoutBinding(20, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // environment map
             };
@@ -84,8 +69,7 @@ namespace NSM
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(surfaceImgSetLayoutBindings.data()).setBindingCount(surfaceImgSetLayoutBindings.size())),
-                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size())),
-                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())),
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size()))
             };
 
             // allocate descriptor sets (except 3rd, planned to use templates)
@@ -93,15 +77,13 @@ namespace NSM
 
             // layouts
             rayTracingDescriptorsLayout = { descriptorSetLayouts[0] };
-            rayTraverseDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[3] };
             samplingDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[2] };
-            surfaceDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[3], descriptorSetLayouts[1] };
+            surfaceDescriptorsLayout = { descriptorSetLayouts[0], descriptorSetLayouts[1] };
 
             // descriptors
             rayTracingDescriptors = { descriptorSets[0] };
-            rayTraverseDescriptors = { descriptorSets[0], nullptr };
             samplingDescriptors = { descriptorSets[0], descriptorSets[2] };
-            surfaceDescriptors = { descriptorSets[0], nullptr, descriptorSets[1] };
+            surfaceDescriptors = { descriptorSets[0], descriptorSets[1] };
 
             // create staging buffer
             generalStagingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -114,14 +96,13 @@ namespace NSM
 
             // create pipeline layouts
             rayTracingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayTracingDescriptorsLayout.data()).setSetLayoutCount(rayTracingDescriptorsLayout.size()));
-            rayTraversePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayTraverseDescriptorsLayout.data()).setSetLayoutCount(rayTraverseDescriptorsLayout.size()));
             samplingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(samplingDescriptorsLayout.data()).setSetLayoutCount(samplingDescriptorsLayout.size()));
             surfacePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(surfaceDescriptorsLayout.data()).setSetLayoutCount(surfaceDescriptorsLayout.size()));
 
             // create pipelines (TODO: make true names in C++ or host code)
             unorderedFormer = createCompute(device, shadersPathPrefix + "/rendering/traverse-pre.comp.spv", rayTracingPipelineLayout, pipelineCache);
             rayGeneration = createCompute(device, shadersPathPrefix + "/rendering/gen-primary.comp.spv", rayTracingPipelineLayout, pipelineCache);
-            bvhTraverse = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
+            
             surfaceShadingPpl = createCompute(device, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout, pipelineCache);
             rayShadePipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout, pipelineCache);
             sampleCollection = createCompute(device, shadersPathPrefix + "/rendering/pgather.comp.spv", samplingPipelineLayout, pipelineCache);
@@ -277,7 +258,7 @@ namespace NSM
                 // update descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet()
-                        .setDstSet(surfaceDescriptors[2])
+                        .setDstSet(surfaceDescriptors[1])
                         .setDstBinding(0)
                         .setDstArrayElement(0)
                         .setDescriptorCount(imageDescs.size())
@@ -301,7 +282,7 @@ namespace NSM
                 // update descriptors
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet()
-                        .setDstSet(surfaceDescriptors[2])
+                        .setDstSet(surfaceDescriptors[1])
                         .setDstBinding(1)
                         .setDstArrayElement(0)
                         .setDescriptorCount(samplerDescs.size())
@@ -352,8 +333,8 @@ namespace NSM
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(0).setPImageInfo(&accumulationImage->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(1).setPImageInfo(&filteredImage->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(2).setPImageInfo(&flagsImage->descriptorInfo),
             }, nullptr);
 
             clearSampling();
@@ -404,10 +385,6 @@ namespace NSM
             clearingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             unorderedTempBuffer = createBuffer(device, strided<glm::u64vec4>(blockLimit * BLOCK_SIZE), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
-            // caches
-            traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * 64 * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);
             for (int i = 0; i < 32; i++) { minmaxes[i * 2 + 0] = glm::vec4(10000.f), minmaxes[i * 2 + 1] = glm::vec4(-10000.f); }
@@ -432,8 +409,8 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(10).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(11).setPBufferInfo(&rayIndexSpaceBuffer->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(15).setPBufferInfo(&hitPayloadBuffer->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo),
+                //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
+                //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo),
             }, nullptr);
 
             // init swaps
@@ -552,7 +529,7 @@ namespace NSM
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>
             {
                 vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[2])
+                    .setDstSet(surfaceDescriptors[1])
                     .setDstBinding(2)
                     .setDstArrayElement(0)
                     .setDescriptorCount(1)
@@ -560,7 +537,7 @@ namespace NSM
                     .setPBufferInfo(&materialBuffer->descriptorInfo),
                     
                vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[2])
+                    .setDstSet(surfaceDescriptors[1])
                     .setDstBinding(3)
                     .setDstArrayElement(0)
                     .setDescriptorCount(1)
@@ -587,7 +564,7 @@ namespace NSM
             // update descriptors
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[2])
+                    .setDstSet(surfaceDescriptors[1])
                     .setDstBinding(1)
                     .setDstArrayElement(0)
                     .setDescriptorCount(images.size())
@@ -613,7 +590,7 @@ namespace NSM
             // update descriptors
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet()
-                    .setDstSet(surfaceDescriptors[2])
+                    .setDstSet(surfaceDescriptors[1])
                     .setDstBinding(0)
                     .setDstArrayElement(0)
                     .setDescriptorCount(images.size())
@@ -642,12 +619,12 @@ namespace NSM
             memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
             memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
 
+            // form descriptors for traversers
+            TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
+
             // push bvh traverse commands
             dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
-            for (auto& him : hstorages) {
-                surfaceDescriptors[1] = rayTraverseDescriptors[1] = him->getClientDescriptorSet();
-                dispatchCompute(bvhTraverse, INTENSIVITY, rayTraverseDescriptors);
-            }
+            for (auto& him : hstorages) { him->queryTraverse(tbsData); }
 
             // push surface shaders commands
             flushCommandBuffer(device, copyCommand, true);

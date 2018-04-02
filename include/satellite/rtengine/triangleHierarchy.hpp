@@ -3,6 +3,7 @@
 #include "./structs.hpp"
 #include "../grlib/radixSort.hpp"
 #include "./vertexInstance.hpp"
-#include "./geometry/geometryAccumulator.hpp"
-#include "./geometry/hierarchyBuilder.hpp"
-#include "./geometry/hierarchyStorage.hpp"
+
+#include "./accelerator/geometryAccumulator.hpp"
+#include "./accelerator/hierarchyBuilder.hpp"
+#include "./accelerator/hierarchyStorage.hpp"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../../rtengine/geometry/hierarchyBuilder.hpp"
-#include "../../../rtengine/geometry/hierarchyStorage.hpp"
-#include "../../../rtengine/geometry/geometryAccumulator.hpp"
+#include "../../../rtengine/accelerator/hierarchyBuilder.hpp"
+#include "../../../rtengine/accelerator/hierarchyStorage.hpp"
+#include "../../../rtengine/accelerator/geometryAccumulator.hpp"
 
 namespace NSM
 {
@@ -68,28 +68,28 @@ namespace NSM
 
             // build bvh command
             buildBVHPpl.dispatch = [&]() {
-                dispatchCompute(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
+                dispatchCompute(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             };
 
             // build global boundary
             boundPrimitives.dispatch = [&]() {
                 flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
-                dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
+                dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             };
 
             // link childrens
             childLink.dispatch = [&]() {
-                dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
+                dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             };
 
             // refit BVH
             refitBVH.dispatch = [&]() {
-                dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
+                dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             };
 
             // dispatch aabb per nodes
             aabbCalculate.dispatch = [&]() {
-                dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
+                dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             };
 
             { // boundary buffer cache
@@ -248,7 +248,7 @@ namespace NSM
             memoryCopyCmd(copyCounterCommand, countersBuffer, countersBuffer, { 2 * sizeof(int32_t), 5 * sizeof(int32_t), sizeof(int32_t) });
             copyCounterCommand.end();
 
-            auto buildCommand = makeDispatchCommand(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getClientDescriptorSet() });
+            auto buildCommand = makeDispatchCommand(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 
             auto stagingCounterCommand = getCommandBuffer(device, true);
             memoryCopyCmd(stagingCounterCommand, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });

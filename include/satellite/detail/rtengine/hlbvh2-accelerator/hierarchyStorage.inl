@@ -1,7 +1,7 @@
 #pragma once
 #pragma once
 
-#include "../../../rtengine/geometry/hierarchyStorage.hpp"
+#include "../../../rtengine/accelerator/hierarchyStorage.hpp"
 
 namespace NSM
 {
@@ -24,8 +24,44 @@ namespace NSM
                     vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // reserved
                     vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // vertex linear buffer
                 };
-                clientDescriptorLayout = std::vector<vk::DescriptorSetLayout>{ device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setBindingCount(clientDescriptorSetLayoutDesc.size()).setPBindings(clientDescriptorSetLayoutDesc.data())) };
-                clientDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&clientDescriptorLayout[0]));
+
+                // ray tracing unified descriptors
+                std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
+                    vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // rays,
+                    vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // output hits
+                    vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // output counters
+
+
+                    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                    vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                };
+
+                // create simpler descriptors
+                clientDescriptorLayout = std::vector<vk::DescriptorSetLayout>{ 
+                    device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setBindingCount(descriptorSetLayoutBindings.size()).setPBindings(descriptorSetLayoutBindings.data())),
+                    device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setBindingCount(clientDescriptorSetLayoutDesc.size()).setPBindings(clientDescriptorSetLayoutDesc.data()))
+                };
+                clientDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(2).setPSetLayouts(clientDescriptorLayout.data()));
+
+                // create traverse pipeline
+                auto pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
+                rayTraversePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(clientDescriptorLayout.data()).setSetLayoutCount(clientDescriptorLayout.size()));
+                bvhTraverse = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
+
+                // cache size
+                const size_t TRAVERSE_CACHE_SIZE = 1024; // 32kb
+                const size_t TRAVERSE_BLOCK_SIZE = 4096; // 4kb
+
+                // caches
+                traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * 64 * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+                // set BVH traverse caches
+                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&traverseCacheData->descriptorInfo),
+                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&traverseBlockData->descriptorInfo),
+                }, nullptr);
             }
 
             {
@@ -55,7 +91,7 @@ namespace NSM
                 geometryBlockUniform.staging = createBuffer(device, strided<GeometryBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // descriptor templates
-                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&geometryBlockUniform.buffer->descriptorInfo)
                 }, nullptr);
@@ -73,7 +109,7 @@ namespace NSM
 
             // descriptor templates
             auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setMagFilter(vk::Filter::eNearest).setMinFilter(vk::Filter::eNearest).setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirrorClampToEdge).setCompareEnable(false));
-            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eCombinedImageSampler).setDstBinding(10).setPImageInfo(&attributeTexelStorage->descriptorInfo.setSampler(sampler)),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesStorage->descriptorInfo),
@@ -82,18 +118,30 @@ namespace NSM
             }, nullptr);
         }
 
-        void HieararchyStorage::allocateNodeReserve(size_t nodeCount)
-        {
+        void HieararchyStorage::allocateNodeReserve(size_t nodeCount) {
             bvhBoxStorage = createBuffer(device, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             bvhMetaStorage = createBuffer(device, strided<glm::ivec4>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // descriptor templates
             auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setMagFilter(vk::Filter::eNearest).setMinFilter(vk::Filter::eNearest).setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirrorClampToEdge).setCompareEnable(false));
-            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&bvhBoxStorage->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&bvhMetaStorage->descriptorInfo),
             }, nullptr);
+        }
+
+        void HieararchyStorage::queryTraverse(TraversibleData& tbsData) {
+            // set ray-tracing buffers for traversing
+            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&tbsData.raysUnordered),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&tbsData.hitBuffer),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&tbsData.counterBuffer)
+            }, nullptr);
+
+            // dispatch traversing
+            dispatchCompute(bvhTraverse, INTENSIVITY, clientDescriptorSets);
         }
     }
 } // namespace NSM

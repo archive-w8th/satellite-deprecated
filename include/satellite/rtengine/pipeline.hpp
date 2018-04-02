@@ -30,7 +30,7 @@ namespace NSM
 
             // compute pipelines
             ComputeContext rayGeneration, sampleCollection, surfaceShadingPpl,
-                clearSamples, bvhTraverse, vertexInterp, rayShadePipeline, binCollect,
+                clearSamples, vertexInterp, rayShadePipeline, binCollect,
                 unorderedFormer;
 
             // swap PTR's (now no swapping)
@@ -56,8 +56,7 @@ namespace NSM
             BufferType clearingBlocks, availableBlocks;
 
             // traverse buffers
-            BufferType traverseBlockData, traverseCacheData, leafTraverseBuffer,
-                prepareTraverseBuffer;
+            /*BufferType traverseBlockData, traverseCacheData, prepareTraverseBuffer*/;
 
             // output images
             TextureType accumulationImage, filteredImage, flagsImage, depthImage,
@@ -75,8 +74,12 @@ namespace NSM
 
             // vk::DescriptorPool descriptorPool;
 
-            std::vector<vk::DescriptorSet> rayTracingDescriptors, rayTraverseDescriptors, samplingDescriptors, surfaceDescriptors;
-            std::vector<vk::DescriptorSetLayout> rayTracingDescriptorsLayout, rayTraverseDescriptorsLayout, samplingDescriptorsLayout, surfaceDescriptorsLayout;
+            std::vector<vk::DescriptorSet> rayTracingDescriptors, samplingDescriptors, surfaceDescriptors;
+            std::vector<vk::DescriptorSetLayout> 
+                rayTracingDescriptorsLayout, 
+                //rayTraverseDescriptorsLayout, 
+                samplingDescriptorsLayout, 
+                surfaceDescriptorsLayout;
 
             vk::PipelineLayout rayTracingPipelineLayout,
                 rayTraversePipelineLayout, samplingPipelineLayout, surfacePipelineLayout;
@@ -125,6 +128,7 @@ namespace NSM
             void setMaterialSet(std::shared_ptr<MaterialSet> &materialSet);
             void setHierarchyStorage(std::shared_ptr<HieararchyStorage> &hierarchy);
             void setHierarchyStorages(const std::vector<std::shared_ptr<HieararchyStorage>> &hierarchies);
+            //TraversibleData& getTraverseDescriptorSet() { return tbsData; };
 
             uint32_t getCanvasWidth();
             uint32_t getCanvasHeight();

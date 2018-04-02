@@ -1,6 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+// THIS shader now not part of ray tracing pipeline - it part of BVH processing system
 
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT
@@ -12,20 +13,20 @@
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
-#include "../include/rayslib.glsl"
 #include "../include/morton.glsl"
 #include "../include/mathlib.glsl"
+#include "../include/ballotlib.glsl"
 #include "../include/vertex.glsl"
 
 //#define USE_STACKLESS_BVH
+#include "./submodules/shared-data.glsl"
 #include "./submodules/traverse-bvh2.glsl"
 
 
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    //int wsize = arcounter.tT;
-    #define wsize arcounter.tT
+    int wsize = PREPARED_COUNT;
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
     rayID = (int(gl_WorkGroupID.x) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x));
 

@@ -10,6 +10,13 @@ namespace NSM
             vk::DescriptorBufferInfo vInstanceBufferInfos[6];
         };
 
+        struct TraversibleData {
+            vk::DescriptorBufferInfo raysUnordered;
+            vk::DescriptorBufferInfo hitBuffer;
+            vk::DescriptorBufferInfo counterBuffer;
+        };
+
+
 
 
 

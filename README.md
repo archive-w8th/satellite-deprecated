@@ -41,5 +41,6 @@
 
 * https://www.youtube.com/watch?v=exiMek4eHDc (720p, 1ssp)
 * https://www.youtube.com/watch?v=j8yn2e_E-Tg (720p, 1ssp)
+* https://www.youtube.com/watch?v=5tZulCaNtt0 (720p, dynamic, 1ssp)
 
 

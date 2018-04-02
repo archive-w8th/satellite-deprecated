@@ -129,11 +129,13 @@ namespace SatelliteExample {
         bfvi = std::shared_ptr<rt::BufferViewSet>(new rt::BufferViewSet(device));
         acs = std::shared_ptr<rt::DataAccessSet>(new rt::DataAccessSet(device));
         bnds = std::shared_ptr<rt::DataBindingSet>(new rt::DataBindingSet(device));
+        bfst = std::shared_ptr<rt::BufferRegionSet>(new rt::BufferRegionSet(device));
 
         // unify buffers
         for (int i = 0; i < gltfModel.buffers.size(); i++) {
             intptr_t offset = vtbSpace->copyHostBuffer(gltfModel.buffers[i].data.data(), tiled(gltfModel.buffers[i].data.size(), 4) * 4);
-            vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(tiled(gltfModel.buffers[i].data.size(),4) * 4) });
+            //vtbSpace->addRegionDesc(rt::BufferRegion{ uint32_t(offset), uint32_t(tiled(gltfModel.buffers[i].data.size(),4) * 4) });
+            bfst->addElement(rt::VirtualBufferRegion{ uint32_t(offset), uint32_t(tiled(gltfModel.buffers[i].data.size(),4) * 4) });
         }
 
         // buffer views
@@ -168,6 +170,7 @@ namespace SatelliteExample {
             geom->setDataAccessSet(acs);
             geom->setBufferViewSet(bfvi);
             geom->setBindingSet(bnds);
+            geom->setBufferRegionSet(bfst);
             
             // load instances
             tinygltf::Mesh &glMesh = gltfModel.meshes[m];

@@ -174,6 +174,7 @@ namespace SatelliteExample {
         std::shared_ptr<rt::BufferViewSet> bfvi;
         std::shared_ptr<rt::DataAccessSet> acs;
         std::shared_ptr<rt::DataBindingSet> bnds;
+        std::shared_ptr<rt::BufferRegionSet> bfst;
 #endif
 
         virtual void resizeBuffers(const int32_t& width, const int32_t& height) override;

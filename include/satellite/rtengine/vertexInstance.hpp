@@ -21,6 +21,8 @@ namespace NSM
             std::shared_ptr<BufferViewSet> bufferViewSet; // pointer to buffer view
             std::shared_ptr<DataAccessSet> dataFormatSet;
             std::shared_ptr<DataBindingSet> dataBindingSet;
+            std::shared_ptr<BufferRegionSet> bufferRegions;
+
             std::vector<MeshUniformStruct> meshUniformData;
             BufferType meshUniformStager, meshUniformBuffer;
 
@@ -53,6 +55,7 @@ namespace NSM
             void setBindingSet(std::shared_ptr<DataBindingSet> &bindingSet);
             void setBufferViewSet(std::shared_ptr<BufferViewSet> &bufferViewSet);
             void setDataAccessSet(std::shared_ptr<DataAccessSet> &accessDataSet);
+            void setBufferRegionSet(std::shared_ptr<BufferRegionSet>& regionSet);
             VertexInstanceViews getDescViewData(bool needUpdate = true);
 
             VertexInstance& setUPtr(size_t p) { this->uptr = p; return *this; }
@@ -61,7 +64,7 @@ namespace NSM
         protected:
             // getters of buffers
             BufferType getBufferSpaceBuffer() { return bufferSpace->getDataBuffer(); };
-            BufferType getBufferSpaceRegions(){ return bufferSpace->getRegionsBuffer(); };
+            BufferType getBufferSpaceRegions(){ return bufferRegions->getBuffer(); };
             BufferType getBufferViewsBuffer() { return bufferViewSet->getBuffer(); };
             BufferType getDataFormatBuffer() { return dataFormatSet->getBuffer(); };
             BufferType getBufferBindingBuffer() { return dataBindingSet->getBuffer(); };

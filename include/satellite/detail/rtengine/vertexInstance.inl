@@ -84,6 +84,11 @@ namespace NSM
             this->dataBindingSet = bindingSet;
         }
 
+        void VertexInstance::setBufferRegionSet(std::shared_ptr<BufferRegionSet>& regionSet) 
+        {
+            this->bufferRegions = regionSet;
+        }
+
 
         VertexInstanceViews VertexInstance::getDescViewData(bool needUpdate)
         {

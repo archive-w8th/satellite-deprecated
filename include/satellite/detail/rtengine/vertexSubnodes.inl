@@ -68,17 +68,6 @@ namespace NSM
         BufferSpace::BufferSpace(DeviceQueueType &device, const size_t spaceSize)
         {
             this->device = device;
-
-            regionsBuffer = createBuffer(device, strided<BufferRegion>(1024 * 64),
-                vk::BufferUsageFlagBits::eStorageBuffer |
-                vk::BufferUsageFlagBits::eTransferDst |
-                vk::BufferUsageFlagBits::eTransferSrc,
-                VMA_MEMORY_USAGE_GPU_ONLY);
-            regionsStage = createBuffer(device, strided<BufferRegion>(1024 * 64),
-                vk::BufferUsageFlagBits::eTransferDst |
-                vk::BufferUsageFlagBits::eTransferSrc,
-                VMA_MEMORY_USAGE_CPU_TO_GPU);
-
             dataBuffer = createBuffer(device, strided<uint8_t>(tiled(spaceSize, 4) * 4),
                 vk::BufferUsageFlagBits::eStorageBuffer |
                 vk::BufferUsageFlagBits::eTransferDst |
@@ -93,18 +82,6 @@ namespace NSM
         intptr_t BufferSpace::getLastKnownOffset() { return lastKnownOffset; }
 
         BufferType BufferSpace::getDataBuffer() { return dataBuffer; }
-
-        BufferType BufferSpace::getRegionsBuffer()
-        {
-            if (regions.size() > 0 && needUpdateSpaceDescs) {
-                auto commandBuffer = getCommandBuffer(device, true);
-                bufferSubData(commandBuffer, regionsStage, regions, 0);
-                memoryCopyCmd(commandBuffer, regionsStage, regionsBuffer, { 0, 0, strided<BufferRegion>(regions.size()) });
-                flushCommandBuffer(device, commandBuffer, true);
-            }
-            needUpdateSpaceDescs = false;
-            return regionsBuffer;
-        }
 
         intptr_t BufferSpace::copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset) {
             if (size > 0) {
@@ -143,14 +120,6 @@ namespace NSM
         intptr_t BufferSpace::copyHostBuffer(const std::vector<T> external, const intptr_t offset)
         {
             return copyHostBuffer((const uint8_t *)external.data(), external.size() * sizeof(T), offset);
-        }
-
-        int32_t BufferSpace::addRegionDesc(BufferRegion region)
-        {
-            needUpdateSpaceDescs = true;
-            int32_t ptr = regions.size();
-            regions.push_back(region);
-            return ptr;
         }
 
     } // namespace rt

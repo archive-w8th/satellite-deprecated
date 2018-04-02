@@ -34,8 +34,6 @@ namespace NSM
         public:
             BufferSpace(DeviceQueueType &device, const size_t space);
             BufferType getDataBuffer();
-            BufferType getRegionsBuffer();
-            int32_t addRegionDesc(BufferRegion accessorDesc);
 
             intptr_t copyGPUBuffer(BufferType external, const size_t size);
             intptr_t copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset);
@@ -47,13 +45,9 @@ namespace NSM
             intptr_t copyHostBuffer(const std::vector<T> external, const intptr_t offset);
             intptr_t getLastKnownOffset();
 
-            void resetRegionStack() { needUpdateSpaceDescs = true; regions.resize(0); }
             void resetOffsetCounter() { needUpdateSpaceDescs = true; lastKnownOffset = 0; }
 
         protected:
-            std::vector<BufferRegion> regions;
-            BufferType regionsStage;
-            BufferType regionsBuffer;
             BufferType dataStage;
             BufferType dataBuffer;
             DeviceQueueType device;
@@ -62,6 +56,7 @@ namespace NSM
             bool needUpdateSpaceDescs = true;
         };
 
+        using BufferRegionSet = BufferComposer<2, VirtualBufferRegion>;
         using BufferViewSet = BufferComposer<3, VirtualBufferView>;
         using DataAccessSet = BufferComposer<4, VirtualDataAccess>;
         using DataBindingSet = BufferComposer<5, VirtualBufferBinding>;

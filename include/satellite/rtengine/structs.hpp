@@ -153,7 +153,7 @@ namespace NSM
         };
 
         // low level buffer region, that means just "buffer"
-        struct BufferRegion
+        struct VirtualBufferRegion
         {
             uint32_t byteOffset;
             uint32_t byteSize;

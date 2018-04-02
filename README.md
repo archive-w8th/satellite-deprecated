@@ -37,3 +37,9 @@
 * Vulkan API 1.1 (https://www.lunarg.com/vulkan-sdk/)
 * Vulkan memory allocator (https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 
+### Videos 
+
+* https://www.youtube.com/watch?v=exiMek4eHDc (720p, 1ssp)
+* https://www.youtube.com/watch?v=j8yn2e_E-Tg (720p, 1ssp)
+
+

@@ -5,12 +5,6 @@
 namespace NSM
 {
 
-    // create command pool function
-    vk::CommandPool createCommandPool(const DeviceQueueType &deviceQueue)
-    {
-        return deviceQueue->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueue->mainQueue->familyIndex));
-    }
-
     // get or create command buffer
     auto getCommandBuffer(const DeviceQueueType &deviceQueue, bool begin = true)
     {

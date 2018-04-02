@@ -174,7 +174,7 @@ namespace NSM
             return instance;
         };
 
-        virtual DeviceQueueType createDevice(std::shared_ptr<vk::PhysicalDevice> gpu)
+        virtual DeviceQueueType createDevice(std::shared_ptr<vk::PhysicalDevice> gpu, bool isComputePrior = false)
         {
             // use extensions
             auto deviceExtensions = std::vector<const char *>();
@@ -218,17 +218,21 @@ namespace NSM
             uint32_t computeFamilyIndex = -1, graphicsFamilyIndex = -1;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
 
-            // compute/graphics queue
+
+
+
+            // compute/graphics queue family
             for (auto &queuefamily : gpuQueueProps) {
                 computeFamilyIndex++;
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute)) {   
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute)) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
                     queues.push_back(std::make_shared<DevQueue>(DevQueue{ computeFamilyIndex, vk::Queue{} }));
                     break;
                 }
             }
 
-            // graphics/presentation queue
+
+            // graphics/presentation queue family
             for (auto &queuefamily : gpuQueueProps) {
                 graphicsFamilyIndex++;
                 if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu->getSurfaceSupportKHR(graphicsFamilyIndex, *applicationWindow.surface) && graphicsFamilyIndex != computeFamilyIndex) {
@@ -238,17 +242,18 @@ namespace NSM
                 }
             }
 
+
             // assign presentation (may not working)
             if (int(graphicsFamilyIndex) < 0 || graphicsFamilyIndex >= gpuQueueProps.size()) {
                 std::wcerr << "Device may not support presentation" << std::endl;
                 graphicsFamilyIndex = computeFamilyIndex;
             }
 
-            // make graphics queue same as compute
+
+            // make graphics queue family same as compute
             if ((graphicsFamilyIndex == computeFamilyIndex || queues.size() <= 1) && queues.size() > 0) {
                 queues.push_back(queues[0]);
             }
-
 
 
             // pre-declare logical device
@@ -267,16 +272,19 @@ namespace NSM
                 // init dispatch loader
                 deviceQueuePtr->dldid = vk::DispatchLoaderDynamic(instance, deviceQueuePtr->logical);
 
+                // getting queues by family
                 for (int i = 0; i < queues.size(); i++) { queues[i]->queue = deviceQueuePtr->logical.getQueue(queues[i]->familyIndex, 0); }
                 deviceQueuePtr->queues = queues;
-                deviceQueuePtr->mainQueue = deviceQueuePtr->queues[0];
-
+                
                 // add device and use this device
                 devices.push_back(deviceQueuePtr);
 
                 // create semaphores
                 deviceQueuePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
-                deviceQueuePtr->commandPool = createCommandPool(deviceQueuePtr);
+
+                // create queue and command pool
+                deviceQueuePtr->mainQueue = deviceQueuePtr->queues[isComputePrior ? 0 : 1]; // make role prior
+                deviceQueuePtr->commandPool = deviceQueuePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->mainQueue->familyIndex));
 
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
@@ -307,6 +315,7 @@ namespace NSM
                 deviceQueuePtr->initialized = true;
             }
 
+            // return device with queue pointer
             return std::move(deviceQueuePtr);
         }
 

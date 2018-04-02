@@ -64,12 +64,14 @@
 
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#define ISTORE(img, crd, data) imageStoreLodAMD(img, crd, 0, data)
+#define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
+#define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp,crd,0,chnl)
 #else
-#define ISTORE(img, crd, data) imageStore(img, crd, data)
+#define ISTORE(img, crd, data) imageStore(img,crd,data)
+#define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
 #endif
 
-#define SGATHER(smp, crd, chnl) textureGather(smp, crd, chnl)
+//#define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
 
 
 

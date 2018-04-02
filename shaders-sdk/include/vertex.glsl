@@ -16,12 +16,12 @@
     layout ( std430, binding = 1, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
     layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
     layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };
-    layout ( rgba32f, binding = 4, set = 0 ) restrict uniform image2D attrib_texture_out;
+    layout ( rgba32ui, binding = 4, set = 0 ) restrict uniform uimage2D attrib_texture_out;
 #else
     layout ( std430, binding = 1, set = 1 ) restrict readonly buffer GeomMaterialsSSBO { int materials[]; };
 
     #ifdef ENABLE_VERTEX_INTERPOLATOR
-        layout ( binding = 10, set = 1 ) uniform sampler2D attrib_texture;
+        layout ( binding = 10, set = 1 ) uniform usampler2D attrib_texture;
         layout ( std430, binding = 2, set = 1 ) restrict readonly buffer OrderIdxSSBO { int vorders[]; };
     #endif
 
@@ -175,10 +175,10 @@ void interpolateMeshData(inout HitData ht) {
                    tgtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+  TANGENT_TID))), sz, szt),
                    bttrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+BITANGENT_TID))), sz, szt);
 
-        ht.texcoord.xy = vs * mat2x3(SGATHER(attrib_texture, txtrig, 0)._SWIZV, SGATHER(attrib_texture, txtrig, 1)._SWIZV);
-        ht.normal      = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, nrtrig, 0)._SWIZV, SGATHER(attrib_texture, nrtrig, 1)._SWIZV, SGATHER(attrib_texture, nrtrig, 2)._SWIZV)), 0.0f);
-        ht.tangent     = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, tgtrig, 0)._SWIZV, SGATHER(attrib_texture, tgtrig, 1)._SWIZV, SGATHER(attrib_texture, tgtrig, 2)._SWIZV)), 0.0f);
-        ht.bitangent   = vec4( normalize(vs * mat3x3(SGATHER(attrib_texture, bttrig, 0)._SWIZV, SGATHER(attrib_texture, bttrig, 1)._SWIZV, SGATHER(attrib_texture, bttrig, 2)._SWIZV)), 0.0f);    
+        ht.texcoord.xy = vs * mat2x3(uintBitsToFloat(SGATHER(attrib_texture, txtrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, txtrig, 1)._SWIZV));
+        ht.normal      = vec4( normalize(vs * mat3x3(uintBitsToFloat(SGATHER(attrib_texture, nrtrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, nrtrig, 1)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, nrtrig, 2)._SWIZV))), 0.0f);
+        ht.tangent     = vec4( normalize(vs * mat3x3(uintBitsToFloat(SGATHER(attrib_texture, tgtrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, tgtrig, 1)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, tgtrig, 2)._SWIZV))), 0.0f);
+        ht.bitangent   = vec4( normalize(vs * mat3x3(uintBitsToFloat(SGATHER(attrib_texture, bttrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, bttrig, 1)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, bttrig, 2)._SWIZV))), 0.0f);    
     }
 }
 #endif

@@ -266,10 +266,10 @@ void main(){
                         b -= t * dot( b, t );
                     }
 
-                    ISTORE(attrib_texture_out, mosaicIdc(NORMAL_TXF, i), vec4(normalize(n), 0.0f));
-                    ISTORE(attrib_texture_out, mosaicIdc(TANGENT_TXF, i), vec4(normalize(idet*t), 0.0f));
-                    ISTORE(attrib_texture_out, mosaicIdc(BITANGENT_TXF, i), vec4(normalize(idet*b), 0.0f));
-                    ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), vec4(texcoord[mi]));
+                    ISTORE(attrib_texture_out, mosaicIdc(NORMAL_TXF, i), floatBitsToUint(vec4(normalize(n), 0.0f)));
+                    ISTORE(attrib_texture_out, mosaicIdc(TANGENT_TXF, i), floatBitsToUint(vec4(normalize(idet*t), 0.0f)));
+                    ISTORE(attrib_texture_out, mosaicIdc(BITANGENT_TXF, i), floatBitsToUint(vec4(normalize(idet*b), 0.0f)));
+                    ISTORE(attrib_texture_out, mosaicIdc(TEXCOORD_TXF, i), floatBitsToUint(vec4(texcoord[mi])));
 
                     // interleave vertex for intersection
                     //lvtx[tidc*9+3*0+i] = vertice[mi].x;

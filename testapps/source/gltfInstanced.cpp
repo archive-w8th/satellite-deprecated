@@ -166,24 +166,24 @@ namespace SatelliteExample {
         // load mesh templates (better view objectivity)
         for (int m = 0; m < gltfModel.meshes.size(); m++) {
             std::vector<std::shared_ptr<rt::VertexInstance>> primitiveVec = std::vector<std::shared_ptr<rt::VertexInstance>>();
+            tinygltf::Mesh &glMesh = gltfModel.meshes[m];
+
 
             // create vertex instance
+            std::shared_ptr<rt::MeshUniformSet> murst = std::shared_ptr<rt::MeshUniformSet>(new rt::MeshUniformSet(device, glMesh.primitives.size()));
             std::shared_ptr<rt::VertexInstance> geom = std::shared_ptr<rt::VertexInstance>(new rt::VertexInstance(device));
             geom->setBufferSpace(vtbSpace);
             geom->setDataAccessSet(acs);
             geom->setBufferViewSet(bfvi);
             geom->setBindingSet(bnds);
             geom->setBufferRegionSet(bfst);
-            
-            // load instances
-            tinygltf::Mesh &glMesh = gltfModel.meshes[m];
-            geom->makeMultiVersion(glMesh.primitives.size()); // for simple switch uniforms without descriptor set changes
-
+            geom->setUniformSet(murst);
 
             // load primitives of mesh
             for (int i = 0; i < glMesh.primitives.size(); i++) {
                 tinygltf::Primitive & prim = glMesh.primitives[i];
-                geom->setUPtr(i);
+
+                rt::MeshUniformStruct geni;
 
                 // make attributes
                 std::map<std::string, int>::const_iterator it(prim.attributes.begin());
@@ -192,7 +192,6 @@ namespace SatelliteExample {
                 // load modern mode
                 for (auto const &it : prim.attributes) {
                     tinygltf::Accessor &accessor = gltfModel.accessors[it.second];
-                    //auto& bufferView = gltfModel.bufferViews[accessor.bufferView];
 
                     // binding 
                     rt::VirtualBufferBinding vattr;
@@ -200,39 +199,42 @@ namespace SatelliteExample {
 
                     // vertex
                     if (it.first.compare("POSITION") == 0) { // vertices
-                        geom->setVertexBinding(bnds->addElement(vattr));
-                    } else
+                        geni.vertexAccessor = bnds->addElement(vattr);
+                    }
+                    else
 
                     // normal
                     if (it.first.compare("NORMAL") == 0) {
-                        geom->setNormalBinding(bnds->addElement(vattr));
-                    } else
+                        geni.normalAccessor = bnds->addElement(vattr);
+                    }
+                    else
 
                     // texcoord
                     if (it.first.compare("TEXCOORD_0") == 0) {
-                        geom->setTexcoordBinding(bnds->addElement(vattr));
+                        geni.texcoordAccessor = bnds->addElement(vattr);
                     }
                 }
 
+                geni.int16bit = 0;
+
                 // indices
-                geom->useIndex16bit(false);
                 bool isInt16 = false;
                 if (prim.indices >= 0) {
                     tinygltf::Accessor &idcAccessor = gltfModel.accessors[prim.indices];
-                    geom->setNodeCount(idcAccessor.count / 3);
+                    //geom->setNodeCount(idcAccessor.count / 3);
+                    geni.nodeCount = idcAccessor.count / 3;
 
                     // access binding  
-                    rt::VirtualBufferBinding vattr;
-                    vattr.dataAccess = prim.indices;
-                    geom->setIndiceBinding(bnds->addElement(vattr));
+                    rt::VirtualBufferBinding vattr; vattr.dataAccess = prim.indices;
+                    geni.indiceAccessor = bnds->addElement(vattr);
 
                     // is 16-bit indices?
                     isInt16 = idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_SHORT || idcAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
                 }
 
-                // use constant material for instance 
-                geom->setMaterialOffset(prim.material);
-                geom->useIndex16bit(isInt16);
+                geni.materialID = prim.material;
+                geni.int16bit = isInt16 ? 1 : 0;
+                murst->addElement(geni);
 
                 // if triangles, then load mesh
                 if (prim.mode == TINYGLTF_MODE_TRIANGLES) { primitiveVec.push_back(geom); } // anyways will loaded same "geom" pointer i.e. VertexInstance, so you can oriented by only uniform pointer index
@@ -271,11 +273,11 @@ namespace SatelliteExample {
             glm::dmat4 transform = inTransform * localTransform;
             if (node.mesh >= 0) {
                 std::vector<std::shared_ptr<rt::VertexInstance>>& mesh = meshVec[node.mesh]; // load mesh object (it just vector of primitives)
+                std::shared_ptr<rt::VertexInstance>& geom = mesh[0];
                 for (int p = 0; p < mesh.size(); p++) {
-                    std::shared_ptr<rt::VertexInstance>& geom = mesh[p];
-                    geom->setUPtr(p).setTransform(transform); // here is bottleneck with host-GPU exchange
+                    geom->getUniformSet()->getStructure(p).setTransform(transform); // here is bottleneck with host-GPU exchange
                 }
-                geometryCollector->pushGeometryMulti(mesh[0], true, mesh.size()); // multi-loader 
+                geometryCollector->pushGeometryMulti(geom, true, mesh.size()); // multi-loader 
             } else 
             if (node.children.size() > 0) {
                 for (int n = 0; n < node.children.size(); n++) {

@@ -176,6 +176,11 @@ namespace NSM
             int int16bit = 0;
             int nodeCount = 1;
             int primitiveType = 0;
+
+            // for fast transform set
+            void setTransform( glm::mat4 t) {
+                transform = glm::transpose(t), transformInv = glm::inverse(t);
+            }
         };
 
         // subdata structuring in buffer region

@@ -65,6 +65,27 @@ namespace NSM
             return cache;
         }
 
+
+        // for edit
+        template <int BINDING, class STRUCTURE>
+        STRUCTURE& BufferComposer<BINDING, STRUCTURE>::getStructure(intptr_t ptr) {
+            needUpdateBuffer = true;
+            if (data.size() <= ptr) data.resize(ptr+1);
+            return data[ptr];
+        }
+
+
+        // for view only
+        template <int BINDING, class STRUCTURE>
+        STRUCTURE BufferComposer<BINDING, STRUCTURE>::getStructure(intptr_t ptr) const {
+            return data[ptr];
+        }
+
+
+
+
+
+
         BufferSpace::BufferSpace(DeviceQueueType &device, const size_t spaceSize)
         {
             this->device = device;

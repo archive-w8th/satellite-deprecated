@@ -26,27 +26,6 @@ namespace NSM
             needUpdateUniform = true;
         }
 
-
-        void VertexInstance::makeMultiVersion(size_t ucount) {
-            this->ucount = ucount;
-            meshUniformData = std::vector<MeshUniformStruct>{ ucount };
-            meshUniformBuffer = createBuffer(device, strided<MeshUniformStruct>(ucount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            meshUniformStager = createBuffer(device, strided<MeshUniformStruct>(ucount), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            needUpdateUniform = true;
-        }
-
-
-        void VertexInstance::syncUniform()
-        {
-            if (needUpdateUniform) {
-                auto commandBuffer = getCommandBuffer(device, true);
-                bufferSubData(commandBuffer, meshUniformStager, meshUniformData, 0);
-                memoryCopyCmd(commandBuffer, meshUniformStager, meshUniformBuffer, { 0, 0, strided<MeshUniformStruct>(ucount) });
-                flushCommandBuffer(device, commandBuffer, true);
-            }
-            needUpdateUniform = false;
-        }
-
         VertexInstance::VertexInstance(VertexInstance &&another)
         {
             device = std::move(another.device);
@@ -89,10 +68,13 @@ namespace NSM
             this->bufferRegions = regionSet;
         }
 
+        void VertexInstance::setUniformSet(std::shared_ptr<MeshUniformSet>& uniformSet)
+        {
+            this->meshUniformSet = uniformSet;
+        }
 
         VertexInstanceViews VertexInstance::getDescViewData(bool needUpdate)
         {
-            this->syncUniform();
             if (needUpdate) {
                 descViews.vInstanceBufferInfos[0] = this->getBufferSpaceBuffer()->descriptorInfo,
                 descViews.vInstanceBufferInfos[1] = this->getBufferSpaceRegions()->descriptorInfo,
@@ -103,6 +85,10 @@ namespace NSM
             }
             return descViews;
         };
+
+
+        /*
+        
 
         size_t VertexInstance::getNodeCount()
         {
@@ -177,5 +163,6 @@ namespace NSM
             meshUniformData[this->uptr].materialID = id;
             needUpdateUniform = true;
         }
+        */
     }
 }

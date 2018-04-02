@@ -205,10 +205,10 @@ namespace NSM
             glm::vec3 scale = (bound.mx - bound.mn).xyz();
             glm::vec3 offset = bound.mn.xyz();
             {
-                glm::dmat4 mat(1.0);
-                mat *= glm::inverse(glm::translate(glm::dvec3(0.5, 0.5, 0.5)) * glm::scale(glm::dvec3(0.5, 0.5, 0.5)));
-                mat *= glm::inverse(glm::translate(glm::dvec3(offset)) * glm::scale(glm::dvec3(scale)));
-                mat *= glm::inverse(glm::dmat4(optproj));
+                glm::mat4 mat(1.0);
+                mat *= glm::inverse(glm::translate(glm::vec3(0.5, 0.5, 0.5)) * glm::scale(glm::vec3(0.5, 0.5, 0.5)));
+                mat *= glm::inverse(glm::translate(glm::vec3(offset)) * glm::scale(glm::vec3(scale)));
+                mat *= glm::inverse(glm::mat4(optproj));
                 bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
                 syncUniforms();

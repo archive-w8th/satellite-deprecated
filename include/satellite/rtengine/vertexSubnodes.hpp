@@ -56,10 +56,10 @@ namespace NSM
             bool needUpdateSpaceDescs = true;
         };
 
-        using BufferRegionSet = BufferComposer<2, VirtualBufferRegion>;
-        using BufferViewSet = BufferComposer<3, VirtualBufferView>;
-        using DataAccessSet = BufferComposer<4, VirtualDataAccess>;
-        using DataBindingSet = BufferComposer<5, VirtualBufferBinding>;
+        using BufferRegionSet = BufferComposer<1, VirtualBufferRegion>;
+        using BufferViewSet = BufferComposer<2, VirtualBufferView>;
+        using DataAccessSet = BufferComposer<3, VirtualDataAccess>;
+        using DataBindingSet = BufferComposer<4, VirtualBufferBinding>;
 
     } // namespace rt
 } // namespace NSM

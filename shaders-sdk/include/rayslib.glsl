@@ -295,6 +295,10 @@ void confirmBlock(in int mt){
 
 // utilize blocks
 void flushBlock(in int bid, in int _mt, in bool illuminated){
+    if (_mt >= 0 ) {
+        rayBlocks[_mt].indiceCount = 0;
+        rayBlocks[_mt].blockBinId = bid+1;
+    }
     _mt += 1;
 
     int prev = int(-1);

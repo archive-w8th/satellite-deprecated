@@ -52,7 +52,7 @@ void main()
             IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
 
             // allocate texel heading (2x16-bit)
-            if (Lane_Idx == 0) {
+            if (electedInvoc()) {
                 blockBins[binID].texelHeader = atomicIncRT(1)+1; 
             }
 
@@ -155,7 +155,7 @@ void main()
             }
 
             SB_BARRIER
-            if (Lane_Idx == 0) {
+            if (electedInvoc()) {
                 if (blockLength(blockID) >= 1) {
                     confirmBlock(blockID);
                 } else {

@@ -30,12 +30,12 @@ void main() {
         IFALL(overflow) break;
         if (!overflow) {
             int cnt = 256;
-            int idx = readLane(blockBins[globalID].blockStart , 0)-1; if (Lane_Idx == 0) blockBins[globalID].blockStart  = 0;
-            int prv = readLane(blockBins[globalID].previousReg, 0)-1; if (Lane_Idx == 0) blockBins[globalID].previousReg = 0;
-            int texelHeader = readLane(blockBinIndiceHeader(globalID), 0);
+            int idx = readFLane(blockBins[globalID].blockStart )-1; if (electedInvoc()) blockBins[globalID].blockStart  = 0;
+            int prv = readFLane(blockBins[globalID].previousReg)-1; if (electedInvoc()) blockBins[globalID].previousReg = 0;
+            int texelHeader = readFLane(blockBinIndiceHeader(globalID));
             int texelFrom = (blockBins[globalID].texelFrom)-1;
 
-            if (Lane_Idx == 0 && int(prv) >= 0) rayBlocks[prv].next = 0; // unlink weird block
+            if (electedInvoc() && int(prv) >= 0) rayBlocks[prv].next = 0; // unlink weird block
             if (int(texelHeader) < 0 || int(texelFrom) < 0) continue;
 
             // scatter colors from block bins
@@ -61,8 +61,9 @@ void main() {
                             RayActived(rayBlockNodes[idx][nid].data, false_);
                         }
                     }
-                    int preidx = readLane(int(idx) >= 0 ? rayBlocks[idx].next : 0, 0);
-                    if (Lane_Idx == 0 && int(idx) >= 0) {
+                    int preidx = readFLane(int(idx) >= 0 ? rayBlocks[idx].next : 0);
+                    SB_BARRIER
+                    if (electedInvoc() && int(idx) >= 0) {
                         rayBlocks[idx].next = 0;
                         rayBlocks[idx].indiceCount = 0;
                         rayBlocks[idx].blockBinId = 0;
@@ -70,7 +71,7 @@ void main() {
                     idx = preidx-1;
                 }
             }
-            if (Lane_Idx == 0 && int(idx) >= 0) rayBlocks[idx].next = 0;
+            if (electedInvoc() && int(idx) >= 0) rayBlocks[idx].next = 0;
         }
     }
 }

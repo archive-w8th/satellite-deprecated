@@ -86,7 +86,7 @@ void main() {
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
         int hid = lCounterInc(); Actives[aCounterInc()] = hid;
         bvhMeta[hid+0] = ivec4(0, aabbcount[0]-1, -1, -1);
-        bvhMeta[hid+1] = ivec4(0, 0, -1, -1);
+        bvhMeta[hid+1] = ivec4(-1, -1, -1, -1);
     }
 
     LGROUP_BARRIER

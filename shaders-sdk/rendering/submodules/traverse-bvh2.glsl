@@ -198,12 +198,14 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
     // begin of traverse BVH 
     const int max_iteraction = 8192;
+    ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
+
     for (int hi=0;hi<max_iteraction;hi++) {
         IFALL (traverseState.idx < 0) break; // if traverse can't live
 
         if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
-            ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
+            //ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
 
             // if not leaf and not wrong
             IF (cnode.y == 2) {
@@ -247,13 +249,19 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                     } else {
                         traverseState.idx = cnode.x + fmask;
                     }
+
+                    cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
                 }
 
             } else  
             
             // if leaf, defer for intersection 
-            if (cnode.y == 1 && traverseState.defTriangleID < 0) {
-                traverseState.defTriangleID = cnode.x;
+            if (cnode.y == 1) {
+                if (traverseState.defTriangleID < 0) {
+                    traverseState.defTriangleID = cnode.x;
+                } else {
+                    _continue = true;
+                }
             }
 
 #ifdef USE_STACKLESS_BVH
@@ -273,6 +281,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                     traverseState.idx = -1;
                 }
 
+                cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
             } _continue = false;
 #else
             // stacked 
@@ -282,12 +291,14 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 } else {
                     traverseState.idx = -1;
                 }
+
+                cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
             } _continue = false;
 #endif
 
-            IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0 ) { SB_BARRIER break; }
+            IFANY ( traverseState.defTriangleID >= 0 || traverseState.idx < 0 ) { SB_BARRIER break; }
         }}
 
-        IFANY (traverseState.defTriangleID >= 0) { SB_BARRIER doIntersection(); }
+        IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER doIntersection(); }
     }
 }

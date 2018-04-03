@@ -111,7 +111,7 @@ void doIntersection() {
     
     // validate hit 
     near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
-    near &= lessF(d, _nearhit) | bool_(vorders[traverseState.defTriangleID.x] >= vorders[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)]); // check z-fight priority
+    //near &= lessF(d, _nearhit) | bool_(vorders[traverseState.defTriangleID.x] >= vorders[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)]); // check z-fight priority
     IF (near.x) traverseState.geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID.x));
 
     // reset triangle ID 
@@ -206,7 +206,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
             ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
 
             // if not leaf and not wrong
-            IF (cnode.y == 0 && cnode.x != cnode.y) {
+            IF (cnode.y == 2) {
                 vec2 nears = INFINITY.xx, fars = INFINITY.xx;
                 bvec2_ childIntersect = bvec2_((traverseState.idx >= 0).xx);
 
@@ -222,7 +222,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 #endif
                 , nears, fars);
                 
-                childIntersect &= bool_(cnode.y == 0).xx; // base on fact
+                childIntersect &= bool_(cnode.y == 2).xx; // base on fact
                 childIntersect &= bvec2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection

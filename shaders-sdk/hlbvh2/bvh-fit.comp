@@ -64,7 +64,7 @@ void main() {
                 // do contribution to parent node box host
                 ivec4 cmp4 = bvhMeta[idx];
                 if (idx >= 0) {
-                    if (cmp4.y == 0) unifyNodeBox(idx);
+                    if (cmp4.y == 2) unifyNodeBox(idx);
                 } else { 
                     break;
                 }

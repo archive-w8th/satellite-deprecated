@@ -25,9 +25,9 @@ void main() {
             int idx = LeafIndices[globalID];
             if (idx >= 0) {
                 ivec4 bvhmeta = bvhMeta[idx];
-                if (bvhmeta.x == bvhmeta.y) { // if true leaf
+                if (bvhmeta.x == bvhmeta.y && bvhmeta.w == -1) { // if true leaf
                     uint leafID = MortoncodesIndices[bvhmeta.x];
-                    bvhMeta[idx].xy = ivec2(Leafs[leafID].pdata.w, 1);
+                    bvhMeta[idx] = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.z, 1);
 
                     // make box of leaf block
                     int bidx = idx>>1, sidx = idx&1;

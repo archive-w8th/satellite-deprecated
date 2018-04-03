@@ -38,7 +38,7 @@ void splitNode(in int trID) {
     int prID = Actives[trID]|(int(Local_Idx)&1); // select element, include sibling
     ivec4 _pdata = bvhMeta[prID];
 
-    if (_pdata.y > _pdata.x && prID >= 0) { // when not leafs
+    if (_pdata.y > _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0) { // when not leafs
         // fill empty boxes (pre-work)
         bvhBoxesWork[prID][0] =  100000.f.xxxx;
         bvhBoxesWork[prID][1] = -100000.f.xxxx;
@@ -65,13 +65,13 @@ void splitNode(in int trID) {
         }
 
         // link parent with childs
-        bvhMeta[prID] = ivec4(hd.x, 0, _pdata.z, -1);
+        bvhMeta[prID] = ivec4(hd.x, 2, _pdata.z, 0); // set as branching
 
-        // make children nodes
+        // make children nodes (with unknown identifier)
         bvhMeta[hd.x] = ivec4(transplit.xy, prID, -1);
         bvhMeta[hd.y] = ivec4(transplit.zw, prID, -1);
     } else 
-    if (_pdata.y == _pdata.x && prID >= 0 && !(trID == 0 && (Local_Idx&1) == 1)) {
+    if (_pdata.y == _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0) {
         LeafIndices[cCounterInc()] = prID;
     }
 }
@@ -86,7 +86,7 @@ void main() {
     if (gl_GlobalInvocationID.x == 0 && isBeginning) {
         int hid = lCounterInc(); Actives[aCounterInc()] = hid;
         bvhMeta[hid+0] = ivec4(0, aabbcount[0]-1, -1, -1);
-        bvhMeta[hid+1] = ivec4(-1, -1, -1, -1);
+        bvhMeta[hid+1] = ivec4(-1, -1, -1, 1);
     }
 
     LGROUP_BARRIER

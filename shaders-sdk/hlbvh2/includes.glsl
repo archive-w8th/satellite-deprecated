@@ -61,13 +61,8 @@ layout ( std430, binding = 10, set = 0 ) restrict readonly buffer BVHCreatorBloc
 
 bbox calcTriBox(in mat3x4 triverts) {
     bbox result;
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    result.mn = min3(triverts[0], triverts[1], triverts[2]);
-    result.mx = max3(triverts[0], triverts[1], triverts[2]);
-#else
-    result.mn = min(min(triverts[0], triverts[1]), triverts[2]);
-    result.mx = max(max(triverts[0], triverts[1]), triverts[2]);
-#endif
+    result.mn = min3_wrap(triverts[0], triverts[1], triverts[2]);
+    result.mx = max3_wrap(triverts[0], triverts[1], triverts[2]);
     result.mn -= 1e-5f;
     result.mx += 1e-5f;
     return result;

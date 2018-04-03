@@ -24,13 +24,8 @@ vec2 intersectCube(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 cubeMax
     vec3 tMax = (cubeMax.xyz - origin) * dr;
     vec3 t1 = min(tMin, tMax);
     vec3 t2 = max(tMin, tMax);
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-    float tNear = max3(t1.x, t1.y, t1.z);
-    float tFar  = min3(t2.x, t2.y, t2.z);
-#else
-    float tNear = max(max(t1.x, t1.y), t1.z);
-    float tFar  = min(min(t2.x, t2.y), t2.z);
-#endif
+    float tNear = max3_wrap(t1.x, t1.y, t1.z);
+    float tFar  = min3_wrap(t2.x, t2.y, t2.z);
     bool_ isCube = lessEqualF(tNear, tFar);
     return SSC(isCube) ? vec2(min(tNear, tFar), max(tNear, tFar)) : vec2(INFINITY);
 }

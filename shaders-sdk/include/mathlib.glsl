@@ -71,6 +71,14 @@
 #define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
 #endif
 
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+#define min3_wrap(a,b,c) min3(a,b,c)
+#define max3_wrap(a,b,c) max3(a,b,c)
+#else
+#define min3_wrap(a,b,c) min(a,min(b,c))
+#define max3_wrap(a,b,c) max(a,max(b,c))
+#endif
+
 //#define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
 
 
@@ -414,16 +422,11 @@ bool_ intersectCubeF32Single(const vec3 origin, const vec3 dr, inout bvec3_ sgn,
     );
 
     float 
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tMinMax[0].y, tMinMax[1].y, tMinMax[2].y),
-    tNear = max3(tMinMax[0].x, tMinMax[1].x, tMinMax[2].x);
-#else
-    tFar  = min(min(tMinMax[0].y, tMinMax[1].y), tMinMax[2].y),
-    tNear = max(max(tMinMax[0].x, tMinMax[1].x), tMinMax[2].x);
-#endif
+        tFar  = min3_wrap(tMinMax[0].y, tMinMax[1].y, tMinMax[2].y),
+        tNear = max3_wrap(tMinMax[0].x, tMinMax[1].x, tMinMax[2].x);
 
     // precise error correct
-    tNear += -1e-5f, tFar += 1e-5f;
+    tFar *= 1.00000024f;
 
     // validate hit
     bool_ isCube = bool_(tFar>tNear) & bool_(tFar>0.f) & bool_(abs(tNear) <= INFINITY-PRECERR);
@@ -448,19 +451,14 @@ bvec2_ intersectCubeDual(in fvec3_ origin, inout fvec3_ dr, inout bvec3_ sgn, in
     );
 
     fvec2_ 
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-    tFar  = min3(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
-    tNear = max3(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
-#else
-    tFar  = min(min(tMinMax[0].zw, tMinMax[1].zw), tMinMax[2].zw),
-    tNear = max(max(tMinMax[0].xy, tMinMax[1].xy), tMinMax[2].xy);
-#endif
+        tFar  = min3_wrap(tMinMax[0].zw, tMinMax[1].zw, tMinMax[2].zw),
+        tNear = max3_wrap(tMinMax[0].xy, tMinMax[1].xy, tMinMax[2].xy);
 
     // precise error correct
 #ifdef AMD_F16_BVH
-    tNear -= 1e-4hf.xx, tFar += 1e-3hf.xx;
+    tFar *= 1.001953125hf.xx;
 #else
-    tNear -= 1e-5f.xx, tFar += 1e-5f.xx;
+    tFar *= 1.00000024f.xx;
 #endif
 
     bvec2_ isCube = bvec2_(greaterThan(tFar, tNear)) & bvec2_(greaterThan(tFar, fvec2_(0.0f))) & bvec2_(lessThanEqual(abs(tNear), fvec2_(INFINITY-PRECERR)));

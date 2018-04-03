@@ -20,27 +20,30 @@ void unifyNodeBox(in int idx){
     int sibid = comp.x >> 1; // contributor prefix box id
     int bidx = idx>>1, sidx = idx&1;
 
-    // collect box data from contributor
-    vec4 lmn = bvhBoxesWork[sibid][0], rmn = bvhBoxesWork[sibid][2],
-         lmx = bvhBoxesWork[sibid][1], rmx = bvhBoxesWork[sibid][3];
+    // get contributors boxes
+    mat4 lrbox = mat4(
+        bvhBoxesWork[sibid][0], bvhBoxesWork[sibid][2], 
+        bvhBoxesWork[sibid][1], bvhBoxesWork[sibid][3]
+    );
 
     // contribute to current node
     if (bidx >= 0) {
-        bvhBoxesWork[bidx][sidx*2+0] = min(lmn, rmn);
-        bvhBoxesWork[bidx][sidx*2+1] = max(lmx, rmx);
+        bvhBoxesWork[bidx][sidx*2+0] = min(lrbox[0], lrbox[1]);
+        bvhBoxesWork[bidx][sidx*2+1] = max(lrbox[2], lrbox[3]);
     }
 
     // transpose and compress boxes of contributor
+    lrbox = transpose(lrbox);
 #ifdef USE_F32_BVH
-    bvhBoxesResulting[sibid][0] = fvec4_(lmn.x, rmn.x, lmx.x, rmx.x);
-    bvhBoxesResulting[sibid][1] = fvec4_(lmn.y, rmn.y, lmx.y, rmx.y);
-    bvhBoxesResulting[sibid][2] = fvec4_(lmn.z, rmn.z, lmx.z, rmx.z);
-    bvhBoxesResulting[sibid][3] = fvec4_(lmn.w, rmn.w, lmx.w, rmx.w);
+    bvhBoxesResulting[sibid][0] = fvec4_(lrbox[0]);
+    bvhBoxesResulting[sibid][1] = fvec4_(lrbox[1]);
+    bvhBoxesResulting[sibid][2] = fvec4_(lrbox[2]);
+    bvhBoxesResulting[sibid][3] = fvec4_(lrbox[3]);
 #else
-    bvhBoxesResulting[sibid][0].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.x, rmn.x, lmx.x, rmx.x)) );
-    bvhBoxesResulting[sibid][1].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.y, rmn.y, lmx.y, rmx.y)) );
-    bvhBoxesResulting[sibid][2].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.z, rmn.z, lmx.z, rmx.z)) );
-    bvhBoxesResulting[sibid][3].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lmn.w, rmn.w, lmx.w, rmx.w)) );
+    bvhBoxesResulting[sibid][0].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) );
+    bvhBoxesResulting[sibid][1].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) );
+    bvhBoxesResulting[sibid][2].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) );
+    bvhBoxesResulting[sibid][3].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) );
 #endif
 }
 

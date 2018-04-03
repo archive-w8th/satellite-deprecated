@@ -111,6 +111,7 @@ void doIntersection() {
     
     // validate hit 
     near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
+    near &= lessF(d, _nearhit) | bool_(vorders[traverseState.defTriangleID.x] >= vorders[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)]); // check z-fight priority
     IF (near.x) traverseState.geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID.x));
 
     // reset triangle ID 

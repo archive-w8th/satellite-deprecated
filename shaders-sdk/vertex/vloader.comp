@@ -223,7 +223,7 @@ void main(){
             // adapt quads to triangles
             //const ivec2 isize = ivec2(imageSize(vertex_texture_out)); 
             const int istride = mode == 1 ? 2 : 1;
-            int ordr = int(globalID*istride), tidc = tcounterInc(istride);
+            int ordr = tcounter[1] + int(globalID), tidc = tcounterInc(istride);
             //vec3 offsetnormal = normalize(cross(vertice[1].xyz - vertice[0].xyz, vertice[2].xyz - vertice[0].xyz));
 
             { // planned to support quad based geometry

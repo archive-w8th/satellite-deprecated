@@ -12,7 +12,7 @@
 
 // for geometry accumulators
 #ifdef VERTEX_FILLING
-    layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[1]; };
+    layout ( std430, binding = 0, set = 0 ) restrict buffer BuildCounters { int tcounter[2]; };
     layout ( std430, binding = 1, set = 0 ) restrict buffer GeomMaterialsSSBO { int materials[]; };
     layout ( std430, binding = 2, set = 0 ) restrict buffer OrderIdxSSBO { int vorders[]; };
     layout ( std430, binding = 3, set = 0 ) restrict buffer VertexLinearSSBO { float lvtx[]; };

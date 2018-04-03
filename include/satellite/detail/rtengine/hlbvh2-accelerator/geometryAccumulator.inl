@@ -157,6 +157,7 @@ namespace NSM
             }
 
             dispatchCompute(geometryLoader, INTENSIVITY, loaderDescriptorSets, instanceConst);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }), true); // save counted state
         }
 
     }

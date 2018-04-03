@@ -31,8 +31,9 @@ int stackPtr = 0, pageIdx = -1, rayID = 0, _r0 = -1;
 
 
 #ifndef USE_STACKLESS_BVH
-#define lstack localStack[Local_Idx]
-shared ivec4 localStack[WORK_SIZE];
+//#define lstack localStack[Local_Idx]
+//shared ivec4 localStack[WORK_SIZE];
+ivec4 lstack = ivec4(-1,-1,-1,-1);
 
 int loadStack(){
     int ptr = --stackPtr; int val = -1;

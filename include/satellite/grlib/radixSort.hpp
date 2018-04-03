@@ -20,7 +20,7 @@ namespace NSM {
 
             struct Consts { uint32_t NumKeys, Shift, Descending, IsSigned; };
             const uint32_t WG_COUNT = 64;
-            const uint32_t RADICE_AFFINE = 4;
+            const uint32_t RADICE_AFFINE = 1;
             std::string shadersPathPrefix = "shaders-spv";
             void init(DeviceQueueType& device);
 

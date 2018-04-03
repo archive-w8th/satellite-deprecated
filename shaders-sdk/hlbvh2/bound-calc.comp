@@ -12,7 +12,7 @@
 #include "./includes.glsl"
 
 LOCAL_SIZE_LAYOUT;
-shared bbox sdata[ 256 ];
+shared bbox sdata[ WORK_SIZE ];
 
 // only 2 will hyperthreaded, in reality 256 threads, 16 working threads and 16x2-lanes hyperthreaded as 64 by 2 clocks (also, possible, independently 4-8 cores)
 //layout ( local_size_x = 512 ) in;

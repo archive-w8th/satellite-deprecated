@@ -14,15 +14,15 @@
 //const int stackPageCount = 2;
 //const int localStackSize = 16;
 //#else
-const int stackPageCount = 4;
-const int localStackSize = 8;
+const int stackPageCount = 8;
+const int localStackSize = 4;
 //#endif
 
 // for structured copying
-struct PagedStack { int stack[localStackSize]; };
+//struct PagedStack { int stack[localStackSize]; };
 
 // dedicated BVH stack
-struct NodeCache { PagedStack stackPages[stackPageCount]; };
+struct NodeCache { ivec4 stackPages[stackPageCount]; };
 layout ( std430, binding = _CACHE_BINDING, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
 
 
@@ -31,8 +31,8 @@ int stackPtr = 0, pageIdx = -1, rayID = 0, _r0 = -1;
 
 
 #ifndef USE_STACKLESS_BVH
-#define LOCAL_STACK localStack[Local_Idx].stack
-shared PagedStack localStack[WORK_SIZE];
+#define lstack localStack[Local_Idx]
+shared ivec4 localStack[WORK_SIZE];
 
 int loadStack(){
     int ptr = --stackPtr; int val = -1;
@@ -41,15 +41,12 @@ int loadStack(){
     if (ptr < 0) { int page = pageIdx--; 
         if (page >= 0) {
             stackPtr = ptr = localStackSize-1;
-            localStack[Local_Idx] = nodeCache[rayID].stackPages[page];
+            lstack = nodeCache[rayID].stackPages[page];
         }
     }
 
-#ifdef USE_FAST_OFFLOAD
-    if (ptr >= 0) { val = LOCAL_STACK[ptr]; }
-#else
-    if (ptr >= 0) { val = exchange(LOCAL_STACK[ptr], -1); }
-#endif
+    // fast-stack
+    val = lstack.x; lstack = lstack.yzwx;
     return val;
 }
 
@@ -60,11 +57,12 @@ void storeStack(in int val){
     if (ptr >= localStackSize) { int page = ++pageIdx;
         if (page >= 0 && page < stackPageCount) {
             stackPtr = 1, ptr = 0;
-            nodeCache[rayID].stackPages[page] = localStack[Local_Idx];
+            nodeCache[rayID].stackPages[page] = lstack;
         }
     }
 
-    if (ptr < localStackSize) { LOCAL_STACK[ptr] = val; }
+    // fast-stack
+    lstack = lstack.wxyz; lstack.x = val;
 }
 
 bool stackIsFull() { return stackPtr >= localStackSize && pageIdx >= stackPageCount; }

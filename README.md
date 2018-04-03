@@ -14,7 +14,7 @@
 
 * Based on Vulkan API (compute purpose)
 * Simple vertex data loader for accelerator builder
-* Optimized HLBVH acceleration structure 
+* Optimized hlBVH<sup>2</sup> acceleration structure 
 * Optimized radix-sort (64/4-bits)
 * Optimized ray tracing pipeline (tile-based)
 * One testing example application (source code)

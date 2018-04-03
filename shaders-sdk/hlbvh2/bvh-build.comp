@@ -30,7 +30,7 @@ int findSplit( in int first, in int last) {
     } else {
         split = (last+first)>>1;
     }
-    return clamp(split, first, last-1);
+    return clamp(split, first, last);
 }
 
 initAtomicSubgroupIncFunction(lCounter, lCounterInc, 2, int)

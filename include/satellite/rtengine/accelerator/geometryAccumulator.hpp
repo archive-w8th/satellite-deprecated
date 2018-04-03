@@ -16,7 +16,7 @@ namespace NSM
             const size_t _WIDTH = 6144;
             
             // Worker metrics
-            const size_t INTENSIVITY = 1024;
+            const size_t INTENSIVITY = 4096;
 
             std::string shadersPathPrefix = "shaders-spv";
             DeviceQueueType device;

@@ -13,7 +13,7 @@ uint Wave_Idx = 0;
 #define BITS_PER_PASS 4
 #define RADICES 16
 #define RADICES_MASK 0xf
-#define AFFINITION 1
+#define AFFINITION 4 // hyper-threaded powers
 
 // general work groups
 #define BLOCK_SIZE (Wave_Size * RADICES / AFFINITION) // how bigger block size, then more priority going to radices (i.e. BLOCK_SIZE / Wave_Size)

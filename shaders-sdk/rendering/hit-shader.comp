@@ -1,11 +1,6 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-#ifdef WORK_SIZE
-#undef WORK_SIZE
-#endif
-#define WORK_SIZE 512
-
 #define DISCARD_SHARED_CACHING
 #define USE_SINGLE_THREAD_RAY_MANAGMENT
 #define SIMPLIFIED_RAY_MANAGMENT

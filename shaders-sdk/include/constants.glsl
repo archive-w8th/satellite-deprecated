@@ -79,8 +79,14 @@
 
 // Platform-oriented compute
 #ifndef WORK_SIZE
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+// 16 working threads, with 1-4 hyper-threaded SIMD in 16 lanes, and depends by hyper-threaded wide, working threads in local group will moved to another work-group (in general, independently works 4-16 work-threads/cores)
+#define WORK_SIZE 256
+#else
 #define WORK_SIZE 128
 #endif
+#endif
+
 #define LOCAL_SIZE_LAYOUT layout ( local_size_x = WORK_SIZE ) in
 
 // Math Constants

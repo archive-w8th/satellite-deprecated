@@ -383,7 +383,8 @@ namespace SatelliteExample {
 
 //const int32_t baseWidth = 400, baseHeight = 300;
 //const int32_t baseWidth = 960, baseHeight = 540;
-const int32_t baseWidth = 640, baseHeight = 360;
+//const int32_t baseWidth = 640, baseHeight = 360;
+const int32_t baseWidth = 512, baseHeight = 288;
 int main(const int argc, const char ** argv)
 {
     if (!glfwInit()) exit(EXIT_FAILURE);

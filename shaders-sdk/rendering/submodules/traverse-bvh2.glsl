@@ -10,16 +10,10 @@
 #endif
 
 
-//#ifdef ENABLE_AMD_INSTRUCTION_SET // RX Vega may have larger local shared memory and wider bandwidth
-//const int stackPageCount = 2;
-//const int localStackSize = 16;
-//#else
+const int max_iteraction = 8192;
 const int stackPageCount = 8;
 const int localStackSize = 4;
-//#endif
 
-// for structured copying
-//struct PagedStack { int stack[localStackSize]; };
 
 // dedicated BVH stack
 struct NodeCache { ivec4 stackPages[stackPageCount]; };
@@ -47,7 +41,7 @@ int loadStack(){
     }
 
     // fast-stack
-    val = lstack.x; lstack = lstack.yzwx;
+    val = exchange(lstack.x, -1); lstack = lstack.yzwx;
     return val;
 }
 
@@ -141,12 +135,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     // reset stack
     stackPtr = 0, pageIdx = -1;
 
-    // auto-clean stack from sh*t
-#if (!defined(USE_FAST_OFFLOAD) && !defined(USE_STACKLESS_BVH))
-    [[unroll]]
-    for (int i=0;i<localStackSize;i++) { LOCAL_STACK[i] = -1; }
-#endif
-
     // test constants
     vec3 
         torig = -divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin, 1.0f))).xyz,
@@ -184,7 +172,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
-    const vec2 bndsf2 = vec2(-(1.f+1e-3f), (1.f+1e-3f));
+    const vec2 bndsf2 = vec2(-(1.f+1e-5f), (1.f+1e-5f));
     IF (not(intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(bndsf2, bndsf2, bndsf2), near, far))) {
         traverseState.idx = -1;
     }
@@ -201,7 +189,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     }
 
     // begin of traverse BVH 
-    const int max_iteraction = 8192;
     ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
 
     for (int hi=0;hi<max_iteraction;hi++) {
@@ -304,7 +291,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
         }}
 
         SB_BARRIER
-        
+
         IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER doIntersection(); }
     }
 }

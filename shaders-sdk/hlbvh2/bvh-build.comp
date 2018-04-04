@@ -21,7 +21,7 @@ int cdelta( in int a, in int b ){
 
 int findSplit( in int first, in int last) {
     int commonPrefix = cdelta(first, last), split = first, nstep = last - first;
-    if (commonPrefix < 64) {
+    IFANY (commonPrefix < 64) {
         for (int i=0;(i<8192 && nstep>1);i++) {
             nstep = (nstep + 1) >> 1;
             int newSplit = split + nstep, code = cdelta(first, newSplit);

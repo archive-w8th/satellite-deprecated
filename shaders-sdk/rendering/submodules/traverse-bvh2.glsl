@@ -16,8 +16,10 @@ const int localStackSize = 4;
 
 
 // dedicated BVH stack
-struct NodeCache { ivec4 stackPages[stackPageCount]; };
-layout ( std430, binding = _CACHE_BINDING, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
+//struct NodeCache { ivec4 stackPages[stackPageCount]; };
+//layout ( std430, binding = _CACHE_BINDING, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
+
+layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) restrict uniform iimageBuffer texelPages;
 
 
 // 128-bit payload
@@ -36,7 +38,7 @@ int loadStack(){
     if (ptr < 0) { int page = pageIdx--; 
         if (page >= 0) {
             stackPtr = ptr = localStackSize-1;
-            lstack = nodeCache[rayID].stackPages[page];
+            lstack = imageLoad(texelPages, rayID*stackPageCount + page);
         }
     }
 
@@ -52,7 +54,7 @@ void storeStack(in int val){
     if (ptr >= localStackSize) { int page = ++pageIdx;
         if (page >= 0 && page < stackPageCount) {
             stackPtr = 1, ptr = 0;
-            nodeCache[rayID].stackPages[page] = lstack;
+            imageStore(texelPages, rayID*stackPageCount + page, lstack);
         }
     }
 

@@ -32,8 +32,8 @@ namespace NSM
                     vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // output counters
 
 
-                    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
-                    vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                    vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                    //vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
                 };
 
                 // create simpler descriptors
@@ -49,18 +49,22 @@ namespace NSM
                 bvhTraverse = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
 
                 // cache size
-                const size_t TRAVERSE_CACHE_SIZE = 1024; // 32kb
-                const size_t TRAVERSE_BLOCK_SIZE = 4096; // 4kb
+                const size_t TRAVERSE_CACHE_SIZE = 16;
+                const size_t LOCAL_WORK_SIZE = 64;
 
                 // caches
-                traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-                traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * 64 * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                //traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                traverseCacheData = createBuffer(device, TRAVERSE_CACHE_SIZE * LOCAL_WORK_SIZE * INTENSIVITY * sizeof(glm::ivec4), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+                // make TBO
+                auto bufferView = device->logical.createBufferView(vk::BufferViewCreateInfo().setBuffer(traverseCacheData->buffer).setFormat(vk::Format::eR32G32B32A32Sint).setOffset(0).setRange(TRAVERSE_CACHE_SIZE * INTENSIVITY * LOCAL_WORK_SIZE * sizeof(glm::ivec4)));
 
                 // set BVH traverse caches
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&traverseCacheData->descriptorInfo),
-                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&traverseBlockData->descriptorInfo),
+                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageTexelBuffer).setDstBinding(4).setPTexelBufferView(&bufferView),
+                     //vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&traverseCacheData->descriptorInfo),
+                     //vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&traverseBlockData->descriptorInfo),
                 }, nullptr);
             }
 

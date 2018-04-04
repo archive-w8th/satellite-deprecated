@@ -22,7 +22,6 @@
 #include "./submodules/shared-data.glsl"
 #include "./submodules/traverse-bvh2.glsl"
 
-
 LOCAL_SIZE_LAYOUT;
 
 void main() {
@@ -43,14 +42,14 @@ void main() {
         { // verify intersection
             bool_ vintersect = lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(traverseState.geometrySpace.lastIntersection.w != FINT_NULL);
             IFANY (vintersect) {
-                int eht = floatBitsToInt(traverseState.currentRayTmp.origin.w);
+                int eht = floatBitsToInt(currentRayTmp.origin.w);
 
                 vintersect &= bool_(eht <= 0).x | lessF(traverseState.geometrySpace.lastIntersection.z, hits[eht-1].uvt.z);
                 IF (vintersect) {
                     int hid = eht > 0 ? eht : atomicIncHT()+1;
                     HitData hit = hits[hid-1];
                     hit.uvt = traverseState.geometrySpace.lastIntersection;
-                    hit.rayID = int(traverseState.currentRayTmp.uindex.x)-1;
+                    hit.rayID = int(currentRayTmp.uindex.x)-1;
                     hit.payloadID = 0;
                     hit.next = 0;
                     hit.materialID = materials[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)];
@@ -58,12 +57,12 @@ void main() {
                     interpolateMeshData(hit);
 #endif
                     hits[hid-1] = hit;
-                    traverseState.currentRayTmp.origin.w = intBitsToFloat(hid);
+                    currentRayTmp.origin.w = intBitsToFloat(hid);
                 }
             }
         }
 
         // save for some-next operations (for example, hit chaining)
-        unorderedRays[it] = traverseState.currentRayTmp;
+        unorderedRays[it] = currentRayTmp;
     }
 }

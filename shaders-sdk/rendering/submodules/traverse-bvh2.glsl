@@ -72,6 +72,10 @@ bool stackIsEmpty() { return stackPtr <= 0 && pageIdx < 0; }
 
 
 
+shared _RAY_TYPE rayCache[WORK_SIZE];
+#define currentRayTmp rayCache[Local_Idx]
+
+
 struct GeometrySpace {
     //int axis; mat3 iM;
     vec4 dir;
@@ -84,7 +88,7 @@ struct BVHSpace {
 };
 
 struct BvhTraverseState {
-    _RAY_TYPE currentRayTmp;
+    //_RAY_TYPE currentRayTmp;
 
     int idx, defTriangleID;
     float distMult, diffOffset;
@@ -102,8 +106,8 @@ struct BvhTraverseState {
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
-    //float d = intersectTriangle(traverseState.currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    //float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
     IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }
@@ -118,10 +122,11 @@ void doIntersection() {
 }
 
 void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
-    traverseState.currentRayTmp = rayIn;
-    vec3 origin = traverseState.currentRayTmp.origin.xyz;
-    vec3 direct = dcts(traverseState.currentRayTmp.cdirect.xy);
-    int eht = floatBitsToInt(traverseState.currentRayTmp.origin.w);
+    currentRayTmp = rayIn;
+
+    vec3 origin = currentRayTmp.origin.xyz;
+    vec3 direct = dcts(currentRayTmp.cdirect.xy);
+    int eht = floatBitsToInt(currentRayTmp.origin.w);
 
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;

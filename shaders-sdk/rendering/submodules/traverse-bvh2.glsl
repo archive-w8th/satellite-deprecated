@@ -303,6 +303,8 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
             IFANY ( traverseState.defTriangleID >= 0 || traverseState.idx < 0 ) { SB_BARRIER break; }
         }}
 
+        SB_BARRIER
+        
         IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER doIntersection(); }
     }
 }

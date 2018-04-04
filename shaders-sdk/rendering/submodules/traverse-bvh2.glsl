@@ -106,7 +106,7 @@ void doIntersection() {
     //float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
 
     float _nearhit = traverseState.geometrySpace.lastIntersection.z;
-    IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult; }
+    IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult - traverseState.diffOffset; }
     
     // validate hit 
     near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
@@ -187,7 +187,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     traverseState.diffOffset = toffset;
 
     IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY)) { 
-        traverseState.bvhSpace.cutOut = traverseState.geometrySpace.lastIntersection.z * traverseState.distMult; 
+        traverseState.bvhSpace.cutOut = traverseState.geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
     }
 
     // begin of traverse BVH 
@@ -218,7 +218,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 , nears, fars);
                 
                 childIntersect &= bool_(cnode.y == 2).xx; // base on fact
-                childIntersect &= bvec2_(lessThanEqual(nears+traverseState.diffOffset.xx, traverseState.bvhSpace.cutOut.xx));
+                childIntersect &= bvec2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection
 

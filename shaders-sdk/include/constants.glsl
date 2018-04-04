@@ -28,20 +28,6 @@
     #extension GL_KHR_shader_subgroup_clustered        : enable
 
 
-
-
-
-
-
-// hardware or driver options
-#define INT64_MORTON
-
-#ifdef INT64_MORTON
-#define MORTONTYPE uint64_t
-#else
-#define MORTONTYPE uint
-#endif
-
 // ray tracing options
 //#define EXPERIMENTAL_DOF
 #define SUNLIGHT_CAUSTICS false
@@ -53,7 +39,6 @@
 #ifndef SAMPLES_LOCK
 #define SAMPLES_LOCK 1
 #endif
-
 
 // enable required GAPI extensions
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -74,9 +59,6 @@
 #extension GL_NV_gpu_shader5 : enable // not supported by SPIRV
 #endif
 
-// System Constants
-#define PZERO 1e-4f
-
 // Platform-oriented compute
 #ifndef WORK_SIZE
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -89,14 +71,5 @@
 #endif
 
 #define LOCAL_SIZE_LAYOUT layout ( local_size_x = WORK_SIZE ) in
-
-// Math Constants
-#define PHI 1.6180339887498948482
-#define LONGEST -1
-#define INFINITY 9999.9999f
-#define PI 3.1415926535897932384626422832795028841971
-#define TWO_PI 6.2831853071795864769252867665590057683943
-#define SQRT_OF_ONE_THIRD 0.5773502691896257645091487805019574556476
-#define E 2.7182818284590452353602874713526624977572
 
 #endif

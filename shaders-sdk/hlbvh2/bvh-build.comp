@@ -14,7 +14,7 @@
 LOCAL_SIZE_LAYOUT;
 
 int cdelta( in int a, in int b ){
-    MORTONTYPE acode = Mortoncodes[a], bcode = Mortoncodes[b];
+    uint64_t acode = Mortoncodes[a], bcode = Mortoncodes[b];
     int pfx = nlz(acode^bcode);
     return pfx + (pfx < 64 ? 0 : nlz(a^b));
 }

@@ -153,7 +153,7 @@ void main() {
 
                     int to = atomicIncAABB();
                     MortoncodesIndices[to] = int(to);
-                    Mortoncodes[to] = MORTONTYPE(encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF))));
+                    Mortoncodes[to] = uint64_t(encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF))));
 
                     // for inprecise BVH increase precisions
                     bounding.mn -= 1e-5f.xxxx, bounding.mx += 1e-5f.xxxx;

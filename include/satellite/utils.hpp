@@ -89,15 +89,4 @@ namespace NSM
     size_t strided(size_t sizeo) { return sizeof(T) * sizeo; }
 
     const int32_t zero[1] = { 0 };
-
-
-
-
-    void rand_shuffle(std::vector<uint32_t> &v) {
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(v.begin(), v.end(), g);
-    }
-
-
 } // namespace NSM

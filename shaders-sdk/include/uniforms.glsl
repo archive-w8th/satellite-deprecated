@@ -77,10 +77,4 @@ layout ( std430, binding = 14, set = 0 ) restrict readonly buffer StreamsBlockUn
     RayStream rayStreams[];
 };
 
-
-layout ( std430, binding = 16, set = 0 ) restrict readonly buffer ShuffleSeqUniform {
-    uint shuffledSequence[1024];
-};
-
-
 #endif

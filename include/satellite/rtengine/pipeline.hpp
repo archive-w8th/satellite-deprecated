@@ -73,6 +73,9 @@ namespace NSM
             std::vector<RayStream> rayStreamsData;
             UniformBuffer rayStreamsUniform;
 
+            std::vector<uint32_t> shuffledSeqData;
+            UniformBuffer shuffledSeqUniform;
+
             // vk::DescriptorPool descriptorPool;
 
             std::vector<vk::DescriptorSet> rayTracingDescriptors, samplingDescriptors, surfaceDescriptors;

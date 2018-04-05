@@ -13,9 +13,13 @@ namespace NSM
             bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
             bufferSubData(command, lightUniform.staging, lightUniformData, 0);
             bufferSubData(command, rayStreamsUniform.staging, rayStreamsData, 0);
+            bufferSubData(command, shuffledSeqUniform.staging, shuffledSeqData, 0);
+
             memoryCopyCmd(command, rayBlockUniform.staging, rayBlockUniform.buffer, { 0, 0, strided<RayBlockUniform>(1) });
             memoryCopyCmd(command, lightUniform.staging, lightUniform.buffer, { 0, 0, strided<LightUniformStruct>(lightUniformData.size()) });
             memoryCopyCmd(command, rayStreamsUniform.staging, rayStreamsUniform.buffer, { 0, 0, strided<RayStream>(rayStreamsData.size()) });
+            memoryCopyCmd(command, shuffledSeqUniform.staging, shuffledSeqUniform.buffer, { 0, 0, strided<uint32_t>(shuffledSeqData.size()) });
+
             flushCommandBuffer(device, command, true);
         }
 
@@ -42,6 +46,7 @@ namespace NSM
                 vk::DescriptorSetLayoutBinding(12, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // LightUniform
                 vk::DescriptorSetLayoutBinding(13, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // RayBlockUniform
                 vk::DescriptorSetLayoutBinding(14, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // StreamsBlockUniform
+                vk::DescriptorSetLayoutBinding(16, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
 
                 // hit payloads
                 vk::DescriptorSetLayoutBinding(15, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
@@ -183,6 +188,12 @@ namespace NSM
             lightUniform.staging = createBuffer(device, strided<LightUniformStruct>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             rayStreamsUniform.buffer = createBuffer(device, strided<RayStream>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             rayStreamsUniform.staging = createBuffer(device, strided<RayStream>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            shuffledSeqUniform.buffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            shuffledSeqUniform.staging = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            shuffledSeqData = std::vector<uint32_t>(1024);
+            for (uint32_t i = 0; i < 1024;i++) {
+                shuffledSeqData[i] = i;
+            }
 
             // counters buffer
             countersBuffer = createBuffer(device, strided<uint32_t>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -202,11 +213,12 @@ namespace NSM
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(12).setPBufferInfo(&lightUniform.buffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(13).setPBufferInfo(&rayBlockUniform.buffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo)},
-                nullptr);
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&shuffledSeqUniform.buffer->descriptorInfo),
+            }, nullptr);
 
             // null envmap
             {
@@ -508,6 +520,9 @@ namespace NSM
             //rayBlockData[0].materialUniform.time = randm();
             rayBlockData[0].cameraUniform.ftime = float((milliseconds() - starttime) / (1000.0));
             rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
+
+            // reshuffle sequences
+            rand_shuffle(shuffledSeqData);
             syncUniforms();
 
             // shorter dispatcher of generation

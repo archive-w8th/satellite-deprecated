@@ -195,7 +195,7 @@ void main() {
                 int bts = min(int(R_BLOCK_SIZE), int(currentBlockSize));
                 for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
                     int nid = tb + int(Lane_Idx);
-                    randomClocks = 0, subHash = nid; // reset random clocks
+                    randomClocks = 0, subHash = 0; //subHash = nid; // reset random clocks
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;
                     accquireNodeOffload(nid); overflow = overflow || currentBlockNode < 0;

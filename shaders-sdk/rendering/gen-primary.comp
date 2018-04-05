@@ -20,15 +20,9 @@ LOCAL_SIZE_LAYOUT;
 void main()
 {
     const int H_BLOCK_WIDTH = 16, H_BLOCK_HEIGHT = 16;
-    const int 
-        m_BLOCK_WIDTH  = H_BLOCK_WIDTH  / R_BLOCK_WIDTH, 
-        m_BLOCK_HEIGHT = H_BLOCK_HEIGHT / R_BLOCK_HEIGHT;
 
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
-    ivec2 blk = ivec2(tiled(wh.x, int(H_BLOCK_WIDTH)), tiled(wh.y, int(H_BLOCK_HEIGHT)));
-
-    
-
+    ivec2 blk = ivec2(tiled(wh.x, int(R_BLOCK_WIDTH)), tiled(wh.y, int(R_BLOCK_HEIGHT)));
 
     vec2 sceneResInv = 1.0f / vec2(wh);
     int wsize = blk.x * blk.y;
@@ -43,148 +37,141 @@ void main()
         int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
         globalInvocationSMP = globalID;
 
+        int binID = globalID;
+        blockBins[binID].blockStart = 0;
+        blockBins[binID].previousReg = 0;
+        blockBins[binID].texelHeader = 0;
+        blockBins[binID].texelFrom = 0;
+        
         // check if not reached blocks limit
         overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
         IFALL(overflow) break;
         if (!overflow) { 
+            // create unique tile per WARP
+            int blockID = -1;
+            createBlockOnce(blockID, true, binID);
+            accquirePlainBlock(blockID); 
+            IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
 
-            ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
+            // allocate texel heading (2x16-bit)
+            if (electedInvoc()) {
+                blockBins[binID].texelHeader = atomicIncRT(1)+1; 
+            }
 
-            const int msize = m_BLOCK_WIDTH * m_BLOCK_HEIGHT;
-            for ( int bx = 0; bx < m_BLOCK_WIDTH; bx ++ ) {
-                for ( int by = 0; by < m_BLOCK_HEIGHT; by ++ ) {
-                    int mlid = bx + by * m_BLOCK_WIDTH;
-                    int binID = globalID * msize + mlid;
-                    blockBins[binID].blockStart = 0;
-                    blockBins[binID].previousReg = 0;
-                    blockBins[binID].texelHeader = 0;
-                    blockBins[binID].texelFrom = 0;
+            // make division
+            ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
+            ivec2 divxyX = divxy.xy / ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT) * ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
 
+            // root of texeling
+            blockBins[binID].texelFrom = (divxyX.x + divxyX.y * wh.x)+1;
 
-                    // create unique tile per WARP
-                    int blockID = -1;
-                    createBlockOnce(blockID, true, binID);
-                    accquirePlainBlock(blockID); 
-                    IFANY(currentBlock < 0 || currentBlockSize <= 0) continue; 
+            // invoke block data
+            [[unroll]]
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                // in-block Id
+                int nid = tb + int(Lane_Idx);
 
-                    // allocate texel heading (2x16-bit)
-                    if (electedInvoc()) {
-                        blockBins[binID].texelHeader = atomicIncRT(1)+1; 
+                // get 2D index
+                ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH), xy = divxy + bc;
+
+                // use shuffling for nicer acceleration
+                ivec2 xyF = (xy-divxyX) % ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
+                int iF = xyF.x + xyF.y * H_BLOCK_WIDTH; iF = int(shuffledSequence[iF]);
+                xyF = ivec2(iF%H_BLOCK_WIDTH,iF/H_BLOCK_WIDTH);
+                xy = divxyX + xyF;
+
+                int idx = xy.x + xy.y * wh.x;
+
+                { // in invalid areas default values
+                    randomClocks = 0, subHash = nid; // reset random clocks
+                    accquirePlainNode(blockID, nid); // accquire by lane
+                    
+                    // by default is inactive
+                    currentRay.cdirect = vec2(0.f.xx);
+                    currentRay.origin = vec4(vec3(0.f.xxx), FINT_ZERO);
+
+                    // by default - disabled
+                    RayActived(currentRay, false_);
+                    WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
+
+                    overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
+                    IFALL(overflow) break;
+
+                    // prison coding
+                    {
+                        texelBuf.nodes[idx].coord.x = -1.f;
+                        texelBuf.nodes[idx].coord.y = -1.f;
+                        texelBuf.nodes[idx].color = 0.f.xxxx;
+                    }
+                    m16s(-1, blockBins[binID].texelHeader-1, nid);
+                }
+                
+                bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
+                if (vbn) { // if potential texel if valid
+                    m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
+
+                    vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
+                    vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
+
+                    vec4 dir = vec4(0.f), orig = mult4(RAY_BLOCK cameraUniform.camInv, vec4(vec3(0.0f), 1.0f)), eye = orig;
+                    if (RAY_BLOCK cameraUniform.enable360 == 1) {
+                        vec2 pic = (coord * vec2(2.f,1.f) + vec2(0.5f,0.0f)) * PI;
+                        dir = mult4(RAY_BLOCK cameraUniform.camInv, vec4(dcts(pic), 0.f));
+                    } else {
+                        vec4 co = divW(mult4(RAY_BLOCK cameraUniform.camInv, mult4(RAY_BLOCK cameraUniform.projInv, vec4(coord * 2.0f - 1.0f, 0.999f, 1.0f))));
+                        orig = divW(mult4(RAY_BLOCK cameraUniform.camInv, mult4(RAY_BLOCK cameraUniform.projInv, vec4(coord * 2.0f - 1.0f, 0.001f, 1.0f))));
+                        dir = vec4(normalize(co.xyz - orig.xyz)*vec3(1.f,1.f,1.f), 0.0f);
                     }
 
-                    // make division
-                    blockBins[binID].texelFrom = (divxy.x + divxy.y * wh.x)+1;
+                    texelBuf.nodes[idx].coord.x = coord.x;
+                    texelBuf.nodes[idx].coord.y = coord.y;
+                    texelBuf.nodes[idx].color = 0.f.xxxx;
+                    texelBuf.nodes[idx].p3d = vec4(fma(dir.xyz, INFINITY.xxx, eye.xyz), 1.f);
+                    texelBuf.nodes[idx].albedo = vec4(0.f);
+                    texelBuf.nodes[idx].normal = vec4(0.0f, 0.0f, 1.f, 0.f);
 
-                    // invoke block data
-                    [[unroll]]
-                    for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
-                        // in-block Id
-                        int nid = tb + int(Lane_Idx);
+                    // apply DOF
+#ifdef EXPERIMENTAL_DOF
+                    float dofFocusRadius = 10.f;
+                    float dofFocalRadius = 1.f / 16.f;
+                    vec4 defEye = RAY_BLOCK cameraUniform.camInv * vec4(0.0f, 0.0f, 0.0f, 1.0f);
+                    vec4 focus = defEye + dir * dofFocusRadius;
+                    vec4 offsetEye = RAY_BLOCK cameraUniform.camInv * vec4(randomCosine(dir.xyz) * dofFocalRadius, 1.0f);
+                    orig = offsetEye;
+                    dir = vec4(normalize(focus.xyz - offsetEye.xyz), 0.0f);
+#endif
 
-                        // get 2D index
-                        ivec2 bc = ivec2(bx * R_BLOCK_WIDTH + (nid % R_BLOCK_WIDTH), by * R_BLOCK_HEIGHT + (nid / R_BLOCK_WIDTH)); //ivec2((nid % R_BLOCK_WIDTH) * m_BLOCK_WIDTH + bx, (nid / R_BLOCK_WIDTH) * m_BLOCK_HEIGHT + by);
+                    // set ray state
+                    currentRay.cdirect = lcts(dir.xyz);
+                    currentRay.origin = vec4(orig.xyz, FINT_ZERO);
+                    currentRay.dcolor = (0u).xx;  // set default bitset
 
-                        // shuffle between generative blocks
-                        int lbid = bc.x + bc.y * H_BLOCK_WIDTH; lbid = int(shuffledSequence[lbid]);
-                        bc = ivec2(lbid % H_BLOCK_WIDTH, lbid / H_BLOCK_WIDTH);
+                    // set default bitfield values
+                    WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
+                    RayActived(currentRay, true_);
+                    RayType(currentRay, 3); // primary rays
+                    RayDL(currentRay, false_);
+                    RayBounce(currentRay, 3);
+                    RayDiffBounce(currentRay, 2);
+                }
+                
+                confirmNode(blockID, RayActived(currentRay) == true_);
+                storeRay(blockID, currentRay);
+            }
 
-                        // get 64x64 shuffled coordinates
-                        ivec2 xy = divxy + bc;
-                        int idx = xy.x + xy.y * wh.x;
+            SB_BARRIER
 
-                        { // in invalid areas default values
-                            randomClocks = 0, subHash = nid; // reset random clocks
-                            accquirePlainNode(blockID, nid); // accquire by lane
-                            
-                            // by default is inactive
-                            currentRay.cdirect = vec2(0.f.xx);
-                            currentRay.origin = vec4(vec3(0.f.xxx), FINT_ZERO);
+            [[unroll]]
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                copyBlockIndices(currentBlock, tb + int(Lane_Idx));
+            }
 
-                            // by default - disabled
-                            RayActived(currentRay, false_);
-                            WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
-
-                            overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= H_BLOCK_HEIGHT || nid < 0;
-                            IFALL(overflow) break;
-
-                            // prison coding
-                            {
-                                texelBuf.nodes[idx].coord.x = -1.f;
-                                texelBuf.nodes[idx].coord.y = -1.f;
-                                texelBuf.nodes[idx].color = 0.f.xxxx;
-                            }
-                            m16s(-1, blockBins[binID].texelHeader-1, nid);
-                        }
-                        
-                        bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
-                        if (vbn) { // if potential texel if valid
-                            m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
-
-                            vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
-                            vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
-
-                            vec4 dir = vec4(0.f), orig = mult4(RAY_BLOCK cameraUniform.camInv, vec4(vec3(0.0f), 1.0f)), eye = orig;
-                            if (RAY_BLOCK cameraUniform.enable360 == 1) {
-                                vec2 pic = (coord * vec2(2.f,1.f) + vec2(0.5f,0.0f)) * PI;
-                                dir = mult4(RAY_BLOCK cameraUniform.camInv, vec4(dcts(pic), 0.f));
-                            } else {
-                                vec4 co = divW(mult4(RAY_BLOCK cameraUniform.camInv, mult4(RAY_BLOCK cameraUniform.projInv, vec4(coord * 2.0f - 1.0f, 0.999f, 1.0f))));
-                                orig = divW(mult4(RAY_BLOCK cameraUniform.camInv, mult4(RAY_BLOCK cameraUniform.projInv, vec4(coord * 2.0f - 1.0f, 0.001f, 1.0f))));
-                                dir = vec4(normalize(co.xyz - orig.xyz)*vec3(1.f,1.f,1.f), 0.0f);
-                            }
-
-                            texelBuf.nodes[idx].coord.x = coord.x;
-                            texelBuf.nodes[idx].coord.y = coord.y;
-                            texelBuf.nodes[idx].color = 0.f.xxxx;
-                            texelBuf.nodes[idx].p3d = vec4(fma(dir.xyz, INFINITY.xxx, eye.xyz), 1.f);
-                            texelBuf.nodes[idx].albedo = vec4(0.f);
-                            texelBuf.nodes[idx].normal = vec4(0.0f, 0.0f, 1.f, 0.f);
-
-                            // apply DOF
-        #ifdef EXPERIMENTAL_DOF
-                            float dofFocusRadius = 10.f;
-                            float dofFocalRadius = 1.f / 16.f;
-                            vec4 defEye = RAY_BLOCK cameraUniform.camInv * vec4(0.0f, 0.0f, 0.0f, 1.0f);
-                            vec4 focus = defEye + dir * dofFocusRadius;
-                            vec4 offsetEye = RAY_BLOCK cameraUniform.camInv * vec4(randomCosine(dir.xyz) * dofFocalRadius, 1.0f);
-                            orig = offsetEye;
-                            dir = vec4(normalize(focus.xyz - offsetEye.xyz), 0.0f);
-        #endif
-
-                            // set ray state
-                            currentRay.cdirect = lcts(dir.xyz);
-                            currentRay.origin = vec4(orig.xyz, FINT_ZERO);
-                            currentRay.dcolor = (0u).xx;  // set default bitset
-
-                            // set default bitfield values
-                            WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
-                            RayActived(currentRay, true_);
-                            RayType(currentRay, 3); // primary rays
-                            RayDL(currentRay, false_);
-                            RayBounce(currentRay, 3);
-                            RayDiffBounce(currentRay, 2);
-                        }
-                        
-                        confirmNode(blockID, RayActived(currentRay) == true_);
-                        storeRay(blockID, currentRay);
-                    }
-
-                    SB_BARRIER
-
-                    [[unroll]]
-                    for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
-                        copyBlockIndices(currentBlock, tb + int(Lane_Idx));
-                    }
-
-                    SB_BARRIER
-                    if (electedInvoc()) {
-                        if (blockLength(blockID) >= 1) {
-                            confirmBlock(blockID);
-                        } else {
-                            flushBlock(blockID, true);
-                        }
-                    }
-
+            SB_BARRIER
+            if (electedInvoc()) {
+                if (blockLength(blockID) >= 1) {
+                    confirmBlock(blockID);
+                } else {
+                    flushBlock(blockID, true);
                 }
             }
         }

@@ -13,9 +13,11 @@ namespace NSM
             bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
             bufferSubData(command, lightUniform.staging, lightUniformData, 0);
             bufferSubData(command, rayStreamsUniform.staging, rayStreamsData, 0);
+            bufferSubData(command, shuffledSeqUniform.staging, shuffledSeqData, 0);
             memoryCopyCmd(command, rayBlockUniform.staging, rayBlockUniform.buffer, { 0, 0, strided<RayBlockUniform>(1) });
             memoryCopyCmd(command, lightUniform.staging, lightUniform.buffer, { 0, 0, strided<LightUniformStruct>(lightUniformData.size()) });
             memoryCopyCmd(command, rayStreamsUniform.staging, rayStreamsUniform.buffer, { 0, 0, strided<RayStream>(rayStreamsData.size()) });
+            memoryCopyCmd(command, shuffledSeqUniform.staging, shuffledSeqUniform.buffer, { 0, 0, strided<uint32_t>(shuffledSeqData.size()) });
             flushCommandBuffer(device, command, true);
         }
 
@@ -45,6 +47,7 @@ namespace NSM
 
                 // hit payloads
                 vk::DescriptorSetLayoutBinding(15, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                vk::DescriptorSetLayoutBinding(16, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
 
                 // environment map for ray tracing
                 vk::DescriptorSetLayoutBinding(20, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // environment map
@@ -183,6 +186,10 @@ namespace NSM
             lightUniform.staging = createBuffer(device, strided<LightUniformStruct>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             rayStreamsUniform.buffer = createBuffer(device, strided<RayStream>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             rayStreamsUniform.staging = createBuffer(device, strided<RayStream>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            shuffledSeqUniform.buffer = createBuffer(device, strided<uint32_t>(4096), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            shuffledSeqUniform.staging = createBuffer(device, strided<uint32_t>(4096), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            shuffledSeqData = std::vector<uint32_t>(256);
+            for (uint32_t i = 0; i < shuffledSeqData.size(); i++) { shuffledSeqData[i] = i; }
 
             // counters buffer
             countersBuffer = createBuffer(device, strided<uint32_t>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -205,8 +212,9 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(12).setPBufferInfo(&lightUniform.buffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(13).setPBufferInfo(&rayBlockUniform.buffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo)},
-                nullptr);
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&shuffledSeqUniform.buffer->descriptorInfo),
+            }, nullptr);
 
             // null envmap
             {
@@ -374,7 +382,7 @@ namespace NSM
             rayIndexSpaceBuffer = createBuffer(device, strided<uint32_t>(blockLimit * BLOCK_SIZE * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // structured blocks 
-            texelBuffer = createBuffer(device, strided<Texel>(wrsize), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            texelBuffer = createBuffer(device, strided<Texel>(wrsize*4), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             blockBinBuffer = createBuffer(device, strided<glm::uvec4>(rayBlockData[0].samplerUniform.blockBinCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             rayBlockBuffer = createBuffer(device, strided<glm::uvec4>(blockLimit * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
@@ -504,6 +512,15 @@ namespace NSM
                 glm::vec3 lightCenter = glm::fma(lvec, glm::vec3(lightUniformData[i].lightVector.w), (lightUniformData[i].lightOffset.xyz + playerCenter));
                 lightUniformData[i].lightRandomizedOrigin = glm::vec4(glm::sphericalRand(lightUniformData[i].lightColor.w - 0.0001f) + lightCenter, 1.f);
             }
+
+
+            // shuffle uniform blocks
+            {
+                std::random_device rd;
+                std::mt19937 g(rd());
+                std::shuffle(shuffledSeqData.begin(), shuffledSeqData.end(), g);
+            }
+
 
             //rayBlockData[0].materialUniform.time = randm();
             rayBlockData[0].cameraUniform.ftime = float((milliseconds() - starttime) / (1000.0));

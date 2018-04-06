@@ -51,7 +51,6 @@ Rendered on RX Vega 64, Intel Core i7-8700K.
 * https://www.youtube.com/watch?v=j8yn2e_E-Tg (720p, 1ssp)
 * https://www.youtube.com/watch?v=5tZulCaNtt0 (720p, dynamic, 1ssp)
 * https://www.youtube.com/watch?v=3BTSznowUyE (720p, dynamic, 1ssp)
-
 * https://www.youtube.com/watch?v=LU74dCuRgcY (720p, ray-tracing)
 * https://www.youtube.com/watch?v=TebMZgc6rGU (720p, ray-tracing)
 

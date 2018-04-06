@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
+#define ENABLE_PT_SUNLIGHT
+
+
 //#define DISABLE_REFLECTIONS
 //#define ENABLE_RUDE_RANDOM
 
@@ -121,6 +124,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
         vec3 origin = rayTemplate.origin.xyz;
         vec3 direct = dcts(rayTemplate.cdirect.xy);
 
+#ifdef ENABLE_PT_SUNLIGHT
         [[unroll]]
         for (int i=0;i<lcount;i++) {
             float md = 1.0f;
@@ -128,6 +132,7 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
             float t = md * dt;
             IF (lessF(dt, INFINITY) & lessEqualF(t, compositedHit.uvt.z)) lc = i;
         }
+#endif
     }
 
     // shade light

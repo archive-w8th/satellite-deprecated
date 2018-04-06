@@ -89,6 +89,11 @@ RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 t
     RayActived(directRay, false_);
 #endif
 
+    // ineffective
+#ifndef ENABLE_PT_SUNLIGHT
+    RayActived(directRay, false_);
+#endif
+
     // inactived can't be shaded
     IF (not(RayActived(directRay))) WriteColor(directRay.dcolor, 0.f.xxxx);
 

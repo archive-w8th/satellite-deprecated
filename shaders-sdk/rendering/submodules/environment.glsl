@@ -1,4 +1,4 @@
-const float maxHdrExposure = 10.f;
+const float maxHdrExposure = 1.f;
 
 layout ( binding = 20, set = 0 ) uniform sampler2D skybox[1]; // united state with ray tracing
 

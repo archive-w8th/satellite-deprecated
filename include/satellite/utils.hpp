@@ -17,7 +17,9 @@
 
 #define GLM_FORCE_SWIZZLE
 
+//#define PCG_LITTLE_ENDIAN 0
 #include <half.hpp> // force include half's
+#include <pcg_random.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -42,6 +44,7 @@
 
 namespace NSM
 {
+    /*
     auto rand64u()
     {
         auto dvc = std::mt19937_64(std::random_device()());
@@ -64,7 +67,7 @@ namespace NSM
     {
         auto dvc = std::mt19937(std::random_device()());
         return std::uniform_real_distribution<float>(0.f, 1.f)(dvc);
-    }
+    }*/
 
     template <typename T>
     auto sgn(T val) { return (T(0) < val) - (val < T(0)); }

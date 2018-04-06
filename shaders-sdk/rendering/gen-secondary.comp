@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
+//#define DISABLE_REFLECTIONS
 //#define ENABLE_RUDE_RANDOM
 
 

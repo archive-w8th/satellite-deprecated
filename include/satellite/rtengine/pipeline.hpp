@@ -98,6 +98,8 @@ namespace NSM
             std::shared_ptr<MaterialSet> boundMaterialSet;
             std::shared_ptr<VirtualTextureSet> boundVirtualTextureSet;
 
+            std::shared_ptr<pcg64> rndEngine;
+
         protected:
             void syncUniforms();
             void initDescriptorSets();

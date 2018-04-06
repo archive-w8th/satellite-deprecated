@@ -307,6 +307,11 @@ namespace NSM
 
         void Pipeline::init(DeviceQueueType &device)
         {
+            pcg_extras::seed_seq_from<std::random_device> seed_source;
+            rndEngine = std::make_shared<pcg64>(seed_source);
+
+
+
             this->device = device;
             rayBlockData.resize(1);
             starttime = milliseconds();
@@ -427,7 +432,7 @@ namespace NSM
 
         void Pipeline::clearSampling()
         {
-            sequenceId = randm(2147483647); // regenerate starting sequence
+            sequenceId = std::uniform_int_distribution<uint32_t>(0, 2147483647)(*rndEngine);
             rayBlockData[0].cameraUniform.prevCamInv = rayBlockData[0].cameraUniform.camInv;
             doCleanSamples = true;
         }
@@ -496,11 +501,16 @@ namespace NSM
 
             const size_t num_seeds = 16;
             rayStreamsData.resize(num_seeds);
+
+
+            auto u64distr = std::uniform_int_distribution<uint64_t>(0, _UI64_MAX);
+            auto f01distr = std::uniform_real_distribution<float>(0.f, 1.f);
+
             for (int i = 0; i < rayStreamsData.size(); i++)
             {
                 rayStreamsData[i].diffuseStream = glm::vec4(glm::sphericalRand(1.f), 0.f);
-                rayStreamsData[i].superseed = glm::u64vec4(rand64u(), rand64u(), rand64u(), rand64u());
-                rayStreamsData[i].frand4 = glm::vec4(randf(), randf(), randf(), randf());
+                rayStreamsData[i].superseed = glm::u64vec4(u64distr(*rndEngine), u64distr(*rndEngine), u64distr(*rndEngine), u64distr(*rndEngine));
+                rayStreamsData[i].frand4 = glm::vec4(f01distr(*rndEngine), f01distr(*rndEngine), f01distr(*rndEngine), f01distr(*rndEngine));
             }
             sequenceId = (sequenceId + 1) % 2147483647;
 

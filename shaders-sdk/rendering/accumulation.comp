@@ -26,7 +26,7 @@ void main() {
         int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
 
         // check if not reached blocks limit
-        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
+        bool overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
         IFALL(overflow) break;
         if (!overflow) {
             int cnt = 256;
@@ -43,9 +43,9 @@ void main() {
             int cnm = min(256, cnt);
             for (int m=0;m<cnm;m++) {
                 SB_BARRIER
-                inv = inv || anyInvoc(inv || anyInvoc(inv || int(idx) < 0));
+                inv = inv || (int(idx) < 0);
                 IFALL(inv) break; // if overflow or bad texel
-                if (!inv) {
+                IFANY(!inv) {
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
                         int nid = tb + int(Lane_Idx);
                         int ltex = m16i(texelHeader, nid);

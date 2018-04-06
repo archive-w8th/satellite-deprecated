@@ -29,9 +29,9 @@ void main() {
         globalInvocationSMP = globalID;
 
         // check if not reached blocks limit
-        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
+        bool overflow = overflow || globalID >= wsize;
         IFALL(overflow) break;
-        if (!overflow) {
+        IFANY(!overflow) {
             
             // accquire shading block
             currentBlock = -1;

@@ -19,6 +19,7 @@ LOCAL_SIZE_LAYOUT;
 
 void main()
 {
+    //const int H_BLOCK_WIDTH = 32, H_BLOCK_HEIGHT = 32;
     const int H_BLOCK_WIDTH = 16, H_BLOCK_HEIGHT = 16;
 
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
@@ -44,9 +45,9 @@ void main()
         blockBins[binID].texelFrom = 0;
         
         // check if not reached blocks limit
-        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
-        IFALL(overflow) break;
-        if (!overflow) { 
+        bool overflow = overflow || globalID >= wsize;
+        IFALL (overflow) break;
+        IFANY (!overflow) { 
             // create unique tile per WARP
             int blockID = -1;
             createBlockOnce(blockID, true, binID);
@@ -94,7 +95,7 @@ void main()
                     RayActived(currentRay, false_);
                     WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
-                    overflow = overflow || nid >= R_BLOCK_SIZE || bc.y >= R_BLOCK_HEIGHT || nid < 0;
+                    bool overflow = overflow || nid >= R_BLOCK_SIZE || nid < 0;
                     IFALL(overflow) break;
 
                     // prison coding

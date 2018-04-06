@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
+//#define ENABLE_RUDE_RANDOM
+
+
 //#define USE_HARD_SHADOWS // working only in simplified mode
 //#define USE_SIMPLIFIED_MODE
 
@@ -177,9 +180,9 @@ void main() {
         globalInvocationSMP = globalID;
 
         // check if not reached blocks limit
-        overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
-        IFALL(overflow) break;
-        if (!overflow) {
+        bool overflow = globalID >= wsize;
+        IFALL (overflow) break;
+        IFANY (!overflow) {
             
             // accquire shading block
             currentBlock = -1;
@@ -195,7 +198,14 @@ void main() {
                 int bts = min(int(R_BLOCK_SIZE), int(currentBlockSize));
                 for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
                     int nid = tb + int(Lane_Idx);
-                    randomClocks = 0, subHash = nid; // reset random clocks
+                    randomClocks = 0; // reset random clocks
+
+#ifdef ENABLE_RUDE_RANDOM
+                    subHash = 0;
+#else
+                    subHash = nid; 
+#endif
+
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;
                     accquireNodeOffload(nid); overflow = overflow || currentBlockNode < 0;

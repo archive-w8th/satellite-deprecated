@@ -32,9 +32,7 @@ vec2 half2Construct ( in uint m ) {
 #endif
 }
 
-
 // seeds hashers
-/*
 uint hash ( in uint a ) {
    a = (a+0x7ed55d16) + (a<<12);
    a = (a^0xc761c23c) ^ (a>>19);
@@ -43,18 +41,7 @@ uint hash ( in uint a ) {
    a = (a+0xfd7046c5) + (a<<3);
    a = (a^0xb55a4f09) ^ (a>>16);
    return a;
-}*/
-
-uint hash ( in uint x ) {
-    uint a = x;
-    a += ( a << 10u );
-    a ^= ( a >>  6u );
-    a += ( a <<  3u );
-    a ^= ( a >> 11u );
-    a += ( a << 15u );
-    return a;
 }
-
 
 // multi-dimensional seeds hashers
 uint hash( in uvec2 v ) { return hash( v.x ^ hash(v.y)                         ); }

@@ -3,11 +3,11 @@
 set PATH=C:\Users\elvir\msvc\glslang\bin;%PATH%
 
 cd %~dp0
-  set CFLAGSV= --client vulkan100 --target-env vulkan1.1 -DUNIVERSAL_PLATFORM -DUSE_F32_BVH 
-  
+  set CFLAGSV= --client vulkan100 --target-env vulkan1.1 -DAMD_PLATFORM -DUSE_F32_BVH 
+
 set INDIR=.\
 ::set OUTDIR=..\Build\shaders-spv\
-set OUTDIR=..\Build\universal\
+set OUTDIR=..\Build\amd\
 set OUTSHR=..\Build\shaders\
 set VRTX=vertex\
 set RNDR=rendering\

@@ -4,6 +4,10 @@
 
 <img src="renders-fixed/city0.png" width="240" alt="0"> <img src="renders-fixed/city1.png" width="240" alt="1"> <img src="renders-fixed/city2.png" width="240" alt="2">
 
+### About cheats?
+
+It should been said in 1 April, but... you can use any cheats, but it is useless for you, because there is nothing to cheat here. 
+
 ### What we can be do, if we had desires
 
 * Appveyor, etc. support 

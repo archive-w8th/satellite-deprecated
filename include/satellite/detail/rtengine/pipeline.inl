@@ -526,9 +526,7 @@ namespace NSM
 
             // shuffle uniform blocks
             {
-                std::random_device rd;
-                std::mt19937 g(rd());
-                std::shuffle(shuffledSeqData.begin(), shuffledSeqData.end(), g);
+                std::shuffle(shuffledSeqData.begin(), shuffledSeqData.end(), *rndEngine);
             }
 
 

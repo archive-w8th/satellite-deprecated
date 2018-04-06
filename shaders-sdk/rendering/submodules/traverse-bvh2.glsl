@@ -143,8 +143,10 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
         torigTo = divW(mult4(GEOMETRY_BLOCK geometryUniform.transform, vec4(origin+direct, 1.0f))).xyz,
         dirproj = torigTo+torig;
 
-    float dirlenInv = 1.f / max(length(dirproj), 1e-5f);
-    dirproj *= dirlenInv; dirproj = 1.f / (max(abs(dirproj), 1e-5f.xxx) * mix(vec3(-1),vec3(1),greaterThanEqual(dirproj,vec3(0.f))));
+    float dirlenInv = 1.f / precIssue(length(dirproj));
+    dirproj *= dirlenInv;
+    
+    dirproj = 1.f.xxx / vec3(precIssue(dirproj.x), precIssue(dirproj.y), precIssue(dirproj.z));
 
     // limitation of distance
     bvec3_ bsgn = (bvec3_(sign(dirproj)*ftype_(1.0001f))+true_)>>true_;

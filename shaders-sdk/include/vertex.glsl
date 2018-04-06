@@ -110,7 +110,7 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
         vec3 UVW_ = uvwMap[axis] * inverse(ABC);
         valid = valid && (all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
         IF (valid) {
-            const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/det; //(max(abs(det),1e-5f)*(det>=0.f?1:-1));
+            const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/precIssue(det);
             UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
             T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
             T = mix(INFINITY, T, (T >= -(1e-5f)) && valid);

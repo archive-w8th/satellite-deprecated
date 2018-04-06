@@ -16,14 +16,16 @@ It should been said in 1 April, but... you can use any cheats, but it is useless
 
 ### Features from carton box
 
-* Based on Vulkan API (compute purpose)
-* Simple vertex data loader for accelerator builder
+* Open Source for learning, experiments and forks 
+* Based on Vulkan API 1.1 (compute purpose)
+* API for vertex data usage and acceleration
 * Optimized hlBVH<sup>2</sup> acceleration structure 
 * Optimized radix-sort (64/4-bits)
 * Optimized ray tracing pipeline (tile-based)
+* Optimal precision and performance 
 * One testing example application (source code)
 * Around ~46MRays/s throughput in Sponza scenes (RX Vega 64)
-* Windows platform support (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond)
+* Windows platform (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond) support
 
 ### Contacts 
 

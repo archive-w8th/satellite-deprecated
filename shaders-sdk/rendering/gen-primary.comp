@@ -90,6 +90,7 @@ void main()
                     // by default is inactive
                     currentRay.cdirect = vec2(0.f.xx);
                     currentRay.origin = vec4(vec3(0.f.xxx), FINT_ZERO);
+                    currentRay.dcolor = (0u).xx;
 
                     // by default - disabled
                     RayActived(currentRay, false_);

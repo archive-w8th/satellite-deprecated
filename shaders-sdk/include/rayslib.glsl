@@ -303,15 +303,15 @@ void flushBlock(in int bid, in int _mt, in bool illuminated){
 
     int prev = int(-1);
     if (bid >= 0 && _mt > 0 && illuminated) {
-        prev = atomicExchange(blockBins[bid].previousReg, _mt)-1;
-        if (int(prev) < 0) atomicCompSwap(blockBins[bid].blockStart, 0, _mt); // avoid wrong condition
+        rayBlocks[_mt-1].next = atomicExchange(blockBins[bid].blockStart, _mt);
+        //prev = atomicExchange(blockBins[bid].previousReg, _mt)-1;
+        //if (int(prev) < 0) atomicCompSwap(blockBins[bid].blockStart, 0, _mt); // avoid wrong condition
     }
     
-    if (prev >= 0) {
-        resetBlockLength(prev);
-        rayBlocks[prev].next = _mt;
+    if (_mt > 0 ) {
         preparingBlocks[atomicIncPT()] = _mt;
     }
+    
 }
 
 void flushBlock(in int mt, in bool illuminated){

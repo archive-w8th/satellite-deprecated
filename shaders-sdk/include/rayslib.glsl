@@ -204,9 +204,10 @@ bool checkIllumination(in int block, in int bidx){
 void accquireNode(in int block, in int bidx){
     currentInBlockPtr = int(bidx);
     currentBlockNode = (currentInBlockPtr >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block), currentInBlockPtr)) : -1;
-    currentRay = rayBlockNodes[block][currentBlockNode].data;
 
-    if (currentBlockNode < 0) {
+    if (currentBlockNode >= 0) {
+        currentRay = rayBlockNodes[block][currentBlockNode].data;
+    } else {
         currentRay.dcolor = uvec2((0u).xx);
         currentRay.origin.w = FINT_ZERO;
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
@@ -218,11 +219,11 @@ void accquireNode(in int block, in int bidx){
 
 void accquireNodeOffload(in int block, in int bidx){
     currentInBlockPtr = int(bidx);
-    currentBlockNode = (currentInBlockPtr >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block),currentInBlockPtr)) : -1;
+    currentBlockNode = (currentInBlockPtr >= 0 && currentInBlockPtr < R_BLOCK_SIZE) ? int(m16i(blockIndiceHeader(block), currentInBlockPtr)) : -1;
 
-    currentRay = rayBlockNodes[block][currentBlockNode].data;
-    if (int(currentBlockNode) >= 0) { // for avoid errors with occupancy, temporarely clean in working memory
+    if (currentBlockNode >= 0) { // for avoid errors with occupancy, temporarely clean in working memory
         int nid = currentBlockNode;
+        currentRay = rayBlockNodes[block][nid].data;
         rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
         rayBlockNodes[block][nid].data.origin.w = FINT_ZERO;
         WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
@@ -230,6 +231,7 @@ void accquireNodeOffload(in int block, in int bidx){
         RayBounce(rayBlockNodes[block][nid].data, 0);
         m16s(-1, blockIndiceHeader(block), currentInBlockPtr);
     } else {
+        // reset current ray
         currentRay.dcolor = uvec2((0u).xx);
         currentRay.origin.w = FINT_ZERO;
         WriteColor(currentRay.dcolor, 0.0f.xxxx);
@@ -249,7 +251,17 @@ void accquirePlainNode(in int block, in int bidx){
 void accquireUnordered(in int rid){
     currentBlock = int(rid / R_BLOCK_SIZE);
     currentBlockNode = int(rid % R_BLOCK_SIZE);
-    if (currentBlockNode >= 0) currentRay = rayBlockNodes[currentBlock][currentBlockNode].data;
+
+    if (currentBlockNode >= 0) {
+        currentRay = rayBlockNodes[currentBlock][currentBlockNode].data;
+    } else {
+        // default ray state
+        currentRay.dcolor = uvec2((0u).xx);
+        currentRay.origin.w = FINT_ZERO;
+        WriteColor(currentRay.dcolor, 0.0f.xxxx);
+        RayActived(currentRay, false_);
+        RayBounce(currentRay, 0);
+    }
 }
 
 
@@ -445,10 +457,8 @@ int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
             WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
             RayActived(rayBlockNodes[block][nid].data, false_);
             RayBounce(rayBlockNodes[block][nid].data, 0);
-            if (nid < R_BLOCK_SIZE) {
-                m16s(-1, blockIndiceHeader(block), nid);
-                m16s(-1, blockPreparingHeader(block), nid);
-            }
+            m16s(-1, blockIndiceHeader(block), nid);
+            m16s(-1, blockPreparingHeader(block), nid);
         }
     }
 
@@ -497,12 +507,9 @@ void emitBlock(in int block) {
 
         [[unroll]]
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) { 
-            int bidx = int(tb + Lane_Idx), idx = -1;
-            if (bidx < int(R_BLOCK_SIZE)) {
-                idx = m16i(blockPreparingHeader(block), int(bidx));
-                m16s(idx, blockIndiceHeader(block), int(bidx));
-            }
+            int bidx = int(tb + Lane_Idx);
             if (int(bidx) >= 0) {
+                m16s(m16i(blockPreparingHeader(block), int(bidx)), blockIndiceHeader(block), int(bidx));
                 bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
                 hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
             }

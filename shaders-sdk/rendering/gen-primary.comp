@@ -163,19 +163,8 @@ void main()
 
             SB_BARRIER
 
-            [[unroll]]
-            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
-                copyBlockIndices(currentBlock, tb + int(Lane_Idx));
-            }
-
-            SB_BARRIER
-            if (electedInvoc()) {
-                if (blockLength(blockID) >= 1) {
-                    confirmBlock(blockID);
-                } else {
-                    flushBlock(blockID, true);
-                }
-            }
+            // emit primary rays block
+            emitBlock(blockID);
         }
     }
 }

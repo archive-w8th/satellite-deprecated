@@ -188,13 +188,6 @@ initSubgroupIncFunctionTarget(rayBlocks[WHERE].indiceCount, atomicIncCM, 1, int)
 
 
 // copy node indices
-void copyBlockIndices(in int block, in int bidx){
-    if (block >= 0) {
-        int idx = int((bidx >= min(blockLength(block), R_BLOCK_SIZE)) ? uint(-1) : m16i(blockPreparingHeader(block), bidx));
-        if (int(bidx) >= 0 && bidx < R_BLOCK_SIZE) m16s(idx, blockIndiceHeader(block), bidx);
-    }
-}
-
 bool checkIllumination(in int block, in int bidx){
     return (bidx >= 0 && block >= 0 ? mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f : false);
 }
@@ -508,8 +501,8 @@ void emitBlock(in int block) {
         [[unroll]]
         for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) { 
             int bidx = int(tb + Lane_Idx);
-            if (int(bidx) >= 0) {
-                m16s(m16i(blockPreparingHeader(block), int(bidx)), blockIndiceHeader(block), int(bidx));
+            if (bidx >= 0 && bidx < R_BLOCK_SIZE) {
+                m16s(m16i(blockPreparingHeader(block), bidx), blockIndiceHeader(block), bidx);
                 bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
                 hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
             }

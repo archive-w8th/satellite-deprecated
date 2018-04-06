@@ -40,7 +40,7 @@ void main()
 
         int binID = globalID;
         blockBins[binID].blockStart = 0;
-        blockBins[binID].previousReg = 0;
+        blockBins[binID].fragCount = 0;
         blockBins[binID].texelHeader = 0;
         blockBins[binID].texelFrom = 0;
         
@@ -56,7 +56,7 @@ void main()
 
             // allocate texel heading (2x16-bit)
             if (electedInvoc()) {
-                blockBins[binID].texelHeader = atomicIncRT(1)+1; 
+                blockBins[binID].texelHeader = atomicIncRT(2)+1; 
             }
 
             // make division

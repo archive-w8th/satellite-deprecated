@@ -29,13 +29,14 @@ void main() {
         bool overflow = overflow || anyInvoc(overflow || anyInvoc(globalID >= wsize));
         IFALL(overflow) break;
         if (!overflow) {
-            int cnt = 256;
-            int idx = readFLane(blockBins[globalID].blockStart )-1; if (electedInvoc()) blockBins[globalID].blockStart  = 0;
-            int prv = readFLane(blockBins[globalID].previousReg)-1; if (electedInvoc()) blockBins[globalID].previousReg = 0;
-            int texelHeader = readFLane(blockBinIndiceHeader(globalID));
-            int texelFrom = (blockBins[globalID].texelFrom)-1;
+            int cnt = readFLane(blockBins[globalID].fragCount );
+            int idx = readFLane(blockBins[globalID].blockStart )-1;
+            SB_BARRIER
+            if (electedInvoc()) blockBins[globalID].fragCount   = 0;
+            if (electedInvoc()) blockBins[globalID].blockStart  = 0;
 
-            if (electedInvoc() && int(prv) >= 0) rayBlocks[prv].next = 0; // unlink weird block
+            // texel prefix
+            int texelHeader = readFLane(blockBinIndiceHeader(globalID)), texelFrom = (blockBins[globalID].texelFrom)-1;
             if (int(texelHeader) < 0 || int(texelFrom) < 0) continue;
 
             // scatter colors from block bins
@@ -57,6 +58,8 @@ void main() {
                             if (int(texel) >= 0 && !SSC(RayActived(rayBlockNodes[idx][nid].data)) && mlength(color.xyz) >= 0.00001f) {
                                 texelBuf.nodes[texel].color.xyz += color.xyz;
                             }
+
+                            // deactivate ray
                             WriteColor(rayBlockNodes[idx][nid].data.dcolor, 0.f.xxxx);
                             RayActived(rayBlockNodes[idx][nid].data, false_);
                         }

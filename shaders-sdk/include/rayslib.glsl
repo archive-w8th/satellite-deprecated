@@ -17,7 +17,7 @@ struct BlockInfo {
 
 // 128bit heading struct of bins
 struct BlockBin {
-    int texelHeader; int texelFrom; int blockStart, previousReg;
+    int texelHeader; int texelFrom; int blockStart, fragCount;
 };
 
 
@@ -309,8 +309,7 @@ void flushBlock(in int bid, in int _mt, in bool illuminated){
     int prev = int(-1);
     if (bid >= 0 && _mt > 0 && illuminated) {
         rayBlocks[_mt-1].next = atomicExchange(blockBins[bid].blockStart, _mt);
-        //prev = atomicExchange(blockBins[bid].previousReg, _mt)-1;
-        //if (int(prev) < 0) atomicCompSwap(blockBins[bid].blockStart, 0, _mt); // avoid wrong condition
+        atomicAdd(blockBins[bid].fragCount, 1);
     }
     
     if (_mt > 0 ) {
@@ -329,27 +328,26 @@ int createBlock(inout int blockId, in int blockBinId){
     {
         if (mt < 0) {
             int st = int(atomicDecMT())-1;
-            if (st >= 0) { 
-                mt = exchange(availableBlocks[st],-1)-1;
-                rayBlocks[mt].indiceCount = 0;
-                rayBlocks[mt].blockBinId = blockBinId+1;
-                rayBlocks[mt].next = 0;
-            }
+            if (st >= 0) { mt = exchange(availableBlocks[st],-1)-1; }
         }
 
-        if (mt < 0) { 
-            mt = atomicIncBT(); 
-            rayBlocks[mt].indiceCount = 0;
-            rayBlocks[mt].next = 0;
-            rayBlocks[mt].blockBinId = blockBinId+1;
+        if (mt < 0) {
+            mt = atomicIncBT();
             rayBlocks[mt].indiceHeader = 0;
         }
 
-        if (mt >= 0 && rayBlocks[mt].indiceHeader <= 0) {
-            rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
+        if (mt >= 0) {
+            rayBlocks[mt].indiceCount = 0;
+            rayBlocks[mt].blockBinId = blockBinId+1;
+            rayBlocks[mt].next = 0;
+
+            // make indice header when needed
+            if (rayBlocks[mt].indiceHeader <= 0) {
+                rayBlocks[mt].indiceHeader = atomicIncRT(2)+1;
+            }
         }
     }
-    blockId = (mt >= 0 ? mt : int(blockId));
+    blockId = (mt >= 0 ? mt : -1);
     return (mt);
 }
 
@@ -441,17 +439,18 @@ int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     SB_BARRIER
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
         if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
-
-        [[unroll]]
-        for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
-            int nid = tb + int(Lane_Idx);
-            rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
-            rayBlockNodes[block][nid].data.origin.w = FINT_ZERO;
-            WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
-            RayActived(rayBlockNodes[block][nid].data, false_);
-            RayBounce(rayBlockNodes[block][nid].data, 0);
-            m16s(-1, blockIndiceHeader(block), nid);
-            m16s(-1, blockPreparingHeader(block), nid);
+        IFANY (block >= 0) {
+            [[unroll]]
+            for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                int nid = tb + int(Lane_Idx);
+                rayBlockNodes[block][nid].data.dcolor = uvec2((0u).xx);
+                rayBlockNodes[block][nid].data.origin.w = FINT_ZERO;
+                WriteColor(rayBlockNodes[block][nid].data.dcolor, 0.0f.xxxx);
+                RayActived(rayBlockNodes[block][nid].data, false_);
+                RayBounce(rayBlockNodes[block][nid].data, 0);
+                m16s(-1, blockIndiceHeader(block), nid);
+                m16s(-1, blockPreparingHeader(block), nid);
+            }
         }
     }
 
@@ -504,12 +503,12 @@ void emitBlock(in int block) {
             if (bidx >= 0 && bidx < R_BLOCK_SIZE) {
                 m16s(m16i(blockPreparingHeader(block), bidx), blockIndiceHeader(block), bidx);
                 bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
-                hasIllumination = hasIllumination || anyInvoc(hasIllumination || hasIlm);
+                hasIllumination = hasIllumination || hasIlm;
             }
         }
 
         SB_BARRIER
-        hasIllumination = hasIllumination || anyInvoc(hasIllumination);
+        hasIllumination = anyInvoc(hasIllumination);
         
         // confirm block or flush
         if (electedInvoc()) {

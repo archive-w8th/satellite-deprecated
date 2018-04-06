@@ -99,6 +99,10 @@ vec2 randf2q() { return randf2q(rayStreams[ rayBlock.samplerUniform.iterationCou
 vec2 randf2x() { return randf2x(rayStreams[ rayBlock.samplerUniform.iterationCount ].superseed[0]); }
 
 
+
+#define USE_HQUALITY_DIFFUSE
+
+
 // geometric random generators
 vec3 randomCosine(in uvec2 superseed) {
 #ifdef USE_HQUALITY_DIFFUSE

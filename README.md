@@ -4,6 +4,10 @@
 
 <img src="renders-fixed/city0.png" width="240" alt="0"> <img src="renders-fixed/city1.png" width="240" alt="1"> <img src="renders-fixed/city2.png" width="240" alt="2">
 
+### About cheats?
+
+It should been said in 1 April, but... you can use any cheats, but it is useless for you, because there is nothing to cheat here. 
+
 ### What we can be do, if we had desires
 
 * Appveyor, etc. support 
@@ -18,7 +22,7 @@
 * Optimized radix-sort (64/4-bits)
 * Optimized ray tracing pipeline (tile-based)
 * One testing example application (source code)
-* Around 40MRays/s throughput in Sponza scenes (RX Vega 64)
+* Around ~46MRays/s throughput in Sponza scenes (RX Vega 64)
 * Windows platform support (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond)
 
 ### Contacts 

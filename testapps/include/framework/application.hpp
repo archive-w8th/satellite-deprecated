@@ -104,7 +104,7 @@ namespace SatelliteExample {
         vk::Pipeline computePipeline;
 
         // default width and height of application
-        const double superSampling = 2.0; // super sampling (in high DPI may 1x sample)
+        const double superSampling = 1.0; // super sampling (in high DPI may 0.5x sample)
 
 
 

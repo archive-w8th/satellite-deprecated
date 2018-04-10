@@ -1,21 +1,6 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-
-#define ENABLE_PT_SUNLIGHT
-
-
-//#define DISABLE_REFLECTIONS
-//#define ENABLE_RUDE_RANDOM
-
-
-//#define USE_HARD_SHADOWS // working only in simplified mode
-//#define USE_SIMPLIFIED_MODE
-
-//#define USE_OPTIMIZED_PT
-//#define USE_MULTIPLICANT_TRANSPARENCY
-
-
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
 #endif
@@ -144,7 +129,13 @@ RayRework envShading(in RayRework rayTemplate, inout bool skipping) {
         vec4 lcolor = vec4(getLightColor(lc), 1.f);
 #endif
 
+// depend by direct light flag enabled
+#ifdef DIRECT_LIGHT_ENABLED
         WriteColor(rayTemplate.dcolor, RayType(rayTemplate) == 1 ? 0.f.xxxx : f16_f32(rayTemplate.dcolor) * lcolor);
+#else
+        WriteColor(rayTemplate.dcolor, f16_f32(rayTemplate.dcolor) * lcolor);
+#endif
+
         RayActived(rayTemplate, false_);
         skipping = true;
     }
@@ -302,7 +293,7 @@ void main() {
 #endif
 
 #ifdef USE_SIMPLIFIED_MODE
-                    vec3 lightVec = sLight(0) - enrollRay.origin.xyz;
+                    vec3 lightVec = sphereLightPoint(0) - enrollRay.origin.xyz;
                     vec3 ambient_diffuse = diffcolor.xyz * 0.1f.xxx;
                     vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 2.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f));
                     vec3 emission_addition = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - qprom);

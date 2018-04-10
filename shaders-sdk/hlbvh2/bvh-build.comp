@@ -97,7 +97,7 @@ void main() {
 
     // begin work on splitting
     ivec2 ranged = (isBeginning && workID == 0) ? ivec2(0, 1) : ivec2(aRange[0], aRange[1]);
-    uint workSize = min(tiled(ranged.y-ranged.x, tiled(WS,2)), 8192);
+    uint workSize = min(tiled(ranged.y-ranged.x, tiled(WS,2)), 65536u);
     int wgs = int(gl_NumWorkGroups);
     for (int i=0;i<workSize;i+=wgs) {
         int trID = ranged.x + ((WS * (i+workID) + int(threadID))>>1);

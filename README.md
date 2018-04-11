@@ -4,9 +4,9 @@
 
 <img src="renders-fixed/city0.png" width="240" alt="0"> <img src="renders-fixed/city1.png" width="240" alt="1"> <img src="renders-fixed/city2.png" width="240" alt="2">
 
-### About cheats?
+### Alarm of New dawn... 
 
-It should been said in 1 April, but... you can use any cheats, but it is useless for you, because there is nothing to cheat here. 
+**12.04.2018**. We can no actively support this project. We understand that we will no longer be able to support our old friend for a long time. Despite the adopted amendments to the draft, we understand that we are still weak in competition, and so far we can not enter the final market. We are thinking about creating a radically new project, but so far we do not even know what it will be like ... At first glance, this should be a correction of old and fundamental mistakes. But in our opinion it should be a complete change of the basic concept. 
 
 ### What we can be do, if we had desires
 

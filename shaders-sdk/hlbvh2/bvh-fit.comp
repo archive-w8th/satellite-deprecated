@@ -75,7 +75,7 @@ void main() {
                 // solve contribution question 
                 bool nextContrib = idx >= 0;
                 if (nextContrib) {
-                    int _swp = atomicAdd(Flags[idx], 1);//atomicCompSwap(Flags[idx], 0, 1); // make sure contribution to parent complete
+                    int _swp = atomicCompSwap(Flags[idx], 0, 1); // make sure contribution to parent complete
                     nextContrib = nextContrib && _swp == 1; 
                 }
 

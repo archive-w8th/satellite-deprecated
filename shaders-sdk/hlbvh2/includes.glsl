@@ -2,7 +2,7 @@
 // Morton codes and geometry counters
 
 layout ( std430, binding = 0, set = 0 ) restrict buffer MortoncodesBlock {
-    uint64_t Mortoncodes[];
+    uvec2 Mortoncodes[];
 };
 
 layout ( std430, binding = 1, set = 0 ) restrict buffer IndicesBlock {

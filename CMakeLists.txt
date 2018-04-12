@@ -97,16 +97,20 @@ set (DEFINES ${DEFINES} -DOPTIX_DENOISER_HACK)
 endif()
 endif()
 
-set (CMAKE_C_EXTENSIONS ON)
-set (CMAKE_CXX_EXTENSIONS ON)
 
-if(MSVC)
-set (CMAKE_CXX_FLAGS "/W1 /EHa /openmp /std:c++latest /Zc:rvalueCast /arch:AVX2 /MD /Ox /Ob2 /Oi /Ot /Oy /GT /GL /Gy /GR /Debug:fastlink")
-set (CMAKE_C_FLAGS "/W1 /EHa /openmp /std:c11 /debug:fastlink")
+set (CMAKE_C_EXTENSIONS ON)
+#set (CMAKE_C_STANDARD 11)
+set (CMAKE_CXX_EXTENSIONS ON)
+#set (CMAKE_CXX_STANDARD 20) # future CMake
+#set (CMAKE_CXX_STANDARD 17)
+
+if (MSVC)
+    set (CMAKE_CXX_FLAGS "/W1 /EHa /openmp /std:c++latest /Zc:rvalueCast /arch:AVX2 /Oi /Ot /Oy /GT /GL /Gy /GR /Debug:fastlink")
 else()
-set (CMAKE_CXX_FLAGS "-W1 -std=c++2a -march=skylake -mtune=skylake -Ox")
-set (CMAKE_C_FLAGS "-W1 -std=c11")
+    set (CMAKE_CXX_FLAGS "-W1 -std=c++2a -march=skylake -mtune=skylake -Ox")
+    set (CMAKE_C_FLAGS "-W1 -std=c1x")
 endif()
+
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS}")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")

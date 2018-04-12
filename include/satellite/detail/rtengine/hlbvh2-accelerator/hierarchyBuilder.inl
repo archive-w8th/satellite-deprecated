@@ -195,7 +195,7 @@ namespace NSM
             getBufferSubData(generalLoadingBuffer, bounds, 0);
 
             bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bounds[0], [&](auto&& a, auto&& b) {
-                register bbox _box;
+                bbox _box;
                 _box.mn = glm::min(a.mn, b.mn);
                 _box.mx = glm::max(a.mx, b.mx);
                 return _box;

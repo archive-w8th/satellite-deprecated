@@ -101,17 +101,17 @@ set (CMAKE_C_EXTENSIONS ON)
 set (CMAKE_CXX_EXTENSIONS ON)
 
 if(MSVC)
-set (CMAKE_CXX_FLAGS "/Qspectre /std:c++latest /arch:AVX2 /tune:skylake /MD /DAVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /Gy /DMSVC")
+set (CMAKE_CXX_FLAGS "/EHa /Qspectre /std:c++latest /permissive- /arch:AVX2 /MD /DAVX2 /Ox /Ob2 /Oi /Ot /Oy /GT /GL /Gy /DMSVC /Debug:fastlink")
 set (CMAKE_C_FLAGS "/std:c11 /debug:fastlink")
 else()
 set (CMAKE_CXX_FLAGS "-Wall -Wextra -std=c++2a -march=skylake -mtune=skylake")
 set (CMAKE_C_FLAGS "")
 endif()
 
-set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -g -O9")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O9")
-set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g -O9")
-set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O9")
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}")
+set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS}")
+set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
 
 set (INCLUDE_LIST 
     ${INC_DIR}

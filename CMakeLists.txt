@@ -59,14 +59,17 @@ if(UNIX AND NOT APPLE)
 endif()
 
 
-set (DEP_DIR "${PROJECT_SOURCE_DIR}")
-set (LIB_DIR "${CMAKE_MODULE_PATH}/lib"     "${DEP_DIR}/lib"     "${DEP_DIR}/testapps/lib")
-set (INC_DIR "${CMAKE_MODULE_PATH}/include" "${DEP_DIR}/include" "${DEP_DIR}/testapps/" "${DEP_DIR}/testapps/include" "${DEP_DIR}/testapps/imgui" "${PROJECT_SOURCE_DIR}")
-
 set (CMAKE_MODULE_PATH 
     "${DEP_DIR}/modules" 
     "${CMAKE_MODULE_PATH}/modules" 
     "${PROJECT_SOURCE_DIR}/modules/" )
+
+
+set (DEP_DIR "${PROJECT_SOURCE_DIR}")
+set (LIB_DIR "${DEP_DIR}/lib"     "${DEP_DIR}/testapps/lib")
+set (INC_DIR "${DEP_DIR}/include" "${DEP_DIR}/testapps/include" "${DEP_DIR}/testapps/" "${DEP_DIR}/testapps/imgui" "${PROJECT_SOURCE_DIR}")
+
+
 
 #set(ENABLE_OPTIX_DENOISER OFF CACHE BOOL "Enable support of OptiX denoiser (be aware with NVidia EULA)")
 
@@ -105,7 +108,7 @@ set (CMAKE_CXX_EXTENSIONS ON)
 #set (CMAKE_CXX_STANDARD 17)
 
 if (MSVC)
-    set (CMAKE_CXX_FLAGS "/W1 /EHa /openmp /std:c++latest /Zc:rvalueCast /arch:AVX2 /Oi /Ot /Oy /GT /GL /Gy /GR /Debug:fastlink")
+    set (CMAKE_CXX_FLAGS "/W1 /EHa /openmp /std:c++latest /Zc:rvalueCast /arch:AVX2 /Oi /Ot /Oy /GT /GL /Gy /GR")
 else()
     set (CMAKE_CXX_FLAGS "-W1 -std=c++2a -march=skylake -mtune=skylake -Ox")
     set (CMAKE_C_FLAGS "-W1 -std=c1x")

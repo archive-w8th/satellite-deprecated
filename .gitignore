@@ -38,6 +38,7 @@ cub/
 x64/
 Distribution/
 external/vk-sdk/
+cmake-build-debug/
 
 */FindCUDA/
 */FindCUDA.*

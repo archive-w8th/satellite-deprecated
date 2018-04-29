@@ -25,7 +25,7 @@ namespace NSM
             std::string shadersPathPrefix = "shaders-spv";
 
             DeviceQueueType device;
-            ComputeContext bvhTraverse;
+            ComputeContext bvhTraverse, vertexInterpolator;
 
             BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
             BufferType traverseBlockData, traverseCacheData;

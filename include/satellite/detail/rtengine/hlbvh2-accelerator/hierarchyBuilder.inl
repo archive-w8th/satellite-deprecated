@@ -45,8 +45,8 @@ namespace NSM
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb
-            generalStagingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            generalLoadingBuffer = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
+            generalStagingBuffer = createBuffer(device, strided<uint64_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            generalLoadingBuffer = createBuffer(device, strided<uint64_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
             // layouts of descriptor sets
             builderDescriptorLayout = {
@@ -68,7 +68,8 @@ namespace NSM
 
             // build bvh command
             buildBVHPpl.dispatch = [&]() {
-                dispatchCompute(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+                //dispatchCompute(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+                dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             };
 
             // build global boundary
@@ -185,7 +186,11 @@ namespace NSM
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
                 syncUniforms();
             }
-            boundPrimitives.dispatch(); // calculate general box
+            
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }), true);
+            dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+
+
 
             // get boundary
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), false);
@@ -221,24 +226,15 @@ namespace NSM
             aabbCalculate.dispatch();
 
             // get leaf count from staging
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }), false); // copy to staging
-            getBufferSubData(generalLoadingBuffer, triangleCount, 0);
-            bvhBlockData[0].leafCount = triangleCount[0];
-            if (triangleCount[0] <= 0) return;
+            {
+                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }), false); // copy to staging
+                getBufferSubData(generalLoadingBuffer, triangleCount, 0);
+                bvhBlockData[0].leafCount = triangleCount[0];
+                if (triangleCount[0] <= 0) return;
+            }
 
             // need update geometry uniform optimization matrices, and sort morton codes
             radixSort->sort(mortonCodesBuffer, mortonIndicesBuffer, triangleCount[0]); // do radix sort
-
-            // debug code
-            {
-                //std::vector<uint64_t> mortons(std::min(int(triangleCount[0]), 512));
-                //flushCommandBuffer(device, createCopyCmd<BufferType&, BufferType&, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
-                //getBufferSubData(generalLoadingBuffer, mortons, 0);
-
-                //std::vector<uint32_t> mortons(std::min(int(triangleCount[0]), 1024));
-                //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, leafsIndicesBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(triangleCount[0]) }, false);
-                //getBufferSubData(generalLoadingBuffer, mortons, 0);
-            }
 
             // reset BVH counters (and copy to uniform)
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(6) }), true);
@@ -248,63 +244,17 @@ namespace NSM
             memoryCopyCmd(copyCounterCommand, countersBuffer, countersBuffer, { 2 * sizeof(int32_t), 5 * sizeof(int32_t), sizeof(int32_t) });
             copyCounterCommand.end();
 
-            auto buildCommand = makeDispatchCommand(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-
-            auto stagingCounterCommand = getCommandBuffer(device, true);
-            memoryCopyCmd(stagingCounterCommand, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
-            stagingCounterCommand.end();
-
-            std::vector<vk::SubmitInfo> buildSubmitInfos;
-            for (int j = 0; j < 8; j++)
-            {
-                // build level command
-                buildSubmitInfos.push_back(vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&buildCommand));
-
-                // copying commands
-                buildSubmitInfos.push_back(vk::SubmitInfo()
-                    .setWaitSemaphoreCount(0)
-                    .setCommandBufferCount(1)
-                    .setPCommandBuffers(&copyCounterCommand));
-            }
-
-            // getting to stage buffer command
-            buildSubmitInfos.push_back(vk::SubmitInfo()
-                .setWaitSemaphoreCount(0)
-                .setCommandBufferCount(1)
-                .setPCommandBuffers(&stagingCounterCommand));
-
-            // create fence
-            vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo(vk::FenceCreateFlagBits::eSignaled));
-
-            // stage building BVH
-            std::vector<int32_t> counters(8);
-            for (int i = 0; i < 32; i++)
-            {
-                device->logical.resetFences(1, &fence);
-                device->mainQueue->queue.submit(buildSubmitInfos, fence);
-
-                // wait and reset fence
-                device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-
-                // check if complete
-                getBufferSubData(generalLoadingBuffer, counters, 0);
-                int32_t nodeCount = counters[5] - counters[4];
-                if (nodeCount <= 0) break;
-            }
-
-            // because already awaited, but clear command buffers and fence (planned saving/cache commands)
-            device->logical.destroyFence(fence);
-            device->logical.freeCommandBuffers(device->commandPool, 1, &buildCommand);
-            device->logical.freeCommandBuffers(device->commandPool, 1, &copyCounterCommand);
-            device->logical.freeCommandBuffers(device->commandPool, 1, &stagingCounterCommand);
-
             // refit BVH with linking leafs
-            childLink.dispatch();
-            refitBVH.dispatch();
+            dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+            dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+            dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             syncUniforms();
+
+            // debug BVH
+            //std::vector<glm::ivec4> bvhMetaDebug(triangleCount[0]*2);
+            //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<glm::ivec4>(triangleCount[0]*2) }), false); // copy to staging
+            //getBufferSubData(generalLoadingBuffer, bvhMetaDebug, 0);
+            
 
             { // resolve BVH buffers for copying
                 auto bvhBoxStorage = hierarchyStorageLink->getBvhBox();

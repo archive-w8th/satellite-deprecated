@@ -318,13 +318,13 @@ void flushBlock(in int bid, in int _mt, in bool illuminated){
     
 }
 
-void flushBlock(in int mt, in bool illuminated){
+void flushBlock(in int mt, in bool illuminated) {
     flushBlock(rayBlocks[mt].blockBinId-1, mt, illuminated);
 }
 
 // create/allocate block 
-int createBlock(inout int blockId, in int blockBinId){
-    int mt = -1;
+int createBlock(inout int blockId, in int blockBinId) {
+    int mt = blockId;
     {
         if (mt < 0) {
             int st = int(atomicDecMT())-1;
@@ -348,7 +348,7 @@ int createBlock(inout int blockId, in int blockBinId){
         }
     }
     blockId = (mt >= 0 ? mt : -1);
-    return (mt);
+    return blockId;
 }
 
 #endif

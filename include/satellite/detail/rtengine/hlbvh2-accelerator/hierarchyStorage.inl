@@ -47,6 +47,7 @@ namespace NSM
                 auto pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
                 rayTraversePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(clientDescriptorLayout.data()).setSetLayoutCount(clientDescriptorLayout.size()));
                 bvhTraverse = createCompute(device, shadersPathPrefix + "/rendering/traverse-bvh.comp.spv", rayTraversePipelineLayout, pipelineCache);
+                vertexInterpolator = createCompute(device, shadersPathPrefix + "/rendering/interpolator.comp.spv", rayTraversePipelineLayout, pipelineCache);
 
                 // cache size
                 const size_t TRAVERSE_CACHE_SIZE = 16;
@@ -146,6 +147,7 @@ namespace NSM
 
             // dispatch traversing
             dispatchCompute(bvhTraverse, INTENSIVITY, clientDescriptorSets);
+            dispatchCompute(vertexInterpolator, INTENSIVITY, clientDescriptorSets);
         }
     }
 } // namespace NSM

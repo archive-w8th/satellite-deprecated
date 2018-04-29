@@ -19,7 +19,7 @@ LOCAL_SIZE_LAYOUT;
 
 void main()
 {
-    //const int H_BLOCK_WIDTH = 32, H_BLOCK_HEIGHT = 32;
+   // const int H_BLOCK_WIDTH = 8, H_BLOCK_HEIGHT = 8;
     const int H_BLOCK_WIDTH = 16, H_BLOCK_HEIGHT = 16;
 
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);

@@ -22,7 +22,11 @@ layout ( std430, binding = 5, set = 0 ) restrict buffer FlagsBlock {
 };
 
 layout ( std430, binding = 6, set = 0 ) restrict buffer ActivesBlock {
-    int Actives[];
+//#ifdef BVH_BUILD
+    int Actives[][2];
+//#else
+//    int Actives[];
+//#endif
 };
 
 layout ( std430, binding = 7, set = 0 ) restrict buffer ChildBuffer {

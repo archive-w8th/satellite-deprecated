@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <execution>
 #include <iterator>
+#include <cstddef>
 
 #define GLM_FORCE_SWIZZLE
 

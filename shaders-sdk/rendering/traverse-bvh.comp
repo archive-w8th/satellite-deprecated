@@ -8,7 +8,7 @@
 #define DISCARD_SHARED_CACHING // store rays in registers if possible
 #define ENABLE_TRAVERSE_DATA
 #define ENABLE_VSTORAGE_DATA
-#define ENABLE_VERTEX_INTERPOLATOR
+//#define ENABLE_VERTEX_INTERPOLATOR
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -53,6 +53,7 @@ void main() {
                     hit.payloadID = 0;
                     hit.next = 0;
                     hit.materialID = materials[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)];
+                    hit.tangent.w = intBitsToFloat(0);
 #ifdef ENABLE_VERTEX_INTERPOLATOR
                     interpolateMeshData(hit);
 #endif

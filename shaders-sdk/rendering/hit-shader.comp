@@ -14,10 +14,6 @@
 #include "../include/random.glsl"
 #include "../include/mathlib.glsl"
 
-//#ifdef ENABLE_VERTEX_INTERPOLATOR
-//#include "../include/vertex.glsl"
-//#endif
-
 struct Material {
      vec4 diffuse;
      vec4 specular;
@@ -275,29 +271,7 @@ void main() {
             
 
             // additional validation of hit (hit point interpolated offset test)
-            bool validHit = true;
-/*
-#ifdef ENABLE_VERTEX_INTERPOLATOR
-            {
-                const int itri = floatBitsToInt(hit.uvt.w)*9;
-                const vec3 vs = vec3(1.0f - hit.uvt.x - hit.uvt.y, hit.uvt.xy);
-                const mat3x3 triverts = mat3x3(
-                    lvtx[itri+0], lvtx[itri+1], lvtx[itri+2],
-                    lvtx[itri+3], lvtx[itri+4], lvtx[itri+5],
-                    lvtx[itri+6], lvtx[itri+7], lvtx[itri+8]
-                );
-                vec3 vorig = triverts * vs, horig = fma(viewVec.xyz, hit.uvt.zzz, cray.origin.xyz);
-                if (length(vorig - horig) >= 1e-2) validHit = false;
-            }
-#endif
-*/
-
-            // offload by payloads
-//#ifdef ENABLE_VERTEX_INTERPOLATOR
-//            if (!overflow && globalID >= 0 && hit.materialID == materials[floatBitsToInt(hit.uvt.w)] && validHit) 
-//#else
-            if (!overflow && globalID >= 0 && validHit) 
-//#endif
+            if (!overflow && globalID >= 0) 
             {
                 int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;

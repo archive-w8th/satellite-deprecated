@@ -20,11 +20,12 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%gen-primary.comp    -o %O
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%gen-secondary.comp  -o %OUTDIR%%RNDR%gen-secondary.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%traverse-pre.comp   -o %OUTDIR%%RNDR%traverse-pre.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%traverse-bvh.comp   -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
+start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%interpolator.comp   -o %OUTDIR%%RNDR%interpolator.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%hit-shader.comp     -o %OUTDIR%%RNDR%hit-shader.comp.spv
 
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%VRTX%vloader.comp       -o %OUTDIR%%VRTX%vloader.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bound-calc.comp    -o %OUTDIR%%HLBV%bound-calc.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-build.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
+start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-build-once.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-fit.comp       -o %OUTDIR%%HLBV%bvh-fit.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-gen.comp      -o %OUTDIR%%HLBV%leaf-gen.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-link.comp     -o %OUTDIR%%HLBV%leaf-link.comp.spv
@@ -86,6 +87,7 @@ call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RND
 call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
 
 :: for workarounds
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%interpolator.comp.spv    -o %OUTDIR%%RNDR%interpolator.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%accumulation.comp.spv    -o %OUTDIR%%RNDR%accumulation.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%gen-primary.comp.spv     -o %OUTDIR%%RNDR%gen-primary.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%gen-secondary.comp.spv   -o %OUTDIR%%RNDR%gen-secondary.comp.spv

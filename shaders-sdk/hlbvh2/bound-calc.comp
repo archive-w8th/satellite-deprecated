@@ -52,30 +52,45 @@ bbox bboxunion(in bbox b1, in bbox b2) {
     return bbox(min(b1.mn, b2.mn), max(b1.mx, b2.mx));
 }
 
+
+bbox bboxunion3(in bbox b1, in bbox b2, in bbox c3) {
+    return bbox(min3_wrap(b1.mn, b2.mn, c3.mn), max3_wrap(b1.mx, b2.mx, c3.mx));
+}
+
+
 void main() {
-    uint tid = gl_LocalInvocationID.x;
-    uint gridSize = (gl_WorkGroupSize.x*2) * gl_NumWorkGroups.x;
-    uint tcount = min(max(GEOMETRY_BLOCK geometryUniform.triangleCount, 2), 16777216);
+    const uint tid = gl_LocalInvocationID.x;
+    const uint gridSize = (gl_WorkGroupSize.x*2) * gl_NumWorkGroups.x;
+    const uint tcount = min(max(GEOMETRY_BLOCK geometryUniform.triangleCount, 2), 16777216);
     uint i = gl_WorkGroupID.x * (gl_WorkGroupSize.x*2) + tid;
 
     sdata[tid] = bbox(vec4( 100000.f), vec4(-100000.f));
+
+    // calculate boxes for per work
     while (i < tcount) {
         bbox bound = sdata[tid];
-        sdata[tid] = bboxunion(bound, bboxunion(getMinMaxPrimitive(i), getMinMaxPrimitive(i + gl_WorkGroupSize.x)));
+        sdata[tid] = bboxunion3(bound, getMinMaxPrimitive(i), getMinMaxPrimitive(i + gl_WorkGroupSize.x));
         i += gridSize;
     };
     LGROUP_BARRIER
 
+    // shared reduction
+    const uint warpBit = lsb(Wave_Size_RT);
     [[unroll]]
-    for (uint ki=(gl_WorkGroupSize.x>>1);ki>=1;ki>>=1) {
+    for (uint ki=(gl_WorkGroupSize.x>>1);ki>=warpBit;ki>>=1) {
         if (tid < ki) {
             bbox bound = sdata[tid];
             bbox opbound = sdata[tid + ki];
             sdata[tid] = bboxunion(bound, opbound); 
         }
-        IFANY(ki > Wave_Size_RT) { LGROUP_BARRIER }
+        LGROUP_BARRIER
     }
 
+    // subgroup min/max
+    sdata[tid].mn = subgroupMin(sdata[tid].mn);
+    sdata[tid].mx = subgroupMax(sdata[tid].mx);
+
+    // store in global memory result of work
     if (tid == 0) {
         minmax[gl_WorkGroupID.x*2 + 0] = sdata[0].mn - 0.0001f;
         minmax[gl_WorkGroupID.x*2 + 1] = sdata[0].mx + 0.0001f;

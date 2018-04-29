@@ -341,7 +341,9 @@ namespace SatelliteExample {
 // main? 
 //////////////////////
 
-const int32_t baseWidth = 1280, baseHeight = 720;
+//const int32_t baseWidth = 1280, baseHeight = 720;
+const int32_t baseWidth = 640, baseHeight = 360; // super sampled, DPI adapative
+
 int main(const int argc, const char ** argv)
 {
     if (!glfwInit()) exit(EXIT_FAILURE);

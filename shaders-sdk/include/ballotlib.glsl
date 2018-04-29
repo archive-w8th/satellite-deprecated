@@ -12,7 +12,7 @@
 #endif
 #endif
 
-#define Wave_Size_RT gl_SubgroupSize.x
+#define Wave_Size_RT (gl_SubgroupSize.x)
 
 #ifndef OUR_INVOC_TERM
 #define Local_Idx gl_LocalInvocationIndex.x
@@ -109,13 +109,18 @@ T2 fname(const uint WHERE, in bvec2 a) {\
 
 
 // invoc vote
-bool allInvoc(in bool bc){ return subgroupAll(bc); }
-bool anyInvoc(in bool bc){ return subgroupAny(bc); }
+bool allInvoc(in bool bc){ 
+    return subgroupAll(bc);
+}
+bool anyInvoc(in bool bc){ 
+    return !allInvoc(!bc); 
+}
 
 
 // aliases
 bool allInvoc(in bool_ bc){ return allInvoc(SSC(bc)); }
 bool anyInvoc(in bool_ bc){ return anyInvoc(SSC(bc)); }
+
 #define IFALL(b)if(allInvoc(b))
 #define IFANY(b)if(anyInvoc(b))
 

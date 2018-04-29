@@ -41,8 +41,6 @@ namespace NSM
             // create pipeline layout and caches
             vk::PushConstantRange pconst = vk::PushConstantRange().setOffset(0).setSize(sizeof(uint32_t)).setStageFlags(vk::ShaderStageFlagBits::eCompute); // make life bit simpler
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPushConstantRangeCount(1).setPPushConstantRanges(&pconst).setPSetLayouts(loaderDescriptorLayout.data()).setSetLayoutCount(loaderDescriptorLayout.size()));
-            pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
-
             {
                 std::vector<vk::DescriptorUpdateTemplateEntry> entries = {
                     vk::DescriptorUpdateTemplateEntry().setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstArrayElement(0).setDstBinding(0).setOffset(offsetof(VertexInstanceViews, vInstanceBufferInfos[0])).setStride(sizeof(vk::DescriptorBufferInfo)),

@@ -64,6 +64,6 @@
     #endif
 #endif
 
-#define LOCAL_SIZE_LAYOUT layout ( local_size_x = WORK_SIZE ) in
+#define LOCAL_SIZE_LAYOUT layout(local_size_x=WORK_SIZE)in
 
 #endif

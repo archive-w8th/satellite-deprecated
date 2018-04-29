@@ -65,18 +65,6 @@
 #define M32(m, i) m[i]
 #endif
 
-#define bvec4_ ivec4
-#define bvec3_ ivec3
-#define bvec2_ ivec2
-#define bool_ int
-#define true_ bool_(1)
-#define false_ bool_(0)
-
-#define true2_ true_.xx
-#define false2_ false_.xx
-
-
-
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
 #define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp,crd,0,chnl)
@@ -96,6 +84,14 @@
 //#define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
 
 
+#define bvec4_ ivec4
+#define bvec3_ ivec3
+#define bvec2_ ivec2
+#define bool_ int
+#define true_ (1)
+#define false_ (0)
+#define true2_ (true_.xx)
+#define false2_ (false_.xx)
 
 
 // null of indexing in float representation
@@ -333,26 +329,16 @@ uvec4 packFloat2(in f16vec4 floats) {
 #endif
 
 
-// optimized boolean operations
+bool SSC(in bool_ b){return bool(b);}
+bvec2 SSC(in bvec2_ b){return bvec2(b);}
+bvec4 SSC(in bvec4_ b){return bvec4(b);}
+bool SSC(in bool b){return b;}
+bvec2 SSC(in bvec2 b){return b;}
+bvec4 SSC(in bvec4 b){return b;}
 bool_ any(in bvec2_ b){return b.x|b.y;}
 bool_ all(in bvec2_ b){return b.x&b.y;}
 bool_ not(in bool_ b){return true_^b;}
 bvec2_ not(in bvec2_ b){return true2_^b;}
-
-
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-bool SSC(in bool_ b){return bool(b&true_);}
-bvec2 SSC(in bvec2_ b){return bvec2(b&true_.xx);}
-bvec4 SSC(in bvec4_ b){return bvec4(b&true_.xxxx);}
-#else
-bool SSC(in bool_ b){return bool(b);}
-bvec2 SSC(in bvec2_ b){return bvec2(b);}
-bvec4 SSC(in bvec4_ b){return bvec4(b);}
-#endif
-
-bool SSC(in bool b){return b;}
-bvec2 SSC(in bvec2 b){return b;}
-bvec4 SSC(in bvec4 b){return b;}
 
 #define IF(b)if(SSC(b))
 

@@ -15,7 +15,6 @@ namespace NSM {
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
             std::vector<vk::DescriptorSet> descriptorSets;
-            vk::PipelineCache pipelineCache;
             vk::PipelineLayout pipelineLayout;
 
             struct Consts { uint32_t NumKeys, Shift, Descending, IsSigned; };

@@ -73,6 +73,7 @@ layout (std430, binding = 28, set = 0 ) restrict buffer PrefixBlock {uint Prefix
 
 
 struct blocks_info { uint count; uint offset; uint limit; uint r0; };
+
 blocks_info get_blocks_info(in uint n) {
     uint block_tile = Wave_Size_RT;
     uint block_size = tiled(n, gl_NumWorkGroups.x);

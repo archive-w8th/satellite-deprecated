@@ -73,45 +73,40 @@ shared _RAY_TYPE rayCache[WORK_SIZE];
 
 
 struct GeometrySpace {
+    vec4 lastIntersection;
     int axis; mat3 iM;
     //vec4 dir;
-    vec4 lastIntersection;
-};
+} geometrySpace;
 
 struct BVHSpace {
-    fvec3_ minusOrig, directInv; bvec3_ boxSide;
+    fvec4_ minusOrig, directInv; 
+    bvec4_ boxSide;
     float cutOut;
-};
+} bvhSpace;
 
 struct BvhTraverseState {
-    //_RAY_TYPE currentRayTmp;
-
     int idx, defTriangleID;
     float distMult, diffOffset;
 
 #ifdef USE_STACKLESS_BVH
     uint64_t bitStack;
 #endif
-
-    GeometrySpace geometrySpace;
-    BVHSpace bvhSpace;
 } traverseState;
-
 
 
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    //float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
-    float d = intersectTriangle(currentRayTmp.origin.xyz, traverseState.geometrySpace.iM, traverseState.geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    //float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
+    float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.iM, geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
 
-    float _nearhit = traverseState.geometrySpace.lastIntersection.z;
-    IF (lessF(d, _nearhit)) { traverseState.bvhSpace.cutOut = d * traverseState.distMult - traverseState.diffOffset; }
+    float _nearhit = geometrySpace.lastIntersection.z;
+    IF (lessF(d, _nearhit)) { bvhSpace.cutOut = d * traverseState.distMult - traverseState.diffOffset; }
     
     // validate hit 
     near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
     //near &= lessF(d, _nearhit) | bool_(vorders[traverseState.defTriangleID.x] >= vorders[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)]); // check z-fight priority
-    IF (near.x) traverseState.geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID.x));
+    IF (near.x) geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID.x));
 
     // reset triangle ID 
     traverseState.defTriangleID = -1;
@@ -124,15 +119,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     vec3 direct = dcts(currentRayTmp.cdirect.xy);
     int eht = floatBitsToInt(currentRayTmp.origin.w);
 
-    // initial state
-    traverseState.idx = SSC(valid) ? 0 : -1;
-#ifdef USE_STACKLESS_BVH
-    traverseState.bitStack = 0ul;
-#endif
-    traverseState.defTriangleID = -1;
-    traverseState.distMult = 1.f;
-    traverseState.diffOffset = 0.f;
-    traverseState.bvhSpace.cutOut = INFINITY;
+
 
     // reset stack
     stackPtr = 0, pageIdx = -1;
@@ -145,34 +132,42 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
     float dirlenInv = 1.f / precIssue(length(dirproj));
     dirproj *= dirlenInv;
-    
     dirproj = 1.f.xxx / vec3(precIssue(dirproj.x), precIssue(dirproj.y), precIssue(dirproj.z));
 
     // limitation of distance
     bvec3_ bsgn = (bvec3_(sign(dirproj)*ftype_(1.0001f))+true_)>>true_;
 
-    // bvh space precalculations 
-    traverseState.bvhSpace.boxSide = bsgn;
-    
-    
-    { // calculate longest axis
-        vec3 drs = abs(direct); traverseState.geometrySpace.axis = 2;
-        if (drs.y >= drs.x && drs.y > drs.z) traverseState.geometrySpace.axis = 1;
-        if (drs.x >= drs.z && drs.x > drs.y) traverseState.geometrySpace.axis = 0;
-        if (drs.z >= drs.y && drs.z > drs.x) traverseState.geometrySpace.axis = 2;
+#ifdef USE_STACKLESS_BVH
+    traverseState.bitStack = 0ul;
+#endif
+
+    // initial state
+    traverseState.idx = SSC(valid) ? 0 : -1;
+    traverseState.defTriangleID = -1;
+    traverseState.distMult = 1.f;
+    traverseState.diffOffset = 0.f;
+    traverseState.distMult = 1.f/precIssue(dirlenInv);
+
+    // calculate longest axis
+    geometrySpace.axis = 2;
+    {
+        vec3 drs = abs(direct); 
+        if (drs.y >= drs.x && drs.y > drs.z) geometrySpace.axis = 1;
+        if (drs.x >= drs.z && drs.x > drs.y) geometrySpace.axis = 0;
+        if (drs.z >= drs.y && drs.z > drs.x) geometrySpace.axis = 2;
     }
 
     // calculate affine matrices
-    vec4 vm = vec4(-direct, 1.f) / (traverseState.geometrySpace.axis == 0 ? direct.x : (traverseState.geometrySpace.axis == 1 ? direct.y : direct.z));
-    traverseState.geometrySpace.iM = transpose(mat3(
-        traverseState.geometrySpace.axis == 0 ? vm.wyz : vec3(1.f,0.f,0.f),
-        traverseState.geometrySpace.axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
-        traverseState.geometrySpace.axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
+    vec4 vm = vec4(-direct, 1.f) / (geometrySpace.axis == 0 ? direct.x : (geometrySpace.axis == 1 ? direct.y : direct.z));
+    geometrySpace.iM = transpose(mat3(
+        geometrySpace.axis == 0 ? vm.wyz : vec3(1.f,0.f,0.f),
+        geometrySpace.axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
+        geometrySpace.axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
     ));
+    geometrySpace.lastIntersection = eht > 0 ? hits[eht-1].uvt : vec4(0.f.xx, INFINITY, FINT_NULL);
 
     // continue traversing when needed
-    //traverseState.geometrySpace.dir = vec4(direct, 1.f);
-    traverseState.geometrySpace.lastIntersection = eht > 0 ? hits[eht-1].uvt : vec4(0.f.xx, INFINITY, FINT_NULL);
+    //geometrySpace.dir = vec4(direct, 1.f);
 
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
@@ -182,15 +177,17 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     }
 
     float toffset = max(near, 0.f);
-    traverseState.bvhSpace.directInv = fvec3_(dirproj);
-    traverseState.bvhSpace.minusOrig = fma(fvec3_(torig), fvec3_(dirproj), -fvec3_(toffset).xxx);
-    //traverseState.bvhSpace.minusOrig = fvec3_(fma(torig, dirproj, -toffset.xxx));
-    traverseState.distMult = 1.f/precIssue(dirlenInv);
     traverseState.diffOffset = toffset;
 
-    IF (lessF(traverseState.geometrySpace.lastIntersection.z, INFINITY)) { 
-        traverseState.bvhSpace.cutOut = traverseState.geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
+    bvhSpace.directInv.xyz = fvec3_(dirproj);
+    bvhSpace.minusOrig.xyz = fma(fvec3_(torig), fvec3_(dirproj), -fvec3_(toffset).xxx);
+    bvhSpace.cutOut = INFINITY;
+    bvhSpace.boxSide.xyz = bsgn;
+    
+    IF (lessF(geometrySpace.lastIntersection.z, INFINITY)) { 
+        bvhSpace.cutOut = geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
     }
+    
 
     // begin of traverse BVH 
     ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
@@ -209,7 +206,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
                 // intersect boxes
                 const int _cmp = cnode.x >> 1;
-                childIntersect &= intersectCubeDual(traverseState.bvhSpace.minusOrig, traverseState.bvhSpace.directInv, traverseState.bvhSpace.boxSide, 
+                childIntersect &= intersectCubeDual(bvhSpace.minusOrig.xyz, bvhSpace.directInv.xyz, bvhSpace.boxSide.xyz, 
 #ifdef USE_F32_BVH
                     fmat3x4_(bvhBoxes[_cmp][0], bvhBoxes[_cmp][1], bvhBoxes[_cmp][2]),
                     fmat3x4_(vec4(0.f), vec4(0.f), vec4(0.f))
@@ -220,7 +217,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 , nears, fars);
                 
                 childIntersect &= bool_(cnode.y == 2).xx; // base on fact
-                childIntersect &= bvec2_(lessThanEqual(nears, traverseState.bvhSpace.cutOut.xx));
+                childIntersect &= bvec2_(lessThanEqual(nears, bvhSpace.cutOut.xx));
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection
 
@@ -299,3 +296,4 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
         IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER doIntersection(); }
     }
 }
+

@@ -54,7 +54,6 @@ namespace NSM
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())) };
 
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(builderDescriptorLayout.data()).setSetLayoutCount(builderDescriptorLayout.size()));
-            pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
 
             // another part if foreign object (where storing)
             builderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&builderDescriptorLayout[0]));

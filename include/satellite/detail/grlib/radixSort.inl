@@ -73,7 +73,6 @@ namespace NSM {
             VarStaging = another.VarStaging;
             descriptorSetLayouts = another.descriptorSetLayouts;
             descriptorSets = another.descriptorSets;
-            pipelineCache = another.pipelineCache;
             pipelineLayout = another.pipelineLayout;
         }
 
@@ -93,7 +92,6 @@ namespace NSM {
             VarStaging = std::move(another.VarStaging);
             descriptorSetLayouts = std::move(another.descriptorSetLayouts);
             descriptorSets = std::move(another.descriptorSets);
-            pipelineCache = std::move(another.pipelineCache);
             pipelineLayout = std::move(another.pipelineLayout);
         }
 

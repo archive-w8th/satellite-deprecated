@@ -34,7 +34,6 @@ namespace NSM
             std::shared_ptr<GeometryAccumulator> geometrySourceLink;
 
             vk::PipelineLayout pipelineLayout;
-            vk::PipelineCache pipelineCache;
 
             ComputeContext buildBVHPpl, aabbCalculate, refitBVH, boundPrimitives, childLink;
             BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;

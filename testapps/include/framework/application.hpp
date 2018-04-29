@@ -247,7 +247,6 @@ namespace SatelliteExample {
 
             // pipeline layout and cache
             auto pipelineLayout = deviceQueue->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(descriptorSetLayouts.size()));
-            auto pipelineCache = deviceQueue->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
 
             // descriptor sets (where will writing binding)
             auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(deviceQueue->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
@@ -273,7 +272,7 @@ namespace SatelliteExample {
                 std::vector<vk::DynamicState> dynamicStates = { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
 
                 // create graphics pipeline
-                trianglePipeline = deviceQueue->logical.createGraphicsPipeline(pipelineCache,
+                trianglePipeline = deviceQueue->logical.createGraphicsPipeline(deviceQueue->pipelineCache,
                     vk::GraphicsPipelineCreateInfo()
                     .setPStages(pipelineShaderStages.data()).setStageCount(pipelineShaderStages.size())
                     .setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives)

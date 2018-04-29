@@ -28,7 +28,6 @@ namespace NSM
             BufferType zerosBufferReference, debugOnes32BufferReference, geometryCounter;
 
             vk::PipelineLayout pipelineLayout;
-            vk::PipelineCache pipelineCache;
 
             std::vector<vk::DescriptorSet> loaderDescriptorSets;
             std::vector<vk::DescriptorSetLayout> loaderDescriptorLayout; // may be single layout

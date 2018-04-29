@@ -59,7 +59,7 @@ void main() {
             int idx = exchange(LeafIndices[globalID], -1);
             
             // reductive unity boxes
-            for (int l=0;l<256;l++) {
+            for (int l=0;l<8192;l++) {
                 
                 // do contribution to parent node box host
                 ivec4 cmp4 = bvhMeta[idx];

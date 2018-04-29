@@ -95,8 +95,6 @@ namespace NSM
 
         void Pipeline::initPipelines()
         {
-            auto pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
-
             // create pipeline layouts
             rayTracingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(rayTracingDescriptorsLayout.data()).setSetLayoutCount(rayTracingDescriptorsLayout.size()));
             samplingPipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(samplingDescriptorsLayout.data()).setSetLayoutCount(samplingDescriptorsLayout.size()));

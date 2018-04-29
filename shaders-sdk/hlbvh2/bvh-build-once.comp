@@ -32,7 +32,7 @@ int findSplit( in int first, in int last) {
     } else {
         split = (split+last)>>1;
     }
-    return clamp(split, first, last);
+    return clamp(split, first, last-1);
 }
 
 
@@ -106,7 +106,7 @@ void main() {
     
     // begin work on splitting
     int asize = _counters[1];
-    for (int m=0;m<4096;m++) {
+    for (int m=0;m<8192;m++) {
         // goto next iteration
         asize = _counters[1];
         IFALL (asize <= 0) break;

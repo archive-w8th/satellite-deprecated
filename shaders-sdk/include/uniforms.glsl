@@ -35,7 +35,7 @@ struct LightUniformStruct {
 struct GeometryUniformStruct {
     mat4x4 transform;
     mat4x4 transformInv;
-    mat4x4 projection; // rudiment
+    mat4x4 projection; 
     mat4x4 projectionInv;
 
     int materialID;

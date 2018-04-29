@@ -22,11 +22,7 @@ layout ( std430, binding = 5, set = 0 ) restrict buffer FlagsBlock {
 };
 
 layout ( std430, binding = 6, set = 0 ) restrict buffer ActivesBlock {
-//#ifdef BVH_BUILD
     int Actives[][2];
-//#else
-//    int Actives[];
-//#endif
 };
 
 layout ( std430, binding = 7, set = 0 ) restrict buffer ChildBuffer {
@@ -54,7 +50,7 @@ layout ( std430, binding = 11, set = 0 ) restrict buffer BVHMetaBlock { ivec4 bv
 struct BVHCreatorUniformStruct {
     mat4x4 transform;
     mat4x4 transformInv;
-    mat4x4 projection; // rudiment
+    mat4x4 projection;
     mat4x4 projectionInv;
     int leafCount;
 };

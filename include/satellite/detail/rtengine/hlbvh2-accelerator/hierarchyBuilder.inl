@@ -66,33 +66,6 @@ namespace NSM
             childLink = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout);
             aabbCalculate = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout);
 
-            // build bvh command
-            buildBVHPpl.dispatch = [&]() {
-                //dispatchCompute(buildBVHPpl, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-                dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            };
-
-            // build global boundary
-            boundPrimitives.dispatch = [&]() {
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
-                dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            };
-
-            // link childrens
-            childLink.dispatch = [&]() {
-                dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            };
-
-            // refit BVH
-            refitBVH.dispatch = [&]() {
-                dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            };
-
-            // dispatch aabb per nodes
-            aabbCalculate.dispatch = [&]() {
-                dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            };
-
             { // boundary buffer cache
                 countersBuffer = createBuffer(device, strided<uint32_t>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
                 boundaryBuffer = createBuffer(device, strided<glm::vec4>(CACHED_BBOX * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -186,19 +159,17 @@ namespace NSM
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
                 syncUniforms();
             }
-            
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }), true);
+
+            // calculate general AABB
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
             dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-
-
 
             // get boundary
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), false);
 
-            // receive boundary
+            // receive boundary (planned to save in GPU)
             std::vector<bbox> bounds(CACHED_BBOX);
             getBufferSubData(generalLoadingBuffer, bounds, 0);
-
             bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bounds[0], [&](auto&& a, auto&& b) {
                 bbox _box;
                 _box.mn = glm::min(a.mn, b.mn);
@@ -223,7 +194,7 @@ namespace NSM
             flushCommandBuffers(device, std::vector<vk::CommandBuffer>{ {createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }), createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) })}}, true);
 
             // calculate leafs and checksums
-            aabbCalculate.dispatch();
+            dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 
             // get leaf count from staging
             {
@@ -239,22 +210,11 @@ namespace NSM
             // reset BVH counters (and copy to uniform)
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(6) }), true);
 
-            auto copyCounterCommand = getCommandBuffer(device, true);
-            memoryCopyCmd(copyCounterCommand, countersBuffer, countersBuffer, { 5 * sizeof(int32_t), 4 * sizeof(int32_t), sizeof(int32_t) });
-            memoryCopyCmd(copyCounterCommand, countersBuffer, countersBuffer, { 2 * sizeof(int32_t), 5 * sizeof(int32_t), sizeof(int32_t) });
-            copyCounterCommand.end();
-
             // refit BVH with linking leafs
             dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             syncUniforms();
-
-            // debug BVH
-            //std::vector<glm::ivec4> bvhMetaDebug(triangleCount[0]*2);
-            //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<glm::ivec4>(triangleCount[0]*2) }), false); // copy to staging
-            //getBufferSubData(generalLoadingBuffer, bvhMetaDebug, 0);
-            
 
             { // resolve BVH buffers for copying
                 auto bvhBoxStorage = hierarchyStorageLink->getBvhBox();

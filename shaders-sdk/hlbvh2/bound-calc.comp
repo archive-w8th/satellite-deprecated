@@ -2,11 +2,10 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
-#define WORK_SIZE 512
-
-
+#define WORK_SIZE 1024
 #define ENABLE_VSTORAGE_DATA
 #define BVH_CREATION
+
 #include "../include/constants.glsl"
 #include "../include/ballotlib.glsl"
 #include "../include/structs.glsl"
@@ -15,12 +14,9 @@
 #include "../include/mathlib.glsl"
 #include "./includes.glsl"
 
-//LOCAL_SIZE_LAYOUT;
-//shared bbox sdata[ WORK_SIZE ];
-
 // only 2 will hyperthreaded, in reality 256 threads, 16 working threads and 16x2-lanes hyperthreaded as 64 by 2 clocks (also, possible, independently 4-8 cores)
-layout ( local_size_x = 1024 ) in;
-shared bbox sdata[ 1024 ];
+layout ( local_size_x = WORK_SIZE ) in;
+shared bbox sdata[ WORK_SIZE ];
 
 layout ( std430, binding = 9, set = 0 ) restrict buffer MinmaxOutputSSBO {vec4 minmax[]; };
 

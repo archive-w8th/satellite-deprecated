@@ -19,8 +19,8 @@ LOCAL_SIZE_LAYOUT;
 
 void main()
 {
-   // const int H_BLOCK_WIDTH = 8, H_BLOCK_HEIGHT = 8;
-    const int H_BLOCK_WIDTH = 16, H_BLOCK_HEIGHT = 16;
+    const int H_BLOCK_WIDTH = 8, H_BLOCK_HEIGHT = 8;
+    //const int H_BLOCK_WIDTH = 16, H_BLOCK_HEIGHT = 16;
 
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
     ivec2 blk = ivec2(tiled(wh.x, int(R_BLOCK_WIDTH)), tiled(wh.y, int(R_BLOCK_HEIGHT)));
@@ -96,7 +96,7 @@ void main()
                     RayActived(currentRay, false_);
                     WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
 
-                    bool overflow = overflow || nid >= R_BLOCK_SIZE || nid < 0;
+                    bool overflow = overflow || nid < 0;
                     IFALL(overflow) break;
 
                     // prison coding
@@ -110,7 +110,7 @@ void main()
                 
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
                 if (vbn) { // if potential texel if valid
-                    m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
+                    m16s(vbn ? ((idx+1)-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
                     vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;

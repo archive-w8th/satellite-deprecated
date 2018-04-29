@@ -33,6 +33,7 @@ namespace NSM
         vk::CommandPool commandPool;
         vk::Semaphore currentSemaphore = nullptr;
         vk::DescriptorPool descriptorPool;
+        vk::PipelineCache pipelineCache;
         vk::Fence fence;
         VmaAllocator allocator;
 

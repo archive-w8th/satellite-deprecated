@@ -538,12 +538,12 @@ namespace NSM
 
     // create compute pipeline
     auto createCompute(DeviceQueueType &device, std::string path,
-        vk::PipelineLayout &layout, vk::PipelineCache &cache)
+        vk::PipelineLayout &layout)
     {
         ComputeContext cmpx;
         cmpx.device = device;
         cmpx.pipelineLayout = layout;
-        cmpx.pipelineCache = cache;
+        cmpx.pipelineCache = device->pipelineCache;
 
         auto cmpi = vk::ComputePipelineCreateInfo()
             .setStage(vk::PipelineShaderStageCreateInfo()
@@ -555,11 +555,11 @@ namespace NSM
         vk::Pipeline pipeline;
         try
         {
-            pipeline = device->logical.createComputePipeline(cache, cmpi);
+            pipeline = device->logical.createComputePipeline(device->pipelineCache, cmpi);
         }
-        catch (std::exception const &e)
+        catch (vk::Result const &e)
         {
-            std::cerr << e.what() << std::endl;
+            std::cout << "something wrong" << std::endl;
         }
 
         cmpx.pipeline = pipeline;

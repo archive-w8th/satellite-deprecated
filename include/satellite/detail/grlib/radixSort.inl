@@ -33,12 +33,11 @@ namespace NSM {
 
             // layout and cache
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(1));
-            pipelineCache = device->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
 
             // pipelines
-            histogram = createCompute(device, shadersPathPrefix + "/radix/histogram.comp.spv", pipelineLayout, pipelineCache);
-            permute = createCompute(device, shadersPathPrefix + "/radix/permute.comp.spv", pipelineLayout, pipelineCache);
-            workPrefixSum = createCompute(device, shadersPathPrefix + "/radix/pfx-work.comp.spv", pipelineLayout, pipelineCache);
+            histogram = createCompute(device, shadersPathPrefix + "/radix/histogram.comp.spv", pipelineLayout);
+            permute = createCompute(device, shadersPathPrefix + "/radix/permute.comp.spv", pipelineLayout);
+            workPrefixSum = createCompute(device, shadersPathPrefix + "/radix/pfx-work.comp.spv", pipelineLayout);
 
             // buffers
             VarStaging = createBuffer(device, strided<Consts>(8), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);

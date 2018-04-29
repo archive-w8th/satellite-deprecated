@@ -100,9 +100,9 @@ namespace NSM
         // instance layers
         std::vector<const char *> wantedLayers = {
             //"VK_LAYER_RENDERDOC_Capture"
-            //"VK_LAYER_LUNARG_standard_validation",
-            //"VK_LAYER_LUNARG_parameter_validation",
-            //"VK_LAYER_LUNARG_core_validation",
+            "VK_LAYER_LUNARG_standard_validation",
+            "VK_LAYER_LUNARG_parameter_validation",
+            "VK_LAYER_LUNARG_core_validation",
             //"VK_LAYER_LUNARG_assistant_layer",
             //"VK_LAYER_LUNARG_vktrace",
             //"VK_LAYER_GOOGLE_threading"
@@ -313,6 +313,7 @@ namespace NSM
                     );
                 deviceQueuePtr->fence = createFence(deviceQueuePtr, false);
                 deviceQueuePtr->initialized = true;
+                deviceQueuePtr->pipelineCache = deviceQueuePtr->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
             }
 
             // return device with queue pointer

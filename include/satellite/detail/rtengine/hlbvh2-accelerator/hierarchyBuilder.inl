@@ -60,11 +60,11 @@ namespace NSM
             builderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&builderDescriptorLayout[0]));
 
             // bvh builder pipelines 
-            buildBVHPpl = createCompute(device, shadersPathPrefix + "/hlbvh2/bvh-build.comp.spv", pipelineLayout, pipelineCache);
-            refitBVH = createCompute(device, shadersPathPrefix + "/hlbvh2/bvh-fit.comp.spv", pipelineLayout, pipelineCache);
-            boundPrimitives = createCompute(device, shadersPathPrefix + "/hlbvh2/bound-calc.comp.spv", pipelineLayout, pipelineCache);
-            childLink = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout, pipelineCache);
-            aabbCalculate = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout, pipelineCache);
+            buildBVHPpl = createCompute(device, shadersPathPrefix + "/hlbvh2/bvh-build.comp.spv", pipelineLayout);
+            refitBVH = createCompute(device, shadersPathPrefix + "/hlbvh2/bvh-fit.comp.spv", pipelineLayout);
+            boundPrimitives = createCompute(device, shadersPathPrefix + "/hlbvh2/bound-calc.comp.spv", pipelineLayout);
+            childLink = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout);
+            aabbCalculate = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout);
 
             // build bvh command
             buildBVHPpl.dispatch = [&]() {

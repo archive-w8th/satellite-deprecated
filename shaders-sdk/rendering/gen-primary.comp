@@ -71,6 +71,13 @@ void main()
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
                 // in-block Id
                 int nid = tb + int(Lane_Idx);
+                randomClocks = 0; // reset random clocks
+
+#ifdef ENABLE_RUDE_RANDOM
+                subHash = 0;
+#else
+                subHash = nid; 
+#endif
 
                 // get 2D index
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH), xy = divxy + bc;

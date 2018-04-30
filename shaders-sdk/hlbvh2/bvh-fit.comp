@@ -56,32 +56,23 @@ void main() {
         IFALL (globalID >= wsize) break;
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
-            int idx = exchange(LeafIndices[globalID], -1);
-            
+            int idx = bvhMeta[exchange(LeafIndices[globalID], -1)].z;
+
             // reductive unity boxes
             for (int l=0;l<8192;l++) {
+                // if idx is invalid, so break
+                if (idx < 0) break;
                 
-                // do contribution to parent node box host
-                ivec4 cmp4 = bvhMeta[idx];
-                if (idx >= 0) {
-                    if (cmp4.y == 2) unifyNodeBox(idx);
-                } else { 
-                    break;
-                }
+                // unify node subboxes
+                bool interleave = idx >= 0;
+                if (bvhMeta[idx].y == 2 && interleave) { unifyNodeBox(idx); }
 
-                // set contributor ID to parent node ID
-                idx = idx >= 0 ? cmp4.z : -1;
-
-                // solve contribution question 
-                bool nextContrib = idx >= 0;
-                if (nextContrib) {
-                    int _swp = atomicCompSwap(Flags[idx], 0, 1); // make sure contribution to parent complete
-                    nextContrib = nextContrib && _swp == 1; 
-                }
-
-                // only one candidate can contribute to own parent (if has)
-                idx = nextContrib ? idx : -1;
+                // resolve conflict
+                //if (interleave) interleave = atomicAdd(Flags[idx], 1) >= 1;
+                if (interleave) interleave = atomicCompSwap(Flags[idx], 0, 1) == 1;
+                idx = interleave ? bvhMeta[idx].z : -1;
             }
+            
         }
     }
 }

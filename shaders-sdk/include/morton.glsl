@@ -13,7 +13,7 @@ uint splitBy3(in uint a){
     return x;
 }
 
-uvec2 encodeMorton3_64(in uvec3 a){
+uvec2 encodeMorton3_64(in uvec3 a) {
     return uvec2(0u, splitBy3(a.x) | (splitBy3(a.y) << 1) | (splitBy3(a.z) << 2));
 }
 
@@ -21,7 +21,7 @@ uvec2 encodeMorton3_64(in uvec3 a){
 
 // method to seperate bits from a given integer 3 positions apart
 uint64_t splitBy3(in uint a){
-    uint64_t x = P2U(uvec2(0u, a & 0x1fffffu));
+    uint64_t x = P2U(uvec2(a & 0x1fffffu, 0u));
     x = (x | (x << 32ul)) & 0x1f00000000fffful;
     x = (x | (x << 16ul)) & 0x1f0000ff0000fful;
     x = (x | (x << 8ul)) & 0x100f00f00f00f00ful;

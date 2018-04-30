@@ -25,7 +25,7 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%hit-shader.comp     -o %O
 
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%VRTX%vloader.comp       -o %OUTDIR%%VRTX%vloader.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bound-calc.comp    -o %OUTDIR%%HLBV%bound-calc.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-build-once.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
+start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-build.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-fit.comp       -o %OUTDIR%%HLBV%bvh-fit.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-gen.comp      -o %OUTDIR%%HLBV%leaf-gen.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-link.comp     -o %OUTDIR%%HLBV%leaf-link.comp.spv
@@ -79,12 +79,7 @@ set OPTFLAGS= ^
 --if-conversion ^
 --scalar-replacement 
 
-:: for optimize
-call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
-call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
-call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
-call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
-call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
+
 
 :: for workarounds
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%interpolator.comp.spv    -o %OUTDIR%%RNDR%interpolator.comp.spv
@@ -94,4 +89,23 @@ call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%gen-secondary.comp.spv   -o %OUTDIR%%RND
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%hit-shader.comp.spv      -o %OUTDIR%%RNDR%hit-shader.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%pgather.comp.spv         -o %OUTDIR%%RNDR%pgather.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%pclear.comp.spv          -o %OUTDIR%%RNDR%pclear.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
 
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
+
+call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bound-calc.comp.spv      -o %OUTDIR%%HLBV%bound-calc.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bvh-build.comp.spv       -o %OUTDIR%%HLBV%bvh-build.comp
+call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bvh-fit.comp.spv         -o %OUTDIR%%HLBV%bvh-fit.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%leaf-gen.comp.spv        -o %OUTDIR%%HLBV%leaf-gen.comp.spv
+call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%leaf-link.comp.spv       -o %OUTDIR%%HLBV%leaf-link.comp.spv
+
+
+:: for optimize
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv

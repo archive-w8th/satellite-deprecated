@@ -100,9 +100,7 @@ bbox compactBoxByTriangle(in bbox abox, in mat3x4 triverts){
     result.mx = min(result.mx, abox.mx);
     
     return result;
-}
-*/
-
+}*/
 
 void main() {
     int n = GEOMETRY_BLOCK geometryUniform.triangleCount;

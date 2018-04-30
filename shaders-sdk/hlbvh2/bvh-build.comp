@@ -1,6 +1,7 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#define BVH_BUILD
 #define BVH_CREATION
 
 #include "../include/constants.glsl"
@@ -11,12 +12,19 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
-LOCAL_SIZE_LAYOUT;
+//LOCAL_SIZE_LAYOUT;
+layout ( local_size_x = 1024 ) in;
 
 int cdelta( in int a, in int b ){
+#ifdef UNIVERSAL_PLATFORM
+    uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
+    acode.x = a, bcode.x = b;
+    return nlz(acode^bcode);
+#else 
     uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
     int pfx = nlz(acode^bcode);
     return pfx + (pfx < 64 ? 0 : nlz(a^b));
+#endif
 }
 
 int findSplit( in int first, in int last) {
@@ -30,25 +38,24 @@ int findSplit( in int first, in int last) {
     } else {
         split = (split+last)>>1;
     }
-    return clamp(split, first, last);
+    return clamp(split, first, last-1);
 }
 
-initAtomicSubgroupIncFunction(lCounter, lCounterInc, 2, int)
-initAtomicSubgroupIncFunction(aCounter, aCounterInc, 1, int)
-initAtomicSubgroupIncFunction(cCounter, cCounterInc, 1, int)
-initAtomicSubgroupIncFunction(cCounter, cCounterDualInc, 2, int)
+
+shared int _counters[8];
+
+initAtomicSubgroupIncFunction(_counters[0], lCounterInc, 2, int)
+initAtomicSubgroupIncFunction(_counters[1], aCounterInc, 1, int)
+initAtomicSubgroupIncFunction(_counters[2], cCounterInc, 1, int)
+initAtomicSubgroupIncFunction(_counters[2], cCounterDualInc, 2, int)
+#define cBuffer _counters[4]
+
 
 void splitNode(in int trID) {
-    int prID = Actives[trID]|(int(Local_Idx)&1); // select element, include sibling
-    ivec4 _pdata = bvhMeta[prID];
+    int prID = Actives[trID][1-cBuffer]|(int(Local_Idx)&1); // select element, include sibling
 
+    ivec4 _pdata = bvhMeta[prID];
     if (_pdata.y > _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0) { // when not leafs
-        // fill empty boxes (pre-work)
-        bvhBoxesWork[prID][0] =  100000.f.xxxx;
-        bvhBoxesWork[prID][1] = -100000.f.xxxx;
-        bvhBoxesWork[prID][2] =  100000.f.xxxx;
-        bvhBoxesWork[prID][3] = -100000.f.xxxx;
-        Flags[prID] = 0;
 
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
@@ -60,7 +67,7 @@ void splitNode(in int trID) {
         ivec2 hd = hid + ivec2(0, 1);
 
         // if any can continue splitting
-        if (any(not(isLeaf))) { Actives[aCounterInc()] = hd.x; }
+        if (any(not(isLeaf))) { Actives[aCounterInc()][cBuffer] = hd.x; }
 
         if (all(isLeaf)) {
             int cl = cCounterDualInc(); 
@@ -70,38 +77,61 @@ void splitNode(in int trID) {
 
         // link parent with childs
         bvhMeta[prID] = ivec4(hd.x, 2, _pdata.z, 0); // set as branching
+        Flags[prID] = 0;
 
         // make children nodes (with unknown identifier)
         bvhMeta[hd.x] = ivec4(transplit.xy, prID, -1);
         bvhMeta[hd.y] = ivec4(transplit.zw, prID, -1);
     } else 
-    if (_pdata.y == _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0) {
+    if (_pdata.y == _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0 && _pdata.z >= 0) {
         LeafIndices[cCounterInc()] = prID;
     }
 }
 
-void main() {
-    uint threadID = uint(gl_LocalInvocationID.x);
-    int workID = int(gl_WorkGroupID.x);
-    int WS = int(gl_WorkGroupSize.x);
 
-    // create initial (root) node
-    bool isBeginning = aRange[1] == 0;
-    if (gl_GlobalInvocationID.x == 0 && isBeginning) {
-        int hid = lCounterInc(); Actives[aCounterInc()] = hid;
-        bvhMeta[hid+0] = ivec4(0, aabbcount[0]-1, -1, -1);
-        bvhMeta[hid+1] = ivec4(-1, -1, -1, 1);
-    }
+void main() {
+    int threadID = int(Local_Idx);
+    int WS = int(gl_WorkGroupSize.x);
+    if (threadID < 1) { cBuffer = 0; }
+    if (threadID < 8) { _counters[threadID] = 0; }
 
     LGROUP_BARRIER
 
+    // create initial (root) node
+    if (threadID == 0) {
+        int hid = lCounterInc(); Actives[aCounterInc()][cBuffer] = hid;
+        bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, -1);
+        bvhMeta[hid+1] = ivec4(-1, -1, -1, 1);
+    }
+    LGROUP_BARRIER
+    
     // begin work on splitting
-    ivec2 ranged = (isBeginning && workID == 0) ? ivec2(0, 1) : ivec2(aRange[0], aRange[1]);
-    uint workSize = min(tiled(ranged.y-ranged.x, tiled(WS,2)), 65536u);
-    int wgs = int(gl_NumWorkGroups);
-    for (int i=0;i<workSize;i+=wgs) {
-        int trID = ranged.x + ((WS * (i+workID) + int(threadID))>>1);
-        IFALL (trID >= ranged.y) break; 
-        if (trID < ranged.y) splitNode(trID);
+    int asize = _counters[1];
+    for (int m=0;m<8192;m++) {
+        // goto next iteration
+        asize = _counters[1];
+        IFALL (asize <= 0) break;
+        LGROUP_BARRIER
+
+        if (threadID == 0) {
+            _counters[1] = 0;
+            cBuffer = 1-cBuffer; // ping pong
+        }
+        LGROUP_BARRIER
+        
+        // split nodes
+        uint wsize = min(tiled(asize, tiled(WS,2)), 65536u);
+        for (int i=0;i<wsize;i++) {
+            int trID = (i * WS + threadID)>>1;
+            IFALL (trID >= asize) break;
+            if (trID < asize) splitNode(trID);
+        }
+        LGROUP_BARRIER
+    }
+
+    if (threadID == 0) {
+        lCounter = _counters[0];
+        aCounter = _counters[1];
+        cCounter = _counters[2];
     }
 }

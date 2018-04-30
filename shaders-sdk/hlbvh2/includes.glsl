@@ -35,7 +35,7 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer BuildCounters {
     int aCounter;
     int bvhLevel;
     int aRange[2];
-    int aabbcount[1];
+    int aabbcount;
 };
 
 #ifdef USE_F32_BVH

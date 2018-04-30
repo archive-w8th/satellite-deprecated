@@ -84,10 +84,6 @@ ivec2 getUniformCoord(in int indice) {
     return ivec2(indice % WARPED_WIDTH, indice / WARPED_WIDTH);
 }
 
-ivec2 getUniformCoord(in uint indice) {
-    return ivec2(indice % WARPED_WIDTH, indice / WARPED_WIDTH);
-}
-
 
 const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 
@@ -171,15 +167,23 @@ void interpolateMeshData(inout HitData ht) {
     const bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST && tri >= 0) & bool_(materials[tri] == ht.materialID);
 
     IFANY (validInterpolant) {
-        const vec2 txtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+ TEXCOORD_TID))), sz, szt),
-                   nrtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+   NORMAL_TID))), sz, szt),
-                   tgtrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+  TANGENT_TID))), sz, szt),
-                   bttrig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+BITANGENT_TID))), sz, szt);
+        vec2 trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+ TEXCOORD_TID))), sz, szt);
+        vec2 txcd = vs * mat2x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV);
 
-        ht.texcoord.xy   = vs * mat2x3(uintBitsToFloat(SGATHER(attrib_texture, txtrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, txtrig, 1)._SWIZV));
-        ht.normal.xyz    = normalize(vs * mat3x3(uintBitsToFloat(SGATHER(attrib_texture, nrtrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, nrtrig, 1)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, nrtrig, 2)._SWIZV)));
-        ht.tangent.xyz   = normalize(vs * mat3x3(uintBitsToFloat(SGATHER(attrib_texture, tgtrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, tgtrig, 1)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, tgtrig, 2)._SWIZV)));
-        ht.bitangent.xyz = normalize(vs * mat3x3(uintBitsToFloat(SGATHER(attrib_texture, bttrig, 0)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, bttrig, 1)._SWIZV), uintBitsToFloat(SGATHER(attrib_texture, bttrig, 2)._SWIZV))); 
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+   NORMAL_TID))), sz, szt);
+        vec3 nrml = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
+
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+  TANGENT_TID))), sz, szt);
+        vec3 tngt = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
+
+        trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+BITANGENT_TID))), sz, szt);
+        vec3 btng = normalize(vs * mat3x3(SGATHER(attrib_texture, trig, 0)._SWIZV, SGATHER(attrib_texture, trig, 1)._SWIZV, SGATHER(attrib_texture, trig, 2)._SWIZV));
+
+        ht.texcoord.xy = txcd;
+        ht.normal.xyz  = nrml;
+        ht.tangent.xyz = tngt;
+        ht.bitangent.xyz = btng;
+
     }
 }
 #endif

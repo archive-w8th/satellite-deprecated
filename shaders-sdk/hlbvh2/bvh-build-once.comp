@@ -99,7 +99,7 @@ void main() {
     // create initial (root) node
     if (threadID == 0) {
         int hid = lCounterInc(); Actives[aCounterInc()][cBuffer] = hid;
-        bvhMeta[hid+0] = ivec4(0, aabbcount[0]-1, -1, -1);
+        bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, -1);
         bvhMeta[hid+1] = ivec4(-1, -1, -1, 1);
     }
     LGROUP_BARRIER

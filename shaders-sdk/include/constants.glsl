@@ -8,7 +8,7 @@
 // data format extensions
 #extension GL_AMD_gcn_shader : enable
 #extension GL_AMD_gpu_shader_half_float : enable
-#extension GL_ARB_gpu_shader_int64 : enable
+#extension GL_ARB_gpu_shader_int64 : require
 #extension GL_AMD_gpu_shader_int16 : enable
 
 // intrinsics extensions

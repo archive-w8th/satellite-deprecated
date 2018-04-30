@@ -65,12 +65,45 @@
 #define M32(m, i) m[i]
 #endif
 
+
+float extractChannel(in usampler2D smpler, in vec2 texcoord, const int channel){
+    uint chnl = 0u;
+    if (channel == 0) {
+        chnl = textureLod(smpler, texcoord, 0).x;
+    } else 
+    if (channel == 1) {
+        chnl = textureLod(smpler, texcoord, 0).y;
+    } else 
+    if (channel == 2) {
+        chnl = textureLod(smpler, texcoord, 0).z;
+    } else 
+    if (channel == 3) {
+        chnl = textureLod(smpler, texcoord, 0).w;
+    }
+    return uintBitsToFloat(chnl);
+}
+
+vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
+    vec2 size = 0.5f/textureSize(smpler, 0);
+    return vec4(
+        extractChannel(smpler, texcoord + vec2(-size.x,  size.y), channel), extractChannel(smpler, texcoord + vec2( size.x,  size.y), channel),
+        extractChannel(smpler, texcoord + vec2( size.x, -size.y), channel), extractChannel(smpler, texcoord + vec2(-size.x, -size.y), channel)
+    );
+}
+
+
+
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
-#define SGATHER(smp, crd, chnl) textureGatherLodAMD(smp,crd,0,chnl)
+#define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGatherLodAMD(smp,crd,0,chnl))
+#else
+#ifdef UNIVERSAL_PLATFORM
+#define ISTORE(img, crd, data) imageStore(img,crd,data)
+#define SGATHER(smp, crd, chnl) fakeGather(smp,crd,chnl)
 #else
 #define ISTORE(img, crd, data) imageStore(img,crd,data)
-#define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
+#define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGather(smp,crd,chnl))
+#endif
 #endif
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET

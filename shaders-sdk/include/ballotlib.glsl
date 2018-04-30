@@ -5,11 +5,11 @@
 
 // for constant maners
 #ifndef Wave_Size
-#ifndef NVIDIA_PLATFORM
-#define Wave_Size 64
-#else
-#define Wave_Size 32
-#endif
+    #ifdef AMD_PLATFORM
+        #define Wave_Size 64
+    #else
+        #define Wave_Size 32
+    #endif
 #endif
 
 #define Wave_Size_RT (gl_SubgroupSize.x)
@@ -109,13 +109,8 @@ T2 fname(const uint WHERE, in bvec2 a) {\
 
 
 // invoc vote
-bool allInvoc(in bool bc){ 
-    return subgroupAll(bc);
-}
-bool anyInvoc(in bool bc){ 
-    return !allInvoc(!bc); 
-}
-
+bool allInvoc(in bool bc){ return subgroupAll(bc); }
+bool anyInvoc(in bool bc){ return subgroupAny(bc); }
 
 // aliases
 bool allInvoc(in bool_ bc){ return allInvoc(SSC(bc)); }

@@ -144,7 +144,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.defTriangleID = -1;
-    traverseState.distMult = 1.f;
     traverseState.diffOffset = 0.f;
     traverseState.distMult = 1.f/precIssue(dirlenInv);
 

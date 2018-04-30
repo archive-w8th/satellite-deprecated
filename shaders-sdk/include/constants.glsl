@@ -57,10 +57,10 @@
 
 // Platform-oriented compute
 #ifndef WORK_SIZE
-    #ifdef NVIDIA_PLATFORM
-        #define WORK_SIZE 32
-    #else
+    #if defined(AMD_PLATFORM) || defined(UNIVERSAL_PLATFORM)
         #define WORK_SIZE 64
+    #else
+        #define WORK_SIZE 32
     #endif
 #endif
 

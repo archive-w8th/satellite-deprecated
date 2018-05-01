@@ -255,8 +255,8 @@ int BFI_HW(in int base, in int inserts, in int offset, in int bits) { return bit
 uint BFI_HW(in uint base, in uint inserts, in int offset, in int bits) { return bitfieldInsert(base, inserts, offset, bits); }
 
 // int operations
- int tiled(in  int n, in  int d) {return (n / d + sign(n % d));}
-uint tiled(in uint n, in uint d) {return n > 0 ? ((n - 1) / (d) + 1) : 0;}
+ int tiled(in  int x, in  int y) {return x/y + sign(x%y); }
+uint tiled(in uint x, in uint y) {return x/y + mix(0,1,(x%y)>=0); }
 
 
 // precise optimized mix/lerp

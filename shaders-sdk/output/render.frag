@@ -1,4 +1,5 @@
 #version 460 core
+
 #extension GL_GOOGLE_include_directive : enable
 
 #define FRAGMENT_SHADER
@@ -7,7 +8,6 @@
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
-#include "../include/random.glsl"
 
 layout ( location = 0 ) out vec4 outFragColor;
 layout ( binding = 0 ) uniform sampler2D samples;
@@ -22,7 +22,5 @@ vec4 filtered(in vec2 tx) {
 void main() {
     vec2 ctx = vcoord.xy;
     vec2 tsz = textureSize(samples, 0)*vec2(1.f,0.5f), cts = ctx * tsz;
-    globalInvocationSMP = uint(cts.x + tsz.x * cts.y);
-
     outFragColor = vec4(fromLinear(filtered(ctx)).xyz, 1.0f);
 }

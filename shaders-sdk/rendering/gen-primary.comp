@@ -19,7 +19,7 @@ LOCAL_SIZE_LAYOUT;
 
 void main()
 {
-    const int H_BLOCK_WIDTH = 8, H_BLOCK_HEIGHT = 8;
+    //const int H_BLOCK_WIDTH = 8, H_BLOCK_HEIGHT = 8;
 
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
     ivec2 blk = ivec2(tiled(wh.x, int(R_BLOCK_WIDTH)), tiled(wh.y, int(R_BLOCK_HEIGHT)));
@@ -60,10 +60,10 @@ void main()
 
             // make division
             ivec2 divxy = ivec2(globalID % blk.x, globalID / blk.x) * ivec2(R_BLOCK_WIDTH, R_BLOCK_HEIGHT);
-            ivec2 divxyX = divxy.xy / ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT) * ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
+            //ivec2 divxyX = divxy.xy / ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT) * ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
 
             // root of texeling
-            blockBins[binID].texelFrom = (divxyX.x + divxyX.y * wh.x)+1;
+            blockBins[binID].texelFrom = (divxy.x + divxy.y * wh.x)+1;
 
             // invoke block data
             [[unroll]]
@@ -77,10 +77,10 @@ void main()
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH), xy = divxy + bc;
 
                 // use shuffling for nicer acceleration
-                ivec2 xyF = (xy-divxyX) % ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
-                int iF = xyF.x + xyF.y * H_BLOCK_WIDTH; iF = int(shuffledSequence[iF]);
-                xyF = ivec2(iF%H_BLOCK_WIDTH,iF/H_BLOCK_WIDTH);
-                xy = divxyX + xyF;
+                //ivec2 xyF = (xy-divxyX) % ivec2(H_BLOCK_WIDTH, H_BLOCK_HEIGHT);
+                //int iF = xyF.x + xyF.y * H_BLOCK_WIDTH; iF = int(shuffledSequence[iF]);
+                //xyF = ivec2(iF%H_BLOCK_WIDTH,iF/H_BLOCK_WIDTH);
+                //xy = divxyX + xyF;
 
                 int idx = xy.x + xy.y * wh.x;
 
@@ -111,9 +111,9 @@ void main()
                 
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
                 if (vbn) { // if potential texel if valid
-                    m16s(vbn ? ((idx+1)-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
+                    m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
-                    vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed[3]);
+                    vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
 
                     vec4 dir = vec4(0.f), orig = mult4(RAY_BLOCK cameraUniform.camInv, vec4(vec3(0.0f), 1.0f)), eye = orig;

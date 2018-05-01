@@ -55,6 +55,8 @@ void splitNode(in int trID, in int side) {
     int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; // select element, include sibling
     ivec4 _pdata = bvhMeta[prID];
 
+    if ( prID >= 0) Flags[prID] = 0; // make children ptr
+    
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
 
         // find split
@@ -69,7 +71,7 @@ void splitNode(in int trID, in int side) {
         Actives[aCounterInc()][cBuffer] = hd+1;
 
         // BVH parent meta update
-        bvhMeta[prID].x = hd.x, bvhMeta[prID].y = 2, Flags[prID] = 0;
+        bvhMeta[prID].x = hd.x, bvhMeta[prID].y = 2;
 
         // make children nodes (with unknown identifier)
         bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1);
@@ -78,7 +80,6 @@ void splitNode(in int trID, in int side) {
 
     if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 && _pdata.z >= 0) { // if leaf
         LeafIndices[cCounterInc()] = prID+1;
-        bvhMeta[prID].w = exchange(bvhMeta[prID].x, -1), bvhMeta[prID].y = 1, Flags[prID] = 0;
     }
 }
 
@@ -114,7 +115,7 @@ void main() {
         IFALL (asize <= 0) break;
         LGROUP_BARRIER
 
-        // switch buffer and reset counter
+        // switch restrict buffer and reset counter
         if (threadID == 0) { _counters[1] = 0; cBuffer = 1-cBuffer; } // ping pong
         LGROUP_BARRIER
 

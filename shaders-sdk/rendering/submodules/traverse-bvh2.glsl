@@ -17,9 +17,9 @@ const int localStackSize = 4;
 
 // dedicated BVH stack
 //struct NodeCache { ivec4 stackPages[stackPageCount]; };
-//layout ( std430, binding = _CACHE_BINDING, set = 0 ) buffer nodeCache { NodeCache nodeCache[]; };
+//layout ( std430, binding = _CACHE_BINDING, set = 0 ) restrict buffer nodeCache { NodeCache nodeCache[]; };
 
-layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) uniform iimageBuffer texelPages;
+layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) restrict uniform iimageBuffer texelPages;
 
 
 // 128-bit payload
@@ -188,13 +188,11 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
     // begin of traverse BVH 
     ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
-
     for (int hi=0;hi<max_iteraction;hi++) {
         IFALL (traverseState.idx < 0) break; // if traverse can't live
 
         if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
-            //ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
 
             // if not leaf and not wrong
             IF (cnode.y == 2) {

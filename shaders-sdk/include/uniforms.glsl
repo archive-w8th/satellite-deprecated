@@ -63,21 +63,21 @@ struct RayStream {
 };
 
 
-layout ( std430, binding = 12, set = 0 ) readonly buffer lightUniformB {
+layout ( std430, binding = 12, set = 0 ) readonly restrict buffer lightUniformB {
     LightUniformStruct lightNode[];
 } lightUniform;
 
-layout ( std430, binding = 13, set = 0 ) readonly buffer rayBlockB {
+layout ( std430, binding = 13, set = 0 ) readonly restrict buffer rayBlockB {
     SamplerUniformStruct samplerUniform;
     CameraUniformStruct cameraUniform;
     MaterialUniformStruct materialUniform;
 } rayBlock; 
 
-layout ( std430, binding = 14, set = 0 ) readonly buffer rayStreamsB {
+layout ( std430, binding = 14, set = 0 ) readonly restrict buffer rayStreamsB {
     RayStream rayStreams[];
 };
 
-layout ( std430, binding = 16, set = 0 ) readonly buffer shuffledSequenceB {
+layout ( std430, binding = 16, set = 0 ) readonly restrict buffer shuffledSequenceB {
     uint shuffledSequence[];
 };
 

@@ -24,30 +24,30 @@ struct BlockBin {
 
 // blocks data (32 byte node)
 struct RayBlockNode { RayRework data; };
-layout ( std430, binding = 0, set = 0 ) buffer rayBlockNodesB { RayBlockNode rayBlockNodes[][R_BLOCK_SIZE]; }; // blocks data
+layout ( std430, binding = 0, set = 0 ) restrict buffer rayBlockNodesB { RayBlockNode rayBlockNodes[][R_BLOCK_SIZE]; }; // blocks data
 
 // blocks managment
-layout ( std430, binding = 1, set = 0 ) buffer rayBlocksB { BlockInfo rayBlocks[]; }; // block headers and indices
-layout ( std430, binding = 7, set = 0 ) buffer blockBinsB { BlockBin blockBins[]; };
-layout ( std430, binding = 2, set = 0 ) readonly buffer activeBlocksB { int activeBlocks[]; }; // current blocks, that will invoked by devices
+layout ( std430, binding = 1, set = 0 ) restrict buffer rayBlocksB { BlockInfo rayBlocks[]; }; // block headers and indices
+layout ( std430, binding = 7, set = 0 ) restrict buffer blockBinsB { BlockBin blockBins[]; };
+layout ( std430, binding = 2, set = 0 ) readonly restrict buffer activeBlocksB { int activeBlocks[]; }; // current blocks, that will invoked by devices
 
 #ifndef SIMPLIFIED_RAY_MANAGMENT // for traversers don't use
 // blocks confirmation
-layout ( std430, binding = 3, set = 0 ) buffer confirmBlocksB { int confirmBlocks[]; }; // preparing blocks for invoking
+layout ( std430, binding = 3, set = 0 ) restrict buffer confirmBlocksB { int confirmBlocks[]; }; // preparing blocks for invoking
 
 // reusing blocks
-layout ( std430, binding = 4, set = 0 ) buffer availableBlocksB { int availableBlocks[]; }; // block are free for write
-layout ( std430, binding = 5, set = 0 ) buffer preparingBlocksB { int preparingBlocks[]; }; // block where will writing
+layout ( std430, binding = 4, set = 0 ) restrict buffer availableBlocksB { int availableBlocks[]; }; // block are free for write
+layout ( std430, binding = 5, set = 0 ) restrict buffer preparingBlocksB { int preparingBlocks[]; }; // block where will writing
 
 // texels binding
-layout ( std430, binding = 6, set = 0 ) buffer texelBufB { Texel nodes[]; } texelBuf; // 32byte per node
+layout ( std430, binding = 6, set = 0 ) restrict buffer texelBufB { Texel nodes[]; } texelBuf; // 32byte per node
 #endif
 
 // intersection vertices
-layout ( std430, binding = 9, set = 0 ) buffer hitsB { HitData hits[]; }; 
+layout ( std430, binding = 9, set = 0 ) restrict buffer hitsB { HitData hits[]; }; 
 
 // for faster BVH traverse
-layout ( std430, binding = 10, set = 0 ) buffer unorderedRaysB { ElectedRay unorderedRays[]; };
+layout ( std430, binding = 10, set = 0 ) restrict buffer unorderedRaysB { ElectedRay unorderedRays[]; };
 
 
 
@@ -55,16 +55,16 @@ layout ( std430, binding = 10, set = 0 ) buffer unorderedRaysB { ElectedRay unor
 
 
 #ifdef USE_16BIT_ADDRESS_SPACE
-layout ( std430, binding = 11, set = 0 ) buffer ispaceB { uint16_t ispace[][R_BLOCK_SIZE]; };
+layout ( std430, binding = 11, set = 0 ) restrict buffer ispaceB { uint16_t ispace[][R_BLOCK_SIZE]; };
 #define m16i(b,i) (int(ispace[b][i])-1)
 #define m16s(a,b,i) (ispace[b][i] = uint16_t(a+1))
 #else
-layout ( std430, binding = 11, set = 0 ) buffer ispaceB { mediump uint ispace[][R_BLOCK_SIZE]; };
+layout ( std430, binding = 11, set = 0 ) restrict buffer ispaceB { mediump uint ispace[][R_BLOCK_SIZE]; };
 #define m16i(b,i) (int(ispace[b][i])-1)
 #define m16s(a,b,i) (ispace[b][i] = uint(a+1))
 #endif
 
-layout ( std430, binding = 15, set = 0 ) buffer hitPayloadB { HitPayload hitPayload[]; }; 
+layout ( std430, binding = 15, set = 0 ) restrict buffer hitPayloadB { HitPayload hitPayload[]; }; 
 
 
 
@@ -151,7 +151,7 @@ ivec2 decomposeLinearId(in int linid){
 
 
 // counters
-layout ( std430, binding = 8, set = 0 ) buffer arcounterB { 
+layout ( std430, binding = 8, set = 0 ) restrict buffer arcounterB { 
     int bT; // blocks counter
     int aT; // active blocks counter
     int pT; // clearing blocks counters

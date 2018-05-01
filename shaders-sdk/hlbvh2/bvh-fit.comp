@@ -49,7 +49,7 @@ void unifyNodeBox(in int idx){
 
 void main() {
     int wsize = cCounter;
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
+    int wcount = min(tiled(tiled(wsize,2)*2, int(gl_WorkGroupSize.x)), 131072);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); 
@@ -70,7 +70,7 @@ void main() {
                     if (bvhMeta[idx].y == 2 && interleave) { unifyNodeBox(idx); }
 
                     // resolve conflict
-                    //if (interleave) interleave = atomicAdd(Flags[idx], 1) >= 1;
+                    //if (interleave) interleave = atomicAdd(Flags[idx], 1) == 1;
                     if (interleave) interleave = atomicCompSwap(Flags[idx], 0, 1) == 1;
                     idx = interleave ? idx : -1;
                 }

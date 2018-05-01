@@ -16,7 +16,7 @@ LOCAL_SIZE_LAYOUT;
 
 void main() {
     int wsize = cCounter;
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
+    int wcount = min(tiled(tiled(wsize,2)*2, int(gl_WorkGroupSize.x)), 131072);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(Local_Idx);
@@ -25,9 +25,9 @@ void main() {
             int idx = LeafIndices[globalID]-1;
             if (idx >= 0) {
                 ivec4 bvhmeta = bvhMeta[idx];
-                if (bvhmeta.y == 1 && bvhmeta.x == -1 && bvhmeta.w >= 0) { // if true leaf
-                    uint leafID = MortoncodesIndices[bvhmeta.w];
-                    bvhMeta[idx] = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
+                if (bvhmeta.y == bvhmeta.x && bvhmeta.z >= 0) { // if true leaf
+                    uint leafID = MortoncodesIndices[bvhmeta.x];
+                    bvhMeta[idx] = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.z, -1);
 
                     // make box of leaf block
                     int bidx = idx>>1, sidx = idx&1;

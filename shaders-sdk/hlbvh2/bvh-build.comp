@@ -55,10 +55,8 @@ void splitNode(in int trID, in int side) {
     int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; // select element, include sibling
     ivec4 _pdata = bvhMeta[prID];
 
-    if ( prID >= 0) Flags[prID] = 0; // make children ptr
-    
+    // make children ptr
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
-
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
 
@@ -71,7 +69,8 @@ void splitNode(in int trID, in int side) {
         Actives[aCounterInc()][cBuffer] = hd+1;
 
         // BVH parent meta update
-        bvhMeta[prID].x = hd.x, bvhMeta[prID].y = 2;
+        bvhMeta[prID].xy = ivec2(hd.x, 2);
+        Flags[prID] = 0;
 
         // make children nodes (with unknown identifier)
         bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1);
@@ -79,6 +78,7 @@ void splitNode(in int trID, in int side) {
     }
 
     if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 && _pdata.z >= 0) { // if leaf
+        Flags[prID] = 0;
         LeafIndices[cCounterInc()] = prID+1;
     }
 }
@@ -100,18 +100,15 @@ void main() {
     if (threadID == 0) {
         int hid = lCounterInc();
         bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, -1);
-        bvhMeta[hid+1] = ivec4(-1, -1, -1, 1);
+        bvhMeta[hid+1] = ivec4(-1, -1, -1, -1);
         Actives[aCounterInc()][cBuffer] = hid+1;
     }
     LGROUP_BARRIER
     
-    // initial size of actives
-    int asize = 2; 
-
     // building BVH
     for (int m=0;m<65536;m++) {
         // check activity counter
-        asize = _counters[1];
+        int asize = _counters[1];
         IFALL (asize <= 0) break;
         LGROUP_BARRIER
 

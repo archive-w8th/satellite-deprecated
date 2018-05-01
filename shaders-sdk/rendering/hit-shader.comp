@@ -161,7 +161,7 @@ struct Textured {
     vec4 emissive;
 } textured;
 
-#define cray rayBlockNodes[hit.rayID / R_BLOCK_SIZE][hit.rayID % R_BLOCK_SIZE].data
+#define cray rayBlockNodes[rayID / R_BLOCK_SIZE][rayID % R_BLOCK_SIZE].data
 
 LOCAL_SIZE_LAYOUT;
 
@@ -175,10 +175,11 @@ void main() {
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
     bool overflow = false;
     int wgs = int(gl_NumWorkGroups);
+    int rayID = -1;
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        overflow = overflow || globalID >= RAY_BLOCK samplerUniform.hitCount || globalID < 0;
+        bool overflow = overflow || globalID >= RAY_BLOCK samplerUniform.hitCount || globalID < 0;
         
         matID = -1;
         IFALL(overflow) break;
@@ -188,8 +189,7 @@ void main() {
 #else
             HitData hit = hits[globalID];
 #endif
-            hit.rayID += 1; // offset of ray index
-
+            rayID = hit.rayID-1;
 
 #ifdef CACHE_HIT_PAYLOAD
             #define hitp hitPayloadCache[Local_Idx]
@@ -202,7 +202,7 @@ void main() {
             globalInvocationSMP = globalID;
 
             matID = hit.materialID - RAY_BLOCK materialUniform.materialOffset;
-            overflow = overflow || (matID >= RAY_BLOCK materialUniform.materialCount || matID < 0);
+            bool overflow = overflow || rayID < 0 || (matID >= RAY_BLOCK materialUniform.materialCount || matID < 0);
 
             // static colors
             textured.diffuse = material.diffuse;
@@ -277,7 +277,7 @@ void main() {
             {
                 int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
                 hitPayload[pid-1] = hitp;
-                cray.origin.w = intBitsToFloat(int(globalID)+1); // save hit index to ray
+                cray.origin.w = intBitsToFloat(globalID+1); // save hit index to ray
 
                 // make payload ID
                 if (hit.payloadID <= 0) {

@@ -60,7 +60,7 @@ int invokeSurface(inout bool overflow) {
 
     // if hit was had
     wasHit = overflow ? -1 : floatBitsToInt(currentRay.origin.w)-1;
-    if (wasHit >= 0) hit = hits[wasHit];
+    if (wasHit >= 0) hit = hits[wasHit]; else wasHit = -1;
 
     // load from payload if has
     IF (hit.payloadID > 0 && wasHit >= 0) { // if none, make as transparent

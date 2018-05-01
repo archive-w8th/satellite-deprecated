@@ -16,7 +16,8 @@ LOCAL_SIZE_LAYOUT;
 
 void main() {
     int wsize = cCounter;
-    int wcount = min(tiled(tiled(wsize,2)*2, int(gl_WorkGroupSize.x)), 131072);
+    //int wcount = min(tiled(tiled(wsize,2)*2, int(gl_WorkGroupSize.x)), 131072);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(Local_Idx);

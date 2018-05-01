@@ -22,7 +22,7 @@
 
 LOCAL_SIZE_LAYOUT;
 
-#define cray unorderedRays[hit.rayID+1]
+#define cray unorderedRays[hit.rayID-1]
 
 void main() {
     int wsize = int(arcounter.hT);
@@ -32,7 +32,7 @@ void main() {
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
-        overflow = overflow || globalID >= wsize || globalID < 0;
+        bool overflow = overflow || globalID >= wsize || globalID < 0;
         
         int matID = -1;
         IFALL(overflow) break;
@@ -57,7 +57,8 @@ void main() {
             // 
             IF (!overflow && floatBitsToInt(hit.tangent.w) == 0 && abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.01f) {
                 interpolateMeshData(hit);
-                hit.rayID = int(cray.uindex.x)-1;
+                int oID = cray.uindex.x;
+                hit.rayID = oID;
                 hit.tangent.w = intBitsToFloat(1);
 #ifndef DMA_HIT
                 hits[globalID] = hit;

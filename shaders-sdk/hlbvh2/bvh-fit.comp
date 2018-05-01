@@ -13,8 +13,6 @@
 
 LOCAL_SIZE_LAYOUT;
 
-#define CONTRIB_TO_PARENT_HOST
-
 void unifyNodeBox(in int idx){
     ivec4 comp = bvhMeta[idx]; // meta of contributable
     int sibid = comp.x >> 1; // contributor prefix box id
@@ -49,7 +47,7 @@ void unifyNodeBox(in int idx){
 
 void main() {
     int wsize = cCounter;
-    int wcount = min(tiled(tiled(wsize,2)*2, int(gl_WorkGroupSize.x)), 131072);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); 
@@ -57,23 +55,30 @@ void main() {
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
             int idx = exchange(LeafIndices[globalID], 0)-1;
-
+            
             // reductive unity boxes
-            if (idx >= 0) {
-                for (int l=0;l<8192;l++) {
-                    // if idx is invalid, so break
-                    idx = bvhMeta[idx].z;
-                    if (idx < 0) break;
-                    
-                    // unify node subboxes
-                    bool interleave = idx >= 0;
-                    if (bvhMeta[idx].y == 2 && interleave) { unifyNodeBox(idx); }
-
-                    // resolve conflict
-                    //if (interleave) interleave = atomicAdd(Flags[idx], 1) == 1;
-                    if (interleave) interleave = atomicCompSwap(Flags[idx], 0, 1) == 1;
-                    idx = interleave ? idx : -1;
+            for (int l=0;l<256;l++) {
+                
+                // do contribution to parent node box host
+                ivec4 cmp4 = bvhMeta[idx];
+                if (idx >= 0) {
+                    if (cmp4.y == 2) unifyNodeBox(idx);
+                } else { 
+                    break;
                 }
+
+                // set contributor ID to parent node ID
+                idx = idx >= 0 ? cmp4.z : -1;
+
+                // solve contribution question 
+                bool nextContrib = idx >= 0;
+                if (nextContrib) {
+                    int _swp = atomicCompSwap(Flags[idx], 0, 1); // make sure contribution to parent complete
+                    nextContrib = nextContrib && _swp == 1; 
+                }
+
+                // only one candidate can contribute to own parent (if has)
+                idx = nextContrib ? idx : -1;
             }
         }
     }

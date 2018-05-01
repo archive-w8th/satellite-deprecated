@@ -54,7 +54,7 @@ void main() {
                         uint uidx = atomicIncTT();
                         unorderedRays[uidx].cdirect = currentRay.cdirect;
                         unorderedRays[uidx].origin = currentRay.origin;
-                        unorderedRays[uidx].uindex.x = getGeneralNodeId();
+                        unorderedRays[uidx].uindex.x = getGeneralNodeId()+1;
                         unorderedRays[uidx].uindex.y = 0;
                     }
                 }

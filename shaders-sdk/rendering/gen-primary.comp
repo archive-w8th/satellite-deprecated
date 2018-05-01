@@ -111,6 +111,7 @@ void main()
                 
                 bool vbn = xy.x < wh.x && xy.y < wh.y && !overflow;
                 if (vbn) { // if potential texel if valid
+                    //m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
                     m16s(vbn ? (idx+1-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
                     vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);

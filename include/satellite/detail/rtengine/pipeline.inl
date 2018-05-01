@@ -701,13 +701,6 @@ namespace NSM
             flushCommandBuffer(device, copyCommand, true);
             dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
 
-            // debug BVH Meta
-            /*
-            std::vector<HitData> bvhMeta(1024);
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, hitBuffer, generalLoadingBuffer, { 0, 0, strided<HitData>(1024) }), false);
-            getBufferSubData(generalLoadingBuffer, bvhMeta);
-            */
-
             return;
         }
 

@@ -79,7 +79,7 @@ struct RayRework {
 };
 
 struct ElectedRay {
-     vec4 origin; vec2 cdirect; uvec2 uindex;
+     vec4 origin; vec2 cdirect; ivec2 uindex;
 };
 
 

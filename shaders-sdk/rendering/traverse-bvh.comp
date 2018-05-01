@@ -36,10 +36,11 @@ void main() {
         IFALL(overflow) break;
 
         // do BVH traversing 
-        traverseBvh2(not(overflow), unorderedRays[it]);
+        int debugState = -1;
+        traverseBvh2(not(overflow), unorderedRays[it], debugState);
 
         { // verify intersection
-            bool_ vintersect = lessF(geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(geometrySpace.lastIntersection.w != FINT_NULL);
+            bool_ vintersect = lessF(geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(floatBitsToInt(geometrySpace.lastIntersection.w) >= 0);
             IFANY (vintersect) {
                 int eht = floatBitsToInt(currentRayTmp.origin.w);
 
@@ -48,7 +49,7 @@ void main() {
                     int hid = eht > 0 ? eht : atomicIncHT()+1;
                     HitData hit = hits[hid-1];
                     hit.uvt = geometrySpace.lastIntersection;
-                    hit.rayID = it-1;
+                    hit.rayID = it+1;
                     hit.payloadID = 0;
                     hit.next = 0;
                     hit.materialID = materials[floatBitsToInt(geometrySpace.lastIntersection.w)];

@@ -25,7 +25,7 @@ void main() {
     ivec2 whs = imageSize(presampled).xy; whs.y /= 2;
 
     vec2 aspect = vec2(wh)/vec2(whs);
-    ivec2 aspectSized = ivec2(ceil(aspect));
+    ivec2 aspectSized = ivec2(ceil(aspect.x + 0.00001f), ceil(aspect.y + 0.00001f))/2;
     
     int wsize = whs.x*whs.y;
     int wcount = tiled(wsize, int(gl_WorkGroupSize.x));
@@ -37,8 +37,8 @@ void main() {
         float samplecount = 0.f;
         vec4 color = 0.f.xxxx;
 
-        for (int x=-2;x<=aspectSized.x+1;x++) {
-            for (int y=-2;y<=aspectSized.y+1;y++) {
+        for (int x=-aspectSized.x-1;x<=aspectSized.x+1;x++) {
+            for (int y=-aspectSized.y-1;y<=aspectSized.y+1;y++) {
                 ivec2 scene_xy = scene_xy_offset + ivec2(x, y);
                 int ts = scene_xy.x + wh.x * scene_xy.y;
 

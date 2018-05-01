@@ -57,7 +57,7 @@
 
 // Platform-oriented compute
 #ifndef WORK_SIZE
-    #if defined(AMD_PLATFORM) || defined(UNIVERSAL_PLATFORM)
+    #if defined(AMD_PLATFORM)
         #define WORK_SIZE 64
     #else
         #define WORK_SIZE 32

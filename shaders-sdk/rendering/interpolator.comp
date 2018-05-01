@@ -55,10 +55,9 @@ void main() {
             const vec3 pos = vs * vertexInterp;
 
             // 
-            IF (!overflow && floatBitsToInt(hit.tangent.w) == 0 && abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.01f) {
+            IF (!overflow && floatBitsToInt(hit.tangent.w) == 0 && abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.01f && cray.uindex.x >= 0) {
                 interpolateMeshData(hit);
-                int oID = cray.uindex.x;
-                hit.rayID = oID;
+                hit.rayID = cray.uindex.x;
                 hit.tangent.w = intBitsToFloat(1);
 #ifndef DMA_HIT
                 hits[globalID] = hit;

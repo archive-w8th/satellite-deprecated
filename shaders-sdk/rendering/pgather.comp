@@ -25,7 +25,7 @@ void main() {
     ivec2 whs = imageSize(presampled).xy; whs.y /= 2;
 
     vec2 aspect = vec2(wh)/vec2(whs);
-    ivec2 aspectSized = ivec2(ceil(aspect.x + 0.00001f), ceil(aspect.y + 0.00001f))/2;
+    ivec2 aspectSized = ivec2(ceil(aspect.x), ceil(aspect.y));
     
     int wsize = whs.x*whs.y;
     int wcount = tiled(wsize, int(gl_WorkGroupSize.x));
@@ -33,7 +33,10 @@ void main() {
         SB_BARRIER
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
         ivec2 xy = ivec2(it%whs.x,it/whs.x);
-        ivec2 scene_xy_offset = ivec2(floor(vec2(xy) * aspect));
+        ivec2 scene_xy_offset = ivec2(
+            floor(xy.x * aspect.x),
+            floor(xy.y * aspect.y)
+        );
         float samplecount = 0.f;
         vec4 color = 0.f.xxxx;
 
@@ -42,7 +45,10 @@ void main() {
                 ivec2 scene_xy = scene_xy_offset + ivec2(x, y);
                 int ts = scene_xy.x + wh.x * scene_xy.y;
 
-                ivec2 texel_xy = ivec2(floor(texelBuf.nodes[ts].coord.xy * vec2(whs))) - xy.xy;
+                ivec2 texel_xy = ivec2(
+                    floor(texelBuf.nodes[ts].coord.x * vec2(whs).x),
+                    floor(texelBuf.nodes[ts].coord.y * vec2(whs).y)
+                ) - xy.xy;
                 if (texel_xy.x == 0 && texel_xy.y == 0) {
                     color += texelBuf.nodes[ts].color; texelBuf.nodes[ts].color = vec4(0.f.xxxx); samplecount += 1.f;
                 }

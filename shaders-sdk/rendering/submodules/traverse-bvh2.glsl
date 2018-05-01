@@ -112,7 +112,7 @@ void doIntersection() {
     traverseState.defTriangleID = -1;
 }
 
-void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn, inout int debug) {
+void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     currentRayTmp = rayIn;
     vec3 origin = currentRayTmp.origin.xyz;
     vec3 direct = dcts(currentRayTmp.cdirect.xy);
@@ -184,15 +184,12 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn, inout int debug) {
         bvhSpace.cutOut = geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
     }
     
-    
-    bool debugBreak = false;
-
     // begin of traverse BVH 
     ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
     for (int hi=0;hi<max_iteraction;hi++) {
         IFALL (traverseState.idx < 0) break; // if traverse can't live
 
-        if (traverseState.idx >= 0 && !debugBreak) { for (;hi<max_iteraction;hi++) {
+        if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
 
             // if not leaf and not wrong
@@ -214,16 +211,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn, inout int debug) {
                 
                 childIntersect &= bool_(cnode.y == 2).xx; // base on fact
                 childIntersect &= bvec2_(lessThanEqual(nears, bvhSpace.cutOut.xx));
-
-
-                // debug shader
-                /*
-                IF (any(childIntersect)) {
-
-                    // debuging BVH working
-                    geometrySpace.lastIntersection = vec4(vec2(0.0f.xx), 0.1f, intBitsToFloat(1));
-                    debugBreak = true; break; 
-                }*/
 
 
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection

@@ -36,8 +36,7 @@ void main() {
         IFALL(overflow) break;
 
         // do BVH traversing 
-        int debugState = -1;
-        traverseBvh2(not(overflow), unorderedRays[it], debugState);
+        traverseBvh2(not(overflow), unorderedRays[it]);
 
         { // verify intersection
             bool_ vintersect = lessF(geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(floatBitsToInt(geometrySpace.lastIntersection.w) >= 0);

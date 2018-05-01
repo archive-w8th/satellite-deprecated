@@ -42,8 +42,8 @@ void main() {
                 ivec2 scene_xy = scene_xy_offset + ivec2(x, y);
                 int ts = scene_xy.x + wh.x * scene_xy.y;
 
-                ivec2 texel_xy = ivec2(floor(texelBuf.nodes[ts].coord.xy * vec2(whs)));
-                if (xy.x == texel_xy.x && xy.y == texel_xy.y) {
+                ivec2 texel_xy = ivec2(floor(texelBuf.nodes[ts].coord.xy * vec2(whs))) - xy.xy;
+                if (texel_xy.x == 0 && texel_xy.y == 0) {
                     color += texelBuf.nodes[ts].color; texelBuf.nodes[ts].color = vec4(0.f.xxxx); samplecount += 1.f;
                 }
             }

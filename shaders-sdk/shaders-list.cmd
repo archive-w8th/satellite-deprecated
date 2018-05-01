@@ -92,10 +92,8 @@ call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%pclear.comp.spv          -o %OUTDIR%%RND
 call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
-
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
-
 call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bound-calc.comp.spv      -o %OUTDIR%%HLBV%bound-calc.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bvh-build.comp.spv       -o %OUTDIR%%HLBV%bvh-build.comp
 call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bvh-fit.comp.spv         -o %OUTDIR%%HLBV%bvh-fit.comp.spv

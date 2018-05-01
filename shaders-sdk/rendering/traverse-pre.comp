@@ -15,8 +15,7 @@
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    #define wsize RAY_BLOCK samplerUniform.blockCount
-    //int wsize = RAY_BLOCK samplerUniform.blockCount;
+    int wsize = RAY_BLOCK samplerUniform.blockCount;
     int wcsize = int(gl_WorkGroupSize.x) / int(Wave_Size_RT);
     int wcount = min(tiled(wsize, wcsize), 1000000);
 
@@ -55,9 +54,8 @@ void main() {
                         uint uidx = atomicIncTT();
                         unorderedRays[uidx].cdirect = currentRay.cdirect;
                         unorderedRays[uidx].origin = currentRay.origin;
-                        unorderedRays[uidx].uindex.x = uint(getGeneralNodeId())+1;
+                        unorderedRays[uidx].uindex.x = getGeneralNodeId();
                         unorderedRays[uidx].uindex.y = 0;
-                        //unorderedRays[uidx] = int(getGeneralNodeId())+1;
                     }
                 }
             }

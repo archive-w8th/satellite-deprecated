@@ -55,7 +55,7 @@ void main() {
             const vec3 pos = vs * vertexInterp;
 
             // 
-            IF (!overflow && floatBitsToInt(hit.tangent.w) == 0 &&   abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.01f ) {
+            IF (!overflow && floatBitsToInt(hit.tangent.w) == 0 && abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.01f) {
                 interpolateMeshData(hit);
                 hit.rayID = int(cray.uindex.x)-1;
                 hit.tangent.w = intBitsToFloat(1);

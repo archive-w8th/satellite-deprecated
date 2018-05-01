@@ -17,7 +17,7 @@ const int localStackSize = 4;
 
 // dedicated BVH stack
 //struct NodeCache { ivec4 stackPages[stackPageCount]; };
-//layout ( std430, binding = _CACHE_BINDING, set = 0 ) buffer TraverseNodes { NodeCache nodeCache[]; };
+//layout ( std430, binding = _CACHE_BINDING, set = 0 ) buffer nodeCache { NodeCache nodeCache[]; };
 
 layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) uniform iimageBuffer texelPages;
 
@@ -119,8 +119,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     vec3 direct = dcts(currentRayTmp.cdirect.xy);
     int eht = floatBitsToInt(currentRayTmp.origin.w);
 
-
-
     // reset stack
     stackPtr = 0, pageIdx = -1;
 
@@ -144,8 +142,8 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.defTriangleID = -1;
-    traverseState.diffOffset = 0.f;
     traverseState.distMult = 1.f/precIssue(dirlenInv);
+    traverseState.diffOffset = 0.f;
 
     // calculate longest axis
     geometrySpace.axis = 2;

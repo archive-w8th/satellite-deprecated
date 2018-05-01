@@ -1,35 +1,35 @@
 
 // Morton codes and geometry counters
 
-layout ( std430, binding = 0, set = 0 )  buffer MortoncodesBlock {
+layout ( std430, binding = 0, set = 0 ) buffer MortoncodesB {
     uvec2 Mortoncodes[];
 };
 
-layout ( std430, binding = 1, set = 0 )  buffer IndicesBlock {
+layout ( std430, binding = 1, set = 0 ) buffer MortoncodesIndicesB {
     int MortoncodesIndices[];
 };
 
-layout ( std430, binding = 3, set = 0 )  buffer LeafBlock {
+layout ( std430, binding = 3, set = 0 ) buffer LeafsB {
     HlbvhNode Leafs[];
 };
 
-layout ( std430, binding = 4, set = 0 ) buffer BVHBoxBlockWorking { 
+layout ( std430, binding = 4, set = 0 ) buffer bvhBoxesWorkB { 
     vec4 bvhBoxesWork[][4];
 };
 
-layout ( std430, binding = 5, set = 0 ) buffer FlagsBlock {
+layout ( std430, binding = 5, set = 0 ) buffer FlagsB {
     int Flags[];
 };
 
-layout ( std430, binding = 6, set = 0 ) buffer ActivesBlock {
+layout ( std430, binding = 6, set = 0 ) buffer ActivesB {
     int Actives[][2];
 };
 
-layout ( std430, binding = 7, set = 0 ) buffer ChildBuffer {
+layout ( std430, binding = 7, set = 0 ) buffer LeafIndicesB {
     int LeafIndices[];
 };
 
-layout ( std430, binding = 8, set = 0 ) buffer BuildCounters {
+layout ( std430, binding = 8, set = 0 ) buffer CountersB {
     int cCounter;
     int lCounter;
     int aCounter;
@@ -39,12 +39,12 @@ layout ( std430, binding = 8, set = 0 ) buffer BuildCounters {
 };
 
 #ifdef USE_F32_BVH
-layout ( std430, binding = 12, set = 0 ) buffer BVHBoxBlockResulting { vec4 bvhBoxesResulting[][4]; };
+layout ( std430, binding = 12, set = 0 ) buffer bvhBoxesResultingB { vec4 bvhBoxesResulting[][4]; };
 #else
-layout ( std430, binding = 12, set = 0 ) buffer BVHBoxBlockResulting { uvec2 bvhBoxesResulting[][4]; }; 
+layout ( std430, binding = 12, set = 0 ) buffer bvhBoxesResultingB { uvec2 bvhBoxesResulting[][4]; }; 
 #endif
 
-layout ( std430, binding = 11, set = 0 ) buffer BVHMetaBlock { ivec4 bvhMeta[]; };
+layout ( std430, binding = 11, set = 0 ) buffer bvhMetaB { ivec4 bvhMeta[]; };
 
 
 struct BVHCreatorUniformStruct {
@@ -55,9 +55,7 @@ struct BVHCreatorUniformStruct {
     int leafCount;
 };
 
-layout ( std430, binding = 10, set = 0 ) readonly buffer BVHCreatorBlockUniform { BVHCreatorUniformStruct creatorUniform;} bvhBlock;
-
-
+layout ( std430, binding = 10, set = 0 ) readonly buffer bvhBlockB { BVHCreatorUniformStruct creatorUniform; } bvhBlock;
 
 bbox calcTriBox(in mat3x4 triverts) {
     bbox result;

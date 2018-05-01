@@ -86,7 +86,7 @@ vec2 randf2x() { return randf2x(rayStreams[ rayBlock.samplerUniform.iterationCou
 
 
 
-#define USE_HQUALITY_DIFFUSE
+//#define USE_HQUALITY_DIFFUSE
 
 
 // geometric random generators

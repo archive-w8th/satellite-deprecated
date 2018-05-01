@@ -20,7 +20,6 @@ LOCAL_SIZE_LAYOUT;
 void main()
 {
     const int H_BLOCK_WIDTH = 8, H_BLOCK_HEIGHT = 8;
-    //const int H_BLOCK_WIDTH = 16, H_BLOCK_HEIGHT = 16;
 
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
     ivec2 blk = ivec2(tiled(wh.x, int(R_BLOCK_WIDTH)), tiled(wh.y, int(R_BLOCK_HEIGHT)));
@@ -72,12 +71,7 @@ void main()
                 // in-block Id
                 int nid = tb + int(Lane_Idx);
                 randomClocks = 0; // reset random clocks
-
-#ifdef ENABLE_RUDE_RANDOM
-                subHash = 0;
-#else
                 subHash = nid; 
-#endif
 
                 // get 2D index
                 ivec2 bc = ivec2(nid % R_BLOCK_WIDTH, nid / R_BLOCK_WIDTH), xy = divxy + bc;
@@ -119,7 +113,7 @@ void main()
                 if (vbn) { // if potential texel if valid
                     m16s(vbn ? ((idx+1)-(blockBins[binID].texelFrom-1)) : -1, blockBins[binID].texelHeader-1, nid);
 
-                    vec2 rnd = randf2q(rayStreams[_SEED_ID].superseed[3]);
+                    vec2 rnd = randf2x(rayStreams[_SEED_ID].superseed[3]);
                     vec2 coord = (floor(vec2(xy)) + clamp(rnd, vec2(0.0001f), vec2(0.9999f))) * sceneResInv;
 
                     vec4 dir = vec4(0.f), orig = mult4(RAY_BLOCK cameraUniform.camInv, vec4(vec3(0.0f), 1.0f)), eye = orig;

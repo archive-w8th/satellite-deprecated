@@ -700,6 +700,15 @@ namespace NSM
             // push surface shaders commands
             flushCommandBuffer(device, copyCommand, true);
             dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
+
+            // debug BVH Meta
+            /*
+            std::vector<HitData> bvhMeta(1024);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, hitBuffer, generalLoadingBuffer, { 0, 0, strided<HitData>(1024) }), false);
+            getBufferSubData(generalLoadingBuffer, bvhMeta);
+            */
+
+            return;
         }
 
         void Pipeline::enable360mode(bool mode) { rayBlockData[0].cameraUniform.enable360 = mode; clearSampling(); }

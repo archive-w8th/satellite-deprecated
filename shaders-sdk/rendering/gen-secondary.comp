@@ -196,12 +196,7 @@ void main() {
                 for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
                     int nid = tb + int(Lane_Idx);
                     randomClocks = 0; // reset random clocks
-
-#ifdef ENABLE_RUDE_RANDOM
-                    subHash = 0;
-#else
                     subHash = nid; 
-#endif
 
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;

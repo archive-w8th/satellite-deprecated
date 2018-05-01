@@ -36,16 +36,18 @@ namespace NSM
 
 
 
-        struct HitData
-        {
+        struct HitData {
             glm::vec4 uvt; // UV, distance, triangle (base data)
-            glm::ivec4 meta;
+            int rayID; // ray index
+            int payloadID; // hit shaded index
+            int materialID; // may not necessary 
+            int next; // next chainged hit
 
-            // attributed block (planned to move to another buffer)
-            glm::vec4 normal;
-            glm::vec4 tangent;
-            glm::vec4 bitangent;
-            glm::vec4 texcoord;
+            // attribute block (planned to move to another buffer)
+            glm::vec4 normal; // normal 
+            glm::vec4 tangent; // 
+            glm::vec4 bitangent; // 
+            glm::vec4 texcoord; // critical texcoords 
         };
 
         struct HitPayload

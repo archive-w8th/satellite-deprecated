@@ -45,8 +45,8 @@ namespace NSM
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb
-            generalStagingBuffer = createBuffer(device, strided<uint64_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            generalLoadingBuffer = createBuffer(device, strided<uint64_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
+            generalStagingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            generalLoadingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
             // layouts of descriptor sets
             builderDescriptorLayout = {
@@ -215,6 +215,23 @@ namespace NSM
             dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             syncUniforms();
 
+            /*
+            if (triangleCount[0] > 0) {
+                std::vector<bbox> bboxes(triangleCount[0] * 2);
+                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
+                getBufferSubData(generalLoadingBuffer, bboxes);
+                
+                // debug BVH Meta
+                std::vector<uint64_t> mortons(triangleCount[0]);
+                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
+                getBufferSubData(generalLoadingBuffer, mortons);
+
+                // debug BVH Meta
+                std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2);
+                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
+                getBufferSubData(generalLoadingBuffer, bvhMeta);
+            }*/
+
             { // resolve BVH buffers for copying
                 auto bvhBoxStorage = hierarchyStorageLink->getBvhBox();
                 auto bvhMetaStorage = hierarchyStorageLink->getBvhMeta();
@@ -226,6 +243,8 @@ namespace NSM
                 memoryCopyCmd(command, bvhBoxWorkingResulting, bvhBoxStorage, { 0, 0, strided<bbox>(triangleCount[0] * 2) });
                 flushCommandBuffer(device, command, true);
             }
+
+
         }
 
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)

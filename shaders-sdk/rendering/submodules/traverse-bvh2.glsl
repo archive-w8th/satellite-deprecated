@@ -17,9 +17,9 @@ const int localStackSize = 4;
 
 // dedicated BVH stack
 //struct NodeCache { ivec4 stackPages[stackPageCount]; };
-//layout ( std430, binding = _CACHE_BINDING, set = 0 ) restrict buffer TraverseNodes { NodeCache nodeCache[]; };
+//layout ( std430, binding = _CACHE_BINDING, set = 0 ) buffer TraverseNodes { NodeCache nodeCache[]; };
 
-layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) restrict uniform iimageBuffer texelPages;
+layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) uniform iimageBuffer texelPages;
 
 
 // 128-bit payload

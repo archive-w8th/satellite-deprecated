@@ -4,11 +4,11 @@
 #define PREPARED_COUNT arcounter.tT
 
 // for faster BVH traverse
-layout ( std430, binding = 0, set = 0 ) restrict buffer UnorderedSSBO { ElectedRay unorderedRays[]; };
-layout ( std430, binding = 1, set = 0 ) restrict buffer HitsSSBO { HitData hits[]; };
+layout ( std430, binding = 0, set = 0 ) buffer UnorderedSSBO { ElectedRay unorderedRays[]; };
+layout ( std430, binding = 1, set = 0 ) buffer HitsSSBO { HitData hits[]; };
 
 // counters
-layout ( std430, binding = 2, set = 0 ) restrict buffer CounterBlock { 
+layout ( std430, binding = 2, set = 0 ) buffer CounterBlock { 
     int bT; // blocks counter
     int aT; // active blocks counter
     int pT; // clearing blocks counters

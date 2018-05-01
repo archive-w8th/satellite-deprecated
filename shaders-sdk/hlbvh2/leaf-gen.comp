@@ -104,7 +104,7 @@ bbox compactBoxByTriangle(in bbox abox, in mat3x4 triverts){
 
 void main() {
     int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
-    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 65536);
+    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 131072);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;

@@ -49,30 +49,32 @@ void unifyNodeBox(in int idx){
 
 void main() {
     int wsize = cCounter;
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 65536);
+    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); 
         IFALL (globalID >= wsize) break;
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
-            int idx = bvhMeta[exchange(LeafIndices[globalID], -1)].z;
+            int idx = exchange(LeafIndices[globalID], 0)-1;
 
             // reductive unity boxes
-            for (int l=0;l<8192;l++) {
-                // if idx is invalid, so break
-                if (idx < 0) break;
-                
-                // unify node subboxes
-                bool interleave = idx >= 0;
-                if (bvhMeta[idx].y == 2 && interleave) { unifyNodeBox(idx); }
+            if (idx >= 0) {
+                for (int l=0;l<8192;l++) {
+                    // if idx is invalid, so break
+                    idx = bvhMeta[idx].z;
+                    if (idx < 0) break;
+                    
+                    // unify node subboxes
+                    bool interleave = idx >= 0;
+                    if (bvhMeta[idx].y == 2 && interleave) { unifyNodeBox(idx); }
 
-                // resolve conflict
-                //if (interleave) interleave = atomicAdd(Flags[idx], 1) >= 1;
-                if (interleave) interleave = atomicCompSwap(Flags[idx], 0, 1) == 1;
-                idx = interleave ? bvhMeta[idx].z : -1;
+                    // resolve conflict
+                    //if (interleave) interleave = atomicAdd(Flags[idx], 1) >= 1;
+                    if (interleave) interleave = atomicCompSwap(Flags[idx], 0, 1) == 1;
+                    idx = interleave ? idx : -1;
+                }
             }
-            
         }
     }
 }

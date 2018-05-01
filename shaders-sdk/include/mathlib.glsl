@@ -94,17 +94,19 @@ vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
 
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-#define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
-#define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGatherLodAMD(smp,crd,0,chnl))
+    #define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
+    #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGatherLodAMD(smp,crd,0,chnl))
 #else
-#ifdef UNIVERSAL_PLATFORM
-#define ISTORE(img, crd, data) imageStore(img,crd,data)
-#define SGATHER(smp, crd, chnl) fakeGather(smp,crd,chnl)
-#else
-#define ISTORE(img, crd, data) imageStore(img,crd,data)
-#define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGather(smp,crd,chnl))
+    #ifdef UNIVERSAL_PLATFORM
+        #define ISTORE(img, crd, data) imageStore(img,crd,data)
+        #define SGATHER(smp, crd, chnl) fakeGather(smp,crd,chnl)
+    #else
+        #define ISTORE(img, crd, data) imageStore(img,crd,data)
+        #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGather(smp,crd,chnl))
+    #endif
 #endif
-#endif
+
+
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
 #define min3_wrap(a,b,c) min3(a,b,c)
@@ -253,8 +255,8 @@ int BFI_HW(in int base, in int inserts, in int offset, in int bits) { return bit
 uint BFI_HW(in uint base, in uint inserts, in int offset, in int bits) { return bitfieldInsert(base, inserts, offset, bits); }
 
 // int operations
-int tiled(in int n, in int d) {return n <= 0 ? 0 : (n/d + sign(n%d));}
-uint tiled(in uint n, in uint d) {return n > 0 ? ((n - 1) / (d) + 1) : 0;}
+int tiled(in int n, in int d) { return n / d + sign(n % d);}
+uint tiled(in uint n, in uint d) {return uint(tiled(int(n),int(d)));}
 
 
 

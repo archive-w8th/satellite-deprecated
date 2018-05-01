@@ -51,47 +51,45 @@ initAtomicSubgroupIncFunction(_counters[2], cCounterDualInc, 2, int)
 #define cBuffer _counters[4]
 
 
-void splitNode(in int trID) {
-    int prID = Actives[trID][1-cBuffer]|(int(Local_Idx)&1); // select element, include sibling
-
+void splitNode(in int trID, in int side) {
+    int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; // select element, include sibling
     ivec4 _pdata = bvhMeta[prID];
-    if (_pdata.y > _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0) { // when not leafs
+
+    if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
 
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
-        int hid = lCounterInc();
-        
+
         // encode with SIMD-like
         ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
-        bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1));
-        ivec2 hd = hid + ivec2(0, 1);
+        bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
+        int hd = lCounterInc();
 
         // if any can continue splitting
-        if (any(not(isLeaf))) { Actives[aCounterInc()][cBuffer] = hd.x; }
+        Actives[aCounterInc()][cBuffer] = hd+1;
 
-        if (all(isLeaf)) {
-            int cl = cCounterDualInc(); 
-            LeafIndices[cl+0] = hd.x+0, 
-            LeafIndices[cl+1] = hd.x+1;
-        }
-
-        // link parent with childs
-        bvhMeta[prID] = ivec4(hd.x, 2, _pdata.z, 0); // set as branching
-        Flags[prID] = 0;
+        // BVH parent meta update
+        bvhMeta[prID].x = hd.x, bvhMeta[prID].y = 2, Flags[prID] = 0;
 
         // make children nodes (with unknown identifier)
-        bvhMeta[hd.x] = ivec4(transplit.xy, prID, -1);
-        bvhMeta[hd.y] = ivec4(transplit.zw, prID, -1);
-    } else 
-    if (_pdata.y == _pdata.x && _pdata.w == -1 && prID >= 0 && _pdata.x >= 0 && _pdata.z >= 0) {
-        LeafIndices[cCounterInc()] = prID;
+        bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1);
+        bvhMeta[hd+1] = ivec4(transplit.zw, prID, -1);
+    }
+
+    if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 && _pdata.z >= 0) { // if leaf
+        LeafIndices[cCounterInc()] = prID+1;
+        bvhMeta[prID].w = exchange(bvhMeta[prID].x, -1), bvhMeta[prID].y = 1, Flags[prID] = 0;
     }
 }
 
 
 void main() {
     int threadID = int(Local_Idx);
-    int WS = int(gl_WorkGroupSize.x);
+    int groupSize = int(gl_WorkGroupSize.x);
+    //int threadID = int(Local_Idx)>>1;
+    //int groupSize = int(gl_WorkGroupSize.x)>>1;
+    //int sideID = threadID&1;
+
     if (threadID < 1) { cBuffer = 0; }
     if (threadID < 8) { _counters[threadID] = 0; }
 
@@ -99,32 +97,37 @@ void main() {
 
     // create initial (root) node
     if (threadID == 0) {
-        int hid = lCounterInc(); Actives[aCounterInc()][cBuffer] = hid;
+        int hid = lCounterInc();
         bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, -1);
         bvhMeta[hid+1] = ivec4(-1, -1, -1, 1);
+        Actives[aCounterInc()][cBuffer] = hid+1;
     }
     LGROUP_BARRIER
     
-    // begin work on splitting
-    int asize = _counters[1];
-    for (int m=0;m<8192;m++) {
-        // goto next iteration
+    // initial size of actives
+    int asize = 2; 
+
+    // building BVH
+    for (int m=0;m<65536;m++) {
+        // check activity counter
         asize = _counters[1];
         IFALL (asize <= 0) break;
         LGROUP_BARRIER
 
-        if (threadID == 0) {
-            _counters[1] = 0;
-            cBuffer = 1-cBuffer; // ping pong
-        }
+        // switch buffer and reset counter
+        if (threadID == 0) { _counters[1] = 0; cBuffer = 1-cBuffer; } // ping pong
         LGROUP_BARRIER
-        
+
         // split nodes
-        uint wsize = min(tiled(asize, tiled(WS,2)), 65536u);
+        uint wsize = min(tiled(asize, groupSize), 131072u);
         for (int i=0;i<wsize;i++) {
-            int trID = (i * WS + threadID)>>1;
-            IFALL (trID >= asize) break;
-            if (trID < asize) splitNode(trID);
+            int trID = i * groupSize + threadID;
+            IFALL (trID >= asize) break; 
+            if (trID < asize) {
+                // split prefixed elements
+                splitNode(trID, 0), splitNode(trID, 1);
+                Actives[trID][1-cBuffer] = 0; // was processed
+            }
         }
         LGROUP_BARRIER
     }

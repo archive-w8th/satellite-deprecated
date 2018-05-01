@@ -18,7 +18,9 @@ namespace NSM
 
 
 
-
+        struct bvh_meta {
+            int x = -1, y = -1, z = -1, w = -1;
+        };
 
 
         struct bbox

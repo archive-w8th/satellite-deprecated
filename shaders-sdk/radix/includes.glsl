@@ -58,18 +58,18 @@ uint BFE(in uvec2 ua, in uint o, in uint n) {
 
 #define KEYTYPE uvec2
 //#define KEYTYPE uvec_wave
-layout (std430, binding = 20, set = 0 ) restrict buffer KeyInBlock {KEYTYPE KeyIn[]; };
-layout (std430, binding = 21, set = 0 ) restrict buffer ValueInBlock {uint ValueIn[]; };
-layout (std430, binding = 24, set = 0 ) restrict readonly buffer VarsBlock {
+layout (std430, binding = 20, set = 0 ) buffer KeyInBlock {KEYTYPE KeyIn[]; };
+layout (std430, binding = 21, set = 0 ) buffer ValueInBlock {uint ValueIn[]; };
+layout (std430, binding = 24, set = 0 ) readonly buffer VarsBlock {
     uint NumKeys;
     uint Shift;
     uint Descending;
     uint IsSigned;
 };
-layout (std430, binding = 25, set = 0 ) restrict buffer KeyTmpBlock {KEYTYPE KeyTmp[]; };
-layout (std430, binding = 26, set = 0 ) restrict buffer ValueTmpBlock {uint ValueTmp[]; };
-layout (std430, binding = 27, set = 0 ) restrict buffer HistogramBlock {uint Histogram[]; };
-layout (std430, binding = 28, set = 0 ) restrict buffer PrefixBlock {uint PrefixSum[]; };
+layout (std430, binding = 25, set = 0 ) buffer KeyTmpBlock {KEYTYPE KeyTmp[]; };
+layout (std430, binding = 26, set = 0 ) buffer ValueTmpBlock {uint ValueTmp[]; };
+layout (std430, binding = 27, set = 0 ) buffer HistogramBlock {uint Histogram[]; };
+layout (std430, binding = 28, set = 0 ) buffer PrefixBlock {uint PrefixSum[]; };
 
 
 struct blocks_info { uint count; uint offset; uint limit; uint r0; };

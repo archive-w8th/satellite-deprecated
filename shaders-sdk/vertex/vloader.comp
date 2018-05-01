@@ -77,12 +77,12 @@ int aNormalized(in VirtualDataAccess vac) {
 
 
 // input data of vertex instance
-layout ( std430, binding = 0, set = 1 ) restrict readonly buffer BufferSpace {INDEX16 bufferSpace[]; };
-layout ( std430, binding = 1, set = 1 ) restrict readonly buffer BufferRegions {uvec2 bufferRegions[]; };
-layout ( std430, binding = 2, set = 1 ) restrict readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };
-layout ( std430, binding = 3, set = 1 ) restrict readonly buffer DataFormat {VirtualDataAccess dataFormats[]; };
-layout ( std430, binding = 4, set = 1 ) restrict readonly buffer AccessBinding {VirtualBufferBinding dataBindings[]; };
-layout ( std430, binding = 5, set = 1 ) restrict readonly buffer IMeshUniform {MeshUniformStruct uMeshUniform[]; };
+layout ( std430, binding = 0, set = 1 ) readonly buffer BufferSpace {INDEX16 bufferSpace[]; };
+layout ( std430, binding = 1, set = 1 ) readonly buffer BufferRegions {uvec2 bufferRegions[]; };
+layout ( std430, binding = 2, set = 1 ) readonly buffer IBufferViews {VirtualBufferView bufferViews[]; };
+layout ( std430, binding = 3, set = 1 ) readonly buffer DataFormat {VirtualDataAccess dataFormats[]; };
+layout ( std430, binding = 4, set = 1 ) readonly buffer AccessBinding {VirtualBufferBinding dataBindings[]; };
+layout ( std430, binding = 5, set = 1 ) readonly buffer IMeshUniform {MeshUniformStruct uMeshUniform[]; };
 
 #define meshUniform uMeshUniform[push_block.uniformBlock + gl_GlobalInvocationID.y]
 

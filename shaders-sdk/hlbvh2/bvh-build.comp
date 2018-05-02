@@ -4,6 +4,14 @@
 #define BVH_BUILD
 #define BVH_CREATION
 
+#ifdef NVIDIA_PLATFORM
+//#define WORK_SIZE_BND 1536
+#define WORK_SIZE_BND 1024
+#else 
+#define WORK_SIZE_BND 1024
+#endif
+
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -12,7 +20,7 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
-//LOCAL_SIZE_LAYOUT;
+layout ( local_size_x = WORK_SIZE_BND ) in;
 
 #ifdef NVIDIA_PLATFORM
 //layout ( local_size_x = 1536 ) in;

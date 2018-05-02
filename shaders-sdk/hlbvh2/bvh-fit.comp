@@ -3,6 +3,13 @@
 
 #define BVH_CREATION
 
+#ifdef NVIDIA_PLATFORM
+//#define WORK_SIZE_BND 1536
+#define WORK_SIZE_BND 1024
+#else 
+#define WORK_SIZE_BND 1024
+#endif
+
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -11,12 +18,15 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
-LOCAL_SIZE_LAYOUT;
+layout ( local_size_x = WORK_SIZE_BND ) in;
 
 void unifyNodeBox(in int idx){
     ivec4 comp = bvhMeta[idx]; // meta of contributable
     int sibid = comp.x >> 1; // contributor prefix box id
     int bidx = idx>>1, sidx = idx&1;
+
+    // do memory barrier
+    memoryBarrier(); SB_BARRIER
 
     // get contributors boxes
     mat4 lrbox = mat4(
@@ -25,7 +35,7 @@ void unifyNodeBox(in int idx){
     );
 
     // do memory barrier
-    memoryBarrier();
+    memoryBarrier(); SB_BARRIER
 
     // contribute to current node
     if (bidx >= 0) {
@@ -34,13 +44,13 @@ void unifyNodeBox(in int idx){
     }
 
     // do memory barrier
-    memoryBarrier();
+    memoryBarrier(); SB_BARRIER
 
     // transpose and compress boxes of contributor
     lrbox = transpose(lrbox);
 
     // do memory barrier
-    memoryBarrier();
+    memoryBarrier(); SB_BARRIER
 
 #ifdef USE_F32_BVH
     bvhBoxesResulting[sibid][0] = fvec4_(lrbox[0]);
@@ -53,6 +63,8 @@ void unifyNodeBox(in int idx){
     bvhBoxesResulting[sibid][2] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u);
     bvhBoxesResulting[sibid][3] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u);
 #endif
+
+    memoryBarrier(); SB_BARRIER
 }
 
 void main() {

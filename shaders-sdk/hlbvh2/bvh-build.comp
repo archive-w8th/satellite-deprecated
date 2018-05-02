@@ -11,7 +11,6 @@
 #define WORK_SIZE_BND 1024
 #endif
 
-
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -21,13 +20,6 @@
 #include "./includes.glsl"
 
 layout ( local_size_x = WORK_SIZE_BND ) in;
-
-#ifdef NVIDIA_PLATFORM
-//layout ( local_size_x = 1536 ) in;
-layout ( local_size_x = 1024 ) in;
-#else 
-layout ( local_size_x = 1024 ) in;
-#endif
 
 int cdelta( in int a, in int b ){
 #ifdef INTEL_PLATFORM

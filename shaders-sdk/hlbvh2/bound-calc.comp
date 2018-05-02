@@ -23,7 +23,7 @@
 layout ( local_size_x = WORK_SIZE ) in;
 shared bbox sdata[ WORK_SIZE ];
 
-layout ( std430, binding = 9, set = 0 ) buffer minmaxB {vec4 minmax[]; };
+layout ( std430, binding = 9, set = 0 ) coherent buffer minmaxB {vec4 minmax[]; };
 
 
 bool validPrimitive(const mat3x4 triverts){

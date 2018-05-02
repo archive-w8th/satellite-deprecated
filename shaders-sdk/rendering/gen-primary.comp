@@ -168,6 +168,7 @@ void main()
 
                     // primary debug
                     //WriteColor(currentRay.dcolor, vec4(dir.xyz * 0.5f + 0.5f, 0));
+                    //RayActived(currentRay, false_);
 
                     //WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
                     //RayActived(currentRay, false_);

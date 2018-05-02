@@ -21,10 +21,10 @@
 #ifndef OUR_INVOC_TERM
     #define Local_Idx (gl_LocalInvocationIndex.x)
     #ifdef UNIVERSAL_PLATFORM
-        #define Global_Wave_Idx (gl_SubgroupID.x)
+        #define Wave_Idx (gl_SubgroupID.x)
         #define Lane_Idx (gl_SubgroupInvocationID.x)
     #else
-        #define Global_Wave_Idx (Local_Idx/Wave_Size_RT)
+        #define Wave_Idx (Local_Idx/Wave_Size_RT)
         #define Lane_Idx (Local_Idx%Wave_Size_RT)
     #endif
 #endif
@@ -41,7 +41,8 @@
 uvec4 makeFilterMinor() {
     const uint mnr = Wave_Size_RT >= 32 ? 0xFFFFFFFFu : ((1 << Wave_Size_RT)-1);
     const uint mjr = Wave_Size_RT >= 64 ? 0xFFFFFFFFu : 0x0u;
-    //return uvec4(msk, mjr, 0x0u, 0x0u);
+    //return uvec4(mnr, mjr, 0x0u, 0x0u);
+    //return uvec4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
     return uvec4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
 }
 

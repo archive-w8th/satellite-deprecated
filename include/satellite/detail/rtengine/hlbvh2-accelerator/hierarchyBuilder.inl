@@ -215,6 +215,12 @@ namespace NSM
             dispatchCompute(refitBVH, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             syncUniforms();
 
+            // debug BVH Meta
+            std::vector<uint64_t> mortons(triangleCount[0]);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
+            getBufferSubData(generalLoadingBuffer, mortons);
+
+
             /*
             if (triangleCount[0] > 0) {
                 std::vector<bbox> bboxes(triangleCount[0] * 2);

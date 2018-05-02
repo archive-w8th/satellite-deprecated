@@ -1,6 +1,11 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#ifdef INTEL_PLATFORM
+#undef Wave_Size
+#define Wave_Size 8
+#endif
+
 #ifndef MAX_DEPTH
 #define MAX_DEPTH 16
 #endif
@@ -173,7 +178,7 @@ void main() {
     int wgs = int(gl_NumWorkGroups);
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
-        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Global_Wave_Idx);
+        int globalID = (w + int(gl_WorkGroupID.x)) * wcsize + int(Wave_Idx);
         globalInvocationSMP = globalID;
 
         // check if not reached blocks limit

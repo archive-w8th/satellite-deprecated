@@ -24,24 +24,34 @@ void unifyNodeBox(in int idx){
         bvhBoxesWork[sibid][1], bvhBoxesWork[sibid][3]
     );
 
+    // do memory barrier
+    memoryBarrier();
+
     // contribute to current node
     if (bidx >= 0) {
         bvhBoxesWork[bidx][sidx*2+0] = min(lrbox[0], lrbox[1]);
         bvhBoxesWork[bidx][sidx*2+1] = max(lrbox[2], lrbox[3]);
     }
 
+    // do memory barrier
+    memoryBarrier();
+
     // transpose and compress boxes of contributor
     lrbox = transpose(lrbox);
+
+    // do memory barrier
+    memoryBarrier();
+
 #ifdef USE_F32_BVH
     bvhBoxesResulting[sibid][0] = fvec4_(lrbox[0]);
     bvhBoxesResulting[sibid][1] = fvec4_(lrbox[1]);
     bvhBoxesResulting[sibid][2] = fvec4_(lrbox[2]);
     bvhBoxesResulting[sibid][3] = fvec4_(lrbox[3]);
 #else
-    bvhBoxesResulting[sibid][0].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) );
-    bvhBoxesResulting[sibid][1].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) );
-    bvhBoxesResulting[sibid][2].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) );
-    bvhBoxesResulting[sibid][3].xy = packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) );
+    bvhBoxesResulting[sibid][0] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) ), 0u, 0u);
+    bvhBoxesResulting[sibid][1] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) ), 0u, 0u);
+    bvhBoxesResulting[sibid][2] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u);
+    bvhBoxesResulting[sibid][3] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u);
 #endif
 }
 
@@ -55,27 +65,24 @@ void main() {
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
             int idx = exchange(LeafIndices[globalID], 0)-1;
-            ivec4 cmp4 = bvhMeta[idx];
-
+            
             // reductive unity boxes
             for (int l=0;l<256;l++) {
                 SB_BARRIER
                 if (idx < 0) { break; }
+                ivec4 cmp4 = bvhMeta[idx];
+
+                // do contribution to parent node box host
+                if (cmp4.y == 2 && idx >= 0) unifyNodeBox(idx);
 
                 // solve contribution question 
                 bool nextContrib = idx >= 0;
                 if (nextContrib) {
-                    int _swp = atomicCompSwap(Flags[cmp4.z], 0, 1); // make sure contribution to parent complete
-                    nextContrib = nextContrib && _swp != 0; 
+                    nextContrib = atomicCompSwap(Flags[cmp4.z], 0, 1) == 1;  // make sure contribution to parent complete
                 }
-                if (!nextContrib) break;
 
                 // only one candidate can contribute to own parent (if has)
                 idx = nextContrib ? cmp4.z : -1;
-
-                // do contribution to parent node box host
-                cmp4 = bvhMeta[idx];
-                if (cmp4.y == 2 && idx >= 0) unifyNodeBox(idx);
             }
         }
     }

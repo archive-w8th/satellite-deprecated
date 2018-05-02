@@ -13,7 +13,13 @@
 #include "./includes.glsl"
 
 //LOCAL_SIZE_LAYOUT;
+
+#ifdef NVIDIA_PLATFORM
+//layout ( local_size_x = 1536 ) in;
 layout ( local_size_x = 1024 ) in;
+#else 
+layout ( local_size_x = 1024 ) in;
+#endif
 
 int cdelta( in int a, in int b ){
 #ifdef UNIVERSAL_PLATFORM
@@ -112,7 +118,7 @@ void main() {
         IFALL (asize <= 0) break;
         LGROUP_BARRIER
 
-        // switch restrict buffer and reset counter
+        // switch buffer and reset counter
         if (threadID == 0) { _counters[1] = 0; cBuffer = 1-cBuffer; } // ping pong
         LGROUP_BARRIER
 

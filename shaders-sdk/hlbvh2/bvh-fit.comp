@@ -55,30 +55,27 @@ void main() {
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
             int idx = exchange(LeafIndices[globalID], 0)-1;
-            
+            ivec4 cmp4 = bvhMeta[idx];
+
             // reductive unity boxes
             for (int l=0;l<256;l++) {
-                
-                // do contribution to parent node box host
-                ivec4 cmp4 = bvhMeta[idx];
-                if (idx >= 0) {
-                    if (cmp4.y == 2) unifyNodeBox(idx);
-                } else { 
-                    break;
-                }
-
-                // set contributor ID to parent node ID
-                idx = idx >= 0 ? cmp4.z : -1;
+                SB_BARRIER
+                if (idx < 0) { break; }
 
                 // solve contribution question 
                 bool nextContrib = idx >= 0;
                 if (nextContrib) {
-                    int _swp = atomicCompSwap(Flags[idx], 0, 1); // make sure contribution to parent complete
-                    nextContrib = nextContrib && _swp == 1; 
+                    int _swp = atomicCompSwap(Flags[cmp4.z], 0, 1); // make sure contribution to parent complete
+                    nextContrib = nextContrib && _swp != 0; 
                 }
+                if (!nextContrib) break;
 
                 // only one candidate can contribute to own parent (if has)
-                idx = nextContrib ? idx : -1;
+                idx = nextContrib ? cmp4.z : -1;
+
+                // do contribution to parent node box host
+                cmp4 = bvhMeta[idx];
+                if (cmp4.y == 2 && idx >= 0) unifyNodeBox(idx);
             }
         }
     }

@@ -12,36 +12,36 @@
 
 // for geometry accumulators
 #ifdef VERTEX_FILLING
-    layout ( std430, binding = 0, set = 0 ) restrict buffer tcounterB { int tcounter[2]; };
-    layout ( std430, binding = 1, set = 0 ) restrict buffer materialsB { int materials[]; };
-    layout ( std430, binding = 2, set = 0 ) restrict buffer vordersB { int vorders[]; };
-    layout ( std430, binding = 3, set = 0 ) restrict buffer lvtxB { float lvtx[]; };
-    layout ( rgba32ui, binding = 4, set = 0 ) restrict uniform uimage2D attrib_texture_out;
+    layout ( std430, binding = 0, set = 0 ) buffer tcounterB { int tcounter[2]; };
+    layout ( std430, binding = 1, set = 0 ) buffer materialsB { int materials[]; };
+    layout ( std430, binding = 2, set = 0 ) buffer vordersB { int vorders[]; };
+    layout ( std430, binding = 3, set = 0 ) buffer lvtxB { float lvtx[]; };
+    layout ( rgba32ui, binding = 4, set = 0 ) uniform uimage2D attrib_texture_out;
 #else
-    layout ( std430, binding = 1, set = 1 ) readonly restrict buffer materialsB { int materials[]; };
+    layout ( std430, binding = 1, set = 1 ) readonly buffer materialsB { int materials[]; };
 
     #ifdef ENABLE_VERTEX_INTERPOLATOR
         layout ( binding = 10, set = 1 ) uniform usampler2D attrib_texture;
-        layout ( std430, binding = 2, set = 1 ) readonly restrict buffer vordersB { int vorders[]; };
+        layout ( std430, binding = 2, set = 1 ) readonly buffer vordersB { int vorders[]; };
     #endif
 
     #ifdef ENABLE_VSTORAGE_DATA
         #ifdef ENABLE_TRAVERSE_DATA
         #ifndef BVH_CREATION
             #ifdef USE_F32_BVH
-            layout ( std430, binding = 0, set = 1 ) readonly restrict buffer bvhBoxesB { vec4 bvhBoxes[][4]; };
+            layout ( std430, binding = 0, set = 1 ) readonly buffer bvhBoxesB { vec4 bvhBoxes[][4]; };
             #else
-            layout ( std430, binding = 0, set = 1 ) readonly restrict buffer bvhBoxesB { uvec2 bvhBoxes[][4]; }; 
+            layout ( std430, binding = 0, set = 1 ) readonly buffer bvhBoxesB { uvec2 bvhBoxes[][4]; }; 
             #endif
-            layout ( std430, binding = 5, set = 1 ) readonly restrict buffer bvhMetaB { ivec4 bvhMeta[]; };
+            layout ( std430, binding = 5, set = 1 ) readonly buffer bvhMetaB { ivec4 bvhMeta[]; };
         #endif
         #endif
         
-        layout ( std430, binding = 3, set = 1 ) readonly restrict buffer geometryUniformB { GeometryUniformStruct geometryUniform;} geometryBlock;
+        layout ( std430, binding = 3, set = 1 ) readonly buffer geometryUniformB { GeometryUniformStruct geometryUniform;} geometryBlock;
         #ifdef VTX_TRANSPLIT // for leaf gens
-            layout ( std430, binding = 7, set = 1 ) restrict buffer lvtxB { float lvtx[]; };
+            layout ( std430, binding = 7, set = 1 ) buffer lvtxB { float lvtx[]; };
         #else
-            layout ( std430, binding = 7, set = 1 ) readonly restrict buffer lvtxB { float lvtx[]; };
+            layout ( std430, binding = 7, set = 1 ) readonly buffer lvtxB { float lvtx[]; };
         #endif
     #endif
 #endif

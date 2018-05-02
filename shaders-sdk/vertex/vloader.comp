@@ -35,7 +35,7 @@ struct MeshUniformStruct {
     int primitiveType;
 };
 
-// subdata structuring in restrict buffer region
+// subdata structuring in buffer region
 struct VirtualBufferView {
     int byteOffset;
     int byteStride;
@@ -51,7 +51,7 @@ struct VirtualDataAccess {
 
 // structure accessors 
 struct VirtualBufferBinding {
-    int bufferID; // restrict buffer region PTR, override
+    int bufferID; // buffer region PTR, override
     int dataAccess; // structure accessor
     int indexOffset; // structure index offset (where should be counting), so offset calculates as   (bv.byteOffset + indexOffset*bv.byteStride + ac.byteOffset)
 };
@@ -77,12 +77,12 @@ int aNormalized(in VirtualDataAccess vac) {
 
 
 // input data of vertex instance
-layout ( std430, binding = 0, set = 1 ) readonly restrict buffer bufferSpaceB {INDEX16 bufferSpace[]; };
-layout ( std430, binding = 1, set = 1 ) readonly restrict buffer bufferRegionsB {uvec2 bufferRegions[]; };
-layout ( std430, binding = 2, set = 1 ) readonly restrict buffer bufferViewsB {VirtualBufferView bufferViews[]; };
-layout ( std430, binding = 3, set = 1 ) readonly restrict buffer dataFormatsB {VirtualDataAccess dataFormats[]; };
-layout ( std430, binding = 4, set = 1 ) readonly restrict buffer dataBindingsB {VirtualBufferBinding dataBindings[]; };
-layout ( std430, binding = 5, set = 1 ) readonly restrict buffer uMeshUniformB {MeshUniformStruct uMeshUniform[]; };
+layout ( std430, binding = 0, set = 1 ) readonly buffer bufferSpaceB {INDEX16 bufferSpace[]; };
+layout ( std430, binding = 1, set = 1 ) readonly buffer bufferRegionsB {uvec2 bufferRegions[]; };
+layout ( std430, binding = 2, set = 1 ) readonly buffer bufferViewsB {VirtualBufferView bufferViews[]; };
+layout ( std430, binding = 3, set = 1 ) readonly buffer dataFormatsB {VirtualDataAccess dataFormats[]; };
+layout ( std430, binding = 4, set = 1 ) readonly buffer dataBindingsB {VirtualBufferBinding dataBindings[]; };
+layout ( std430, binding = 5, set = 1 ) readonly buffer uMeshUniformB {MeshUniformStruct uMeshUniform[]; };
 
 #define meshUniform uMeshUniform[push_block.uniformBlock + gl_GlobalInvocationID.y]
 
@@ -93,7 +93,7 @@ uint calculateByteOffset(in int binding, in uint index, in uint bytecorrect){
         dataAccess = dataBindings[binding].dataAccess, 
         bufferView = dataFormats[dataAccess].bufferView;
 
-    // if no direct restrict buffer binding, pick from restrict buffer view
+    // if no direct buffer binding, pick from buffer view
     if (bufferID < 0) bufferID = bufferViews[bufferView].bufferID;
 
     // based on regions byte offset

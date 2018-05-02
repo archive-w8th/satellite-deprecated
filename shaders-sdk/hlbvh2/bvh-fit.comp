@@ -93,8 +93,8 @@ void main() {
 
                 // do contribution to parent node box host
                 memoryBarrier();
-                if (atomicCompSwap(Flags[idx], 1, 2) == 2) {
-                    if (bvhMeta[idx].y == 2) unifyNodeBox(idx); 
+                if (atomicCompSwap(Flags[idx], 1, 0) == 0) {
+                    unifyNodeBox(idx); 
                 } else {
                     idx = -1; break;
                 }

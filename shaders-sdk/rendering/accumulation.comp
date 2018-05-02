@@ -15,7 +15,7 @@ void main() {
     //#define wsize RAY_BLOCK samplerUniform.blockBinCount
     int wsize = RAY_BLOCK samplerUniform.blockBinCount;
     int wcsize = int(gl_WorkGroupSize.x) / int(Wave_Size_RT);
-    int wcount = min(tiled(wsize, wcsize), 1000000);
+    int wcount = min(tiled(wsize, wcsize), 10000000);
     ivec2 wh = ivec2(RAY_BLOCK samplerUniform.sceneRes.xy);
 
     // invoke available blocks
@@ -44,7 +44,7 @@ void main() {
             int cnm = min(256, cnt);
             for (int m=0;m<cnm;m++) {
                 SB_BARRIER
-                inv = inv || (int(idx) < 0);
+                bool inv = inv || (int(idx) < 0);
                 IFALL(inv) break; // if overflow or bad texel
                 IFANY(!inv) {
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
@@ -56,7 +56,7 @@ void main() {
                         if (nid < R_BLOCK_SIZE && ltex >= 0 && texelFrom >= 0) {
                             vec4 color = f16_f32(rayBlockNodes[idx][nid].data.dcolor);
                             if (int(texel) >= 0 && !SSC(RayActived(rayBlockNodes[idx][nid].data)) && mlength(color.xyz) >= 0.00001f) {
-                                texelBuf.nodes[texel].color.xyz += color.xyz;
+                                texelBuf.nodes[texel].color.xyz += max(color.xyz, 0.f.xxx);
                             }
 
                             // deactivate ray

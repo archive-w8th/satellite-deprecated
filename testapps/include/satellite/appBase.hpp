@@ -344,10 +344,8 @@ namespace NSM
         {
             auto surfaceFormats = gpu->getSurfaceFormatsKHR(*surface);
 
-            const std::vector<vk::Format> preferredFormats = {
-                vk::Format::eA2R10G10B10UnormPack32,
-                vk::Format::eA2B10G10R10UnormPack32, vk::Format::eR8G8B8A8Unorm,
-                vk::Format::eB8G8R8A8Unorm };
+            const std::vector<vk::Format> preferredFormats = {vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm };
+
             vk::Format surfaceColorFormat =
                 surfaceFormats.size() == 1 &&
                 surfaceFormats[0].format == vk::Format::eUndefined

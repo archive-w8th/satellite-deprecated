@@ -149,6 +149,13 @@ void main()
                     currentRay.origin = vec4(orig.xyz, FINT_ZERO);
                     currentRay.dcolor = (0u).xx;  // set default bitset
 
+
+
+                    
+                    
+
+
+
                     // set default bitfield values
                     WriteColor(currentRay.dcolor, vec4(1.f.xxx, 0));
                     RayActived(currentRay, true_);
@@ -156,6 +163,15 @@ void main()
                     RayDL(currentRay, false_);
                     RayBounce(currentRay, 3);
                     RayDiffBounce(currentRay, 2);
+
+
+
+                    // primary debug
+                    //WriteColor(currentRay.dcolor, vec4(dir.xyz * 0.5f + 0.5f, 0));
+
+                    //WriteColor(currentRay.dcolor, vec4(0.f.xxx, 0));
+                    //RayActived(currentRay, false_);
+                    //texelBuf.nodes[idx].color = vec4(dir.xyz * 0.5f + 0.5f, 1.f);
                 }
                 
                 confirmNode(blockID, RayActived(currentRay) == true_);

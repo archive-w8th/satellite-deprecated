@@ -69,16 +69,16 @@
 float extractChannel(in usampler2D smpler, in vec2 texcoord, const int channel){
     uint chnl = 0u;
     if (channel == 0) {
-        chnl = texture(smpler, texcoord).x;
+        chnl = textureLod(smpler, fract(texcoord), 0).x;
     } else 
     if (channel == 1) {
-        chnl = texture(smpler, texcoord).y;
+        chnl = textureLod(smpler, fract(texcoord), 0).y;
     } else 
     if (channel == 2) {
-        chnl = texture(smpler, texcoord).z;
+        chnl = textureLod(smpler, fract(texcoord), 0).z;
     } else 
     if (channel == 3) {
-        chnl = texture(smpler, texcoord).w;
+        chnl = textureLod(smpler, fract(texcoord), 0).w;
     }
     return uintBitsToFloat(chnl);
 }

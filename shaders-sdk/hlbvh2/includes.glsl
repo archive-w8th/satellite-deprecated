@@ -13,11 +13,11 @@ layout ( std430, binding = 3, set = 0 ) buffer LeafsB {
     HlbvhNode Leafs[];
 };
 
-layout ( std430, binding = 4, set = 0 ) coherent buffer bvhBoxesWorkB { 
+layout ( std430, binding = 4, set = 0 ) buffer bvhBoxesWorkB { 
     vec4 bvhBoxesWork[][4];
 };
 
-layout ( std430, binding = 5, set = 0 ) coherent buffer FlagsB {
+layout ( std430, binding = 5, set = 0 ) buffer FlagsB {
     int Flags[];
 };
 

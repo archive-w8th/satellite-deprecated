@@ -97,7 +97,7 @@ vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
     #define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
     #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGatherLodAMD(smp,crd,0,chnl))
 #else
-    #ifdef UNIVERSAL_PLATFORM
+    #ifdef INTEL_PLATFORM
         #define ISTORE(img, crd, data) imageStore(img,crd,data)
         #define SGATHER(smp, crd, chnl) fakeGather(smp,crd,chnl)
     #else

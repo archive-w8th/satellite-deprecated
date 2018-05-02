@@ -160,7 +160,7 @@ void main() {
                     int to = atomicIncAABB();
                     MortoncodesIndices[to] = int(to);
 
-#ifdef UNIVERSAL_PLATFORM
+#ifdef INTEL_PLATFORM
                     Mortoncodes[to] = encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
 #else
                     Mortoncodes[to] = encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));

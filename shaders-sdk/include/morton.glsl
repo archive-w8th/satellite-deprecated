@@ -2,7 +2,7 @@
 #define _MORTON_H
 
 
-#ifdef UNIVERSAL_PLATFORM // most devices does not support 64-bit directly
+#ifdef INTEL_PLATFORM // most devices does not support 64-bit directly
 
 uint splitBy3(in uint a){
     uint x = a & 0x3ffu;

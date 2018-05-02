@@ -22,7 +22,7 @@ layout ( local_size_x = 1024 ) in;
 #endif
 
 int cdelta( in int a, in int b ){
-#ifdef UNIVERSAL_PLATFORM
+#ifdef INTEL_PLATFORM
     uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
     acode.x = a, bcode.x = b;
     return nlz(acode^bcode);

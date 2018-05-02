@@ -6,18 +6,27 @@
 // for constant maners
 #ifndef Wave_Size
     #ifdef AMD_PLATFORM
-        #define Wave_Size 64
+        #define Wave_Size 64u
     #else
-        #define Wave_Size 32
+        #define Wave_Size 32u
     #endif
 #endif
 
+#ifdef UNIVERSAL_PLATFORM
 #define Wave_Size_RT (gl_SubgroupSize.x)
+#else
+#define Wave_Size_RT (Wave_Size)
+#endif
 
 #ifndef OUR_INVOC_TERM
-#define Local_Idx (gl_LocalInvocationIndex.x)
-#define Global_Wave_Idx (gl_SubgroupID.x)
-#define Lane_Idx (gl_SubgroupInvocationID.x)
+    #define Local_Idx (gl_LocalInvocationIndex.x)
+    #ifdef UNIVERSAL_PLATFORM
+        #define Global_Wave_Idx (gl_SubgroupID.x)
+        #define Lane_Idx (gl_SubgroupInvocationID.x)
+    #else
+        #define Global_Wave_Idx (Local_Idx/Wave_Size_RT)
+        #define Lane_Idx (Local_Idx%Wave_Size_RT)
+    #endif
 #endif
 
 #define uvec_wave_ballot uvec4
@@ -28,9 +37,21 @@
 #define readFLane RLF_
 #define readLane RL_
 
-uvec_wave_ballot ballotHW(in bool i) { return subgroupBallot(i); }
-uvec_wave_ballot ballotHW() { return subgroupBallot(true); }
+
+uvec4 makeFilterMinor() {
+    const uint mnr = Wave_Size_RT >= 32 ? 0xFFFFFFFFu : ((1 << Wave_Size_RT)-1);
+    const uint mjr = Wave_Size_RT >= 64 ? 0xFFFFFFFFu : 0x0u;
+    //return uvec4(msk, mjr, 0x0u, 0x0u);
+    return uvec4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
+}
+
+
+uvec_wave_ballot ballotHW(in bool i) { return (subgroupBallot(i) & makeFilterMinor()); }
+uvec_wave_ballot ballotHW() { return (subgroupBallot(true) & makeFilterMinor()); }
 bool electedInvoc() { return subgroupElect(); }
+
+
+
 
 
 // statically multiplied

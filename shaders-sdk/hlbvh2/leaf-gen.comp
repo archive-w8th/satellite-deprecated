@@ -119,8 +119,6 @@ void main() {
                 divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8], 1.f)))
             );
 
-            SB_BARRIER
-
 #ifdef VTX_TRANSPLIT
             { // transpose VTX
                 mat3x3 vtxL = transpose(mat3(
@@ -128,8 +126,6 @@ void main() {
                     vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
                     vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
                 ));
-
-                SB_BARRIER
 
                 { // transpose type
                     lvtx[itri+0] = vtxL[0].x, lvtx[itri+1] = vtxL[0].y, lvtx[itri+2] = vtxL[0].z;
@@ -139,12 +135,7 @@ void main() {
             }
 #endif
 
-            SB_BARRIER
-
-
             const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
-
-            
             if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
                 bbox bounding = calcTriBox(triverts);
                 

@@ -13,7 +13,7 @@ layout ( std430, binding = 3, set = 0 ) buffer LeafsB {
     HlbvhNode Leafs[];
 };
 
-layout ( std430, binding = 4, set = 0 ) volatile buffer bvhBoxesWorkB { 
+layout ( std430, binding = 4, set = 0 ) restrict buffer bvhBoxesWorkB { 
     vec4 bvhBoxesWork[][4];
 };
 
@@ -29,7 +29,7 @@ layout ( std430, binding = 7, set = 0 ) buffer LeafIndicesB {
     int LeafIndices[];
 };
 
-layout ( std430, binding = 8, set = 0 ) restrict buffer CountersB {
+layout ( std430, binding = 8, set = 0 ) buffer CountersB {
     int cCounter;
     int lCounter;
     int aCounter;
@@ -39,9 +39,9 @@ layout ( std430, binding = 8, set = 0 ) restrict buffer CountersB {
 };
 
 #ifdef USE_F32_BVH
-layout ( std430, binding = 12, set = 0 ) buffer bvhBoxesResultingB { vec4 bvhBoxesResulting[][4]; };
+layout ( std430, binding = 12, set = 0 ) restrict buffer bvhBoxesResultingB { vec4 bvhBoxesResulting[][4]; };
 #else
-layout ( std430, binding = 12, set = 0 ) buffer bvhBoxesResultingB { uvec2 bvhBoxesResulting[][4]; }; 
+layout ( std430, binding = 12, set = 0 ) restrict buffer bvhBoxesResultingB { uvec2 bvhBoxesResulting[][4]; }; 
 #endif
 
 layout ( std430, binding = 11, set = 0 ) buffer bvhMetaB { ivec4 bvhMeta[]; };

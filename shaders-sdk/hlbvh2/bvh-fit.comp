@@ -21,12 +21,10 @@
 layout ( local_size_x = WORK_SIZE_BND ) in;
 
 void unifyNodeBox(in int idx){
+    // initial for unify box
     ivec4 comp = bvhMeta[idx]; // meta of contributable
     int sibid = comp.x >> 1; // contributor prefix box id
     int bidx = idx>>1, sidx = idx&1;
-
-    // do memory barrier
-    memoryBarrier(); SB_BARRIER
 
     // get contributors boxes
     mat4 lrbox = mat4(
@@ -34,24 +32,19 @@ void unifyNodeBox(in int idx){
         bvhBoxesWork[sibid][1], bvhBoxesWork[sibid][3]
     );
 
-    // do memory barrier
-    memoryBarrier(); SB_BARRIER
+    // unify on way
+    bbox rbox = bbox(min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3]));
 
     // contribute to current node
     if (bidx >= 0) {
-        bvhBoxesWork[bidx][sidx*2+0] = min(lrbox[0], lrbox[1]);
-        bvhBoxesWork[bidx][sidx*2+1] = max(lrbox[2], lrbox[3]);
+        bvhBoxesWork[bidx][sidx*2+0] = rbox.mn;
+        bvhBoxesWork[bidx][sidx*2+1] = rbox.mx;
     }
-
-    // do memory barrier
-    memoryBarrier(); SB_BARRIER
 
     // transpose and compress boxes of contributor
     lrbox = transpose(lrbox);
 
-    // do memory barrier
-    memoryBarrier(); SB_BARRIER
-
+    // transposed save
 #ifdef USE_F32_BVH
     bvhBoxesResulting[sibid][0] = fvec4_(lrbox[0]);
     bvhBoxesResulting[sibid][1] = fvec4_(lrbox[1]);
@@ -63,8 +56,6 @@ void unifyNodeBox(in int idx){
     bvhBoxesResulting[sibid][2] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u);
     bvhBoxesResulting[sibid][3] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u);
 #endif
-
-    memoryBarrier(); SB_BARRIER
 }
 
 void main() {
@@ -76,25 +67,23 @@ void main() {
         IFALL (globalID >= wsize) break;
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
-            int idx = exchange(LeafIndices[globalID], 0)-1;
+            int idx = LeafIndices[globalID]-1;
             
             // reductive unity boxes
             for (int l=0;l<256;l++) {
-                SB_BARRIER
+
+                // to parent node
+                if (idx >= 0) idx = bvhMeta[idx].z;
+
+                // break when no valid index
                 if (idx < 0) { break; }
-                ivec4 cmp4 = bvhMeta[idx];
 
                 // do contribution to parent node box host
-                if (cmp4.y == 2 && idx >= 0) unifyNodeBox(idx);
-
-                // solve contribution question 
-                bool nextContrib = idx >= 0;
-                if (nextContrib) {
-                    nextContrib = atomicAdd(Flags[cmp4.z], 1) >= 1;  // make sure contribution to parent complete
+                if (atomicCompSwap(Flags[idx], 0, 1) == 1) { 
+                    if (bvhMeta[idx].y == 2) unifyNodeBox(idx); 
+                } else { 
+                    idx = -1; 
                 }
-
-                // only one candidate can contribute to own parent (if has)
-                idx = nextContrib ? cmp4.z : -1;
             }
         }
     }

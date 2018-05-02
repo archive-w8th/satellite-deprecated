@@ -58,33 +58,31 @@ initAtomicSubgroupIncFunction(_counters[2], cCounterDualInc, 2, int)
 
 
 void splitNode(in int trID, in int side) {
-    int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; // select element, include sibling
+    // select elements, include sibling
+    int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; 
     ivec4 _pdata = bvhMeta[prID];
 
-    // make children ptr
+    // mark unbounded
+    if (prID >= 0) Flags[prID] = 0;
+
+    // make branch
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
+    
         // find split
         int split = findSplit(_pdata.x, _pdata.y);
-
-        // encode with SIMD-like
         ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
         bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
         int hd = lCounterInc();
-
-        // if any can continue splitting
-        Actives[aCounterInc()][cBuffer] = hd+1;
-
-        // BVH parent meta update
-        bvhMeta[prID].xy = ivec2(hd.x, 2);
-        Flags[prID] = 0;
-
-        // make children nodes (with unknown identifier)
+        
+        // resolve branch
+        bvhMeta[prID] = ivec4(hd.x, 2, _pdata.zw);
         bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1);
         bvhMeta[hd+1] = ivec4(transplit.zw, prID, -1);
-    }
+        Actives[aCounterInc()][cBuffer] = hd+1;
+    } else
 
+    // make leaf
     if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 && _pdata.z >= 0) { // if leaf
-        Flags[prID] = 0;
         LeafIndices[cCounterInc()] = prID+1;
     }
 }

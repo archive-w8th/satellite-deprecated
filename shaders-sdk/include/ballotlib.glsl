@@ -15,9 +15,9 @@
 #define Wave_Size_RT (gl_SubgroupSize.x)
 
 #ifndef OUR_INVOC_TERM
-#define Local_Idx gl_LocalInvocationIndex.x
-#define Global_Wave_Idx gl_SubgroupID.x
-#define Lane_Idx gl_SubgroupInvocationID.x
+#define Local_Idx (gl_LocalInvocationIndex.x)
+#define Global_Wave_Idx (gl_SubgroupID.x)
+#define Lane_Idx (gl_SubgroupInvocationID.x)
 #endif
 
 #define uvec_wave_ballot uvec4

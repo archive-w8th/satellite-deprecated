@@ -63,7 +63,7 @@ void splitNode(in int trID, in int side) {
     ivec4 _pdata = bvhMeta[prID];
 
     // mark unbounded
-    if (prID >= 0) Flags[prID] = 0;
+    if (prID >= 0) Flags[prID] = 1;
 
     // make branch
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
@@ -91,13 +91,15 @@ void splitNode(in int trID, in int side) {
 void main() {
     int threadID = int(Local_Idx);
     int groupSize = int(gl_WorkGroupSize.x);
-    //int threadID = int(Local_Idx)>>1;
-    //int groupSize = int(gl_WorkGroupSize.x)>>1;
-    //int sideID = threadID&1;
 
+    // lane-based
+    int gS = tiled(groupSize, 2);
+    int iT = threadID >> 1;
+    int sD = threadID & 1;
+
+    LGROUP_BARRIER
     if (threadID < 1) { cBuffer = 0; }
     if (threadID < 8) { _counters[threadID] = 0; }
-
     LGROUP_BARRIER
 
     // create initial (root) node
@@ -121,19 +123,19 @@ void main() {
         LGROUP_BARRIER
 
         // split nodes
-        uint wsize = min(tiled(asize, groupSize), 131072u);
+        uint wsize = min(tiled(asize, gS), 131072u);
         for (int i=0;i<wsize;i++) {
-            int trID = i * groupSize + threadID;
-            IFALL (trID >= asize) break; 
-            if (trID < asize) {
-                // split prefixed elements
-                splitNode(trID, 0), splitNode(trID, 1);
-                Actives[trID][1-cBuffer] = 0; // was processed
-            }
+            int uID = i * gS + iT;
+            IFALL (uID >= asize) break;
+
+            // split prefixed elements
+            if (uID < asize) splitNode(uID, sD);
+            Actives[uID][1-cBuffer] = 0;
         }
         LGROUP_BARRIER
     }
 
+    // copy to external counters
     if (threadID == 0) {
         lCounter = _counters[0];
         aCounter = _counters[1];

@@ -78,14 +78,17 @@ void main() {
     [[unroll]]
     for (uint ki=(gl_WorkGroupSize.x>>1);ki>=Wave_Size_RT;ki>>=1) {
         if (tid < ki) { 
-            bbox bound = sdata[tid], opbound = sdata[tid + ki]; SB_BARRIER
+            bbox bound = sdata[tid], opbound = sdata[tid + ki]; 
+            SB_BARRIER
             sdata[tid] = bboxunion(bound, opbound); 
         }
         LGROUP_BARRIER
     }
 
     { // subgroup min/max
-        vec4 mn = subgroupMin(sdata[tid].mn), mx = subgroupMax(sdata[tid].mx); SB_BARRIER
+        SB_BARRIER
+        vec4 mn = subgroupMin(sdata[tid].mn), mx = subgroupMax(sdata[tid].mx); 
+        SB_BARRIER
         sdata[tid].mn = mn, sdata[tid].mx = mx;
     }
 

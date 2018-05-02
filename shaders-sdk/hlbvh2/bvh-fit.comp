@@ -21,6 +21,9 @@
 layout ( local_size_x = WORK_SIZE_BND ) in;
 
 void unifyNodeBox(in int idx){
+    // memory barrier
+    memoryBarrier();
+
     // initial for unify box
     ivec4 comp = bvhMeta[idx]; // meta of contributable
     int sibid = comp.x >> 1; // contributor prefix box id
@@ -35,14 +38,23 @@ void unifyNodeBox(in int idx){
     // unify on way
     bbox rbox = bbox(min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3]));
 
+    // memory barrier
+    memoryBarrier();
+
     // contribute to current node
     if (bidx >= 0) {
         bvhBoxesWork[bidx][sidx*2+0] = rbox.mn;
         bvhBoxesWork[bidx][sidx*2+1] = rbox.mx;
     }
 
+    // memory barrier
+    memoryBarrier();
+
     // transpose and compress boxes of contributor
     lrbox = transpose(lrbox);
+
+    // memory barrier
+    memoryBarrier();
 
     // transposed save
 #ifdef USE_F32_BVH
@@ -79,10 +91,10 @@ void main() {
                 if (idx < 0) { break; }
 
                 // do contribution to parent node box host
-                if (atomicCompSwap(Flags[idx], 0, 1) == 1) { 
+                if (atomicCompSwap(Flags[idx], 1, 2) == 2) {
                     if (bvhMeta[idx].y == 2) unifyNodeBox(idx); 
-                } else { 
-                    idx = -1; 
+                } else {
+                    idx = -1; break;
                 }
             }
         }

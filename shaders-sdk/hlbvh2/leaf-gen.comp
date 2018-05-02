@@ -20,7 +20,6 @@ initAtomicSubgroupIncFunction(aabbcount, atomicIncAABB, 1, int)
 
 LOCAL_SIZE_LAYOUT;
 
-/*
 vec2 intersectCube(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 cubeMax) {
     vec3 dr = 1.0f / ray;
     vec3 tMin = (cubeMin.xyz - origin) * dr;
@@ -100,7 +99,7 @@ bbox compactBoxByTriangle(in bbox abox, in mat3x4 triverts){
     result.mx = min(result.mx, abox.mx);
     
     return result;
-}*/
+}
 
 void main() {
     int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
@@ -145,7 +144,7 @@ void main() {
                     greaterEqualF(bounding.mx.y, -1.f) & lessEqualF(bounding.mn.y, 1.f) & 
                     greaterEqualF(bounding.mx.z, -1.f) & lessEqualF(bounding.mn.z, 1.f)
                 ) {
-                    //bounding = compactBoxByTriangle(bounding, triverts);
+                    bounding = compactBoxByTriangle(bounding, triverts);
                     vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
 
                     int to = atomicIncAABB();

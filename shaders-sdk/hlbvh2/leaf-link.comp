@@ -28,12 +28,24 @@ void main() {
                 ivec4 bvhmeta = bvhMeta[idx];
                 if (bvhmeta.y == bvhmeta.x && bvhmeta.z >= 0) { // if true leaf
                     uint leafID = MortoncodesIndices[bvhmeta.x];
-                    bvhMeta[idx] = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.z, -1);
+                    if (leafID >= 0) {
+                        // make leaf qualified
+                        ivec4 bvhmeta = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
+                        
+                        // get leaf boxes
+                        vec4 mn = Leafs[leafID].lbox[0], mx = Leafs[leafID].lbox[1];
 
-                    // make box of leaf block
-                    int bidx = idx>>1, sidx = idx&1;
-                    bvhBoxesWork[bidx][sidx*2+0] = Leafs[leafID].lbox[0];
-                    bvhBoxesWork[bidx][sidx*2+1] = Leafs[leafID].lbox[1];
+                        // make box of leaf block
+                        int bidx = idx>>1, sidx = idx&1;
+
+                        // memory barrier
+                        memoryBarrier();
+
+                        // save boxes
+                        bvhMeta[idx] = bvhmeta, 
+                        bvhBoxesWork[bidx][sidx*2+0] = mn, 
+                        bvhBoxesWork[bidx][sidx*2+1] = mx;
+                    }
                 }
             }
         }

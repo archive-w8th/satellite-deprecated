@@ -40,6 +40,8 @@ set FIXFLAGS = ^
 --strip-debug ^
 --workaround-1209 ^
 --replace-invalid-opcode ^
+--simplify-instructions ^
+--cfg-cleanup ^
 -Os
 
 set OPTFLAGS= ^
@@ -77,8 +79,8 @@ set OPTFLAGS= ^
 --workaround-1209 ^
 --replace-invalid-opcode ^
 --if-conversion ^
---scalar-replacement 
-
+--scalar-replacement ^
+--simplify-instructions
 
 
 :: for workarounds
@@ -102,8 +104,8 @@ call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%leaf-link.comp.spv       -o %OUTDIR%%HLB
 
 
 :: for optimize
-::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
-::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
-::call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
-::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
+call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDXI%permute.comp.spv
+call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
+call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
+call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
 ::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv

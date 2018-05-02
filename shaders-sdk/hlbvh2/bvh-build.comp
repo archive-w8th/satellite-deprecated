@@ -62,8 +62,12 @@ void splitNode(in int trID, in int side) {
     int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; 
     ivec4 _pdata = bvhMeta[prID];
 
+    memoryBarrier();
+
     // mark unbounded
     if (prID >= 0) Flags[prID] = 1;
+
+    memoryBarrier();
 
     // make branch
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
@@ -74,6 +78,8 @@ void splitNode(in int trID, in int side) {
         bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
         int hd = lCounterInc();
         
+        memoryBarrier();
+
         // resolve branch
         bvhMeta[prID] = ivec4(hd.x, 2, _pdata.zw);
         bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1);

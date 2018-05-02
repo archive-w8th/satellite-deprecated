@@ -83,6 +83,7 @@ void main() {
             
             // reductive unity boxes
             for (int l=0;l<256;l++) {
+                memoryBarrier();
 
                 // to parent node
                 if (idx >= 0) idx = bvhMeta[idx].z;
@@ -91,6 +92,7 @@ void main() {
                 if (idx < 0) { break; }
 
                 // do contribution to parent node box host
+                memoryBarrier();
                 if (atomicCompSwap(Flags[idx], 1, 2) == 2) {
                     if (bvhMeta[idx].y == 2) unifyNodeBox(idx); 
                 } else {

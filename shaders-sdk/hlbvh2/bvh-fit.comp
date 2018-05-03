@@ -20,7 +20,7 @@
 void unifyNodeBox(const int idx){
     // initial for unify box
     ivec4 comp = bvhMeta[idx]; // meta of contributable
-    int lft = comp.x-1, rgh = lft+1, sibid = lft >> 1;
+    int lft = comp.x-1, rgh = comp.x, sibid = lft >> 1;
 
     // get contributors boxes
     mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
@@ -108,11 +108,11 @@ void main() {
             IFALL (globalID >= asize) break;
 
             // initial leaf index
-            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0) -1 : -1, 
-                pid = idx >= 0 ? exchange(bvhMeta[idx].w, 0)-1 : -1;
+            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, 
+                pid = idx >= 0 ? bvhMeta[idx].z : -1;
 
             // do contribution to parent node box host
-            if (idx >= 0 && bvhMeta[idx].y == 2) {
+            if (idx >= 0 && bvhMeta[idx].y != bvhMeta[idx].x) {
                 unifyNodeBox(idx);
             }
 

@@ -18,6 +18,8 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
+
+// split function by morton codes
 int findSplit( in int first, in int last) {
     uvec2 firstCode = Mortoncodes[first], lastCode = Mortoncodes[last];
     int split = first;
@@ -26,6 +28,8 @@ int findSplit( in int first, in int last) {
     } else {
         int commonPrefix = nlz(firstCode ^ lastCode);
         int step = last - first;
+
+        [[dependency_infinite]]
         do {
             step = (step + 1) >> 1;
             int newSplit = split + step;
@@ -63,27 +67,34 @@ void splitNode(in int fID, in int side) {
         bvhBoxesWork[prID] = vec4[2](100000.f.xxxx, -100000.f.xxxx);
     }
 
-    // 
-    if (_pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0) {
-        // make branch
-        if (_pdata.y > _pdata.x) { // when not leafs
+    // splitting nodes
+    if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0) {
+
+        // find split
+        int split = findSplit(_pdata.x, _pdata.y);
+        ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
+        bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
+        int hd = lCounterInc();
         
-            // find split
-            int split = findSplit(_pdata.x, _pdata.y);
-            ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
-            bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
-            int hd = lCounterInc();
-            
-            // resolve branch
-            bvhMeta[prID] = ivec4(hd+1, 2, _pdata.zw);
-            bvhMeta[hd+0] = ivec4(transplit.xy, prID, prID+1);
-            bvhMeta[hd+1] = ivec4(transplit.zw, prID, prID+1);
-            Actives[aCounterInc()][cBuffer] = hd+1;
+        // resolve branch
+        bvhMeta[prID].xy = (hd+1).xx+ivec2(0,1);
+        bvhMeta[hd+0] = ivec4(transplit.xy, prID, 0);
+        bvhMeta[hd+1] = ivec4(transplit.zw, prID, 0);
+
+        // add to next task
+        if (!all(isLeaf)) { 
+            Actives[aCounterInc()][cBuffer] = hd+1; 
         }
 
-        // make leaf
-        if (_pdata.y == _pdata.x) { // if leaf
-            LeafIndices[cCounterInc()] = prID+1;
+        // add to leaf list
+        if (all(isLeaf)) {
+            int f2 = cCounterDualInc();
+            LeafIndices[f2+0] = (hd+0)+1;
+            LeafIndices[f2+1] = (hd+1)+1;
+        } else 
+        if (any(isLeaf)) {
+            int f1 = cCounterInc();
+            LeafIndices[f1] = (hd + (isLeaf.x ? 0 : 1))+1;
         }
     }
 }
@@ -108,7 +119,7 @@ void main() {
     if (threadID == 0) {
         int hid = lCounterInc();
         bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, 0);
-        bvhMeta[hid+1] = ivec4(-1, -1, -1, 0);
+        bvhMeta[hid+1] = ivec4(-1, -1, -1, -1);
         Actives[aCounterInc()][cBuffer] = hid+1;
     }
     LGROUP_BARRIER

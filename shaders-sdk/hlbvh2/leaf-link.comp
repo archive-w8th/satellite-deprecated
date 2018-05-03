@@ -38,7 +38,7 @@ void main() {
                 // linking leafs
                 if (leafID >= 0) {
                     rbox = Leafs[leafID].lbox;
-                    bvhmeta = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
+                    bvhmeta.xy = Leafs[leafID].pdata.ww;
                 }
 
                 // save boxes

@@ -233,7 +233,7 @@ namespace NSM
             { // resolve BVH buffers for copying
                 auto command = getCommandBuffer(device, true);
                 memoryCopyCmd(command, bvhMetaWorking, hierarchyStorageLink->getBvhMeta(), { 0, 0, strided<glm::ivec4>(triangleCount[0] * 2) });
-                memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<bbox>(triangleCount[0] * 2) });
+                memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<glm::mat4>(triangleCount[0] * 2) });
                 flushCommandBuffer(device, command, true);
             }
 

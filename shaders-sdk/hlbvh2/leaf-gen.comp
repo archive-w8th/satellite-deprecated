@@ -20,19 +20,19 @@ initAtomicSubgroupIncFunction(aabbcount, atomicIncAABB, 1, int)
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    const int wsize = tiled(GEOMETRY_BLOCK geometryUniform.triangleCount, 2)*2; // align by
+    const int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
     const int gS = int(gl_WorkGroupSize.x);
     const int wgs = int(gl_NumWorkGroups);
     const int wID = int(gl_WorkGroupID.x);
     const int lID = int(Local_Idx);
     const int rng = gS*wgs;
     const int wcount = tiled(wsize, gS)*gS;
-    for (int w=0;w<wcount;w+=rng) {
-        int globalID = w + wID * gS + lID;
-        if (globalID >= wsize) break;
-        if (globalID < wsize && globalID >= 0) {
 
-            const int tri = clamp(globalID, 0, int(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
+    for (int w=0;w<wcount;w+=rng) {
+        const int globalID = w + wID * gS + lID;
+        IFALL (globalID >= wsize) break;
+        if (globalID < wsize && globalID >= 0) {
+            const int tri = clamp(globalID, 0, int(GEOMETRY_BLOCK geometryUniform.triangleCount)-1);
             const int itri = tri*9;
             const mat3x4 triverts = mat3x4(
                 divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2], 1.f))), 
@@ -64,7 +64,8 @@ void main() {
                 vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
 
                 // allocate index
-                int to = atomicIncAABB();
+                //int to = atomicIncAABB();
+                int to = tri; atomicIncAABB();
 
                 // gen morton code
                 uvec2 mortonCode = 

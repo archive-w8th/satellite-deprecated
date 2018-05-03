@@ -194,7 +194,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
             bool _continue = false;
 
             // if not leaf and not wrong
-            if (cnode.y == 2) {
+            if (cnode.x != cnode.y) {
                 vec2 nears = INFINITY.xx, fars = INFINITY.xx;
                 bvec2_ childIntersect = bvec2_((traverseState.idx >= 0).xx);
 
@@ -231,7 +231,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                         IF (all(childIntersect) & bool_(!stackIsFull())) storeStack(ordered.y);
 #endif
                     } else {
-                        traverseState.idx = cnode.x-1 + fmask;
+                        traverseState.idx = (cnode.x-1) + fmask;
                     }
 
                     cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
@@ -240,7 +240,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
             } 
             
             // if leaf, defer for intersection 
-            if (cnode.y == 1) {
+            if (cnode.x == cnode.y) {
                 if (traverseState.defTriangleID < 0) {
                     traverseState.defTriangleID = cnode.x-1;
                 } else {
@@ -264,9 +264,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 } else {
                     traverseState.idx = -1;
                 }
-
-                cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
-            } _continue = false;
 #else
             // stacked 
             if (!_continue) {
@@ -275,10 +272,9 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 } else {
                     traverseState.idx = -1;
                 }
-
+#endif
                 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
             } _continue = false;
-#endif
 
             IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER break; }
         }}

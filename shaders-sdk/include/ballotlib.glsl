@@ -19,7 +19,7 @@
 #endif
 
 #ifndef OUR_INVOC_TERM
-    #define Local_Idx (gl_LocalInvocationIndex.x)
+    #define Local_Idx (gl_LocalInvocationID.x)
     #ifdef UNIVERSAL_PLATFORM
         #define Wave_Idx (gl_SubgroupID.x)
         #define Lane_Idx (gl_SubgroupInvocationID.x)

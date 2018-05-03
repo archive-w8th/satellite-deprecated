@@ -37,16 +37,12 @@ void main() {
 
                 // linking leafs
                 if (leafID >= 0) {
-                    // make leaf qualified
-                    ivec4 bvhmeta = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
-                    
-                    // get leaf boxes
-                    rbox[0] = Leafs[leafID].lbox[0], rbox[1] = Leafs[leafID].lbox[1];
-
-                    // save boxes
-                    bvhMeta[lidx] = bvhmeta;
+                    rbox = Leafs[leafID].lbox;
+                    bvhmeta = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
                 }
 
+                // save boxes
+                bvhMeta[lidx] = bvhmeta;
                 bvhBoxesWork[lidx] = rbox;
             }
         }

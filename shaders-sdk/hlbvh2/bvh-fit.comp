@@ -1,6 +1,12 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
+#ifdef NVIDIA_PLATFORM
+#define WORK_SIZE_BND 1024
+#else 
+#define WORK_SIZE_BND 1024
+#endif
+
 #define BVH_CREATION
 
 #include "../include/constants.glsl"
@@ -42,45 +48,76 @@ void unifyNodeBox(const int idx){
     bvhBoxesResulting[sibid] = resulting;
 }
 
+layout ( local_size_x = WORK_SIZE_BND ) in;
 
-LOCAL_SIZE_LAYOUT;
+// shared memory counters
+shared int _counters[8];
+#define cBuffer _counters[1]
+
+// define function for increment
+initAtomicSubgroupIncFunction(_counters[0], aCounterInc, 1, int)
 
 void main() {
-    const int wsize = cCounter;
     const int gS = int(gl_WorkGroupSize.x);
     const int wgs = int(gl_NumWorkGroups);
     const int wID = int(gl_WorkGroupID.x);
     const int lID = int(Local_Idx);
     const int rng = gS*wgs;
-    const int wcount = tiled(wsize, gS)*gS;
+
+    // initial counters
+    if (lID < 8) { _counters[lID] = 0; }
+
+    // sync work
+    LGROUP_BARRIER
+
+    // move to work list
+    const int wsize = cCounter, wcount = tiled(wsize, gS)*gS;
     for (int w=0;w<wcount;w+=rng) {
         int globalID = w + wID * gS + lID;
         IFALL (globalID >= wsize) break;
 
-        // initial leaf index
-        int idx = globalID < wsize ? LeafIndices[globalID]-1 : -1, parentID = -1;
+        // add to queue list parent node
+        int idx = globalID < wsize ? exchange(LeafIndices[globalID], 0)-1 : -1;
+        if (idx >= 0) { Actives[aCounterInc()][cBuffer] = idx+1; }
+    }
 
-        // upcoming to root node
-        for (int l=0;l<1024;l++) {
-            // do barrier
-            memoryBarrier(); SB_BARRIER
+    // upcoming to root node
+    for (int l=0;l<1024;l++) {
+        // sync work
+        LGROUP_BARRIER
 
-            // to parent node (try that for fix interleaving)
-            parentID = idx >= 0 ? bvhMeta[idx].w-1 : -1;
+        // check activity counter
+        const int asize = _counters[0], wcount = tiled(asize, gS)*gS;
+        IFALL (asize <= 0) break;
 
-            // if there is no way, then break
-            IFALL (idx < 0 || parentID < 0) break;
+        // sync work
+        LGROUP_BARRIER
 
-            // choice candidate
-            if (parentID >= 0) {
-                idx = (atomicCompSwap(Flags[parentID], 0, 1) == 1) ? parentID : -1; 
-            } else { 
-                idx = -1;
-            }
-
-            // do contribution to parent node box host
-            if (idx >= 0) unifyNodeBox(idx);
+        // switch buffer and reset counter
+        if (lID == 0) { 
+            _counters[0] = 0; 
+            const int swch = 1-cBuffer; 
+            exchange(cBuffer, swch); 
         }
 
+        // sync work
+        LGROUP_BARRIER
+
+        // unify boxes when possible
+        for (int w=0;w<wcount;w+=rng) {
+            int globalID = w + wID * gS + lID;
+            IFALL (globalID >= asize) break;
+
+            // initial leaf index
+            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0) -1 : -1, 
+                pid = idx >= 0 ? exchange(bvhMeta[idx].w, 0)-1 : -1;
+
+            // add to queue list
+            if (pid >= 0 && atomicCompSwap(Flags[pid], 1, 0) == 0) { 
+                unifyNodeBox(pid); // do contribution to parent node box host
+                Actives[aCounterInc()][cBuffer] = pid+1;
+            }
+        }
     }
+
 }

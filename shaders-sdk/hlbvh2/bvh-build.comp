@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #ifdef NVIDIA_PLATFORM
-#define WORK_SIZE_BND 512
+#define WORK_SIZE_BND 1024
 #else 
 #define WORK_SIZE_BND 1024
 #endif
@@ -62,9 +62,9 @@ void splitNode(in int fID, in int side) {
 
     // mark unbounded
     if (prID >= 0) {
-        Flags[prID] = 0;
-        bvhBoxesWork[fID][side*2+0] = vec4( 100000.f);
-        bvhBoxesWork[fID][side*2+1] = vec4(-100000.f);
+        Flags[prID] = 1;
+        vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx};
+        bvhBoxesWork[prID] = rbox;
     }
 
     // make branch

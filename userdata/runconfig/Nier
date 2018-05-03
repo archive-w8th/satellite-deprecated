@@ -1,1 +1,1 @@
--m scene.gltf -s 0.1
+-m scene-processed.gltf -s 0.1

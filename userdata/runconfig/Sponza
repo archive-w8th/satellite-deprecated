@@ -1,1 +1,1 @@
--d sponza -m sponza.gltf -s 0.1
+-d sponza -m sponza-processed.gltf -s 0.1

@@ -67,25 +67,28 @@ void splitNode(in int fID, in int side) {
         bvhBoxesWork[prID] = rbox;
     }
 
-    // make branch
-    if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0 ) { // when not leafs
-    
-        // find split
-        int split = findSplit(_pdata.x, _pdata.y);
-        ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
-        bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
-        int hd = lCounterInc();
+    // 
+    if (_pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0) {
+        // make branch
+        if (_pdata.y > _pdata.x) { // when not leafs
         
-        // resolve branch
-        bvhMeta[prID] = ivec4(hd+1, 2, _pdata.zw);
-        bvhMeta[hd+0] = ivec4(transplit.xy, prID, prID+1);
-        bvhMeta[hd+1] = ivec4(transplit.zw, prID, prID+1);
-        Actives[aCounterInc()][cBuffer] = hd+1;
-    } else
+            // find split
+            int split = findSplit(_pdata.x, _pdata.y);
+            ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
+            bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
+            int hd = lCounterInc();
+            
+            // resolve branch
+            bvhMeta[prID] = ivec4(hd+1, 2, _pdata.zw);
+            bvhMeta[hd+0] = ivec4(transplit.xy, prID, prID+1);
+            bvhMeta[hd+1] = ivec4(transplit.zw, prID, prID+1);
+            Actives[aCounterInc()][cBuffer] = hd+1;
+        }
 
-    // make leaf
-    if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0 && _pdata.z >= 0) { // if leaf
-        LeafIndices[cCounterInc()] = prID+1;
+        // make leaf
+        if (_pdata.y == _pdata.x) { // if leaf
+            LeafIndices[cCounterInc()] = prID+1;
+        }
     }
 }
 

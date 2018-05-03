@@ -244,7 +244,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
             // if leaf, defer for intersection 
             if (cnode.y == 1) {
                 if (traverseState.defTriangleID < 0) {
-                    traverseState.defTriangleID = cnode.x;
+                    traverseState.defTriangleID = cnode.x-1;
                 } else {
                     _continue = true;
                 }

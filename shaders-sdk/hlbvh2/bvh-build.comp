@@ -48,13 +48,17 @@ int findSplit( in int first, in int last) {
 }
 
 
+// shared memory counters
 shared int _counters[8];
+#define cBuffer _counters[4]
 
+
+// define function for increment
 initAtomicSubgroupIncFunction(_counters[0], lCounterInc, 2, int)
 initAtomicSubgroupIncFunction(_counters[1], aCounterInc, 1, int)
 initAtomicSubgroupIncFunction(_counters[2], cCounterInc, 1, int)
 initAtomicSubgroupIncFunction(_counters[2], cCounterDualInc, 2, int)
-#define cBuffer _counters[4]
+
 
 
 void splitNode(in int trID, in int side) {
@@ -63,7 +67,11 @@ void splitNode(in int trID, in int side) {
     ivec4 _pdata = bvhMeta[prID];
 
     // mark unbounded
-    if (prID >= 0) Flags[prID] = 1;
+    if (prID >= 0) {
+        Flags[prID] = 0;
+        bvhBoxesWork[uID][side*2+0] = vec4( 100000.f);
+        bvhBoxesWork[uID][side*2+1] = vec4(-100000.f);
+    }
 
     // make branch
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
@@ -76,8 +84,8 @@ void splitNode(in int trID, in int side) {
         
         // resolve branch
         bvhMeta[prID] = ivec4(hd.x, 2, _pdata.zw);
-        bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1);
-        bvhMeta[hd+1] = ivec4(transplit.zw, prID, -1);
+        bvhMeta[hd+0] = ivec4(transplit.xy, prID, prID+1);
+        bvhMeta[hd+1] = ivec4(transplit.zw, prID, prID+1);
         Actives[aCounterInc()][cBuffer] = hd+1;
     } else
 
@@ -85,6 +93,7 @@ void splitNode(in int trID, in int side) {
     if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 && _pdata.z >= 0) { // if leaf
         LeafIndices[cCounterInc()] = prID+1;
     }
+
 }
 
 
@@ -105,30 +114,32 @@ void main() {
     // create initial (root) node
     if (threadID == 0) {
         int hid = lCounterInc();
-        bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, -1);
-        bvhMeta[hid+1] = ivec4(-1, -1, -1, -1);
+        bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, 0);
+        bvhMeta[hid+1] = ivec4(-1, -1, -1, 0);
         Actives[aCounterInc()][cBuffer] = hid+1;
     }
     LGROUP_BARRIER
     
     // building BVH
-    for (int m=0;m<65536;m++) {
+    for (int m=0;m<4096;m++) {
         // check activity counter
-        int asize = _counters[1];
+        const int asize = _counters[1];
         IFALL (asize <= 0) break;
         LGROUP_BARRIER
 
         // switch buffer and reset counter
-        if (threadID == 0) { _counters[1] = 0; cBuffer = 1-cBuffer; } // ping pong
+        if (threadID == 0) { 
+            _counters[1] = 0; const int swch = 1-cBuffer; atomicExchange(cBuffer, swch); 
+        } // ping pong
         LGROUP_BARRIER
 
         // split nodes
-        uint wsize = min(tiled(asize, gS), 131072u);
-        for (int i=0;i<wsize;i++) {
-            int uID = i * gS + iT;
-            IFALL (uID >= asize) break;
-
+        const int wsize = tiled(asize, gS)*gS;
+        for (int fT=0;fT<wsize;fT+=gS) {
+            int uID = fT + iT; 
+            
             // split prefixed elements
+            IFALL (uID >= asize) break;
             if (uID < asize) splitNode(uID, sD);
             Actives[uID][1-cBuffer] = 0;
         }

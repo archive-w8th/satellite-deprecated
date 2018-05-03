@@ -14,7 +14,7 @@ layout ( std430, binding = 3, set = 0 ) buffer LeafsB {
 };
 
 layout ( std430, binding = 4, set = 0 ) restrict buffer bvhBoxesWorkB { 
-    vec4 bvhBoxesWork[][4];
+    vec4 bvhBoxesWork[][2];
 };
 
 layout ( std430, binding = 5, set = 0 ) buffer FlagsB {

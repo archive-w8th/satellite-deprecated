@@ -21,82 +21,76 @@
 layout ( local_size_x = WORK_SIZE_BND ) in;
 
 void unifyNodeBox(in int idx){
-    // memory barrier
-    memoryBarrier();
-
     // initial for unify box
     ivec4 comp = bvhMeta[idx]; // meta of contributable
-    int sibid = comp.x >> 1; // contributor prefix box id
-    int bidx = idx>>1, sidx = idx&1;
+    int lft = comp.x, rgh = lft+1, sibid = comp.x >> 1;
 
     // get contributors boxes
-    mat4 lrbox = mat4(
-        bvhBoxesWork[sibid][0], bvhBoxesWork[sibid][2], 
-        bvhBoxesWork[sibid][1], bvhBoxesWork[sibid][3]
-    );
-
-    // unify on way
-    bbox rbox = bbox(min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3]));
-
-    // memory barrier
-    memoryBarrier();
+    mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
 
     // contribute to current node
-    if (bidx >= 0) {
-        bvhBoxesWork[bidx][sidx*2+0] = rbox.mn;
-        bvhBoxesWork[bidx][sidx*2+1] = rbox.mx;
+    if (idx >= 0) {
+        vec4 boxed[2] = bvhBoxesWork[idx];
+        boxed[0] = min(lrbox[0], lrbox[1]);
+        boxed[1] = max(lrbox[2], lrbox[3]);
+        bvhBoxesWork[idx] = boxed;
     }
 
-    // memory barrier
-    memoryBarrier();
-
-    // transpose and compress boxes of contributor
+    // transpose and compress boxes of contributors
     lrbox = transpose(lrbox);
-
-    // memory barrier
-    memoryBarrier();
 
     // transposed save
 #ifdef USE_F32_BVH
-    bvhBoxesResulting[sibid][0] = fvec4_(lrbox[0]);
-    bvhBoxesResulting[sibid][1] = fvec4_(lrbox[1]);
-    bvhBoxesResulting[sibid][2] = fvec4_(lrbox[2]);
-    bvhBoxesResulting[sibid][3] = fvec4_(lrbox[3]);
+    fvec4_ resulting[4] = { fvec4_(lrbox[0]), fvec4_(lrbox[1]), fvec4_(lrbox[2]), fvec4_(lrbox[3]) };
 #else
-    bvhBoxesResulting[sibid][0] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) ), 0u, 0u);
-    bvhBoxesResulting[sibid][1] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) ), 0u, 0u);
-    bvhBoxesResulting[sibid][2] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u);
-    bvhBoxesResulting[sibid][3] = uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u);
+    uvec4 resulting[4] = {
+        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) ), 0u, 0u),
+        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) ), 0u, 0u),
+        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u),
+        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u)
+    };
 #endif
+
+    // store boxes for outputs
+    bvhBoxesResulting[sibid] = resulting;
 }
 
 void main() {
-    int wsize = cCounter;
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
-    int wgs = int(gl_NumWorkGroups);
-    for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); 
+    const int wsize = cCounter;
+    const int gS = int(gl_WorkGroupSize.x);
+    const int wgs = int(gl_NumWorkGroups);
+    const int wID = int(gl_WorkGroupID.x);
+    const int lID = int(Local_Idx);
+    const int rng = gS*wgs;
+    const int wcount = tiled(wsize, gS)*gS;
+    for (int w=0;w<wcount;w+=rng) {
+        int globalID = w + wID * gS + lID;
         IFALL (globalID >= wsize) break;
+        int idx = -1;
         if (globalID < wsize && globalID >= 0) {
             // get bbox host node of leafs
-            int idx = LeafIndices[globalID]-1;
-            
-            // reductive unity boxes
-            for (int l=0;l<256;l++) {
-                memoryBarrier();
+            idx = atomicExchange(LeafIndices[globalID], 0)-1;
+            if (idx >= 0) { // reductive unity boxes
+                for (int l=0;l<256;l++) {
 
-                // to parent node
-                if (idx >= 0) idx = bvhMeta[idx].z;
+                    // to parent node
+                    int parentID = idx >= 0 ? atomicExchange(bvhMeta[idx].w, 0)-1 : -1; // try that for fix interleaving
 
-                // break when no valid index
-                if (idx < 0) { break; }
+                    // if there is no way, then break
+                    if (parentID < 0) break; 
 
-                // do contribution to parent node box host
-                memoryBarrier();
-                if (atomicCompSwap(Flags[idx], 1, 0) == 0) {
-                    unifyNodeBox(idx); 
-                } else {
-                    idx = -1; break;
+                    // choice candidate
+                    if (parentID >= 0) {
+                        idx = (atomicCompSwap(Flags[parentID], 0, 1) == 1) ? parentID : -1;
+                    } else {
+                        idx = -1;
+                    }
+
+                    // if index no valid, then break
+                    if (idx < 0) break;
+
+                    // do contribution to parent node box host
+                    if (idx >= 0) unifyNodeBox(idx);
                 }
             }
         }

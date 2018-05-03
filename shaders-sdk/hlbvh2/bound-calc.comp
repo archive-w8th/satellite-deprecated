@@ -31,9 +31,9 @@ bool validPrimitive(const mat3x4 triverts){
     return length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5;
 }
 
-bbox getMinMaxPrimitive(in uint idx) {
-    const uint tri = clamp(idx, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
-    const uint itri = tri*9;
+bbox getMinMaxPrimitive(in int idx) {
+    const int tri = clamp(idx, 0, GEOMETRY_BLOCK geometryUniform.triangleCount-1);
+    const int itri = tri*9;
     const mat3x4 triverts = mat3x4(
         divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2], 1.f))), 
         divW(mult4(bvhBlock.creatorUniform.transform, vec4(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5], 1.f))), 
@@ -59,24 +59,26 @@ bbox bboxunion3(in bbox b1, in bbox b2, in bbox c3) {
 
 
 void main() {
-    const uint tid = gl_LocalInvocationID.x;
-    const uint gridSize = (gl_WorkGroupSize.x*2) * gl_NumWorkGroups.x;
-    const uint tcount = min(max(GEOMETRY_BLOCK geometryUniform.triangleCount, 2), 16777216);
-    uint i = gl_WorkGroupID.x * (gl_WorkGroupSize.x*2) + tid;
+    const int tid = int(gl_LocalInvocationID.x);
+    const int gridSize = int((gl_WorkGroupSize.x*2) * gl_NumWorkGroups.x);
+    const int tcount = max(GEOMETRY_BLOCK geometryUniform.triangleCount, 2);
 
+    // 
     sdata[tid] = bbox(vec4( 100000.f), vec4(-100000.f));
+    LGROUP_BARRIER
 
     // calculate boxes for per work
+    int i = int(gl_WorkGroupID.x * (gl_WorkGroupSize.x*2)) + tid;
     while (i < tcount) {
         bbox bound = sdata[tid];
-        sdata[tid] = bboxunion3(bound, getMinMaxPrimitive(i), getMinMaxPrimitive(i + gl_WorkGroupSize.x));
+        sdata[tid] = bboxunion3(bound, getMinMaxPrimitive(i), getMinMaxPrimitive(i + int(gl_WorkGroupSize.x)));
         i += gridSize;
     };
     LGROUP_BARRIER
 
     // shared reduction
     [[unroll]]
-    for (uint ki=(gl_WorkGroupSize.x>>1);ki>=Wave_Size_RT;ki>>=1) {
+    for (int ki=(int(gl_WorkGroupSize.x)>>1);ki>=int(Wave_Size_RT);ki>>=1) {
         if (tid < ki) { 
             bbox bound = sdata[tid], opbound = sdata[tid + ki]; 
             SB_BARRIER

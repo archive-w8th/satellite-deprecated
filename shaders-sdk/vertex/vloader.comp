@@ -170,13 +170,17 @@ const int m[3] = {0, 1, 2}, mq[3] = {3, 0, 2}, ms[3] = {2, 1, 3};
 initAtomicSubgroupIncFunctionDyn(tcounter[0], tcounterInc, int)
 
 void main(){
-    int n = meshUniform.nodeCount;
-    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 50000);
-    int wgs = int(gl_NumWorkGroups);
-    
-    for (int w=0;w<wcount;w+=wgs) {
-        uint globalID = (w + uint(gl_WorkGroupID.x)) * uint(gl_WorkGroupSize.x) + uint(gl_LocalInvocationID.x); if (globalID >= n) break;
-        if (globalID < n && globalID >= 0) {
+    const int wsize = meshUniform.nodeCount;
+    const int gS = int(gl_WorkGroupSize.x);
+    const int wgs = int(gl_NumWorkGroups);
+    const int wID = int(gl_WorkGroupID.x);
+    const int lID = int(Local_Idx);
+    const int rng = gS*wgs;
+    const int wcount = tiled(wsize, gS)*gS;
+    for (int w=0;w<wcount;w+=rng) {
+        int globalID = w + wID * gS + lID;
+        if (globalID >= wsize) break;
+        if (globalID < wsize && globalID >= 0) {
 
             // constant material ID from vertex instance 
             int matID = int(meshUniform.materialID);

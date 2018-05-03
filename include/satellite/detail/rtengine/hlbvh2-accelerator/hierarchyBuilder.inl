@@ -120,15 +120,14 @@ namespace NSM
             auto geometrySourceCounterHandler = geometrySourceLink->getGeometrySourceCounterHandler();
             auto geometryBlockUniform = hierarchyStorageLink->getGeometryBlockUniform();
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); //
+
+            // get triangle count from staging
             std::vector<uint32_t> triangleCount(1);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, generalLoadingBuffer, { strided<uint32_t>(0), 0, strided<uint32_t>(1) }), false); // copy to staging
+            getBufferSubData(generalLoadingBuffer, triangleCount, 0);
 
-            {
-                // get triangle count from staging
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, generalLoadingBuffer, { strided<uint32_t>(0), 0, strided<uint32_t>(1) }), false); // copy to staging
-                getBufferSubData(generalLoadingBuffer, triangleCount, 0);
-            }
-
-            if (triangleCount[0] <= 0) return; // no need to build BVH
+            // no need to build BVH
+            if (triangleCount[0] <= 0) return;
 
             { // copy geometry accumulation to hierarchy storage
                 size_t _ALLOCATED_HEIGHT = tiled(triangleCount[0]*ATTRIBUTE_EXTENT, WARPED_WIDTH) + 1;
@@ -150,8 +149,8 @@ namespace NSM
                 flushCommandBuffer(device, command, true);
             }
 
-            // use use initial matrix
-            {
+            
+            { // use use initial matrix
                 glm::dmat4 mat(1.0);
                 mat *= glm::inverse(glm::dmat4(optproj));
                 bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
@@ -233,18 +232,11 @@ namespace NSM
             }*/
 
             { // resolve BVH buffers for copying
-                auto bvhBoxStorage = hierarchyStorageLink->getBvhBox();
-                auto bvhMetaStorage = hierarchyStorageLink->getBvhMeta();
-                size_t _ALLOCATED_HEIGHT = tiled(triangleCount[0] * 2, _BVH_WIDTH)+1;
-
-                // copy images command
                 auto command = getCommandBuffer(device, true);
-                memoryCopyCmd(command, bvhMetaWorking, bvhMetaStorage, { 0, 0, strided<glm::ivec4>(triangleCount[0] * 2) });
-                memoryCopyCmd(command, bvhBoxWorkingResulting, bvhBoxStorage, { 0, 0, strided<bbox>(triangleCount[0] * 2) });
+                memoryCopyCmd(command, bvhMetaWorking, hierarchyStorageLink->getBvhMeta(), { 0, 0, strided<glm::ivec4>(triangleCount[0] * 2) });
+                memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<bbox>(triangleCount[0] * 2) });
                 flushCommandBuffer(device, command, true);
             }
-
-
         }
 
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)

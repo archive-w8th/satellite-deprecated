@@ -15,38 +15,38 @@
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    int wsize = cCounter;
-    //int wcount = min(tiled(tiled(wsize,2)*2, int(gl_WorkGroupSize.x)), 131072);
-    int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 131072);
-    int wgs = int(gl_NumWorkGroups);
-    for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(Local_Idx);
+    const int wsize = cCounter;
+    const int gS = int(gl_WorkGroupSize.x);
+    const int wgs = int(gl_NumWorkGroups);
+    const int wID = int(gl_WorkGroupID.x);
+    const int lID = int(Local_Idx);
+    const int rng = gS*wgs;
+    const int wcount = tiled(wsize, gS)*gS;
+    for (int w=0;w<wcount;w+=rng) {
+        int globalID = w + wID * gS + lID;
         IFALL(globalID >= wsize) break;
+
+        int lidx = -1, bidx = lidx>>1, sidx = lidx&1, leafID = -1;
         if (globalID < wsize && globalID >= 0) {
-            int idx = LeafIndices[globalID]-1;
-            if (idx >= 0) {
-                ivec4 bvhmeta = bvhMeta[idx];
-                if (bvhmeta.y == bvhmeta.x && bvhmeta.z >= 0) { // if true leaf
-                    uint leafID = MortoncodesIndices[bvhmeta.x];
-                    if (leafID >= 0) {
-                        // make leaf qualified
-                        ivec4 bvhmeta = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
-                        
-                        // get leaf boxes
-                        vec4 mn = Leafs[leafID].lbox[0], mx = Leafs[leafID].lbox[1];
+            lidx = LeafIndices[globalID]-1, bidx = lidx>>1, sidx = lidx&1;
+            if (lidx >= 0) {
+                // get leaf data
+                ivec4 bvhmeta = bvhMeta[lidx]; leafID = int(MortoncodesIndices[bvhmeta.x]);
+                vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx}; 
 
-                        // make box of leaf block
-                        int bidx = idx>>1, sidx = idx&1;
+                // linking leafs
+                if (leafID >= 0) {
+                    // make leaf qualified
+                    ivec4 bvhmeta = ivec4(Leafs[leafID].pdata.w, 1, bvhmeta.zw);
+                    
+                    // get leaf boxes
+                    rbox[0] = Leafs[leafID].lbox[0], rbox[1] = Leafs[leafID].lbox[1];
 
-                        // memory barrier
-                        memoryBarrier();
-
-                        // save boxes
-                        bvhMeta[idx] = bvhmeta, 
-                        bvhBoxesWork[bidx][sidx*2+0] = mn, 
-                        bvhBoxesWork[bidx][sidx*2+1] = mx;
-                    }
+                    // save boxes
+                    bvhMeta[lidx] = bvhmeta;
                 }
+
+                bvhBoxesWork[lidx] = rbox;
             }
         }
     }

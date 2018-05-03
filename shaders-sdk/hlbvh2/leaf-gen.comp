@@ -20,96 +20,18 @@ initAtomicSubgroupIncFunction(aabbcount, atomicIncAABB, 1, int)
 
 LOCAL_SIZE_LAYOUT;
 
-vec2 intersectCube(in vec3 origin, in vec3 ray, in vec4 cubeMin, in vec4 cubeMax) {
-    vec3 dr = 1.0f / ray;
-    vec3 tMin = (cubeMin.xyz - origin) * dr;
-    vec3 tMax = (cubeMax.xyz - origin) * dr;
-    vec3 t1 = min(tMin, tMax);
-    vec3 t2 = max(tMin, tMax);
-    float tNear = max3_wrap(t1.x, t1.y, t1.z);
-    float tFar  = min3_wrap(t2.x, t2.y, t2.z);
-    bool_ isCube = lessEqualF(tNear, tFar);
-    return SSC(isCube) ? vec2(min(tNear, tFar), max(tNear, tFar)) : vec2(INFINITY);
-}
-
-vec4 points[6];
-
-// check if point is containing
-bool_ isContain(in vec4 point, in bbox abox){
-    return (
-        lessEqualF(point.x, abox.mx.x) & greaterEqualF(point.x, abox.mn.x) & 
-        lessEqualF(point.y, abox.mx.y) & greaterEqualF(point.y, abox.mn.y) & 
-        lessEqualF(point.z, abox.mx.z) & greaterEqualF(point.z, abox.mn.z)
-    );
-}
-
-// compaction box by triangle
-bbox compactBoxByTriangle(in bbox abox, in mat3x4 triverts){
-    // triangle vectors
-    vec3 e0 = normalize(triverts[1].xyz - triverts[0].xyz);
-    vec3 e1 = normalize(triverts[2].xyz - triverts[1].xyz);
-    vec3 e2 = normalize(triverts[0].xyz - triverts[2].xyz);
-
-    float l0 = length(triverts[1].xyz - triverts[0].xyz);
-    float l1 = length(triverts[2].xyz - triverts[1].xyz);
-    float l2 = length(triverts[0].xyz - triverts[2].xyz);
-
-    // box distances
-    vec2 d0 = intersectCube(triverts[0].xyz, e0.xyz, abox.mn, abox.mx);
-    vec2 d1 = intersectCube(triverts[1].xyz, e1.xyz, abox.mn, abox.mx);
-    vec2 d2 = intersectCube(triverts[2].xyz, e2.xyz, abox.mn, abox.mx);
-
-    uint pcount = 0;
-
-    if (d0.x < INFINITY) {
-        vec4 p0 = vec4(triverts[0].xyz + e0.xyz * sign(d0.x) * min(abs(d0.x), l0), 1.0f);
-        vec4 p1 = vec4(triverts[0].xyz + e0.xyz * sign(d0.y) * min(abs(d0.y), l0), 1.0f);
-
-        IF (isContain(p0, abox) & greaterEqualF(d0.x, 0.f)) points[pcount++] = p0;
-        IF (isContain(p1, abox) & greaterEqualF(d0.y, 0.f)) points[pcount++] = p1;
-    }
-
-    if (d1.x < INFINITY) {
-        vec4 p0 = vec4(triverts[1].xyz + e1.xyz * sign(d1.x) * min(abs(d1.x), l1), 1.0f);
-        vec4 p1 = vec4(triverts[1].xyz + e1.xyz * sign(d1.y) * min(abs(d1.y), l1), 1.0f);
-
-        IF (isContain(p0, abox) & greaterEqualF(d1.x, 0.f)) points[pcount++] = p0;
-        IF (isContain(p1, abox) & greaterEqualF(d1.y, 0.f)) points[pcount++] = p1;
-    }
-
-    if (d2.x < INFINITY) {
-        vec4 p0 = vec4(triverts[2].xyz + e2.xyz * sign(d2.x) * min(abs(d2.x), l2), 1.0f);
-        vec4 p1 = vec4(triverts[2].xyz + e2.xyz * sign(d2.y) * min(abs(d2.y), l2), 1.0f);
-
-        IF (isContain(p0, abox) & greaterEqualF(d2.x, 0.f)) points[pcount++] = p0;
-        IF (isContain(p1, abox) & greaterEqualF(d2.y, 0.f)) points[pcount++] = p1;
-    }
-
-    bbox result;
-    result.mn =  vec4(100000.f);
-    result.mx = -vec4(100000.f);
-
-    for (int i=0;i<pcount;i++) {
-        result.mn = min(points[i], result.mn);
-        result.mx = max(points[i], result.mx);
-    }
-
-    // clip box by original 
-    result.mn = max(result.mn, abox.mn);
-    result.mx = min(result.mx, abox.mx);
-    
-    return result;
-}
-
 void main() {
-    int n = GEOMETRY_BLOCK geometryUniform.triangleCount;
-    int wcount = min(tiled(n, int(gl_WorkGroupSize.x)), 131072);
-    int wgs = int(gl_NumWorkGroups);
-    for (int w=0;w<wcount;w+=wgs) {
-        int globalID = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x); if (globalID >= n) break;
-        if (globalID < n && globalID >= 0) {
-            vec4 mn = vec4(INFINITY), mx = vec4(-INFINITY);
-
+    const int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
+    const int gS = int(gl_WorkGroupSize.x);
+    const int wgs = int(gl_NumWorkGroups);
+    const int wID = int(gl_WorkGroupID.x);
+    const int lID = int(Local_Idx);
+    const int rng = gS*wgs;
+    const int wcount = tiled(wsize, gS)*gS;
+    for (int w=0;w<wcount;w+=rng) {
+        int globalID = w + wID * gS + lID;
+        if (globalID >= wsize) break;
+        if (globalID < wsize && globalID >= 0) {
             const uint tri = clamp(globalID, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
             const uint itri = tri*9;
             const mat3x4 triverts = mat3x4(
@@ -135,7 +57,8 @@ void main() {
 #endif
 
             const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
-            if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) {
+            //if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) 
+            {
                 bbox bounding = calcTriBox(triverts);
                 
                 // view based 
@@ -144,27 +67,30 @@ void main() {
                     greaterEqualF(bounding.mx.y, -1.f) & lessEqualF(bounding.mn.y, 1.f) & 
                     greaterEqualF(bounding.mx.z, -1.f) & lessEqualF(bounding.mn.z, 1.f)
                 ) {
-                    bounding = compactBoxByTriangle(bounding, triverts);
                     vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
 
+                    // allocate index
                     int to = atomicIncAABB();
-                    MortoncodesIndices[to] = int(to);
 
+                    // gen morton code
+                    uvec2 mortonCode = 
 #ifdef INTEL_PLATFORM
-                    Mortoncodes[to] = encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
+                    encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
 #else
-                    Mortoncodes[to] = encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));
+                    encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));
 #endif
 
-                    // for inprecise BVH increase precisions
-                    bounding.mn -= 1e-5f.xxxx, bounding.mx += 1e-5f.xxxx;
-                    
+                    // gen leaf
                     HlbvhNode outLeaf = Leafs[to];
-                    outLeaf.lbox[0] = bounding.mn;
-                    outLeaf.lbox[1] = bounding.mx;
+                    outLeaf.lbox[0] = bounding.mn - 1e-5f.xxxx;
+                    outLeaf.lbox[1] = bounding.mx + 1e-5f.xxxx;
                     outLeaf.pdata.xy = ivec2(to);
-                    outLeaf.pdata.zw = ivec2(-1, globalID);
+                    outLeaf.pdata.zw = ivec2(-1, globalID+1);
+
+                    // store leaf data
                     Leafs[to] = outLeaf;
+                    Mortoncodes[to] = mortonCode;
+                    MortoncodesIndices[to] = to;
                 }
             }
         }

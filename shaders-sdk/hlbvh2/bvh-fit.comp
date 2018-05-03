@@ -112,9 +112,13 @@ void main() {
             int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0) -1 : -1, 
                 pid = idx >= 0 ? exchange(bvhMeta[idx].w, 0)-1 : -1;
 
+            // do contribution to parent node box host
+            if (idx >= 0 && bvhMeta[idx].y == 2) {
+                unifyNodeBox(idx);
+            }
+
             // add to queue list
-            if (pid >= 0 && atomicAdd(Flags[pid], 1) == 2) { 
-                unifyNodeBox(pid); // do contribution to parent node box host
+            if (pid >= 0 && atomicCompSwap(Flags[pid], 0, 1) == 1) {
                 Actives[aCounterInc()][cBuffer] = pid+1;
             }
         }

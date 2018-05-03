@@ -62,7 +62,7 @@ void splitNode(in int fID, in int side) {
 
     // mark unbounded
     if (prID >= 0) {
-        Flags[prID] = 1;
+        atomicExchange(Flags[prID], 0);
         vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx};
         bvhBoxesWork[prID] = rbox;
     }

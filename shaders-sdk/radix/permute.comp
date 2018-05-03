@@ -27,13 +27,13 @@ initSubgroupIncFunctionTarget(localHistogram[WHERE], countOffset, 1, uint)
 void main() {
     Local_Idx = gl_LocalInvocationID.x;
     Wave_Idx = gl_LocalInvocationID.x / Wave_Size_RT;
-    Global_Wave_Idx = gl_WorkGroupID.y + Wave_Idx * gl_WorkGroupSize.y;
-    Lane_Idx = (gl_LocalInvocationID.x % Wave_Size_RT);
+    Lane_Idx = gl_LocalInvocationID.x % Wave_Size_RT;
+    Radice_Idx = gl_WorkGroupID.y + Wave_Idx * gl_WorkGroupSize.y;
 
     // set prefix sum (planned distribute threads) 
     [[unroll]]
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
-        uvec_wave radice = uvec_wave(rk + Global_Wave_Idx);
+        uvec_wave radice = uvec_wave(rk + Radice_Idx);
         localHistogram[radice] = PrefixSum[radice + gl_WorkGroupID.x * RADICES];
     }
     
@@ -73,7 +73,7 @@ void main() {
 
         // WARP-optimized histogram calculation
         for (uint rk=0u;rk<RADICES;rk+=WRK_SIZE_RT) {
-            uvec_wave radice = uvec_wave(rk + Global_Wave_Idx);
+            uvec_wave radice = uvec_wave(rk + Radice_Idx);
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             bvec2 owned = and(equal(unpackUint2x16(key), radice.xx), validAddress);
             if (any(owned)) {

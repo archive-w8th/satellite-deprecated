@@ -25,13 +25,13 @@ initSubgroupIncFunctionTarget(localHistogram[WHERE], countHistogram, 1, uint)
 void main() {
     Local_Idx = gl_LocalInvocationID.x;
     Wave_Idx = gl_LocalInvocationID.x / Wave_Size_RT;
-    Global_Wave_Idx = gl_WorkGroupID.y + Wave_Idx * gl_WorkGroupSize.y;
-    Lane_Idx = (gl_LocalInvocationID.x % Wave_Size_RT);
+    Lane_Idx = gl_LocalInvocationID.x % Wave_Size_RT;
+    Radice_Idx = gl_WorkGroupID.y + Wave_Idx * gl_WorkGroupSize.y;
 
     // clear histogram of block (planned distribute threads)
     [[unroll]]
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
-        localHistogram[rk + Global_Wave_Idx] = 0;
+        localHistogram[rk + Radice_Idx] = 0;
     }
     LGROUP_BARRIER
 
@@ -69,7 +69,7 @@ void main() {
 
         // WARP-optimized histogram calculation
         for (uint rk=0u;rk<RADICES;rk+=WRK_SIZE_RT) {
-            uvec_wave radice = uvec_wave(rk + Global_Wave_Idx);
+            uvec_wave radice = uvec_wave(rk + Radice_Idx);
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             bvec2 owned = and(equal(unpackUint2x16(key), radice.xx), validAddress);
             if (any(owned)) countHistogram(uint(radice), owned);
@@ -93,7 +93,7 @@ void main() {
 
     [[unroll]]
     for (uint rk=0;rk<RADICES;rk+=WRK_SIZE_RT) {
-        uvec_wave radice = uvec_wave(rk + Global_Wave_Idx);
+        uvec_wave radice = uvec_wave(rk + Radice_Idx);
         if (radice < RADICES) {
             PrefixSum[radice + RADICES * gl_WorkGroupID.x] = localHistogram[radice];
             Histogram[radice + RADICES * gl_WorkGroupID.x] = localHistogram[radice];

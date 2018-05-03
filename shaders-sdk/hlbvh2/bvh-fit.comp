@@ -4,7 +4,7 @@
 #ifdef NVIDIA_PLATFORM
 #define WORK_SIZE_BND 640
 #else 
-#define WORK_SIZE_BND 1024
+#define WORK_SIZE_BND 512
 #endif
 
 #define BVH_CREATION

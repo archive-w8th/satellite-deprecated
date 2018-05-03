@@ -213,8 +213,8 @@ namespace NSM
             dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             
-            /*
-            if (triangleCount[0] > 0) {
+            
+            /*if (triangleCount[0] > 0) {
                 std::vector<bbox> bboxes(triangleCount[0] * 2);
                 flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
                 getBufferSubData(generalLoadingBuffer, bboxes);

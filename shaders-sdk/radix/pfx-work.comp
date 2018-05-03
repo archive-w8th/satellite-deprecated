@@ -39,9 +39,9 @@ uint prefixScan(const uint limit) {
 }
 
 void main() {
-    Local_Idx = gl_LocalInvocationID.x;
-    Global_Wave_Idx = gl_LocalInvocationID.x / Wave_Size_RT;
-    Lane_Idx = (gl_LocalInvocationID.x % Wave_Size_RT);
+     Local_Idx = gl_LocalInvocationID.x;
+    Radice_Idx = gl_LocalInvocationID.x / Wave_Size_RT;
+      Lane_Idx = gl_LocalInvocationID.x % Wave_Size_RT;
 
     IFALL (gl_WorkGroupID.y < 1) {
         

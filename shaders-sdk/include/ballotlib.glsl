@@ -38,21 +38,9 @@
 #define readLane RL_
 
 
-uvec4 makeFilterMinor() {
-    const uint mnr = Wave_Size_RT >= 32 ? 0xFFFFFFFFu : ((1 << Wave_Size_RT)-1);
-    const uint mjr = Wave_Size_RT >= 64 ? 0xFFFFFFFFu : 0x0u;
-    //return uvec4(mnr, mjr, 0x0u, 0x0u);
-    //return uvec4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
-    return uvec4(0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
-}
-
-
-uvec_wave_ballot ballotHW(in bool i) { return (subgroupBallot(i) & makeFilterMinor()); }
-uvec_wave_ballot ballotHW() { return (subgroupBallot(true) & makeFilterMinor()); }
+uvec_wave_ballot ballotHW(in bool i) { return subgroupBallot(i); }
+uvec_wave_ballot ballotHW() { return subgroupBallot(true); }
 bool electedInvoc() { return subgroupElect(); }
-
-
-
 
 
 // statically multiplied

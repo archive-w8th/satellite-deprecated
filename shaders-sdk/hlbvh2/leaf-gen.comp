@@ -32,6 +32,7 @@ void main() {
         int globalID = w + wID * gS + lID;
         if (globalID >= wsize) break;
         if (globalID < wsize && globalID >= 0) {
+
             const uint tri = clamp(globalID, 0u, uint(GEOMETRY_BLOCK geometryUniform.triangleCount-1));
             const uint itri = tri*9;
             const mat3x4 triverts = mat3x4(
@@ -49,49 +50,42 @@ void main() {
                 ));
 
                 { // transpose type
-                    lvtx[itri+0] = vtxL[0].x, lvtx[itri+1] = vtxL[0].y, lvtx[itri+2] = vtxL[0].z;
-                    lvtx[itri+3] = vtxL[1].x, lvtx[itri+4] = vtxL[1].y, lvtx[itri+5] = vtxL[1].z;
+                    lvtx[itri+0] = vtxL[0].x, lvtx[itri+1] = vtxL[0].y, lvtx[itri+2] = vtxL[0].z,
+                    lvtx[itri+3] = vtxL[1].x, lvtx[itri+4] = vtxL[1].y, lvtx[itri+5] = vtxL[1].z,
                     lvtx[itri+6] = vtxL[2].x, lvtx[itri+7] = vtxL[2].y, lvtx[itri+8] = vtxL[2].z;
                 }
             }
 #endif
 
-            const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
-            //if (length(abs(triverts[0] - tcenter).xyz + abs(triverts[1] - tcenter).xyz + abs(triverts[2] - tcenter).xyz) >= 1.e-5) 
             {
+                // get bounding
                 bbox bounding = calcTriBox(triverts);
-                
+
                 // view based 
-                IF (
-                    greaterEqualF(bounding.mx.x, -1.f) & lessEqualF(bounding.mn.x, 1.f) & 
-                    greaterEqualF(bounding.mx.y, -1.f) & lessEqualF(bounding.mn.y, 1.f) & 
-                    greaterEqualF(bounding.mx.z, -1.f) & lessEqualF(bounding.mn.z, 1.f)
-                ) {
-                    vec4 bcenter = tcenter;//(bounding.mn + bounding.mx) * 0.5f;
+                vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
 
-                    // allocate index
-                    int to = atomicIncAABB();
+                // allocate index
+                int to = atomicIncAABB();
 
-                    // gen morton code
-                    uvec2 mortonCode = 
+                // gen morton code
+                uvec2 mortonCode = 
 #ifdef INTEL_PLATFORM
-                    encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
+                encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
 #else
-                    encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));
+                encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));
 #endif
 
-                    // gen leaf
-                    HlbvhNode outLeaf = Leafs[to];
-                    outLeaf.lbox[0] = bounding.mn - 1e-5f.xxxx;
-                    outLeaf.lbox[1] = bounding.mx + 1e-5f.xxxx;
-                    outLeaf.pdata.xy = ivec2(to);
-                    outLeaf.pdata.zw = ivec2(-1, globalID+1);
+                // gen leaf
+                HlbvhNode outLeaf = Leafs[to];
+                outLeaf.lbox[0] = bounding.mn - 1e-5f.xxxx;
+                outLeaf.lbox[1] = bounding.mx + 1e-5f.xxxx;
+                outLeaf.pdata.xy = ivec2(to);
+                outLeaf.pdata.zw = ivec2(-1, globalID+1);
 
-                    // store leaf data
-                    Leafs[to] = outLeaf;
-                    Mortoncodes[to] = mortonCode;
-                    MortoncodesIndices[to] = to;
-                }
+                // store leaf data
+                Leafs[to] = outLeaf;
+                Mortoncodes[to] = mortonCode;
+                MortoncodesIndices[to] = to;
             }
         }
     }

@@ -71,9 +71,10 @@ void main() {
     int i = int(gl_WorkGroupID.x * (gl_WorkGroupSize.x*2)) + tid;
     while (i < tcount) {
         bbox bound = sdata[tid];
-        sdata[tid] = bboxunion3(bound, getMinMaxPrimitive(i), getMinMaxPrimitive(i + int(gl_WorkGroupSize.x)));
+        bound = bboxunion3(bound, getMinMaxPrimitive(i), getMinMaxPrimitive(i + int(gl_WorkGroupSize.x)));
+        sdata[tid] = bound;
         i += gridSize;
-    };
+    }
     LGROUP_BARRIER
 
     // shared reduction
@@ -81,8 +82,9 @@ void main() {
     for (int ki=(int(gl_WorkGroupSize.x)>>1);ki>=int(Wave_Size_RT);ki>>=1) {
         if (tid < ki) { 
             bbox bound = sdata[tid], opbound = sdata[tid + ki]; 
+            bound = bboxunion(bound, opbound); 
             SB_BARRIER
-            sdata[tid] = bboxunion(bound, opbound); 
+            sdata[tid] = bound; 
         }
         LGROUP_BARRIER
     }

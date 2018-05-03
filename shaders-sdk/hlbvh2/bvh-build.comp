@@ -33,18 +33,16 @@ int cdelta( in int a, in int b ){
 #endif
 }
 
+
 int findSplit( in int first, in int last) {
     int commonPrefix = cdelta(first, last), split = first, nstep = last - first;
-    IFANY (commonPrefix < 64) {
-        for (int i=0;(i<8192 && nstep>1);i++) {
-            nstep = (nstep + 1) >> 1;
-            int newSplit = split + nstep, code = cdelta(first, newSplit);
-            split = code > commonPrefix ? newSplit : split;
-        }
-    } else {
-        split = (split+last)>>1;
-    }
-    return clamp(split, first, last-1);
+    if (nstep <= 0) { split = first; } else // if first == last
+    if (commonPrefix >= 64) { split = (first + last)>>1; } else // if morton code equals
+    {for (int i=0;(i<8192 && nstep>1);i++) { // search split
+        int newSplit = split + (nstep = (nstep + 1) >> 1), code = cdelta(first, newSplit);
+        split = code > commonPrefix ? newSplit : split;
+    }}
+    return clamp(split, first, last);
 }
 
 
@@ -77,7 +75,7 @@ void splitNode(in int trID, in int side) {
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
     
         // find split
-        int split = findSplit(_pdata.x, _pdata.y);
+        int split = findSplit(_pdata.x, _pdata.y-1);
         ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
         bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
         int hd = lCounterInc();

@@ -66,33 +66,31 @@ void main() {
     for (int w=0;w<wcount;w+=rng) {
         int globalID = w + wID * gS + lID;
         IFALL (globalID >= wsize) break;
-        int idx = -1;
-        if (globalID < wsize && globalID >= 0) {
-            // get bbox host node of leafs
-            idx = atomicExchange(LeafIndices[globalID], 0)-1;
-            if (idx >= 0) { // reductive unity boxes
-                for (int l=0;l<256;l++) {
 
-                    // to parent node
-                    int parentID = idx >= 0 ? atomicExchange(bvhMeta[idx].w, 0)-1 : -1; // try that for fix interleaving
+        // initial leaf index
+        int idx = globalID < wsize ? LeafIndices[globalID]-1 : -1, parentID = -1;
 
-                    // if there is no way, then break
-                    if (parentID < 0) break; 
+        // upcoming to root node
+        for (int l=0;l<1024;l++) {
+            // do barrier
+            memoryBarrier(); SB_BARRIER
 
-                    // choice candidate
-                    if (parentID >= 0) {
-                        idx = (atomicCompSwap(Flags[parentID], 0, 1) == 1) ? parentID : -1;
-                    } else {
-                        idx = -1;
-                    }
+            // to parent node (try that for fix interleaving)
+            parentID = idx >= 0 ? bvhMeta[idx].w-1 : -1;
 
-                    // if index no valid, then break
-                    if (idx < 0) break;
+            // if there is no way, then break
+            IFALL (idx < 0 || parentID < 0) break;
 
-                    // do contribution to parent node box host
-                    if (idx >= 0) unifyNodeBox(idx);
-                }
+            // choice candidate
+            if (parentID >= 0) {
+                idx = (atomicCompSwap(Flags[parentID], 0, 1) == 1) ? parentID : -1; 
+            } else { 
+                idx = -1;
             }
+
+            // do contribution to parent node box host
+            if (idx >= 0) unifyNodeBox(idx);
         }
+
     }
 }

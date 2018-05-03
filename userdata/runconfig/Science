@@ -1,1 +1,1 @@
--m friction-processed.gltf -s 1.0
+-d models -m friction-processed.gltf -s 1.0

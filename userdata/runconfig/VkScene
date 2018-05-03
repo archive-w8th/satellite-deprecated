@@ -1,1 +1,1 @@
--m vulkanscenemodels.gltf -s 1.0
+-d models -m vulkanscenemodels.gltf -s 1.0

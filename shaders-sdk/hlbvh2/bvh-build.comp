@@ -18,27 +18,24 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
-int cdelta( in int a, in int b ){
-#ifdef INTEL_PLATFORM
-    uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
-    acode.x = a, bcode.x = b;
-    return nlz(acode^bcode);
-#else 
-    uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
-    int pfx = nlz(acode^bcode);
-    return pfx + (pfx < 64 ? 0 : nlz(a^b));
-#endif
-}
-
-
 int findSplit( in int first, in int last) {
-    int commonPrefix = cdelta(first, last), split = first, nstep = last - first;
-    if (nstep <= 0) { split = first; } else // if first == last
-    if (commonPrefix >= 64) { split = (first + last)>>1; } else // if morton code equals
-    {for (int i=0;(i<8192 && nstep>1);i++) { // search split
-        int newSplit = split + (nstep = (nstep + 1) >> 1), code = cdelta(first, newSplit);
-        split = code > commonPrefix ? newSplit : split;
-    }}
+    uvec2 firstCode = Mortoncodes[first], lastCode = Mortoncodes[last];
+    int split = first;
+    if (firstCode == lastCode) {
+        split = (first + last) >> 1;
+    } else {
+        int commonPrefix = nlz(firstCode ^ lastCode);
+        int step = last - first;
+        do {
+            step = (step + 1) >> 1;
+            int newSplit = split + step;
+            if (newSplit < last) {
+                uvec2 splitCode = Mortoncodes[newSplit];
+                int splitPrefix = nlz(firstCode ^ splitCode);
+                if (splitPrefix > commonPrefix) { split = newSplit; }
+            }
+        } while (step > 1);
+    }
     return clamp(split, first, last-1);
 }
 
@@ -63,8 +60,7 @@ void splitNode(in int fID, in int side) {
     // mark unbounded
     if (prID >= 0) {
         atomicExchange(Flags[prID], 0);
-        vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx};
-        bvhBoxesWork[prID] = rbox;
+        bvhBoxesWork[prID] = vec4[2](100000.f.xxxx, -100000.f.xxxx);
     }
 
     // 
@@ -121,13 +117,14 @@ void main() {
     for (int m=0;m<4096;m++) {
         // check activity counter
         const int asize = _counters[1];
-        IFALL (asize <= 0) break;
+        IFALL (asize <= 0) break; // if there is no element, stop splitting
         LGROUP_BARRIER
 
         // switch buffer and reset counter
-        if (threadID == 0) { 
-            _counters[1] = 0; const int swch = 1-cBuffer; exchange(cBuffer, swch); 
-        } // ping pong
+        if (threadID == 0) { // switch buffers
+            _counters[1] = 0; 
+            cBuffer = 1-cBuffer;
+        }
         LGROUP_BARRIER
 
         // split nodes
@@ -139,10 +136,12 @@ void main() {
             IFALL (uID >= asize) break;
 
             // get spared prefix
-            const int fID = readLane((Lane_Idx&1) == 0 ? exchange(Actives[uID][1-cBuffer], 0)-1 : -1, (Lane_Idx>>1)<<1);
+            const int fID = readLane((Lane_Idx&1) == 0 ? atomicExchange(Actives[uID][1-cBuffer], 0)-1 : -1, (Lane_Idx>>1)<<1);
 
             // split sibling nodes
-            if (uID < asize) splitNode(fID, sD);
+            if (uID < asize && fID >= 0) {
+                splitNode(fID, sD);
+            }
         }
         LGROUP_BARRIER
     }
@@ -153,4 +152,5 @@ void main() {
         aCounter = _counters[1];
         cCounter = _counters[2];
     }
+    LGROUP_BARRIER
 }

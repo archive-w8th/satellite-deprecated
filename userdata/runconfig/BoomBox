@@ -1,1 +1,1 @@
--m BoomBox-processed.gltf -s 100.0
+-d models -m BoomBox-processed.gltf -s 100.0

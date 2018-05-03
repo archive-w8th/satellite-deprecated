@@ -1,1 +1,1 @@
--m DamagedHelmet-processed.gltf -s 1.0
+-d models -m DamagedHelmet-processed.gltf -s 1.0

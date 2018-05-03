@@ -1,1 +1,1 @@
--m Chess_Set.gltf -s 1.0
+-d models -m Chess_Set.gltf -s 1.0

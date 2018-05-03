@@ -1,1 +1,1 @@
--m MetalRoughSpheres-processed.gltf -s 1.0
+-d models -m MetalRoughSpheres-processed.gltf -s 1.0

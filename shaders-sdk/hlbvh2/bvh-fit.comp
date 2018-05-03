@@ -26,8 +26,7 @@ void unifyNodeBox(const int idx){
     mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
 
     // contribute to current node
-    vec4 boxed[2] = {min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3])};
-    bvhBoxesWork[idx] = boxed;
+    bvhBoxesWork[idx] = vec4[2](min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3]));
 
     // transpose and compress boxes of contributors
     lrbox = transpose(lrbox);

@@ -1,1 +1,1 @@
--m CornellBox-Glossy.gltf -s 10.0
+-d models -m CornellBox-Glossy.gltf -s 10.0

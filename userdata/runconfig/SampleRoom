@@ -1,1 +1,1 @@
--m sampleroom.gltf -s 1.0
+-d models -m sampleroom.gltf -s 1.0

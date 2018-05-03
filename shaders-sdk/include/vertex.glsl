@@ -92,7 +92,7 @@ const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 #ifdef ENABLE_VSTORAGE_DATA
 float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, in bool valid) {
     float T = INFINITY;
-    IF (valid) {
+    if (valid) {
         // gather patterns
         const int itri = tri*9;
         const mat3 ABC = mat3(
@@ -105,7 +105,7 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
         // http://jcgt.org/published/0002/01/05/paper.pdf
         vec3 UVW_ = uvwMap[axis] * inverse(ABC);
         valid = valid && (all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
-        IF (valid) {
+        if (valid) {
             const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/precIssue(det);
             UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
             T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
@@ -135,7 +135,7 @@ float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout ve
 
     float T = f * dot(e2,q);
     if (T >= INFINITY || T < 0.f) { _valid = false; } 
-    IF (!_valid) T = INFINITY;
+    if (!_valid) T = INFINITY;
     return T;
 }
 

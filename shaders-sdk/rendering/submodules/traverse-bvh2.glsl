@@ -23,7 +23,7 @@ layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) restrict uniform iimageBuf
 
 
 // 128-bit payload
-int stackPtr = 0, pageIdx = -1, rayID = 0, _r0 = -1;
+int stackPtr = 0, pagePtr = 0, rayID = 0, _r0 = -1;
 
 
 #ifndef USE_STACKLESS_BVH
@@ -32,28 +32,26 @@ int stackPtr = 0, pageIdx = -1, rayID = 0, _r0 = -1;
 ivec4 lstack = ivec4(-1,-1,-1,-1);
 
 int loadStack(){
-    int ptr = --stackPtr; int val = -1;
-
     // load previous stack page
-    if (ptr < 0) { int page = pageIdx--; 
-        if (page >= 0) {
-            stackPtr = ptr = localStackSize-1;
+    if ((--stackPtr) < 0) {
+        int page = --pagePtr;
+        if (page >= 0 && page < stackPageCount) {
+            stackPtr = localStackSize-1;
             lstack = imageLoad(texelPages, rayID*stackPageCount + page);
         }
     }
 
     // fast-stack
-    val = exchange(lstack.x, -1); lstack = lstack.yzwx;
+    int val = exchange(lstack.x, -1); lstack = lstack.yzwx;
     return val;
 }
 
 void storeStack(in int val){
-    int ptr = stackPtr++;
-
     // store stack to global page, and empty list
-    if (ptr >= localStackSize) { int page = ++pageIdx;
-        if (page >= 0 && page < stackPageCount) {
-            stackPtr = 1, ptr = 0;
+    if ((stackPtr++) >= localStackSize) {
+        int page = pagePtr++;
+        if (page >= 0 && page < stackPageCount) { 
+            stackPtr = 1;
             imageStore(texelPages, rayID*stackPageCount + page, lstack);
         }
     }
@@ -62,8 +60,8 @@ void storeStack(in int val){
     lstack = lstack.wxyz; lstack.x = val;
 }
 
-bool stackIsFull() { return stackPtr >= localStackSize && pageIdx >= stackPageCount; }
-bool stackIsEmpty() { return stackPtr <= 0 && pageIdx < 0; }
+bool stackIsFull() { return stackPtr >= localStackSize && pagePtr >= stackPageCount; }
+bool stackIsEmpty() { return stackPtr <= 0 && pagePtr < 0; }
 #endif
 
 
@@ -97,7 +95,6 @@ struct BVHSpace {
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    //float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.dir.xyz, traverseState.defTriangleID.x, uv.xy, bool(near.x));
     float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.iM, geometrySpace.axis, traverseState.defTriangleID.x, uv.xy, bool(near.x));
 
     float _nearhit = geometrySpace.lastIntersection.z;
@@ -105,7 +102,6 @@ void doIntersection() {
     
     // validate hit 
     near &= lessF(d, INFINITY) & lessEqualF(d, _nearhit);
-    //near &= lessF(d, _nearhit) | bool_(vorders[traverseState.defTriangleID.x] >= vorders[floatBitsToInt(traverseState.geometrySpace.lastIntersection.w)]); // check z-fight priority
     IF (near.x) geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID.x));
 
     // reset triangle ID 
@@ -119,7 +115,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     int eht = floatBitsToInt(currentRayTmp.origin.w);
 
     // reset stack
-    stackPtr = 0, pageIdx = -1;
+    stackPtr = 0, pagePtr = 0;
 
     // test constants
     vec3 
@@ -134,15 +130,14 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     // limitation of distance
     bvec3_ bsgn = (bvec3_(sign(dirproj)*ftype_(1.0001f))+true_)>>true_;
 
-#ifdef USE_STACKLESS_BVH
-    traverseState.bitStack = 0ul;
-#endif
-
     // initial state
     traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.defTriangleID = -1;
     traverseState.distMult = 1.f/precIssue(dirlenInv);
     traverseState.diffOffset = 0.f;
+#ifdef USE_STACKLESS_BVH
+    traverseState.bitStack = 0ul;
+#endif
 
     // calculate longest axis
     geometrySpace.axis = 2;
@@ -187,8 +182,8 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     // begin of traverse BVH 
     ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
     for (int hi=0;hi<max_iteraction;hi++) {
+        
         IFALL (traverseState.idx < 0) break; // if traverse can't live
-
         if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;
 

@@ -15,13 +15,12 @@
 #include "../include/morton.glsl"
 #include "./includes.glsl"
 
-
 initAtomicSubgroupIncFunction(aabbcount, atomicIncAABB, 1, int)
 
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-    const int wsize = GEOMETRY_BLOCK geometryUniform.triangleCount;
+    const int wsize = tiled(GEOMETRY_BLOCK geometryUniform.triangleCount, 2)*2; // align by
     const int gS = int(gl_WorkGroupSize.x);
     const int wgs = int(gl_NumWorkGroups);
     const int wID = int(gl_WorkGroupID.x);

@@ -3,13 +3,6 @@
 
 #define BVH_CREATION
 
-#ifdef NVIDIA_PLATFORM
-//#define WORK_SIZE_BND 1536
-#define WORK_SIZE_BND 1024
-#else 
-#define WORK_SIZE_BND 1024
-#endif
-
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
@@ -18,9 +11,7 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
-layout ( local_size_x = WORK_SIZE_BND ) in;
-
-void unifyNodeBox(in int idx){
+void unifyNodeBox(const int idx){
     // initial for unify box
     ivec4 comp = bvhMeta[idx]; // meta of contributable
     int lft = comp.x, rgh = lft+1, sibid = comp.x >> 1;
@@ -29,12 +20,8 @@ void unifyNodeBox(in int idx){
     mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
 
     // contribute to current node
-    if (idx >= 0) {
-        vec4 boxed[2] = bvhBoxesWork[idx];
-        boxed[0] = min(lrbox[0], lrbox[1]);
-        boxed[1] = max(lrbox[2], lrbox[3]);
-        bvhBoxesWork[idx] = boxed;
-    }
+    vec4 boxed[2] = {min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3])};
+    bvhBoxesWork[idx] = boxed;
 
     // transpose and compress boxes of contributors
     lrbox = transpose(lrbox);
@@ -54,6 +41,9 @@ void unifyNodeBox(in int idx){
     // store boxes for outputs
     bvhBoxesResulting[sibid] = resulting;
 }
+
+
+LOCAL_SIZE_LAYOUT;
 
 void main() {
     const int wsize = cCounter;

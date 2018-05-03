@@ -12,6 +12,7 @@
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
 
+
 LOCAL_SIZE_LAYOUT;
 
 void main() {

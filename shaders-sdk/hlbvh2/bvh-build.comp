@@ -1,15 +1,14 @@
 #version 460 core
 #extension GL_GOOGLE_include_directive : enable
 
-#define BVH_BUILD
-#define BVH_CREATION
-
 #ifdef NVIDIA_PLATFORM
-//#define WORK_SIZE_BND 1536
-#define WORK_SIZE_BND 1024
+#define WORK_SIZE_BND 512
 #else 
 #define WORK_SIZE_BND 1024
 #endif
+
+#define BVH_BUILD
+#define BVH_CREATION
 
 #include "../include/constants.glsl"
 #include "../include/structs.glsl"
@@ -18,8 +17,6 @@
 #include "../include/ballotlib.glsl"
 #include "../include/vertex.glsl"
 #include "./includes.glsl"
-
-layout ( local_size_x = WORK_SIZE_BND ) in;
 
 int cdelta( in int a, in int b ){
 #ifdef INTEL_PLATFORM
@@ -58,21 +55,20 @@ initAtomicSubgroupIncFunction(_counters[2], cCounterInc, 1, int)
 initAtomicSubgroupIncFunction(_counters[2], cCounterDualInc, 2, int)
 
 
-
-void splitNode(in int trID, in int side) {
+void splitNode(in int fID, in int side) {
     // select elements, include sibling
-    int uID = Actives[trID][1-cBuffer]-1, prID = uID + side; 
+    int prID = fID + side; 
     ivec4 _pdata = bvhMeta[prID];
 
     // mark unbounded
     if (prID >= 0) {
         Flags[prID] = 0;
-        bvhBoxesWork[uID][side*2+0] = vec4( 100000.f);
-        bvhBoxesWork[uID][side*2+1] = vec4(-100000.f);
+        bvhBoxesWork[fID][side*2+0] = vec4( 100000.f);
+        bvhBoxesWork[fID][side*2+1] = vec4(-100000.f);
     }
 
     // make branch
-    if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 ) { // when not leafs
+    if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0 ) { // when not leafs
     
         // find split
         int split = findSplit(_pdata.x, _pdata.y-1);
@@ -88,12 +84,13 @@ void splitNode(in int trID, in int side) {
     } else
 
     // make leaf
-    if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && uID >= 0 && _pdata.z >= 0) { // if leaf
+    if (_pdata.y == _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0 && _pdata.z >= 0) { // if leaf
         LeafIndices[cCounterInc()] = prID+1;
     }
-
 }
 
+
+layout ( local_size_x = WORK_SIZE_BND ) in;
 
 void main() {
     int threadID = int(Local_Idx);
@@ -103,9 +100,8 @@ void main() {
     int gS = tiled(groupSize, 2);
     int iT = threadID >> 1;
     int sD = threadID & 1;
-
     LGROUP_BARRIER
-    if (threadID < 1) { cBuffer = 0; }
+
     if (threadID < 8) { _counters[threadID] = 0; }
     LGROUP_BARRIER
 
@@ -127,7 +123,7 @@ void main() {
 
         // switch buffer and reset counter
         if (threadID == 0) { 
-            _counters[1] = 0; const int swch = 1-cBuffer; atomicExchange(cBuffer, swch); 
+            _counters[1] = 0; const int swch = 1-cBuffer; exchange(cBuffer, swch); 
         } // ping pong
         LGROUP_BARRIER
 
@@ -138,8 +134,12 @@ void main() {
             
             // split prefixed elements
             IFALL (uID >= asize) break;
-            if (uID < asize) splitNode(uID, sD);
-            Actives[uID][1-cBuffer] = 0;
+
+            // get spared prefix
+            const int fID = readLane((Lane_Idx&1) == 0 ? exchange(Actives[uID][1-cBuffer], 0)-1 : -1, (Lane_Idx>>1)<<1);
+
+            // split sibling nodes
+            if (uID < asize) splitNode(fID, sD);
         }
         LGROUP_BARRIER
     }

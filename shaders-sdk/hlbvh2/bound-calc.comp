@@ -2,8 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #ifdef NVIDIA_PLATFORM
-//#define WORK_SIZE_BND 1536
-#define WORK_SIZE_BND 1024
+#define WORK_SIZE_BND 512
 #else 
 #define WORK_SIZE_BND 1024
 #endif
@@ -19,12 +18,8 @@
 #include "../include/mathlib.glsl"
 #include "./includes.glsl"
 
-// only 2 will hyperthreaded, in reality 256 threads, 16 working threads and 16x2-lanes hyperthreaded as 64 by 2 clocks (also, possible, independently 4-8 cores)
-layout ( local_size_x = WORK_SIZE_BND ) in;
-shared bbox sdata[ WORK_SIZE_BND ];
 
 layout ( std430, binding = 9, set = 0 ) restrict buffer minmaxB {vec4 minmax[]; };
-
 
 bool validPrimitive(const mat3x4 triverts){
     const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
@@ -57,6 +52,9 @@ bbox bboxunion3(in bbox b1, in bbox b2, in bbox c3) {
     return bbox(min3_wrap(b1.mn, b2.mn, c3.mn), max3_wrap(b1.mx, b2.mx, c3.mx));
 }
 
+
+layout ( local_size_x = WORK_SIZE_BND ) in;
+shared bbox sdata[ WORK_SIZE_BND ];
 
 void main() {
     const int tid = int(gl_LocalInvocationID.x);

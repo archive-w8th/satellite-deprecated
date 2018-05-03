@@ -117,11 +117,11 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
 
 float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout vec2 uv, in bool _valid) {
     const int itri = tri*9;
-    const mat3 vT = mat3(
+    const mat3 vT = transpose(mat3(
         vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
         vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
         vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
-    );
+    ));
     const vec3 e1 = vT[1]-vT[0], e2 = vT[2]-vT[0];
     const vec3 h = cross(dir, e2);
     const float a = dot(e1,h);

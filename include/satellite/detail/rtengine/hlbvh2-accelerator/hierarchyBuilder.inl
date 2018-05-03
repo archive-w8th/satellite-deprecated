@@ -212,8 +212,7 @@ namespace NSM
             dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            syncUniforms();
-
+            
             /*
             if (triangleCount[0] > 0) {
                 std::vector<bbox> bboxes(triangleCount[0] * 2);
@@ -237,6 +236,8 @@ namespace NSM
                 memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<bbox>(triangleCount[0] * 2) });
                 flushCommandBuffer(device, command, true);
             }
+
+            syncUniforms();
         }
 
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)

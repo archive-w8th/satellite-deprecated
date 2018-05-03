@@ -313,6 +313,7 @@ namespace SatelliteExample {
             }
         }
 #endif
+        bvhBuilder->build(glm::dmat4(1.0)); // build static
     }
 
     // processing

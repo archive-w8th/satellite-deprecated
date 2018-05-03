@@ -39,7 +39,7 @@ int findSplit( in int first, in int last) {
         int newSplit = split + (nstep = (nstep + 1) >> 1), code = cdelta(first, newSplit);
         split = code > commonPrefix ? newSplit : split;
     }}
-    return clamp(split, first, last);
+    return clamp(split, first, last-1);
 }
 
 
@@ -71,13 +71,13 @@ void splitNode(in int fID, in int side) {
     if (_pdata.y > _pdata.x && _pdata.x >= 0 && _pdata.y >= 0 && prID >= 0 && fID >= 0 ) { // when not leafs
     
         // find split
-        int split = findSplit(_pdata.x, _pdata.y-1);
+        int split = findSplit(_pdata.x, _pdata.y);
         ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
         bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
         int hd = lCounterInc();
         
         // resolve branch
-        bvhMeta[prID] = ivec4(hd.x, 2, _pdata.zw);
+        bvhMeta[prID] = ivec4(hd+1, 2, _pdata.zw);
         bvhMeta[hd+0] = ivec4(transplit.xy, prID, prID+1);
         bvhMeta[hd+1] = ivec4(transplit.zw, prID, prID+1);
         Actives[aCounterInc()][cBuffer] = hd+1;

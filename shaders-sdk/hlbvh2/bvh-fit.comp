@@ -20,7 +20,7 @@
 void unifyNodeBox(const int idx){
     // initial for unify box
     ivec4 comp = bvhMeta[idx]; // meta of contributable
-    int lft = comp.x, rgh = lft+1, sibid = comp.x >> 1;
+    int lft = comp.x-1, rgh = lft+1, sibid = lft >> 1;
 
     // get contributors boxes
     mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);

@@ -52,7 +52,7 @@ struct BVHCreatorUniformStruct {
     mat4x4 transformInv;
     mat4x4 projection;
     mat4x4 projectionInv;
-    int leafCount;
+    int leafCount, r0, r1, r2;
 };
 
 layout ( std430, binding = 10, set = 0 ) restrict readonly buffer bvhBlockB { BVHCreatorUniformStruct creatorUniform; } bvhBlock;

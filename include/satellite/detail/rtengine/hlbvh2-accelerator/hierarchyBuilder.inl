@@ -153,6 +153,7 @@ namespace NSM
             { // use use initial matrix
                 glm::dmat4 mat(1.0);
                 mat *= glm::inverse(glm::dmat4(optproj));
+                bvhBlockData[0].leafCount = triangleCount[0];
                 bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
                 bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
                 syncUniforms();
@@ -193,22 +194,7 @@ namespace NSM
 
             // calculate leafs and checksums
             dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-
-            // get leaf count from staging
-            {
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { strided<uint32_t>(6), 0, strided<uint32_t>(1) }), false); // copy to staging
-                getBufferSubData(generalLoadingBuffer, triangleCount, 0);
-                bvhBlockData[0].leafCount = triangleCount[0];
-                if (triangleCount[0] <= 0) return;
-            }
-
-            /*
-            if (triangleCount[0] > 0) {
-                // debug BVH Meta
-                std::vector<uint64_t> mortons(triangleCount[0]);
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
-                getBufferSubData(generalLoadingBuffer, mortons);
-            }*/
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true); // copy to staging  
 
             // need update geometry uniform optimization matrices, and sort morton codes
             radixSort->sort(mortonCodesBuffer, mortonIndicesBuffer, triangleCount[0]); // do radix sort
@@ -222,26 +208,26 @@ namespace NSM
             dispatchCompute(refitBVH, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 
             
-            /*if (triangleCount[0] > 0) {
-                std::vector<bbox> bboxes(triangleCount[0] * 2);
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
-                getBufferSubData(generalLoadingBuffer, bboxes);
+            if (triangleCount[0] > 0) {
+                //std::vector<bbox> bboxes(triangleCount[0] * 2);
+                //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
+                //getBufferSubData(generalLoadingBuffer, bboxes);
                 
                 // debug BVH Meta
-                std::vector<uint64_t> mortons(triangleCount[0]);
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
-                getBufferSubData(generalLoadingBuffer, mortons);
+                //std::vector<uint64_t> mortons(triangleCount[0]);
+                //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
+                //getBufferSubData(generalLoadingBuffer, mortons);
 
                 // debug BVH Meta
-                std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2 + 2);
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
-                getBufferSubData(generalLoadingBuffer, bvhMeta);
-            }*/
+                //std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2);
+                //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
+                //getBufferSubData(generalLoadingBuffer, bvhMeta);
+            }
 
             { // resolve BVH buffers for copying
                 auto command = getCommandBuffer(device, true);
                 memoryCopyCmd(command, bvhMetaWorking, hierarchyStorageLink->getBvhMeta(), { 0, 0, strided<glm::ivec4>(triangleCount[0] * 2) });
-                memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<glm::mat4>(triangleCount[0] * 2) });
+                memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<glm::mat4>(triangleCount[0]) });
                 flushCommandBuffer(device, command, true);
             }
 

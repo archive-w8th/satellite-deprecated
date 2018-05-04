@@ -89,7 +89,7 @@ void main() {
 
     // upcoming to root node
     [[unroll, dependency_length(4)]]
-    for (int l=0;l<4096;l++) {
+    for (int l=0;l<65536;l++) {
         // check activity counter
         const int asize = _counters[0], wcount = tiled(asize, rng)*rng;
         IFALL (asize <= 0) break;
@@ -116,7 +116,7 @@ void main() {
 
             // add to queue list
             if (pid >= 0 && atomicCompSwap(Flags[pid], 0, 1) == 1) {
-                atomicCompSwap(Flags[pid], 1, 0); // revert back
+                //atomicCompSwap(Flags[pid], 1, 0); // revert back
                 exchange(Actives[aCounterInc()][cBuffer], pid+1);
             }
         }

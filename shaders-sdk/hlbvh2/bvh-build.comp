@@ -134,7 +134,7 @@ void main() {
     
     // building BVH
     [[unroll, dependency_length(4)]]
-    for (int m=0;m<4096;m++) {
+    for (int m=0;m<65536;m++) {
         // check activity counter
         const int asize = _counters[0];
         IFALL (asize <= 0) break; // if there is no element, stop splitting

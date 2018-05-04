@@ -80,7 +80,7 @@ namespace NSM
             glm::mat4 transformInv = glm::mat4(1.f);
             glm::mat4 projection = glm::mat4(1.f);
             glm::mat4 projectionInv = glm::mat4(1.f);
-            int leafCount = 0;
+            int leafCount = 0, r0, r1, r2;
         };
 
         struct MaterialUniformStruct

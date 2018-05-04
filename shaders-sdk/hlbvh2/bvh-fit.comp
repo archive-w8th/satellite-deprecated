@@ -73,8 +73,8 @@ void main() {
     LGROUP_BARRIER
 
     // move to work list
-    const int wsize = cCounter, wcount = tiled(wsize, rng)*rng;
-    for (int w=0;w<wcount;w+=rng) {
+    const int wsize = cCounter;
+    for (int w=0;w<wsize;w+=rng) {
         SB_BARRIER
         const int globalID = w + (wID * gS + lID);
         IFALL (globalID >= wsize) break;
@@ -91,7 +91,7 @@ void main() {
     [[unroll, dependency_length(4)]]
     for (int l=0;l<65536;l++) {
         // check activity counter
-        const int asize = _counters[0], wcount = tiled(asize, rng)*rng;
+        const int asize = _counters[0];
         IFALL (asize <= 0) break;
 
         // switch buffer and reset counter
@@ -100,7 +100,7 @@ void main() {
         LGROUP_BARRIER
 
         // unify boxes when possible
-        for (int w=0;w<wcount;w+=rng) {
+        for (int w=0;w<asize;w+=rng) {
             SB_BARRIER
             const int globalID = w + (wID * gS + lID);
             IFALL (globalID >= wsize) break;

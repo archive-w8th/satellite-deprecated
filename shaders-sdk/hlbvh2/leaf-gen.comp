@@ -26,13 +26,12 @@ void main() {
     const int wID = int(gl_WorkGroupID.x);
     const int lID = int(Local_Idx);
     const int rng = gS*wgs;
-    const int wcount = tiled(wsize, rng)*rng;
-    for (int w=0;w<wcount;w+=rng) {
+    for (int w=0;w<wsize;w+=rng) {
         SB_BARRIER
         const int globalID = w + (wID * gS + lID);
         IFALL (globalID >= wsize) break;
 
-        const int tri = clamp(globalID, 0, int(GEOMETRY_BLOCK geometryUniform.triangleCount)-1);
+        const int tri = clamp(globalID, 0, GEOMETRY_BLOCK geometryUniform.triangleCount-1);
         const int itri = tri*9;
 
         mat3x4 triverts = mat3x4(
@@ -49,53 +48,51 @@ void main() {
         
 
 #ifdef VTX_TRANSPLIT
-        { // transpose VTX
-            mat3x3 vtxL = transpose(mat3(
-                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
-                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
-                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
-            ));
+        // transpose VTX
+        mat3x3 vtxL = transpose(mat3(
+            vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
+            vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
+            vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
+        ));
 
-            { // transpose type
-                lvtx[itri+0] = vtxL[0].x, lvtx[itri+1] = vtxL[0].y, lvtx[itri+2] = vtxL[0].z,
-                lvtx[itri+3] = vtxL[1].x, lvtx[itri+4] = vtxL[1].y, lvtx[itri+5] = vtxL[1].z,
-                lvtx[itri+6] = vtxL[2].x, lvtx[itri+7] = vtxL[2].y, lvtx[itri+8] = vtxL[2].z;
-            }
+        { // transpose type
+            lvtx[itri+0] = vtxL[0].x, lvtx[itri+1] = vtxL[0].y, lvtx[itri+2] = vtxL[0].z,
+            lvtx[itri+3] = vtxL[1].x, lvtx[itri+4] = vtxL[1].y, lvtx[itri+5] = vtxL[1].z,
+            lvtx[itri+6] = vtxL[2].x, lvtx[itri+7] = vtxL[2].y, lvtx[itri+8] = vtxL[2].z;
         }
+
 #endif
 
-        {
-            // get bounding
-            bbox bounding = calcTriBox(triverts);
+        // get bounding
+        bbox bounding = calcTriBox(triverts);
 
-            // view based 
-            vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
+        // view based 
+        vec4 bcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;
 
-            // gen morton code
-            uvec2 mortonCode = 
+        // gen morton code
+        uvec2 mortonCode = 
 #ifdef INTEL_PLATFORM
-            encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
+        encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
 #else
-            encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));
+        encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));
 #endif
-            
-            if (globalID < wsize && globalID >= 0) {
-                // allocate index
-                //int to = atomicIncAABB();
-                int to = globalID; atomicIncAABB();
+        
+        if (globalID < wsize && globalID >= 0) {
+            // allocate index
+            //int to = atomicIncAABB();
+            int to = globalID; atomicIncAABB();
 
-                // gen leaf
-                HlbvhNode outLeaf = Leafs[to];
-                outLeaf.lbox[0] = bounding.mn - 1e-5f.xxxx;
-                outLeaf.lbox[1] = bounding.mx + 1e-5f.xxxx;
-                outLeaf.pdata.xy = ivec2(to);
-                outLeaf.pdata.zw = ivec2(-1, tri+1);
+            // gen leaf
+            HlbvhNode outLeaf = Leafs[to];
+            outLeaf.lbox[0] = bounding.mn - 1e-5f.xxxx;
+            outLeaf.lbox[1] = bounding.mx + 1e-5f.xxxx;
+            outLeaf.pdata.xy = ivec2(to);
+            outLeaf.pdata.zw = ivec2(-1, tri+1);
 
-                // store leaf data
-                Leafs[to] = outLeaf;
-                Mortoncodes[to] = mortonCode;
-                MortoncodesIndices[to] = to+1;
-            }
+            // store leaf data
+            Leafs[to] = outLeaf;
+            Mortoncodes[to] = mortonCode;
+            MortoncodesIndices[to] = to+1;
         }
     }
 }

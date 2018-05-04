@@ -44,8 +44,7 @@ int findSplit( in int first, in int last) {
             }
         } while (step > 1);
     }
-    //return clamp(split, first, last-1);
-    return clamp(split, first, last);
+    return clamp(split, first, last-1);
 }
 
 
@@ -80,7 +79,7 @@ void splitNode(in int fID, in int side) {
             if (_pdata.y != _pdata.x) {
 
                 // find split
-                int split = findSplit(_pdata.x, _pdata.y-1);
+                int split = findSplit(_pdata.x, _pdata.y);
                 ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
                 bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
                 int hd = lCounterInc();
@@ -111,7 +110,7 @@ void main() {
     const int groupSize = int(gl_WorkGroupSize.x);
 
     // lane-based
-    //const int gS = tiled(groupSize, 2);
+    //const int gS = groupSize >> 1;
     //const int iT = threadID >> 1;
     //const int sD = threadID & 1;
 
@@ -145,8 +144,7 @@ void main() {
         LGROUP_BARRIER
 
         // split nodes
-        const int wcount = tiled(asize, gS)*gS;
-        for (int fT=0;fT<wcount;fT+=gS) {
+        for (int fT=0;fT<asize;fT+=gS) {
             // subgroup barrier
             SB_BARRIER
 

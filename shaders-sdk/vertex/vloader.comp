@@ -179,8 +179,7 @@ void main(){
     const int wID = int(gl_WorkGroupID.x);
     const int lID = int(Local_Idx);
     const int rng = gS*wgs;
-    const int wcount = tiled(wsize, gS)*gS;
-    for (int w=0;w<wcount;w+=rng) {
+    for (int w=0;w<wsize;w+=rng) {
         int globalID = w + wID * gS + lID;
         if (globalID >= wsize) break;
         if (globalID < wsize && globalID >= 0) {

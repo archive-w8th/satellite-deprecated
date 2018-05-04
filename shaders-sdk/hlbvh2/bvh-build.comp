@@ -110,13 +110,13 @@ void main() {
     const int groupSize = int(gl_WorkGroupSize.x);
 
     // lane-based
-    //const int gS = groupSize >> 1;
-    //const int iT = threadID >> 1;
-    //const int sD = threadID & 1;
+    const int gS = groupSize >> 1;
+    const int iT = threadID >> 1;
+    const int sD = threadID & 1;
 
-    const int gS = groupSize;
-    const int iT = threadID;
-    const int sD = 0;
+    ///const int gS = groupSize;
+    //const int iT = threadID;
+    //const int sD = 0;
 
     LGROUP_BARRIER
     if (threadID < 8) { _counters[threadID] = 0; }
@@ -155,11 +155,13 @@ void main() {
             IFALL (uID >= asize) break;
 
             // get spared prefix
-            const int fID = exchange(Actives[uID][1-cBuffer], 0)-1;
+            const int fID = Actives[uID][1-cBuffer]-1;
+            if (sD == 0) Actives[uID][1-cBuffer] = 0;
 
             // split sibling nodes
             [[flatten]]
-            if (uID < asize && fID >= 0) { splitNode(fID, 0), splitNode(fID, 1); }
+            //if (uID < asize && fID >= 0) { splitNode(fID, 0), splitNode(fID, 1); }
+            if (uID < asize && fID >= 0) { splitNode(fID, sD); }
         }
 
         // sync BVH splitting

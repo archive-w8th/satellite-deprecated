@@ -7,18 +7,18 @@ highp uint subHash = 0;
 
 
 highp float floatConstruct( in uint m ) {
-    return clamp(fract(uintBitsToFloat((m & 0x007FFFFFu) | 0x3F800000u)), 0.0001f, 0.9999f);
+    return clamp(fract(uintBitsToFloat((m & 0x007FFFFFu) | 0x3F800000u)), 0.00001f, 0.99999f);
 }
 
 highp vec2 float2Construct( in uvec2 m ) {
-    return clamp(vec2(floatConstruct(m.x), floatConstruct(m.y)), 0.0001f.xx, 0.9999f.xx);
+    return clamp(vec2(floatConstruct(m.x), floatConstruct(m.y)), 0.00001f.xx, 0.99999f.xx);
 }
 
 highp vec2 half2Construct ( in uint m ) {
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-    return clamp(vec2(fract(unpackFloat2x16((m & 0x03FF03FFu) | (0x3C003C00u)))), 0.0001f, 0.9999f);
+    return clamp(vec2(fract(unpackFloat2x16((m & 0x03FF03FFu) | (0x3C003C00u)))), 0.00001f, 0.99999f);
 #else
-    return clamp(fract(unpackHalf2x16((m & 0x03FF03FFu) | (0x3C003C00u))), 0.0001f, 0.9999f);
+    return clamp(fract(unpackHalf2x16((m & 0x03FF03FFu) | (0x3C003C00u))), 0.00001f, 0.99999f);
 #endif
 }
 

@@ -66,16 +66,16 @@
 float extractChannel(in usampler2D smpler, in vec2 texcoord, const int channel){
     uint chnl = 0u;
     if (channel == 0) {
-        chnl = textureLod(smpler, fract(texcoord), 0).x;
+        chnl = textureLod(smpler, texcoord, 0).x;
     } else 
     if (channel == 1) {
-        chnl = textureLod(smpler, fract(texcoord), 0).y;
+        chnl = textureLod(smpler, texcoord, 0).y;
     } else 
     if (channel == 2) {
-        chnl = textureLod(smpler, fract(texcoord), 0).z;
+        chnl = textureLod(smpler, texcoord, 0).z;
     } else 
     if (channel == 3) {
-        chnl = textureLod(smpler, fract(texcoord), 0).w;
+        chnl = textureLod(smpler, texcoord, 0).w;
     }
     return uintBitsToFloat(chnl);
 }
@@ -92,14 +92,14 @@ vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
 
 #ifdef ENABLE_AMD_INSTRUCTION_SET
     #define ISTORE(img, crd, data) imageStoreLodAMD(img,crd,0,data)
-    #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGatherLodAMD(smp,fract(crd),0,chnl))
+    #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGatherLodAMD(smp,crd,0,chnl))
 #else
     #ifdef INTEL_PLATFORM
         #define ISTORE(img, crd, data) imageStore(img,crd,data)
-        #define SGATHER(smp, crd, chnl) fakeGather(smp,fract(crd),chnl)
+        #define SGATHER(smp, crd, chnl) fakeGather(smp,crd,chnl)
     #else
         #define ISTORE(img, crd, data) imageStore(img,crd,data)
-        #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGather(smp,fract(crd),chnl))
+        #define SGATHER(smp, crd, chnl) uintBitsToFloat(textureGather(smp,crd,chnl))
     #endif
 #endif
 
@@ -144,8 +144,8 @@ bool_ greaterF     (in float a, in float b) { return bool_(   (a-b) >   PRECERR)
 bool_ equalF       (in float a, in float b) { return bool_(abs(a-b) <=  PRECERR); }
 
 // precision utils
-float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 1.f*sign(a); return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
-//float precIssue(in float a) { return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
+float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 1.f*sign(a); return max(abs(a),1e-5f)*(a>=0.f?1.f:-1.f); }
+//float precIssue(in float a) { return max(abs(a),1e-5f)*(a>=0.f?1.f:-1.f); }
 
 
 

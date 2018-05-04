@@ -80,8 +80,8 @@ struct BvhTraverseState {
 
 struct GeometrySpace {
     vec4 lastIntersection;
-    //int axis; mat3 iM;
-    vec4 dir;
+    //vec4 dir;
+    int axis; mat3 iM;
 } geometrySpace;
 
 struct BVHSpace {
@@ -94,8 +94,8 @@ struct BVHSpace {
 void doIntersection() {
     bool_ near = bool_(traverseState.defTriangleID >= 0);
     vec2 uv = vec2(0.f.xx);
-    //float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.iM, geometrySpace.axis, traverseState.defTriangleID, uv.xy, bool(near.x));
-    float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.dir.xyz, traverseState.defTriangleID, uv.xy, bool(near.x));
+    float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.iM, geometrySpace.axis, traverseState.defTriangleID, uv.xy, bool(near.x));
+    //float d = intersectTriangle(currentRayTmp.origin.xyz, geometrySpace.dir.xyz, traverseState.defTriangleID, uv.xy, bool(near.x));
     float nearhit = geometrySpace.lastIntersection.z;
 
     [[flatten]]
@@ -143,9 +143,8 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 #endif
 
     geometrySpace.lastIntersection = eht >= 0 ? hits[eht].uvt : vec4(0.f.xx, INFINITY, FINT_ZERO);
-    geometrySpace.dir = vec4(direct, 1.f);
+    //geometrySpace.dir = vec4(direct, 1.f);
     
-/*
     // calculate longest axis
     geometrySpace.axis = 2;
     {
@@ -162,7 +161,6 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
         geometrySpace.axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
         geometrySpace.axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
     ));
-*/
 
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;

@@ -19,7 +19,7 @@ const int localStackSize = 4;
 //struct NodeCache { ivec4 stackPages[stackPageCount]; };
 //layout ( std430, binding = _CACHE_BINDING, set = 0 ) buffer nodeCache { NodeCache nodeCache[]; };
 
-layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) restrict uniform iimageBuffer texelPages;
+layout ( rgba32i, binding = _CACHE_BINDING, set = 0 )  uniform iimageBuffer texelPages;
 
 
 // 128-bit payload

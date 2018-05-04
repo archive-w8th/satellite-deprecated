@@ -23,7 +23,7 @@
 #include "./includes.glsl"
 
 
-layout ( std430, binding = 9, set = 0 ) restrict buffer minmaxB {vec4 minmax[]; };
+layout ( std430, binding = 9, set = 0 )  buffer minmaxB {vec4 minmax[]; };
 
 bool validPrimitive(const mat3x4 triverts){
     const vec4 tcenter = (triverts[0] + triverts[1] + triverts[2]) * 0.33333333333333f;

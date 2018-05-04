@@ -16,8 +16,7 @@
 LOCAL_SIZE_LAYOUT;
 
 void main() {
-
-    const int wsize = cCounter;
+    const int wsize = bvhBlock.creatorUniform.leafCount;
     const int gS = int(gl_WorkGroupSize.x);
     const int wgs = int(gl_NumWorkGroups.x);
     const int wID = int(gl_WorkGroupID.x);

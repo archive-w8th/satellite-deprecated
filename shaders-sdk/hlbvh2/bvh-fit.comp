@@ -73,7 +73,7 @@ void main() {
     LGROUP_BARRIER
 
     // move to work list
-    const int wsize = cCounter;
+    const int wsize = bvhBlock.creatorUniform.leafCount;
     for (int w=0;w<wsize;w+=rng) {
         SB_BARRIER
         const int globalID = w + (wID * gS + lID);

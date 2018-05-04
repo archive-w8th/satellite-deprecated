@@ -35,7 +35,7 @@ void main() {
         vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx}; 
 
         // linking leafs
-        int leafID = lidx >= 0 ? int(MortoncodesIndices[bvhmeta.x])-1 : -1;
+        int leafID = bvhmeta.x >= 0 ? MortoncodesIndices[bvhmeta.x]-1 : -1;
         if (leafID >= 0) {
             rbox = Leafs[leafID].lbox;
             bvhmeta.xy = Leafs[leafID].pdata.ww;

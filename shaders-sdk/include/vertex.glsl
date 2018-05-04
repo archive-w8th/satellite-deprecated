@@ -12,10 +12,10 @@
 
 // for geometry accumulators
 #ifdef VERTEX_FILLING
-    layout ( std430, binding = 0, set = 0 ) buffer tcounterB { int tcounter[2]; };
-    layout ( std430, binding = 1, set = 0 ) buffer materialsB { int materials[]; };
-    layout ( std430, binding = 2, set = 0 ) buffer vordersB { int vorders[]; };
-    layout ( std430, binding = 3, set = 0 ) buffer lvtxB { float lvtx[]; };
+    layout ( std430, binding = 0, set = 0 ) restrict buffer tcounterB { int tcounter[2]; };
+    layout ( std430, binding = 1, set = 0 ) restrict buffer materialsB { int materials[]; };
+    layout ( std430, binding = 2, set = 0 ) restrict buffer vordersB { int vorders[]; };
+    layout ( std430, binding = 3, set = 0 ) restrict buffer lvtxB { float lvtx[]; };
     layout ( rgba32ui, binding = 4, set = 0 ) uniform uimage2D attrib_texture_out;
 #else
     layout ( std430, binding = 1, set = 1 ) readonly buffer materialsB { int materials[]; };
@@ -39,9 +39,9 @@
         
         layout ( std430, binding = 3, set = 1 ) readonly buffer geometryUniformB { GeometryUniformStruct geometryUniform;} geometryBlock;
         #ifdef VTX_TRANSPLIT // for leaf gens
-            layout ( std430, binding = 7, set = 1 ) buffer lvtxB { float lvtx[]; };
+            layout ( std430, binding = 7, set = 1 ) restrict buffer lvtxB { float lvtx[]; };
         #else
-            layout ( std430, binding = 7, set = 1 ) readonly buffer lvtxB { float lvtx[]; };
+            layout ( std430, binding = 7, set = 1 ) restrict readonly buffer lvtxB { float lvtx[]; };
         #endif
     #endif
 #endif

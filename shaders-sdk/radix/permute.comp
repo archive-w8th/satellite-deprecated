@@ -78,16 +78,16 @@ void main() {
             bvec2 owned = and(equal(unpackUint2x16(key), radice.xx), validAddress);
             if (any(owned)) {
                 WPTR2 offset = WPTR2(countOffset(uint(radice), owned));
-                if (owned.x) { KeyTmp[offset.x] = KeyIn[addr.x], ValueTmp[offset.x] = ValueIn[addr.x]; }
-                if (owned.y) { KeyTmp[offset.y] = KeyIn[addr.y], ValueTmp[offset.y] = ValueIn[addr.y]; }
+                if (owned.x) { ValueTmp[offset.x] = ValueIn[addr.x], KeyTmp[offset.x] = KeyIn[addr.x]; }
+                if (owned.y) { ValueTmp[offset.y] = ValueIn[addr.y], KeyTmp[offset.y] = KeyIn[addr.y]; }
             }
             IFALL (all(or((radice >= RADICES).xx, or(owned, not(validAddress))))) break;
 #else
             bool owned = key.x == radice && validAddress;
             if (owned) {
                 WPTR offset = WPTR(countOffset(uint(radice))); 
-                  KeyTmp[offset.x] = KeyIn[addr.x];
                 ValueTmp[offset.x] = ValueIn[addr.x];
+                KeyTmp[offset.x] = KeyIn[addr.x];
             }
             IFALL (radice >= RADICES || owned || !validAddress) break;
 #endif

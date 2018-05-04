@@ -220,9 +220,9 @@ namespace NSM
             dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+
             
-            /*
-            if (triangleCount[0] > 0) {
+            /*if (triangleCount[0] > 0) {
                 std::vector<bbox> bboxes(triangleCount[0] * 2);
                 flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
                 getBufferSubData(generalLoadingBuffer, bboxes);
@@ -233,7 +233,7 @@ namespace NSM
                 getBufferSubData(generalLoadingBuffer, mortons);
 
                 // debug BVH Meta
-                std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2);
+                std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2 + 2);
                 flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
                 getBufferSubData(generalLoadingBuffer, bvhMeta);
             }*/

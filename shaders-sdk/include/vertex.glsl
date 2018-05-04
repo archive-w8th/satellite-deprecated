@@ -161,10 +161,10 @@ bvhT_ptr mk_bvhT_ptr(in int linear) {
 #ifdef ENABLE_VERTEX_INTERPOLATOR
 // barycentric map (for corrections tangents in POM)
 void interpolateMeshData(inout HitData ht) {
-    const int tri = floatBitsToInt(ht.uvt.w); 
+    const int tri = floatBitsToInt(ht.uvt.w)-1; 
     const vec3 vs = vec3(1.0f - ht.uvt.x - ht.uvt.y, ht.uvt.xy); 
     const vec2 sz = 1.f.xx / textureSize(attrib_texture, 0), szt = sz * 0.9999f;
-    const bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri != LONGEST && tri >= 0) & bool_(materials[tri] == ht.materialID);
+    const bool_ validInterpolant = greaterEqualF(ht.uvt.z, 0.0f) & lessF(ht.uvt.z, INFINITY) & bool_(tri >= 0) & bool_(materials[tri] == ht.materialID);
 
     IFANY (validInterpolant) {
         vec2 trig = fma(vec2(gatherMosaic(getUniformCoord(tri*ATTRIB_EXTENT+ TEXCOORD_TID))), sz, szt);
@@ -183,7 +183,6 @@ void interpolateMeshData(inout HitData ht) {
         ht.normal.xyz  = nrml;
         ht.tangent.xyz = tngt;
         ht.bitangent.xyz = btng;
-
     }
 }
 #endif

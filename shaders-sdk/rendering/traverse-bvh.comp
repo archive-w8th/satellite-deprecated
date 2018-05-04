@@ -26,9 +26,9 @@ LOCAL_SIZE_LAYOUT;
 void main() {
     int wsize = PREPARED_COUNT;
     int wcount = min(tiled(wsize, int(gl_WorkGroupSize.x)), 1000000);
-    rayID = (int(gl_WorkGroupID.x) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x));
-
     int wgs = int(gl_NumWorkGroups);
+    cacheID = int(gl_GlobalInvocationID.x);
+
     for (int w=0;w<wcount;w+=wgs) {
         SB_BARRIER
         int it = (w + int(gl_WorkGroupID.x)) * int(gl_WorkGroupSize.x) + int(gl_LocalInvocationID.x);
@@ -39,7 +39,15 @@ void main() {
         traverseBvh2(not(overflow), unorderedRays[it]);
 
         { // verify intersection
-            int triID = floatBitsToInt(geometrySpace.lastIntersection.w);
+            const int triID = floatBitsToInt(geometrySpace.lastIntersection.w)-1;
+            const int itri = triID*9;
+            const mat3 vT = transpose(mat3(
+                vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
+                vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
+                vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
+            ));
+            const vec3 e1 = vT[1]-vT[0], e2 = vT[2]-vT[0];
+
             bool_ vintersect = lessF(geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(triID >= 0);
             IFANY (vintersect) {
                 int eht = floatBitsToInt(currentRayTmp.origin.w);
@@ -47,14 +55,21 @@ void main() {
                 vintersect &= bool_(eht <= 0).x | lessF(geometrySpace.lastIntersection.z, hits[eht-1].uvt.z);
                 IF (vintersect) {
                     int hid = eht > 0 ? eht : atomicIncHT()+1;
+
+                    // save hit
                     HitData hit = hits[hid-1];
                     hit.uvt = geometrySpace.lastIntersection;
                     hit.rayID = it+1;
                     hit.payloadID = 0;
-                    hit.next = 0;
                     hit.materialID = materials[triID];
-                    hit.tangent.w = intBitsToFloat(0);
+                    hit.next = 0;
+                    hit.normal.xyz = normalize(cross(e1, e2));
+                    hit.tangent = vec4(0.f);
+                    hit.bitangent = vec4(0.f);
+                    hit.texcoord = vec4(0.f);
                     hits[hid-1] = hit;
+
+                    // link hit
                     currentRayTmp.origin.w = intBitsToFloat(hid);
                 }
             }

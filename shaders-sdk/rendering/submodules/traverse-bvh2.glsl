@@ -23,7 +23,7 @@ layout ( rgba32i, binding = _CACHE_BINDING, set = 0 ) restrict uniform iimageBuf
 
 
 // 128-bit payload
-int stackPtr = 0, pagePtr = 0, rayID = 0, _r0 = -1;
+int stackPtr = 0, pagePtr = 0, cacheID = 0, _r0 = -1;
 
 
 #ifndef USE_STACKLESS_BVH
@@ -37,7 +37,7 @@ int loadStack(){
         int page = --pagePtr;
         if (page >= 0 && page < stackPageCount) {
             stackPtr = localStackSize-1;
-            lstack = imageLoad(texelPages, rayID*stackPageCount + page);
+            lstack = imageLoad(texelPages, cacheID*stackPageCount + page);
         }
     }
 
@@ -52,7 +52,7 @@ void storeStack(in int val){
         int page = pagePtr++;
         if (page >= 0 && page < stackPageCount) { 
             stackPtr = 1;
-            imageStore(texelPages, rayID*stackPageCount + page, lstack);
+            imageStore(texelPages, cacheID*stackPageCount + page, lstack);
         }
     }
 
@@ -105,7 +105,7 @@ void doIntersection() {
     near &= lessF(d, INFINITY) & lessEqualF(d, nearhit);
 
     [[flatten]]
-    IF (near.x) geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID));
+    IF (near.x) geometrySpace.lastIntersection = vec4(uv.xy, d.x, intBitsToFloat(traverseState.defTriangleID+1));
 
     // reset triangle ID 
     traverseState.defTriangleID = -1;
@@ -115,7 +115,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     currentRayTmp = rayIn;
     vec3 origin = currentRayTmp.origin.xyz;
     vec3 direct = dcts(currentRayTmp.cdirect.xy);
-    int eht = floatBitsToInt(currentRayTmp.origin.w);
+    int eht = floatBitsToInt(currentRayTmp.origin.w)-1;
 
     // reset stack
     stackPtr = 0, pagePtr = 0;
@@ -134,14 +134,17 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     bvec3_ bsgn = (bvec3_(sign(dirproj)*ftype_(1.0001f))+true_)>>true_;
 
     // initial state
-    traverseState.idx = SSC(valid) ? 0 : -1;
     traverseState.defTriangleID = -1;
     traverseState.distMult = 1.f/precIssue(dirlenInv);
     traverseState.diffOffset = 0.f;
+    traverseState.idx = SSC(valid) ? 0 : -1;
 #ifdef USE_STACKLESS_BVH
     traverseState.bitStack = 0ul;
 #endif
 
+    geometrySpace.lastIntersection = eht >= 0 ? hits[eht].uvt : vec4(0.f.xx, INFINITY, FINT_ZERO);
+    geometrySpace.dir = vec4(direct, 1.f);
+    
 /*
     // calculate longest axis
     geometrySpace.axis = 2;
@@ -161,15 +164,10 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     ));
 */
 
-    geometrySpace.lastIntersection = eht > 0 ? hits[eht-1].uvt : vec4(0.f.xx, INFINITY, FINT_NULL);
-
-    // continue traversing when needed
-    geometrySpace.dir = vec4(direct, 1.f);
-
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;
     const vec2 bndsf2 = vec2(-(1.f+1e-5f), (1.f+1e-5f));
-    IF (not(intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(bndsf2, bndsf2, bndsf2), near, far))) {
+    IF (not(intersectCubeF32Single(torig*dirproj, dirproj, bsgn, mat3x2(bndsf2, bndsf2, bndsf2), near, far))) { 
         traverseState.idx = -1;
     }
 
@@ -178,12 +176,8 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
     bvhSpace.directInv.xyz = fvec3_(dirproj);
     bvhSpace.minusOrig.xyz = fma(fvec3_(torig), fvec3_(dirproj), -fvec3_(toffset).xxx);
-    bvhSpace.cutOut = INFINITY;
     bvhSpace.boxSide.xyz = bsgn;
-    
-    IF (lessF(geometrySpace.lastIntersection.z, INFINITY)) { 
-        bvhSpace.cutOut = geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
-    }
+    bvhSpace.cutOut = geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
     
     // begin of traverse BVH 
     ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;

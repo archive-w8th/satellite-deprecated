@@ -685,10 +685,10 @@ namespace NSM
                 boundVirtualTextureSet->getBuffer(); // trigger update
             }
 
-            // updateing hit counter (planned multi-GPU support)
+            // reset hit counter
             auto copyCommand = getCommandBuffer(device, true);
-            memoryCopyCmd(copyCommand, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(HIT_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, hitCount), sizeof(uint32_t) });
             memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
+            flushCommandBuffer(device, copyCommand, true);
 
             // form descriptors for traversers
             TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
@@ -698,7 +698,6 @@ namespace NSM
             for (auto& him : hstorages) { him->queryTraverse(tbsData); }
 
             // push surface shaders commands
-            flushCommandBuffer(device, copyCommand, true);
             dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
 
             return;

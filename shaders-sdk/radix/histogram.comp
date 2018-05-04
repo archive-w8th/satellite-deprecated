@@ -58,11 +58,11 @@ void main() {
         if (Wave_Idx == 0) {
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             key = packUint2x16(uint_rdc_wave_2(
-                BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS),
-                BFE(validAddress.y ? KeyTmp[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS)
+                BFE(validAddress.x ? KeyIn[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS),
+                BFE(validAddress.y ? KeyIn[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS)
             ));
 #else
-            key.x = uint_rdc_wave(BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
+            key.x = uint_rdc_wave(BFE(validAddress.x ? KeyIn[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
 #endif
         }
         LGROUP_BARRIER

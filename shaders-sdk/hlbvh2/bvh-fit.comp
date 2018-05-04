@@ -58,10 +58,13 @@ initAtomicSubgroupIncFunction(_counters[0], aCounterInc, 1, int)
 
 void main() {
     const int gS = int(gl_WorkGroupSize.x);
-    const int wgs = int(gl_NumWorkGroups);
+    const int wgs = 1;//int(gl_NumWorkGroups.x);
     const int wID = int(gl_WorkGroupID.x);
     const int lID = int(Local_Idx);
     const int rng = gS*wgs;
+
+    // sync work
+    LGROUP_BARRIER
 
     // initial counters
     if (lID < 8) { _counters[lID] = 0; }
@@ -70,9 +73,10 @@ void main() {
     LGROUP_BARRIER
 
     // move to work list
-    const int wsize = cCounter, wcount = tiled(wsize, gS)*gS;
+    const int wsize = cCounter, wcount = tiled(wsize, rng)*rng;
     for (int w=0;w<wcount;w+=rng) {
-        int globalID = w + wID * gS + lID;
+        SB_BARRIER
+        const int globalID = w + (wID * gS + lID);
         IFALL (globalID >= wsize) break;
 
         // add to queue list parent node
@@ -86,7 +90,7 @@ void main() {
         LGROUP_BARRIER
 
         // check activity counter
-        const int asize = _counters[0], wcount = tiled(asize, gS)*gS;
+        const int asize = _counters[0], wcount = tiled(asize, rng)*rng;
         IFALL (asize <= 0) break;
 
         // sync work
@@ -104,8 +108,9 @@ void main() {
 
         // unify boxes when possible
         for (int w=0;w<wcount;w+=rng) {
-            int globalID = w + wID * gS + lID;
-            IFALL (globalID >= asize) break;
+            SB_BARRIER
+            const int globalID = w + (wID * gS + lID);
+            IFALL (globalID >= wsize) break;
 
             // initial leaf index
             int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, 
@@ -121,6 +126,9 @@ void main() {
                 Actives[aCounterInc()][cBuffer] = pid+1;
             }
         }
+
+        // sync work
+        LGROUP_BARRIER
     }
 
 }

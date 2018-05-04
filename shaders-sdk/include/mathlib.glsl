@@ -2,11 +2,10 @@
 #define _MATHLIB_H
 
 // System Constants
-#define PZERO 1e-4f
+#define PZERO 0.0001f
 
 // Math Constants
 #define PHI 1.6180339887498948482
-#define LONGEST -1
 #define INFINITY 9999.9999f
 #define PI 3.1415926535897932384626422832795028841971
 #define TWO_PI 6.2831853071795864769252867665590057683943
@@ -128,7 +127,7 @@ vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
 
 
 // null of indexing in float representation
-float FINT_NULL = intBitsToFloat(-1); // -1
+//float FINT_NULL = intBitsToFloat(-1); // -1
 float FINT_ZERO = intBitsToFloat( 0); //  0
 
 //#define FINT_ZERO intBitsToFloat( 0)
@@ -145,8 +144,8 @@ bool_ greaterF     (in float a, in float b) { return bool_(   (a-b) >   PRECERR)
 bool_ equalF       (in float a, in float b) { return bool_(abs(a-b) <=  PRECERR); }
 
 // precision utils
-//float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 1.f*sign(a); return max(abs(a),1e-5f)*(a>=0.f?1.f:-1.f); }
-float precIssue(in float a) { return max(abs(a),1e-6f)*(a>=0.f?1.f:-1.f); }
+float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 1.f*sign(a); return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
+//float precIssue(in float a) { return max(abs(a),1e-4f)*(a>=0.f?1.f:-1.f); }
 
 
 

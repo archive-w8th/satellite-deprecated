@@ -16,35 +16,35 @@
 LOCAL_SIZE_LAYOUT;
 
 void main() {
+
     const int wsize = cCounter;
     const int gS = int(gl_WorkGroupSize.x);
-    const int wgs = int(gl_NumWorkGroups);
+    const int wgs = int(gl_NumWorkGroups.x);
     const int wID = int(gl_WorkGroupID.x);
     const int lID = int(Local_Idx);
     const int rng = gS*wgs;
-    const int wcount = tiled(wsize, gS)*gS;
+    const int wcount = tiled(wsize, rng)*rng;
     for (int w=0;w<wcount;w+=rng) {
-        int globalID = w + wID * gS + lID;
-        IFALL(globalID >= wsize) break;
+        SB_BARRIER
+        const int globalID = w + (wID * gS + lID);
+        IFALL (globalID >= wsize) break;
 
-        int lidx = -1, bidx = lidx>>1, sidx = lidx&1, leafID = -1;
-        if (globalID < wsize && globalID >= 0) {
-            lidx = LeafIndices[globalID]-1, bidx = lidx>>1, sidx = lidx&1;
-            if (lidx >= 0) {
-                // get leaf data
-                ivec4 bvhmeta = bvhMeta[lidx]; leafID = int(MortoncodesIndices[bvhmeta.x]);
-                vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx}; 
+        // get leaf data
+        int lidx = globalID < wsize ? LeafIndices[globalID]-1 : -1;
+        ivec4 bvhmeta = lidx >= 0 ? bvhMeta[lidx] : ivec4(-1, -1, -1, -1); 
+        vec4 rbox[2] = {100000.f.xxxx, -100000.f.xxxx}; 
 
-                // linking leafs
-                if (leafID >= 0) {
-                    rbox = Leafs[leafID].lbox;
-                    bvhmeta.xy = Leafs[leafID].pdata.ww;
-                }
+        // linking leafs
+        int leafID = lidx >= 0 ? int(MortoncodesIndices[bvhmeta.x])-1 : -1;
+        if (leafID >= 0) {
+            rbox = Leafs[leafID].lbox;
+            bvhmeta.xy = Leafs[leafID].pdata.ww;
+        }
 
-                // save boxes
-                bvhMeta[lidx] = bvhmeta;
-                bvhBoxesWork[lidx] = rbox;
-            }
+        // save boxes
+        if (lidx >= 0) {
+            bvhMeta[lidx] = bvhmeta;
+            bvhBoxesWork[lidx] = rbox;
         }
     }
 }

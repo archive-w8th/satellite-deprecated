@@ -50,7 +50,7 @@ namespace NSM {
             // write desks
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(24).setPBufferInfo(&VarBuffer->descriptorInfo),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(24).setPBufferInfo(&VarBuffer->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(25).setPBufferInfo(&TmpKeys->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(26).setPBufferInfo(&TmpValues->descriptorInfo),
                     vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(27).setPBufferInfo(&Histograms->descriptorInfo),
@@ -119,12 +119,17 @@ namespace NSM {
             // copy headers buffer command
             std::vector<vk::CommandBuffer> copyBuffers;
             for (int i = 0; i < stepCount; i++) {
-                auto copyCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) }); 
-                memoryCopyCmd(copyCmd, InKeys, TmpKeys, { 0, 0, strided<uint64_t>(size) });
-                memoryCopyCmd(copyCmd, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
-                copyCmd.end();
-                copyBuffers.push_back(copyCmd);
+                auto copyCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
+                //memoryCopyCmd(copyCmd, InKeys, TmpKeys , { 0, 0, strided<uint64_t>(size) });
+                //memoryCopyCmd(copyCmd, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
+                copyCmd.end(); copyBuffers.push_back(copyCmd);
             }
+
+            // copy back
+            auto copyToBuffers = getCommandBuffer(device, true); 
+            memoryCopyCmd(copyToBuffers, TmpKeys  , InKeys, { 0, 0, strided<uint64_t>(size) });
+            memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
+            copyToBuffers.end();
 
             // make command buffers
             auto histogramCommand = makeDispatchCommand(histogram, glm::uvec2(WG_COUNT, RADICE_AFFINE), descriptorSets);
@@ -138,18 +143,22 @@ namespace NSM {
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&histogramCommand)); // histogram
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&workPrefixCommand)); // prefix sum
                 buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&permuteCommand)); // permute 
+                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&copyToBuffers)); // copy header
             }
 
             // submit radix sort
+            vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
+            device->mainQueue->queue.submit(buildSubmitInfos, fence);
+
+            // async clean up
             std::async(std::launch::async | std::launch::deferred, [=](){
-                vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
-                device->mainQueue->queue.submit(buildSubmitInfos, fence);
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 device->logical.destroyFence(fence);
                 device->logical.freeCommandBuffers(device->commandPool, copyBuffers);
                 device->logical.freeCommandBuffers(device->commandPool, 1, &histogramCommand);
                 device->logical.freeCommandBuffers(device->commandPool, 1, &workPrefixCommand);
                 device->logical.freeCommandBuffers(device->commandPool, 1, &permuteCommand);
+                device->logical.freeCommandBuffers(device->commandPool, 1, &copyToBuffers);
             });
 
         }

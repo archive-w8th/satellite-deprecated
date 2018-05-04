@@ -162,7 +162,6 @@ void parameterb(const ivec2 parameter, inout float bitfield, in bool_ value) {
 
 
 #define RAY_BITFIELD_ ray.dcolor.y
-#define HIT_BITFIELD_ hit.tangent.w
 
 
 bool_ RayActived(inout RayRework ray) {

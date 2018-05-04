@@ -62,11 +62,11 @@ void main() {
         if (Wave_Idx == 0) {
 #ifdef ENABLE_AMD_INSTRUCTION_SET
             key = packUint2x16(uint_rdc_wave_2(
-                BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS),
-                BFE(validAddress.y ? KeyTmp[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS)
+                BFE(validAddress.x ? KeyIn[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS),
+                BFE(validAddress.y ? KeyIn[addr.y] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS)
             ));
 #else
-            key.x = uint_rdc_wave(BFE(validAddress.x ? KeyTmp[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
+            key.x = uint_rdc_wave(BFE(validAddress.x ? KeyIn[addr.x] : KEYTYPE(0xFFFFFFFFu.xx), Shift*BITS_PER_PASS, BITS_PER_PASS));
 #endif
         }
         LGROUP_BARRIER
@@ -78,15 +78,16 @@ void main() {
             bvec2 owned = and(equal(unpackUint2x16(key), radice.xx), validAddress);
             if (any(owned)) {
                 WPTR2 offset = WPTR2(countOffset(uint(radice), owned));
-                if (owned.x) { KeyIn[offset.x] = KeyTmp[addr.x], ValueIn[offset.x] = ValueTmp[addr.x]; }
-                if (owned.y) { KeyIn[offset.y] = KeyTmp[addr.y], ValueIn[offset.y] = ValueTmp[addr.y]; }
+                if (owned.x) { KeyTmp[offset.x] = KeyIn[addr.x], ValueTmp[offset.x] = ValueIn[addr.x]; }
+                if (owned.y) { KeyTmp[offset.y] = KeyIn[addr.y], ValueTmp[offset.y] = ValueIn[addr.y]; }
             }
             IFALL (all(or((radice >= RADICES).xx, or(owned, not(validAddress))))) break;
 #else
             bool owned = key.x == radice && validAddress;
             if (owned) {
                 WPTR offset = WPTR(countOffset(uint(radice))); 
-                KeyIn[offset.x] = KeyTmp[addr.x], ValueIn[offset.x] = ValueTmp[addr.x];
+                  KeyTmp[offset.x] = KeyIn[addr.x];
+                ValueTmp[offset.x] = ValueIn[addr.x];
             }
             IFALL (radice >= RADICES || owned || !validAddress) break;
 #endif

@@ -101,7 +101,7 @@ call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bvh-build.comp.spv       -o %OUTDIR%%HLB
 call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%bvh-fit.comp.spv         -o %OUTDIR%%HLBV%bvh-fit.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%leaf-gen.comp.spv        -o %OUTDIR%%HLBV%leaf-gen.comp.spv
 call spirv-opt %FIXFLAGS% %OUTDIR%%HLBV%leaf-link.comp.spv       -o %OUTDIR%%HLBV%leaf-link.comp.spv
-
+call spirv-opt %FIXFLAGS% %OUTDIR%%VRTX%vloader.comp.spv         -o %OUTDIR%%VRTX%vloader.comp.spv
 
 :: for optimize
 call spirv-opt %OPTFLAGS% %OUTDIR%%HLBV%bvh-build.comp.spv       -o %OUTDIR%%HLBV%bvh-build.comp
@@ -110,6 +110,6 @@ call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%permute.comp.spv         -o %OUTDIR%%RDX
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDXI%histogram.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
-
+call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%vloader.comp.spv         -o %OUTDIR%%VRTX%vloader.comp.spv
 
 ::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv

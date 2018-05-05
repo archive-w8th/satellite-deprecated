@@ -105,7 +105,7 @@ void main() {
             IFALL (globalID >= wsize) break;
 
             // unify boxes for parent
-            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1;
+            int idx = globalID < asize ? atomicExchange(Actives[globalID][1-cBuffer], 0)-1 : -1;
             if ( idx >= 0 ) { unifyNodeBox(idx); }
 
             // unify box for current and add parent

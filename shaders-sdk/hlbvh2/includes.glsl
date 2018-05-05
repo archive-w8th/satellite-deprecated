@@ -30,12 +30,10 @@ layout ( std430, binding = 7, set = 0 )  buffer LeafIndicesB {
 };
 
 layout ( std430, binding = 8, set = 0 )  buffer CountersB {
-    int cCounter;
-    int lCounter;
     int aCounter;
-    int bvhLevel;
-    int aRange[2];
-    int aabbcount;
+    int lCounter;
+    int cCounter;
+    int nCounter;
 };
 
 #ifdef USE_F32_BVH

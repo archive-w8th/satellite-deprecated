@@ -15,7 +15,7 @@
 #include "../include/morton.glsl"
 #include "./includes.glsl"
 
-initAtomicSubgroupIncFunction(aabbcount, atomicIncAABB, 1, int)
+initAtomicSubgroupIncFunction(nCounter, atomicIncLeaf, 1, int)
 
 LOCAL_SIZE_LAYOUT;
 
@@ -79,8 +79,8 @@ void main() {
         
         if (globalID < wsize && globalID >= 0) {
             // allocate index
-            //int to = atomicIncAABB();
-            int to = globalID; atomicIncAABB();
+            //int to = atomicIncLeaf();
+            int to = globalID; atomicIncLeaf();
 
             // gen leaf
             HlbvhNode outLeaf = Leafs[to];

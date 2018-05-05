@@ -106,6 +106,9 @@ namespace NSM
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(9).setPBufferInfo(&boundaryBuffer->descriptorInfo),
                 }, nullptr);
             }
+
+            // initial counters
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
         }
 
         void HieararchyBuilder::syncUniforms() {
@@ -116,6 +119,9 @@ namespace NSM
         }
 
         void HieararchyBuilder::build(glm::dmat4 optproj) {
+            // reset BVH counters
+            //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
+
             // confirm geometry accumulation by counter (planned locking ops)
             auto geometrySourceCounterHandler = geometrySourceLink->getGeometrySourceCounterHandler();
             auto geometryBlockUniform = hierarchyStorageLink->getGeometryBlockUniform();
@@ -149,7 +155,6 @@ namespace NSM
                 flushCommandBuffer(device, command, true);
             }
 
-            
             { // use use initial matrix
                 glm::dmat4 mat(1.0);
                 mat *= glm::inverse(glm::dmat4(optproj));
@@ -162,8 +167,6 @@ namespace NSM
             // calculate general AABB
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
             dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-
-            // get boundary
             flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), false);
 
             // receive boundary (planned to save in GPU)
@@ -190,19 +193,18 @@ namespace NSM
             }
 
             // copy bvh optimal transformation to hierarchy storage
-            flushCommandBuffers(device, std::vector<vk::CommandBuffer>{ {createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }), createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(6), strided<uint32_t>(1) })}}, true);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }), true);
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(3), strided<uint32_t>(1) }), true);
 
             // calculate leafs and checksums
             dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(6), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true); // copy to staging  
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(3), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true); // copy to staging  
 
             // need update geometry uniform optimization matrices, and sort morton codes
             radixSort->sort(mortonCodesBuffer, mortonIndicesBuffer, triangleCount[0]); // do radix sort
-
-            // reset BVH counters (and copy to uniform)
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(6) }), true);
-
+            
             // refit BVH with linking leafs
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
             dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
@@ -231,7 +233,9 @@ namespace NSM
                 flushCommandBuffer(device, command, true);
             }
 
+            // finish BVH building
             syncUniforms();
+            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
         }
 
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)

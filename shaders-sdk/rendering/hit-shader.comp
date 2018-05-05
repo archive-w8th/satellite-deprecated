@@ -37,7 +37,7 @@ struct Material {
 };
 
 #define SETS_DESC_SET_ID 1
-const uint MAX_TEXTURES = 120, MAX_SAMPLERS = 16;
+const uint MAX_TEXTURES = 64, MAX_SAMPLERS = 16;
 
 
 // textrue/sampler set
@@ -266,9 +266,9 @@ void main() {
 
             // normalize normal again
             hitp.normalHeight.xyz = normalize(hitp.normalHeight.xyz);
-            hitp.emission.xy = packHalf16x4(emission.xyzw).xy;
-            hitp.albedo.xy = packHalf16x4(diffuse.xyzw).xy;
-            hitp.metallicRoughness.xy = packHalf16x4(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
+            hitp.emission.xy = packHalf4x16(emission.xyzw).xy;
+            hitp.albedo.xy = packHalf4x16(diffuse.xyzw).xy;
+            hitp.metallicRoughness.xy = packHalf4x16(vec4(spc.yz, 0.f, 0.f).xyzw).xy;
             
 
             // additional validation of hit (hit point interpolated offset test)

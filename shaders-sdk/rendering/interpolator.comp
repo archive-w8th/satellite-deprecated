@@ -43,8 +43,9 @@ void main() {
             HitData hit = hits[globalID];
 #endif
 
-            int itri = (floatBitsToInt(hit.uvt.w)-1)*9;
-            mat3 vertexInterp = mat3(
+            const int trid = floatBitsToInt(hit.uvt.w)-1;
+            const int itri = trid*9;
+            const mat3 vertexInterp = mat3(
                 vec3(lvtx[itri+0], lvtx[itri+1], lvtx[itri+2]),
                 vec3(lvtx[itri+3], lvtx[itri+4], lvtx[itri+5]),
                 vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])
@@ -55,7 +56,7 @@ void main() {
             const vec3 pos = vs * vertexInterp;
 
             // 
-            IF (itri >= 0 && !overflow && abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.01f && cray.uindex.x >= 0) {
+            IF (trid >= 0 && !overflow && abs(length(pos.xyz - cray.origin.xyz) - hit.uvt.z) < 0.1f && cray.uindex.x > 0) {
                 interpolateMeshData(hit);
                 hit.rayID = cray.uindex.x;
 #ifndef DMA_HIT

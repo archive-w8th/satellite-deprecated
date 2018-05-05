@@ -178,7 +178,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     bvhSpace.cutOut = geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
     
     // begin of traverse BVH 
-    ivec4 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx] : (-1).xxxx;
+    ivec4 cnode = traverseState.idx >= 0 ? (bvhMeta[traverseState.idx]-1) : (-1).xxxx;
     for (int hi=0;hi<max_iteraction;hi++) {
         
         IFALL (traverseState.idx < 0) break; // if traverse can't live
@@ -191,7 +191,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 bvec2_ childIntersect = bvec2_((traverseState.idx >= 0).xx);
 
                 // intersect boxes
-                const int _cmp = (cnode.x-1) >> 1;
+                const int _cmp = cnode.x >> 1;
                 childIntersect &= intersectCubeDual(bvhSpace.minusOrig.xyz, bvhSpace.directInv.xyz, bvhSpace.boxSide.xyz, 
 #ifdef USE_F32_BVH
                     fmat3x4_(bvhBoxes[_cmp][0], bvhBoxes[_cmp][1], bvhBoxes[_cmp][2]),
@@ -202,7 +202,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 #endif
                 , nears, fars);
                 childIntersect &= bvec2_(lessThanEqual(nears, bvhSpace.cutOut.xx));
-                
+
                 int fmask = (childIntersect.x + childIntersect.y*2)-1; // mask of intersection
 
                 [[flatten]]
@@ -215,7 +215,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
 
                     [[flatten]]
                     if (fmask == 2) { // if both has intersection
-                        ivec2 ordered = (cnode.x-1).xx + (SSC(lessEqualF(nears.x, nears.y)) ? ivec2(0,1) : ivec2(1,0));
+                        ivec2 ordered = cnode.xx + (SSC(lessEqualF(nears.x, nears.y)) ? ivec2(0,1) : ivec2(1,0));
                         traverseState.idx = ordered.x;
 #ifdef USE_STACKLESS_BVH
                         IF (all(childIntersect)) traverseState.bitStack |= 1ul; 
@@ -223,10 +223,10 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                         IF (all(childIntersect) & bool_(!stackIsFull())) storeStack(ordered.y);
 #endif
                     } else {
-                        traverseState.idx = (cnode.x-1) + fmask;
+                        traverseState.idx = cnode.x + fmask;
                     }
 
-                    cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx] : (-1).xxxx;
+                    cnode = traverseState.idx >= 0 ? (bvhMeta[traverseState.idx]-1) : (-1).xxxx;
                 }
 
             } 
@@ -234,7 +234,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
             // if leaf, defer for intersection 
             if (cnode.x == cnode.y) {
                 if (traverseState.defTriangleID < 0) {
-                    traverseState.defTriangleID = cnode.x-1;
+                    traverseState.defTriangleID = cnode.x;
                 } else {
                     _continue = true;
                 }
@@ -247,7 +247,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                 for (int bi=0;bi<64;bi++) {
                     if ((traverseState.bitStack&1ul)!=0ul || traverseState.bitStack==0ul) break;
                     traverseState.bitStack >>= 1;
-                    traverseState.idx = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].z : -1;
+                    traverseState.idx = traverseState.idx >= 0 ? (bvhMeta[traverseState.idx].z-1) : -1;
                 }
 
                 // goto to sibling or break travers
@@ -265,7 +265,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                     traverseState.idx = -1;
                 }
 #endif
-                cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx] : (-1).xxxx;
+                cnode = traverseState.idx >= 0 ? (bvhMeta[traverseState.idx]-1) : (-1).xxxx;
             } _continue = false;
 
             IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER break; }

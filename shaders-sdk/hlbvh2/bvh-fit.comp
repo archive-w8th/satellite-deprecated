@@ -23,8 +23,8 @@
 
 void unifyNodeBox(const int idx){
     // initial for unify box
-    ivec4 comp = bvhMeta[idx]; // meta of contributable
-    int lft = comp.x-1, rgh = comp.x, sibid = lft >> 1;
+    ivec4 comp = bvhMeta[idx]-1; // meta of contributable
+    int lft = comp.x, rgh = comp.x+1, sibid = lft >> 1;
 
     // get contributors boxes
     mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
@@ -106,7 +106,8 @@ void main() {
             IFALL (globalID >= wsize) break;
 
             // initial leaf index
-            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, pid = idx >= 0 ? bvhMeta[idx].z : -1;
+            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, 
+                pid = idx >= 0 ? (bvhMeta[idx].z-1) : -1;
 
             // add to queue list
             if (pid >= 0 && atomicCompSwap(Flags[pid], 0, 1) == 1) {

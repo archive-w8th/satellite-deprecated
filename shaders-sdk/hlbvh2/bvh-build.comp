@@ -70,7 +70,7 @@ void splitNode(in int fID, in int side) {
         Flags[prID] = 0; // reset flag of refit
 
         // splitting nodes
-        ivec4 _pdata = bvhMeta[prID];
+        ivec4 _pdata = bvhMeta[prID]-1;
 
         [[flatten]]
         if (_pdata.x >= 0 && _pdata.y >= 0) {
@@ -82,12 +82,12 @@ void splitNode(in int fID, in int side) {
                 int split = findSplit(_pdata.x, _pdata.y);
                 ivec4 transplit = ivec4(_pdata.x, split+0, split+1, _pdata.y);
                 bvec2 isLeaf = lessThan(transplit.yw - transplit.xz, ivec2(1,1));
-                int hd = lCounterInc();
                 
                 // resolve branch
-                bvhMeta[prID] = ivec4(hd.xx+ivec2(0,1)+(1).xx, _pdata.zw);
-                bvhMeta[hd+0] = ivec4(transplit.xy, prID, 0);
-                bvhMeta[hd+1] = ivec4(transplit.zw, prID, 0);
+                int hd = lCounterInc();
+                bvhMeta[prID] = ivec4(hd.xx+ivec2(0,1)+(1).xx, _pdata.zw+1);
+                bvhMeta[hd+0] = ivec4(transplit.xy, prID, -1)+1;
+                bvhMeta[hd+1] = ivec4(transplit.zw, prID, -1)+1;
 
                 // add prefix to next task
                 Actives[aCounterInc()][cBuffer] = hd+1;
@@ -125,8 +125,8 @@ void main() {
     // create initial (root) node
     if (threadID == 0) {
         int hid = lCounterInc();
-        bvhMeta[hid+0] = ivec4(0, aabbcount-1, -1, 0);
-        bvhMeta[hid+1] = ivec4(-1, -1, -1, -1);
+        bvhMeta[hid+0] = ivec4(1, aabbcount, 0, 0);
+        bvhMeta[hid+1] = ivec4(0, 0, 0, 0);
         Actives[aCounterInc()][cBuffer] = hid+1;
     }
     LGROUP_BARRIER

@@ -111,4 +111,6 @@ call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%histogram.comp.spv       -o %OUTDIR%%RDX
 call spirv-opt %OPTFLAGS% %OUTDIR%%RDXI%pfx-work.comp.spv        -o %OUTDIR%%RDXI%pfx-work.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-pre.comp.spv    -o %OUTDIR%%RNDR%traverse-pre.comp.spv
 call spirv-opt %OPTFLAGS% %OUTDIR%%VRTX%vloader.comp.spv         -o %OUTDIR%%VRTX%vloader.comp.spv
-call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
+
+:: unsupported
+::call spirv-opt %OPTFLAGS% %OUTDIR%%RNDR%traverse-bvh.comp.spv    -o %OUTDIR%%RNDR%traverse-bvh.comp.spv 

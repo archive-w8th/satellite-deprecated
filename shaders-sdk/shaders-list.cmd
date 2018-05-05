@@ -21,12 +21,12 @@ start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%gen-secondary.comp  -o %O
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%traverse-pre.comp   -o %OUTDIR%%RNDR%traverse-pre.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%traverse-bvh.comp   -o %OUTDIR%%RNDR%traverse-bvh.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%interpolator.comp   -o %OUTDIR%%RNDR%interpolator.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%RNDR%hit-shader.comp     -o %OUTDIR%%RNDR%hit-shader.comp.spv
+start /b /wait glslangValidator %CFLAGSV% ./limits.conf %INDIR%%RNDR%hit-shader.comp     -o %OUTDIR%%RNDR%hit-shader.comp.spv
 
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%VRTX%vloader.comp       -o %OUTDIR%%VRTX%vloader.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bound-calc.comp    -o %OUTDIR%%HLBV%bound-calc.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-build.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
-start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%bvh-fit.comp       -o %OUTDIR%%HLBV%bvh-fit.comp.spv
+start /b /wait glslangValidator %CFLAGSV%  ./limits.conf %INDIR%%HLBV%bound-calc.comp    -o %OUTDIR%%HLBV%bound-calc.comp.spv
+start /b /wait glslangValidator %CFLAGSV%  ./limits.conf %INDIR%%HLBV%bvh-build.comp     -o %OUTDIR%%HLBV%bvh-build.comp.spv
+start /b /wait glslangValidator %CFLAGSV%  ./limits.conf %INDIR%%HLBV%bvh-fit.comp       -o %OUTDIR%%HLBV%bvh-fit.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-gen.comp      -o %OUTDIR%%HLBV%leaf-gen.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%HLBV%leaf-link.comp     -o %OUTDIR%%HLBV%leaf-link.comp.spv
 start /b /wait glslangValidator %CFLAGSV% %INDIR%%RDXI%permute.comp       -o %OUTDIR%%RDXI%permute.comp.spv

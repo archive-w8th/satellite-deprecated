@@ -37,7 +37,7 @@ struct Material {
 };
 
 #define SETS_DESC_SET_ID 1
-const uint MAX_TEXTURES = 72, MAX_SAMPLERS = 16;
+const uint MAX_TEXTURES = 120, MAX_SAMPLERS = 16;
 
 
 // textrue/sampler set

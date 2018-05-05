@@ -28,6 +28,9 @@
 #extension GL_KHR_shader_subgroup_shuffle_relative : enable
 #extension GL_KHR_shader_subgroup_clustered        : enable
 
+// non uniform (for bindless textures)
+//#extension GL_EXT_nonuniform_qualifier : enable
+
 
 // ray tracing options
 //#define EXPERIMENTAL_DOF // no dynamic control supported

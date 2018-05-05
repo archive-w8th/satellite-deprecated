@@ -131,7 +131,8 @@ bool anyInvoc(in bool_ bc){ return anyInvoc(SSC(bc)); }
 
 
 // subgroup barriers
-#define SB_BARRIER subgroupMemoryBarrier(),subgroupBarrier();
+//#define SB_BARRIER subgroupMemoryBarrier(),subgroupBarrier();
+#define SB_BARRIER subgroupBarrier();
 
 
 #endif

@@ -178,7 +178,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     bvhSpace.cutOut = geometrySpace.lastIntersection.z * traverseState.distMult - traverseState.diffOffset; 
     
     // begin of traverse BVH 
-    ivec2 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
+    ivec4 cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx] : (-1).xxxx;
     for (int hi=0;hi<max_iteraction;hi++) {
         
         IFALL (traverseState.idx < 0) break; // if traverse can't live
@@ -226,7 +226,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                         traverseState.idx = (cnode.x-1) + fmask;
                     }
 
-                    cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
+                    cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx] : (-1).xxxx;
                 }
 
             } 
@@ -265,7 +265,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
                     traverseState.idx = -1;
                 }
 #endif
-                cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx].xy : (-1).xx;
+                cnode = traverseState.idx >= 0 ? bvhMeta[traverseState.idx] : (-1).xxxx;
             } _continue = false;
 
             IFANY (traverseState.defTriangleID >= 0 || traverseState.idx < 0) { SB_BARRIER break; }

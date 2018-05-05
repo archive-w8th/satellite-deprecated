@@ -85,7 +85,7 @@ void splitNode(in int fID, in int side) {
                 int hd = lCounterInc();
                 
                 // resolve branch
-                bvhMeta[prID].xy = (hd+1).xx+ivec2(0,1);
+                bvhMeta[prID] = ivec4(hd.xx+ivec2(0,1)+(1).xx, _pdata.zw);
                 bvhMeta[hd+0] = ivec4(transplit.xy, prID, 0);
                 bvhMeta[hd+1] = ivec4(transplit.zw, prID, 0);
 

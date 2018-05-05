@@ -22,9 +22,9 @@ struct bbox {
     #define UNPACK_LROW(m) uintBitsToFloat(m)
 #else
     #ifdef AMD_F16_BVH
-        #define UNPACK_LROW(m) unpackHalf2(m.xy)
+        #define UNPACK_LROW(m) unpackFloat16x4(m.xy)
     #else
-        #define UNPACK_LROW(m) unpackHalf(m.xy)
+        #define UNPACK_LROW(m) unpackHalf16x4(m.xy)
     #endif
 #endif
 
@@ -32,9 +32,9 @@ struct bbox {
     #define UNPACK_RCRC(m) vec4(0.f)
 #else
     #ifdef AMD_F16_BVH
-        #define UNPACK_RCRC(m) unpackHalf2(m.zw)
+        #define UNPACK_RCRC(m) unpackFloat16x4(m.zw)
     #else
-        #define UNPACK_RCRC(m) unpackHalf(m.zw)
+        #define UNPACK_RCRC(m) unpackHalf16x4(m.zw)
     #endif
 #endif
 
@@ -43,9 +43,9 @@ struct bbox {
     #define UNPACK_HF(m) vec4(0.f)
 #else
     #ifdef AMD_F16_BVH
-        #define UNPACK_HF(m) unpackHalf2(m)
+        #define UNPACK_HF(m) unpackFloat16x4(m)
     #else
-        #define UNPACK_HF(m) unpackHalf(m)
+        #define UNPACK_HF(m) unpackHalf16x4(m)
     #endif
 #endif
 

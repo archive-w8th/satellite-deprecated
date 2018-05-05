@@ -114,6 +114,9 @@ vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
 #define max3_wrap(a,b,c) max(a,max(b,c))
 #endif
 
+#define max3_vec(a) max3_wrap(a.x,a.y,a.z)
+#define min3_vec(a) min3_wrap(a.x,a.y,a.z)
+
 //#define SGATHER(smp, crd, chnl) textureGather(smp,crd,chnl)
 
 
@@ -134,8 +137,6 @@ vec4 fakeGather(in usampler2D smpler, in vec2 texcoord, const int channel){
 #define FINT_ZERO intBitsToFloat( 0)
 //#define FINT_NULL intBitsToFloat(-1)
 
-
-
 // inprecise comparsion functions
 const float PRECERR = PZERO;
 bool_ lessEqualF   (in float a, in float b) { return bool_(   (a-b) <=  PRECERR); }
@@ -148,8 +149,6 @@ bool_ equalF       (in float a, in float b) { return bool_(abs(a-b) <=  PRECERR)
 float precIssue(in float a) { if (isnan(a)) a = 1.f; if (isinf(a)) a = 1.f*sign(a); return max(abs(a),1e-5f)*(a>=0.f?1.f:-1.f); }
 //float precIssue(in float a) { return max(abs(a),1e-5f)*(a>=0.f?1.f:-1.f); }
 
-
-
 // vector math utils
 float sqlen(in vec3 a) { return dot(a, a); }
 float sqlen(in vec2 a) { return dot(a, a); }
@@ -158,12 +157,6 @@ int modi(in int a, in int b) { return (a % b + b) % b; }
 vec4 divW(in vec4 aw) { return aw / precIssue(aw.w); }
 vec3 rotate_vector( in vec4 quat, in vec3 vec ) { return vec + 2.0 * cross( cross( vec, quat.xyz ) + quat.w * vec, quat.xyz ); }
 vec4 rotation_quat( in vec3 axis, in float half_angle ) { return vec4(axis * sin(half_angle), cos(half_angle)); }
-
-#if (defined(ENABLE_AMD_INSTRUCTION_SET))
-float mlength(in vec3 mcolor) { return max3(mcolor.x, mcolor.y, mcolor.z); }
-#else
-float mlength(in vec3 mcolor) { return max(mcolor.x, max(mcolor.y, mcolor.z)); }
-#endif
 
 // memory managment
 void swap(inout int a, inout int b) { int t = a; a = b; b = t; }
@@ -190,7 +183,7 @@ vec3 clamp01(in vec3 c) {return clamp(c,vec3(0.f),vec3(1.f));};
 vec4 clamp01(in vec4 c) {return clamp(c,vec4(0.f),vec4(1.f));};
 float clamp01(in float c) {return clamp(c,0.f,1.f);};
 
-// matrix math
+// matrix math (simular DX12)
 vec4 mult4(in vec4 vec, in mat4 tmat) { return tmat * vec; }
 vec4 mult4(in mat4 tmat, in vec4 vec) { return vec * tmat; }
 
@@ -296,105 +289,49 @@ vec4 toLinear(in vec4 sRGB) {
 
 
 
-// planned to rework packing system with half floats
 
 // half float packing (64-bit)
-vec4 unpackHalf(in uvec2 hilo) {
+vec4 unpackHalf4x16(in uvec2 hilo) {
     return vec4(unpackHalf2x16(hilo.x), unpackHalf2x16(hilo.y));
 }
 
-vec4 unpackHalf(in uint64_t halfs) {
-    return unpackHalf(U2P(halfs));
+vec4 unpackHalf4x16(in uint64_t halfs) {
+    return unpackHalf4x16(U2P(halfs));
 }
 
-uvec2 packHalf2(in vec4 floats) {
+uvec2 packHalf4x16(in vec4 floats) {
     return uvec2(packHalf2x16(floats.xy), packHalf2x16(floats.zw));
 }
 
-// AMD based half float
+
+// half float packing, AMD (64-bit)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
-f16vec4 unpackHalf2(in uvec2 hilo) {
+f16vec4 unpackFloat4x16(in uvec2 hilo) {
     return f16vec4(unpackFloat2x16(hilo.x), unpackFloat2x16(hilo.y));
 }
 
-f16vec4 unpackHalf2(in uint64_t halfs) {
-    return unpackHalf2(U2P(halfs));
+f16vec4 unpackFloat4x16(in uint64_t halfs) {
+    return unpackFloat4x16(U2P(halfs));
 }
 
-uvec2 packHalf2(in f16vec4 floats) {
+uvec2 packFloat4x16(in f16vec4 floats) {
     return uvec2(packFloat2x16(floats.xy), packFloat2x16(floats.zw));
 }
 #endif
 
 
-
 // float packing (128-bit)
-vec4 unpackFloat(in uvec4 hilo) {
-    //return vec4(unpackHalf2x16(hilo.x), unpackHalf2x16(hilo.y));
-    return vec4(uintBitsToFloat(hilo.x), uintBitsToFloat(hilo.y), uintBitsToFloat(hilo.z), uintBitsToFloat(hilo.w));
+vec4 unpackFloat32x4(in uvec4 hilo) {
+    return uintBitsToFloat(hilo);
 }
 
-vec4 unpackFloat(in u64vec2 halfs) {
-    return unpackFloat(U4P(halfs));
+vec4 unpackFloat32x4(in u64vec2 halfs) {
+    return unpackFloat32x4(U4P(halfs));
 }
 
-uvec4 packFloat2(in vec4 floats) {
-    return uvec4(floatBitsToUint(floats.x), floatBitsToUint(floats.y), floatBitsToUint(floats.z), floatBitsToUint(floats.w));
+uvec4 packFloat32x4(in vec4 floats) {
+    return floatBitsToUint(floats);
 }
-
-// AMD based half float
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-f16vec4 unpackFloat2(in uvec4 hilo) {
-    return f16vec4(unpackFloat(hilo));
-}
-
-f16vec4 unpackFloat2(in u64vec2 halfs) {
-    return unpackFloat2(U4P(halfs));
-}
-
-uvec4 packFloat2(in f16vec4 floats) {
-    return packFloat2(vec4(floats));
-}
-#endif
-
-
-bool SSC(in bool_ b){return bool(b);}
-bvec2 SSC(in bvec2_ b){return bvec2(b);}
-bvec4 SSC(in bvec4_ b){return bvec4(b);}
-bool SSC(in bool b){return b;}
-bvec2 SSC(in bvec2 b){return b;}
-bvec4 SSC(in bvec4 b){return b;}
-bool_ any(in bvec2_ b){return b.x|b.y;}
-bool_ all(in bvec2_ b){return b.x&b.y;}
-bool_ not(in bool_ b){return true_^b;}
-bvec2_ not(in bvec2_ b){return true2_^b;}
-
-#define IF(b)if(SSC(b))
-
-
-
-
-// selection product
-int mix(in int a, in int b, in bool_ c) { return mix(a,b,SSC(c)); }
-uint mix(in uint a, in uint b, in bool_ c) { return mix(a,b,SSC(c)); }
-float mix(in float a, in float b, in bool_ c) { return mix(a,b,SSC(c)); }
-ivec2 mix(in ivec2 a, in ivec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
-uvec2 mix(in uvec2 a, in uvec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
-vec2 mix(in vec2 a, in vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
-vec4 mix(in vec4 a, in vec4 b, in bvec4_ c) { return mix(a,b,SSC(c)); }
-#ifdef ENABLE_AMD_INT16
-int16_t mix(in int16_t a, in int16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
-uint16_t mix(in uint16_t a, in uint16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
-i16vec2 mix(in i16vec2 a, in i16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
-u16vec2 mix(in u16vec2 a, in u16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
-#endif
-
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-float16_t mix(in float16_t a, in float16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
-f16vec2 mix(in f16vec2 a, in f16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
-f16vec4 mix(in f16vec4 a, in f16vec4 b, in bvec4_ c) { return mix(a,b,SSC(c)); }
-#endif
-
 
 // hacky pack for 64-bit uint and two 32-bit float
 uint64_t packFloat2x32(in vec2 f32x2){
@@ -406,18 +343,61 @@ vec2 unpackFloat2x32(in uint64_t b64){
 }
 
 
+// boolean binary compatibility
+bool SSC(in bool_ b){return bool(b);}
+bvec2 SSC(in bvec2_ b){return bvec2(b);}
+bvec4 SSC(in bvec4_ b){return bvec4(b);}
+
+bool SSC(in bool b){return b;}
+bvec2 SSC(in bvec2 b){return b;}
+bvec4 SSC(in bvec4 b){return b;}
+
+bool_ any(in bvec2_ b){return b.x|b.y;}
+bool_ all(in bvec2_ b){return b.x&b.y;}
+bool_ not(in bool_ b){return true_^b;}
+bvec2_ not(in bvec2_ b){return true2_^b;}
+
+#define IF(b)if(SSC(b))
+
+
+
+
+// select by boolean
+int mix(in int a, in int b, in bool_ c) { return mix(a,b,SSC(c)); }
+uint mix(in uint a, in uint b, in bool_ c) { return mix(a,b,SSC(c)); }
+float mix(in float a, in float b, in bool_ c) { return mix(a,b,SSC(c)); }
+ivec2 mix(in ivec2 a, in ivec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+uvec2 mix(in uvec2 a, in uvec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+vec2 mix(in vec2 a, in vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+vec4 mix(in vec4 a, in vec4 b, in bvec4_ c) { return mix(a,b,SSC(c)); }
+
+// 16-bit int/uint
+#ifdef ENABLE_AMD_INT16
+int16_t mix(in int16_t a, in int16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
+uint16_t mix(in uint16_t a, in uint16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
+i16vec2 mix(in i16vec2 a, in i16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+u16vec2 mix(in u16vec2 a, in u16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+#endif
+
+// 16-bit float
+#ifdef ENABLE_AMD_INSTRUCTION_SET
+float16_t mix(in float16_t a, in float16_t b, in bool_ c) { return mix(a,b,SSC(c)); }
+f16vec2 mix(in f16vec2 a, in f16vec2 b, in bvec2_ c) { return mix(a,b,SSC(c)); }
+f16vec4 mix(in f16vec4 a, in f16vec4 b, in bvec4_ c) { return mix(a,b,SSC(c)); }
+#endif
+
+
 // swap of 16-bits by funnel shifts and mapping 
-//const uint vrt16[2] = {16u, 0u};
 uint fast16swap(in uint b32, const bool_ nswp){
     const uint vrc = 16u - uint(nswp) * 16u;
     return (b32 << (vrc)) | (b32 >> (32u-vrc));
 }
 
-//const uint64_t vrt32[2] = {32ul, 0ul};
 uint64_t fast32swap(in uint64_t b64, const bool_ nswp){
     const uint64_t vrc = 32ul - uint64_t(nswp) * 32ul;
     return (b64 << (vrc)) | (b64 >> (64ul-vrc));
 }
+
 
 // swap x and y swizzle by funnel shift (AMD half float)
 #ifdef ENABLE_AMD_INSTRUCTION_SET
@@ -431,11 +411,13 @@ vec2 fast32swap(in vec2 b64, in bool_ nswp) {
     return mix(b64.yx, b64, nswp.xx); // use swizzle version (some device can be slower)
 }
 
+
 #ifdef AMD_F16_BVH
 #define FSWP fast16swap
 #else
 #define FSWP fast32swap
 #endif
+
 
 
 // single float 32-bit box intersection
@@ -518,7 +500,7 @@ vec3 dcts(in vec2 hr) {
 }
 
 
-#define f32_f16 packHalf2
-#define f16_f32 unpackHalf
+#define f32_f16 packHalf4x16
+#define f16_f32 unpackHalf4x16
 
 #endif

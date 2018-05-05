@@ -60,7 +60,7 @@ void main() {
                         IFALL(nid >= R_BLOCK_SIZE) break;
                         if (nid < R_BLOCK_SIZE && ltex >= 0 && texelFrom >= 0) {
                             vec4 color = f16_f32(rayBlockNodes[idx][nid].data.dcolor);
-                            if (int(texel) >= 0 && !SSC(RayActived(rayBlockNodes[idx][nid].data)) && mlength(color.xyz) >= 0.00001f) {
+                            if (int(texel) >= 0 && !SSC(RayActived(rayBlockNodes[idx][nid].data)) && max3_vec(color.xyz) >= 0.00001f) {
                                 texelBuf.nodes[texel].color.xyz += max(color.xyz, 0.f.xxx);
                             }
 

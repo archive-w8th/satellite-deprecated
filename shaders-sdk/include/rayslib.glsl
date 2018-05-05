@@ -189,7 +189,7 @@ initSubgroupIncFunctionTarget(rayBlocks[WHERE].indiceCount, atomicIncCM, 1, int)
 
 // copy node indices
 bool checkIllumination(in int block, in int bidx){
-    return (bidx >= 0 && block >= 0 ? mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f : false);
+    return (bidx >= 0 && block >= 0 ? max3_vec(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f : false);
 }
 
 
@@ -269,7 +269,7 @@ bool confirmNodeOccupied(in int block){
     bool occupied = false;
     if (int(block) >= 0) {
         if (SSC(RayActived(rayBlockNodes[block][currentBlockNode].data)) || 
-           !SSC(RayActived(rayBlockNodes[block][currentBlockNode].data)) && mlength(f16_f32(rayBlockNodes[block][currentBlockNode].data.dcolor).xyz) > 0.00001) 
+           !SSC(RayActived(rayBlockNodes[block][currentBlockNode].data)) && max3_vec(f16_f32(rayBlockNodes[block][currentBlockNode].data.dcolor).xyz) > 0.00001) 
         {
             occupied = true;
         }
@@ -428,7 +428,7 @@ void confirmNode() {
 
 #ifdef USE_EXTENDED_RAYLIB
 void invalidateRay(inout RayRework rayTemplate, in bool overflow){
-    if (overflow || SSC(RayActived(rayTemplate)) && (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || mlength(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f)) {
+    if (overflow || SSC(RayActived(rayTemplate)) && (RayBounce(rayTemplate) <= 0 || RayDiffBounce(rayTemplate) <= 0 || max3_vec(f16_f32(rayTemplate.dcolor).xyz) <= 0.00001f)) {
         RayActived(rayTemplate, false_);
         WriteColor(rayTemplate.dcolor, 0.f.xxxx); // no mechanism for detect emission
     }
@@ -466,7 +466,7 @@ int createBlockOnce(inout int block, in bool minimalCondition){
 
 void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock) {
     invalidateRay(rayTemplate, false);
-    bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && mlength(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
+    bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && max3_vec(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
 
     // occupy early block
     if (occupyCriteria && !confirmNodeOccupied(prevNonOccupiedBlock)) {
@@ -502,7 +502,7 @@ void emitBlock(in int block) {
             int bidx = int(tb + Lane_Idx);
             if (bidx >= 0 && bidx < R_BLOCK_SIZE) {
                 m16s(m16i(blockPreparingHeader(block), bidx), blockIndiceHeader(block), bidx);
-                bool hasIlm = mlength(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
+                bool hasIlm = max3_vec(f16_f32(rayBlockNodes[block][bidx].data.dcolor).xyz) >= 0.00001f && !SSC(RayActived(rayBlockNodes[block][bidx].data));
                 hasIllumination = hasIllumination || hasIlm;
             }
         }

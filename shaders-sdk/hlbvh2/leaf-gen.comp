@@ -6,7 +6,7 @@
 #define BVH_CREATION
 #define LEAF_GEN
 
-#include "../include/constants.glsl"
+#include "../include/driver.glsl"
 #include "../include/mathlib.glsl"
 #include "../include/ballotlib.glsl"
 #include "../include/structs.glsl"

@@ -9,7 +9,7 @@
 #define ENABLE_TRAVERSE_DATA
 #define ENABLE_VSTORAGE_DATA
 
-#include "../include/constants.glsl"
+#include "../include/driver.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/morton.glsl"

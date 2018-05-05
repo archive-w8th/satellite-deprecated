@@ -9,7 +9,7 @@
 
 #define BVH_CREATION
 
-#include "../include/constants.glsl"
+#include "../include/driver.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/mathlib.glsl"

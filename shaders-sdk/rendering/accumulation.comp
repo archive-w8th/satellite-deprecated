@@ -6,7 +6,7 @@
 #define Wave_Size 16
 #endif
 
-#include "../include/constants.glsl"
+#include "../include/driver.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/rayslib.glsl"

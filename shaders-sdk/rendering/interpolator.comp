@@ -10,7 +10,7 @@
 #define ENABLE_VERTEX_INTERPOLATOR
 #define DMA_HIT
 
-#include "../include/constants.glsl"
+#include "../include/driver.glsl"
 #include "../include/structs.glsl"
 #include "../include/uniforms.glsl"
 #include "../include/morton.glsl"

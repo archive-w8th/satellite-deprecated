@@ -13,8 +13,7 @@
 #define E 2.7182818284590452353602874713526624977572
 
 // short means barrier
-//#define LGROUP_BARRIER memoryBarrierBuffer(),memoryBarrierImage(),memoryBarrierShared(),memoryBarrier(),groupMemoryBarrier(),barrier();
-#define LGROUP_BARRIER barrier();
+#define LGROUP_BARRIER groupMemoryBarrier(),barrier();
 
 // float 16 or 32 bit types
 #ifdef AMD_F16_BVH

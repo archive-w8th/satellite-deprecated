@@ -50,14 +50,14 @@ void main() {
 
             bool_ vintersect = lessF(geometrySpace.lastIntersection.z, INFINITY-0.001f) & bool_(triID >= 0);
             IFANY (vintersect) {
-                int eht = floatBitsToInt(currentRayTmp.origin.w);
+                int hid = floatBitsToInt(currentRayTmp.origin.w)-1;
 
-                vintersect &= bool_(eht <= 0).x | lessF(geometrySpace.lastIntersection.z, hits[eht-1].uvt.z);
+                vintersect &= bool_(hid < 0).x | lessF(geometrySpace.lastIntersection.z, hits[hid].uvt.z);
                 IF (vintersect) {
-                    int hid = eht > 0 ? eht : atomicIncHT()+1;
+                    hid = hid >= 0 ? hid : atomicIncHT();
 
                     // save hit
-                    HitData hit = hits[hid-1];
+                    HitData hit = hits[hid];
                     hit.uvt = geometrySpace.lastIntersection;
                     hit.rayID = it+1;
                     hit.payloadID = 0;
@@ -67,10 +67,10 @@ void main() {
                     hit.tangent = vec4(0.f);
                     hit.bitangent = vec4(0.f);
                     hit.texcoord = vec4(0.f);
-                    hits[hid-1] = hit;
+                    hits[hid] = hit;
 
                     // link hit
-                    currentRayTmp.origin.w = intBitsToFloat(hid);
+                    currentRayTmp.origin.w = intBitsToFloat(hid+1);
                 }
             }
         }

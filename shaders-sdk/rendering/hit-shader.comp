@@ -274,13 +274,13 @@ void main() {
             // additional validation of hit (hit point interpolated offset test)
             if (!overflow && globalID >= 0) 
             {
-                int pid = hit.payloadID <= 0 ? (atomicIncIT()+1) : hit.payloadID;
-                hitPayload[pid-1] = hitp;
+                int pid = hit.payloadID-1; if (pid < 0) pid = atomicIncIT();
+                hitPayload[pid] = hitp;
                 cray.origin.w = intBitsToFloat(globalID+1); // save hit index to ray
 
                 // make payload ID
                 if (hit.payloadID <= 0) {
-                    hit.payloadID = pid;
+                    hit.payloadID = pid+1;
 #ifndef DMA_HIT
                     hits[globalID] = hit;
 #endif

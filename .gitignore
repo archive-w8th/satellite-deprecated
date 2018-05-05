@@ -30,7 +30,6 @@
 
 .idea/
 build*/
-shaders/
 Chess_Set_Obj/
 Chess_Textures/
 stb/
@@ -44,5 +43,4 @@ cmake-build-debug/
 */FindCUDA.*
 */FindOptiX.*
 
-*.spv
 *.spv.txt

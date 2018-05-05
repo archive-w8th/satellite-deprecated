@@ -29,7 +29,7 @@
 #extension GL_KHR_shader_subgroup_clustered        : enable
 
 // non uniform (for bindless textures)
-//#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 
 
 // ray tracing options

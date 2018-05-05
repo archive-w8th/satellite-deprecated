@@ -1,1 +1,1 @@
--d models/sponza -m sponza-processed.gltf -s 0.1
+-d models/sponza -m sponza.gltf -s 0.1

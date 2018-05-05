@@ -106,18 +106,13 @@ void main() {
             IFALL (globalID >= wsize) break;
 
             // initial leaf index
-            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, 
-                pid = idx >= 0 ? bvhMeta[idx].z : -1;
-
-            // do contribution to parent node box host
-            if (idx >= 0 && bvhMeta[idx].y != bvhMeta[idx].x) {
-                unifyNodeBox(idx);
-            }
+            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, pid = idx >= 0 ? bvhMeta[idx].z : -1;
 
             // add to queue list
             if (pid >= 0 && atomicCompSwap(Flags[pid], 0, 1) == 1) {
-                //atomicCompSwap(Flags[pid], 1, 0); // revert back
-                exchange(Actives[aCounterInc()][cBuffer], pid+1);
+                unifyNodeBox(pid); // unify boxes for parent
+                atomicCompSwap(Flags[pid], 1, 0); // revert back flag
+                exchange(Actives[aCounterInc()][cBuffer], pid+1); // add to contributors list
             }
         }
 

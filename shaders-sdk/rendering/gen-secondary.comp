@@ -200,13 +200,14 @@ void main() {
                 int bts = min(int(R_BLOCK_SIZE), int(currentBlockSize));
                 for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
                     int nid = tb + int(Lane_Idx);
-                    randomClocks = 0; // reset random clocks
-                    subHash = nid; 
-
+                    
                     bool overflow = invld || overflow || nid >= bts || nid < 0;
                     IFALL(overflow) break;
                     accquireNodeOffload(nid); overflow = overflow || currentBlockNode < 0;
                     IFALL(overflow) break;
+
+                    randomClocks = 0; // reset random clocks
+                    subHash = currentBlockNode; 
 
                     // get surface information
                     int rayState = invokeSurface(overflow);

@@ -32,10 +32,7 @@ uint Wave_Idx = 0;
 #define uvec64_wave uint64_t
 #define bvec2_wave bvec2
 
-#ifdef ENABLE_AMD_INSTRUCTION_SET
-//#define uint_rdc_wave uint16_t
-//#define uint_rdc_wave_lcm u16vec2
-//#define uint_rdc_wave_2 u16vec2
+#if defined(ENABLE_AMD_INSTRUCTION_SET) && defined(ENABLE_AMD_INT16)
 #define uint_rdc_wave uint16_t
 #define uint_rdc_wave_lcm uint
 #define uint_rdc_wave_2 u16vec2

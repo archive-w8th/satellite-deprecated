@@ -38,7 +38,7 @@ int findSplit( in int first, in int last) {
     if (nstep <= 0) { split = first; } else // if first == last
     if (commonPrefix >= 64) { split = (first + last)>>1; } else // if morton code equals
     { //fast search SAH split
-        [[dependency_infinite]]
+        [[dependency_infinite, dependency_length(4)]]
         do {
             int newSplit = split + (nstep = (nstep + 1) >> 1), code = cdelta(first, newSplit);
             split = code > commonPrefix ? newSplit : split;

@@ -43,6 +43,11 @@
 #define SAMPLES_LOCK 1
 #endif
 
+// disable AMD functions in other platforms
+#ifndef AMD_PLATFORM
+#undef ENABLE_AMD_INSTRUCTION_SET
+#endif
+
 // enable required GAPI extensions
 #ifdef ENABLE_AMD_INSTRUCTION_SET
     #define ENABLE_AMD_INT16 // RX Vega broken support 16-bit integer buffers in Vulkan API 1.1.70

@@ -22,31 +22,34 @@
 void unifyNodeBox(const int idx){
     // initial for unify box
     ivec4 comp = bvhMeta[idx]-1; // meta of contributable
-    int lft = comp.x, rgh = comp.x+1, sibid = lft >> 1;
+    if (comp.x != comp.y && comp.x >= 0) 
+    {
+        int lft = comp.x, rgh = comp.x+1, sibid = lft >> 1;
 
-    // get contributors boxes
-    mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
+        // get contributors boxes
+        mat4 lrbox = mat4(bvhBoxesWork[lft][0], bvhBoxesWork[rgh][0], bvhBoxesWork[lft][1], bvhBoxesWork[rgh][1]);
 
-    // contribute to current node
-    bvhBoxesWork[idx] = vec4[2](min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3]));
+        // contribute to current node
+        bvhBoxesWork[idx] = vec4[2](min(lrbox[0], lrbox[1]), max(lrbox[2], lrbox[3]));
 
-    // transpose and compress boxes of contributors
-    lrbox = transpose(lrbox);
+        // transpose and compress boxes of contributors
+        lrbox = transpose(lrbox);
 
-    // transposed save
-#ifdef USE_F32_BVH
-    fvec4_ resulting[4] = { fvec4_(lrbox[0]), fvec4_(lrbox[1]), fvec4_(lrbox[2]), fvec4_(lrbox[3]) };
-#else
-    uvec4 resulting[4] = {
-        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) ), 0u, 0u),
-        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) ), 0u, 0u),
-        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u),
-        uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u)
-    };
-#endif
+        // transposed save
+    #ifdef USE_F32_BVH
+        fvec4_ resulting[4] = { fvec4_(lrbox[0]), fvec4_(lrbox[1]), fvec4_(lrbox[2]), fvec4_(lrbox[3]) };
+    #else
+        uvec4 resulting[4] = {
+            uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[0])) ), 0u, 0u),
+            uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[1])) ), 0u, 0u),
+            uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[2])) ), 0u, 0u),
+            uvec4( packHalf2( fma(fvec4_(-1e-3f.xx, 1e-3f.xx), fvec4_(0.5f.xxxx), fvec4_(lrbox[3])) ), 0u, 0u)
+        };
+    #endif
 
-    // store boxes for outputs
-    bvhBoxesResulting[sibid] = resulting;
+        // store boxes for outputs
+        bvhBoxesResulting[sibid] = resulting;
+    }
 }
 
 layout ( local_size_x = WORK_SIZE_BND ) in;
@@ -78,7 +81,7 @@ void main() {
         IFALL (globalID >= wsize) break;
 
         // add to queue list parent node
-        int idx = globalID < wsize ? exchange(LeafIndices[globalID], 0)-1 : -1;
+        int idx = globalID < wsize ? atomicExchange(LeafIndices[globalID], 0)-1 : -1;
         if (idx >= 0) { Actives[aCounterInc()][cBuffer] = idx+1; }
     }
 
@@ -103,15 +106,14 @@ void main() {
             const int globalID = w + (wID * gS + lID);
             IFALL (globalID >= wsize) break;
 
-            // initial leaf index
-            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1, 
-                pid = idx >= 0 ? (bvhMeta[idx].z-1) : -1;
+            // unify boxes for parent
+            int idx = globalID < asize ? exchange(Actives[globalID][1-cBuffer], 0)-1 : -1;
+            if ( idx >= 0 ) { unifyNodeBox(idx); }
 
-            // add to queue list
-            if (pid >= 0 && atomicCompSwap(Flags[pid], 0, 1) == 1) {
-                unifyNodeBox(pid); // unify boxes for parent
-                atomicCompSwap(Flags[pid], 1, 0); // revert back flag
-                exchange(Actives[aCounterInc()][cBuffer], pid+1); // add to contributors list
+            // unify box for current and add parent
+            int pid = idx >= 0 ? (bvhMeta[idx].z-1) : -1;
+            if ( pid >= 0 && atomicCompSwap(Flags[pid], 0, 1) == 1 ) {
+                Actives[aCounterInc()][cBuffer] = pid+1; // add to contributors list
             }
         }
 

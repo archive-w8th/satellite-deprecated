@@ -71,7 +71,7 @@ void main() {
 
         // gen morton code
         uvec2 mortonCode = 
-#ifdef INTEL_PLATFORM
+#if defined(INTEL_PLATFORM)
         encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*1024.0f)), uvec3(0), uvec3(0x3FF)));
 #else
         encodeMorton3_64(clamp(uvec3(floor(fma(bcenter.xyz, 0.5f.xxx, 0.5f.xxx)*2097152.0f)), uvec3(0), uvec3(0x1FFFFF)));

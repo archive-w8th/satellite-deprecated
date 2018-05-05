@@ -21,26 +21,30 @@
 #include "./includes.glsl"
 
 
-// split function by morton codes
-int findSplit( in int first, in int last) {
-    uvec2 firstCode = Mortoncodes[first], lastCode = Mortoncodes[last];
-    int split = first;
-    if (firstCode == lastCode) {
-        split = (first + last) >> 1;
-    } else {
-        int commonPrefix = nlz(firstCode ^ lastCode);
-        int step = last - first;
 
+
+int cdelta( in int a, in int b ){
+#if defined(INTEL_PLATFORM)
+    uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
+    acode.x = a, bcode.x = b;
+    return nlz(acode^bcode);
+#else 
+    uvec2 acode = Mortoncodes[a], bcode = Mortoncodes[b];
+    int pfx = nlz(acode^bcode);
+    return pfx + (pfx < 64 ? 0 : nlz(a^b));
+#endif
+}
+
+int findSplit( in int first, in int last) {
+    int commonPrefix = cdelta(first, last), split = first, nstep = last - first;
+    if (nstep <= 0) { split = first; } else // if first == last
+    if (commonPrefix >= 64) { split = (first + last)>>1; } else // if morton code equals
+    { //fast search SAH split
         [[dependency_infinite]]
         do {
-            step = (step + 1) >> 1;
-            int newSplit = split + step;
-            if (newSplit < last) {
-                uvec2 splitCode = Mortoncodes[newSplit];
-                int splitPrefix = nlz(firstCode ^ splitCode);
-                if (splitPrefix > commonPrefix) { split = newSplit; }
-            }
-        } while (step > 1);
+            int newSplit = split + (nstep = (nstep + 1) >> 1), code = cdelta(first, newSplit);
+            split = code > commonPrefix ? newSplit : split;
+        } while (nstep > 1); 
     }
     return clamp(split, first, last-1);
 }

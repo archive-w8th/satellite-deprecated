@@ -1,0 +1,3 @@
+[submodule "shaders-sdk"]
+	path = shaders-sdk
+	url = https://github.com/world8th/rt-vulkan-shaders

@@ -42,6 +42,7 @@ void main() {
             if (!invld) {
                 uint bts = min(R_BLOCK_SIZE, currentBlockSize);
                 for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
+                    SB_BARRIER
                     int nid = tb + int(Lane_Idx);
                     randomClocks = 0, subHash = nid; // reset random clocks
                     bool overflow = invld || overflow || nid >= bts || nid < 0;

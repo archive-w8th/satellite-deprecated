@@ -180,7 +180,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
     // begin of traverse BVH 
     ivec4 cnode = traverseState.idx >= 0 ? (bvhMeta[traverseState.idx]-1) : (-1).xxxx;
     for (int hi=0;hi<max_iteraction;hi++) {
-        
+        SB_BARRIER
         IFALL (traverseState.idx < 0) break; // if traverse can't live
         if (traverseState.idx >= 0) { for (;hi<max_iteraction;hi++) {
             bool _continue = false;

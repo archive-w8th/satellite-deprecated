@@ -53,6 +53,7 @@ void main() {
                 IFALL(inv) break; // if overflow or bad texel
                 IFANY(!inv) {
                     for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                        SB_BARRIER
                         int nid = tb + int(Lane_Idx);
                         int ltex = m16i(texelHeader, nid);
                         int texel = texelFrom + ltex;

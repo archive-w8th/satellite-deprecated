@@ -199,6 +199,7 @@ void main() {
             if (!invld) {
                 int bts = min(int(R_BLOCK_SIZE), int(currentBlockSize));
                 for (int tb = 0; tb < bts; tb += int(Wave_Size_RT)) {
+                    SB_BARRIER
                     int nid = tb + int(Lane_Idx);
                     
                     bool overflow = invld || overflow || nid >= bts || nid < 0;

@@ -73,6 +73,7 @@ void main()
             // invoke block data
             [[unroll]]
             for (int tb = 0; tb < int(R_BLOCK_SIZE); tb += int(Wave_Size_RT)) {
+                SB_BARRIER
                 // in-block Id
                 int nid = tb + int(Lane_Idx);
                 randomClocks = 0; // reset random clocks

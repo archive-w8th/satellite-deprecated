@@ -437,6 +437,7 @@ void invalidateRay(inout RayRework rayTemplate, in bool overflow){
 
 int createBlockOnce(inout int block, in bool minimalCondition, in int binID){
     SB_BARRIER
+
     if (anyInvoc(int(block) < 0 && minimalCondition)) {
         if (electedInvoc()) { block = createBlock(block, binID); }; block = readFLane(block);
         IFANY (block >= 0) {
@@ -465,6 +466,8 @@ int createBlockOnce(inout int block, in bool minimalCondition){
 
 
 void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, inout int prevNonOccupiedBlock) {
+    SB_BARRIER
+
     invalidateRay(rayTemplate, false);
     bool occupyCriteria = SSC(RayActived(rayTemplate)) || !SSC(RayActived(rayTemplate)) && max3_vec(f16_f32(rayTemplate.dcolor).xyz) >= 0.00001f;
 
@@ -486,9 +489,9 @@ void invokeBlockForNodes(inout RayRework rayTemplate, inout int outNewBlock, ino
 
     // recommend or not new block if have
     SB_BARRIER
-
     bool prevOccopied = confirmNodeOccupied(prevNonOccupiedBlock) && int(outNewBlock) >= 0;
     prevNonOccupiedBlock = allInvoc(prevOccopied) ? int(outNewBlock) : int(prevNonOccupiedBlock);
+    SB_BARRIER
 }
 
 
@@ -519,6 +522,7 @@ void emitBlock(in int block) {
             }
         }
     }
+    SB_BARRIER
 }
 #endif
 

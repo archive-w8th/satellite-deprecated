@@ -1,6 +1,8 @@
 #ifndef _VERTEX_H
 #define _VERTEX_H
 
+//#define BACKFACE_CULLING
+
 #include "../include/mathlib.glsl"
 
 // enable this data for interpolation meshes
@@ -92,7 +94,7 @@ const mat3 uvwMap = mat3(vec3(1.f,0.f,0.f),vec3(0.f,1.f,0.f),vec3(0.f,0.f,1.f));
 #ifdef ENABLE_VSTORAGE_DATA
 float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int tri, inout vec2 UV, in bool valid) {
     float T = INFINITY;
-    if (valid) {
+    IFANY (valid) {
         // gather patterns
         const int itri = tri*9;
         const mat3 ABC = mat3(
@@ -101,12 +103,11 @@ float intersectTriangle(const vec3 orig, const mat3 M, const int axis, const int
             vec3(lvtx[itri+6], lvtx[itri+7], lvtx[itri+8])-orig.z
         )*M;
 
-        // PURE watertight triangle intersection (our, GPU-GLSL adapted version)
+        // watertight triangle intersection (our, GPU-GLSL adapted version)
         // http://jcgt.org/published/0002/01/05/paper.pdf
         vec3 UVW_ = uvwMap[axis] * inverse(ABC);
-        valid = valid && (all(greaterThanEqual(UVW_, vec3(0.f))) || all(lessThanEqual(UVW_, vec3(0.f))));
-        if (valid) {
-            const float det = dot(UVW_,vec3(1)); UVW_ *= 1.f/precIssue(det);
+        IFANY (valid = valid && (all(greaterThan(UVW_, 0.f.xxx)) || all(lessThan(UVW_, 0.f.xxx)))  ) {
+            UVW_ /= precIssue(dot(UVW_, vec3(1)));
             UV = vec2(UVW_.yz), UVW_ *= ABC; // calculate axis distances
             T = mix(mix(UVW_.z, UVW_.y, axis == 1), UVW_.x, axis == 0);
             T = mix(INFINITY, T, (T >= -(1e-5f)) && valid);
@@ -125,7 +126,12 @@ float intersectTriangle(const vec3 orig, const vec3 dir, const int tri, inout ve
     const vec3 e1 = vT[1]-vT[0], e2 = vT[2]-vT[0];
     const vec3 h = cross(dir, e2);
     const float a = dot(e1,h);
+
+#ifdef BACKFACE_CULLING
+    if (a < 1e-5f) { _valid = false; }
+#else
     if (abs(a) < 1e-5f) { _valid = false; }
+#endif
 
     const float f = 1.f/a;
     const vec3 s = orig - vT[0], q = cross(s, e1);

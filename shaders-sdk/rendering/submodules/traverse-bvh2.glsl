@@ -161,6 +161,7 @@ void traverseBvh2(in bool_ valid, inout _RAY_TYPE rayIn) {
         geometrySpace.axis == 1 ? vm.xwz : vec3(0.f,1.f,0.f),
         geometrySpace.axis == 2 ? vm.xyw : vec3(0.f,0.f,1.f)
     ));
+    
 
     // test intersection with main box
     float near = -INFINITY, far = INFINITY;

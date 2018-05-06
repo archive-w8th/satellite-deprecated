@@ -1,6 +1,10 @@
 #ifndef _SHADINGLIB_H
 #define _SHADINGLIB_H
 
+
+//#define UNSHADE_BACKFACE
+
+
 // gap in hit point
 #define GAP (PZERO*2.f)
 
@@ -44,53 +48,49 @@ float samplingWeight(in vec3 ldir, in vec3 ndir, in float radius, in float dist)
 }
 
 
-RayRework directLight(in int i, in RayRework directRay, in vec3 color, in mat3 tbn) {
-    RayActived(directRay, RayType(directRay) == 2 ? false_ : RayActived(directRay));
-    RayTargetLight(directRay, i);
-    RayDiffBounce(directRay, min(1,max(RayDiffBounce(directRay)-(RayType(directRay)==3?0:1),0)));
-        RayBounce(directRay, min(1,max(    RayBounce(directRay)-(RayType(directRay)==3?0:0),0))); // incompatible with reflections and diffuses
-    RayType(directRay, 2);
-    RayDL(directRay, true_); // always illuminated by sunlight
+RayRework directLight(in int i, in RayRework ray, in vec3 color, in mat3 tbn) {
+    RayActived(ray, RayType(ray) == 2 ? false_ : RayActived(ray));
+    RayTargetLight(ray, i);
+    RayDiffBounce(ray, min(1,max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
+        RayBounce(ray, min(1,max(    RayBounce(ray)-(RayType(ray)==3?0:0),0))); // incompatible with reflections and diffuses
+    RayType(ray, 2);
+    RayDL(ray, true_); // always illuminated by sunlight
 
-#ifdef USE_SIMPLIFIED_MODE
-    vec3 lpath = lightCenter(i).xyz - directRay.origin.xyz; // hard shadows
+    vec3 siden = faceforward(tbn[2], dcts(ray.cdirect.xy), tbn[2]);
+    vec3 lpath = sphereLightPoint(i) - ray.origin.xyz;
     vec3 ldirect = normalize(lpath);
-    float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
-    float weight = 1.f; // no weighting
-    //samplingWeight(ldirect, tbn[2], lightUniform.lightNode[i].lightColor.w, dist); 
+    float dist = length(lightCenter(i).xyz - ray.origin.xyz);
+    float weight = samplingWeight(ldirect, siden, lightUniform.lightNode[i].lightColor.w, dist);
 
-    directRay.cdirect.xy = lcts(ldirect);
-    directRay.origin.xyz = fma(ldirect.xyz, vec3(GAP), directRay.origin.xyz);
-    WriteColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
-#else
-    vec3 lpath = sphereLightPoint(i) - directRay.origin.xyz;
-    vec3 ldirect = normalize(lpath);
-    float dist = length(lightCenter(i).xyz - directRay.origin.xyz);
-    float weight = samplingWeight(ldirect, tbn[2], lightUniform.lightNode[i].lightColor.w, dist);
+    ray.cdirect.xy = lcts(ldirect);
+    ray.origin.xyz = fma(ldirect.xyz, vec3(GAP), ray.origin.xyz);
+    WriteColor(ray.dcolor, f16_f32(ray.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
 
-    directRay.cdirect.xy = lcts(ldirect);
-    directRay.origin.xyz = fma(ldirect.xyz, vec3(GAP), directRay.origin.xyz);
-    WriteColor(directRay.dcolor, f16_f32(directRay.dcolor) * vec4(color,1.f) * vec4(weight.xxx,1.f));
-#endif
-
-    IF (lessF(dot(ldirect.xyz, tbn[2]), 0.f)) {
-        RayActived(directRay, false_); // wrong direction, so invalid
+    IF (lessF(dot(ldirect.xyz, siden), 0.f)) {
+        RayActived(ray, false_); // wrong direction, so invalid
     }
 
     // any trying will fail when flag not enabled
 #ifndef DIRECT_LIGHT_ENABLED
-    RayActived(directRay, false_);
+    RayActived(ray, false_);
 #endif
 
     // ineffective
 #ifndef ENABLE_PT_SUNLIGHT
-    RayActived(directRay, false_);
+    RayActived(ray, false_);
 #endif
 
     // inactived can't be shaded
-    IF (not(RayActived(directRay))) WriteColor(directRay.dcolor, 0.f.xxxx);
+    // also, culling by normal
+#ifdef UNSHADE_BACKFACE
+    IF (not(RayActived(ray)) | bool_(dot(tbn[2], ldirect) < 0.f)) {
+        WriteColor(ray.dcolor, 0.f.xxxx);
+    }
+#else
+    IF (not(RayActived(ray))) { WriteColor(ray.dcolor, 0.f.xxxx); }
+#endif 
 
-    return directRay;
+    return ray;
 }
 
 RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
@@ -106,15 +106,23 @@ RayRework diffuse(in RayRework ray, in vec3 color, in mat3 tbn) {
     RayActived(ray, RayType(ray) == 2 ? false_ : RayActived(ray));
     RayDiffBounce(ray, min(diffuse_reflections, max(RayDiffBounce(ray)-(RayType(ray)==3?0:1),0)));
 
-    vec3 sdr = randomCosineNormalOriented(rayStreams[RayDiffBounce(ray)].superseed[1], tbn[2]);
-    sdr = faceforward(sdr, sdr, -tbn[2]);
+    vec3 siden = faceforward(tbn[2], dcts(ray.cdirect.xy), tbn[2]);
+    vec3 sdr = randomCosineNormalOriented(rayStreams[RayDiffBounce(ray)].superseed[1], siden);
+    sdr = faceforward(sdr, sdr, -siden);
     ray.cdirect.xy = lcts(sdr);
     ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);
 
     if (RayType(ray) != 2) RayType(ray, 1);
 
     // inactived can't be shaded
-    IF (not(RayActived(ray))) WriteColor(ray.dcolor, 0.f.xxxx);
+    // also, culling by normal
+#ifdef UNSHADE_BACKFACE
+    IF (not(RayActived(ray)) | bool_(dot(tbn[2], sdr) < 0.f)) {
+        WriteColor(ray.dcolor, 0.f.xxxx);
+    }
+#else
+    IF (not(RayActived(ray))) { WriteColor(ray.dcolor, 0.f.xxxx); }
+#endif 
 
     return ray;
 }
@@ -133,6 +141,11 @@ RayRework emissive(in RayRework ray, in vec3 color, in mat3 tbn) {
     ray.origin.xyz = fma(dcts(ray.cdirect.xy), vec3(GAP), ray.origin.xyz);
     RayBounce(ray, 0);
     RayActived(ray, false_);
+
+#ifdef UNSHADE_BACKFACE
+    IF (bool_(dot(tbn[2], dcts(ray.cdirect.xy)) > 0.f)) { WriteColor(ray.dcolor, 0.f.xxxx); }
+#endif 
+
     return ray;
 }
 
@@ -146,11 +159,11 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     #ifdef USE_SIMPLIFIED_MODE
         const int caustics_bounces = 0, reflection_bounces = 1; refly = 0.f;
     #else
-    #ifdef USE_OPTIMIZED_PT
-        const int caustics_bounces = 0, reflection_bounces = 1;
-    #else
-        const int caustics_bounces = 0, reflection_bounces = 2;
-    #endif
+        #ifdef USE_OPTIMIZED_PT
+            const int caustics_bounces = 0, reflection_bounces = 1;
+        #else
+            const int caustics_bounces = 0, reflection_bounces = 2;
+        #endif
     #endif
 #endif
 
@@ -158,17 +171,25 @@ RayRework reflection(in RayRework ray, in vec3 color, in mat3 tbn, in float refl
     RayBounce(ray, min(RayType(ray)==1?caustics_bounces:reflection_bounces, max(RayBounce(ray) - (RayType(ray)==3?0:1), 0)));
     if ( RayType(ray) != 2 ) RayType(ray, 0); // reflection ray transfer (primary)
 
-    vec3 sdr = randomCosineNormalOriented(rayStreams[RayBounce(ray)].superseed[2], tbn[2]);
-    sdr = faceforward(sdr, sdr, -tbn[2]);
-    sdr = normalize(fmix(reflect(dcts(ray.cdirect.xy), tbn[2]), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
-    sdr = faceforward(sdr, sdr, -tbn[2]);
+    vec3 siden = faceforward(tbn[2], dcts(ray.cdirect.xy), tbn[2]);
+    vec3 sdr = randomCosineNormalOriented(rayStreams[RayBounce(ray)].superseed[2], siden);
+    sdr = faceforward(sdr, sdr, -siden);
+    sdr = normalize(fmix(reflect(dcts(ray.cdirect.xy), siden), sdr, clamp(sqrt(random()) * (refly), 0.0f, 1.0f).xxx));
+    sdr = faceforward(sdr, sdr, -siden);
 
     ray.cdirect.xy = lcts(sdr);
     ray.origin.xyz = fma(sdr, vec3(GAP), ray.origin.xyz);
     RayActived(ray, RayType(ray) == 2 ? false_ : RayActived(ray));
 
     // inactived can't be shaded
-    IF (not(RayActived(ray))) WriteColor(ray.dcolor, 0.f.xxxx);
+    // also, culling by normal
+#ifdef UNSHADE_BACKFACE
+    IF (not(RayActived(ray)) | bool_(dot(tbn[2], sdr) < 0.f)) {
+        WriteColor(ray.dcolor, 0.f.xxxx);
+    }
+#else
+    IF (not(RayActived(ray))) { WriteColor(ray.dcolor, 0.f.xxxx); }
+#endif 
 
     return ray;
 }

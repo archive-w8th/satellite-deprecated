@@ -221,9 +221,9 @@ void main() {
                     const vec3 min_fresnel_color = toLinear(vec3(1.f));
 
                     // get normals
-                    vec3 bitangent = faceforward(compositedHit.bitangent.xyz, dcts(currentRay.cdirect.xy), compositedHit.bitangent.xyz);
-                    vec3 tangent = faceforward(compositedHit.tangent.xyz, dcts(currentRay.cdirect.xy), compositedHit.tangent.xyz);
-                    vec3 normal = faceforward(compositedHit.normalHeight.xyz, dcts(currentRay.cdirect.xy), compositedHit.normalHeight.xyz);
+                    vec3 bitangent = compositedHit.bitangent.xyz;
+                    vec3 tangent = compositedHit.tangent.xyz;
+                    vec3 normal = compositedHit.normalHeight.xyz;
                     mat3 tbn = mat3(tangent, bitangent, normal);
 
                     // get texture composition data
@@ -233,7 +233,7 @@ void main() {
                     float metallic = sqrt(compositedHit.metallicRoughness.y); // metallic
 
                     vec3 freflcolor = fmix(max_fresnel_color * 0.9f, min_fresnel_color * 0.04f, clamp(pow(abs(dot(dcts(currentRay.cdirect.xy), normal)), IOR - 1.f), 0.0f, 1.0f).xxx);
-                    vec3 speccolor = fmix(freflcolor * mix(1.f.xxx, diffcolor.xyz, 0.04f.xxx), diffcolor.xyz, metallic.xxx);
+                    vec3 speccolor = fmix(freflcolor * mix(1.f.xxx, diffcolor.xyz, 0.04f.xxx), diffcolor.xyz + emiscolor.xyz, metallic.xxx);
                     
                     // coefficents
                     float prom = clamp01(1.f - diffcolor.w); // transmission power
@@ -282,7 +282,6 @@ void main() {
                     invalidateRay(diffuseRay, false); 
                     invalidateRay(reflectionRay, false);
 
-#ifdef ROLE_ABILATION
                     // if reflection ray can't done own role, give to diffuse 
                     if (!SSC(RayActived(reflectionRay)) && qspca > 0.99999f) { 
                         qspca = spca; diffuseRay = diffuse(enrollRay, diffcolor.xyz * (1.f - qspca) * (1.f - qprom), tbn);
@@ -292,26 +291,7 @@ void main() {
                     if (!SSC(RayActived(diffuseRay)) && qspca < 0.00001f) {
                         qspca = spca; reflectionRay = reflection(enrollRay, clamp01(speccolor.xyz / precIssue(spca)) * qspca * (1.f - qprom), tbn, refly);
                     }
-#endif
 
-#ifdef USE_SIMPLIFIED_MODE
-                    vec3 lightVec = sphereLightPoint(0) - enrollRay.origin.xyz;
-                    vec3 ambient_diffuse = diffcolor.xyz * 0.1f.xxx;
-                    vec3 fake_diffusion = diffcolor.xyz * mix(0.1f.xxx, 2.f.xxx, max(dot(normal.xyz, normalize(lightVec.xyz)), 0.f));
-                    vec3 emission_addition = emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - qprom);
-
-                    { // reflection rays from surface
-                        invokeBlockForNodes(reflectionRay, reflectionBlock, overwriteBlock);
-                    }
-
-#ifdef USE_HARD_SHADOWS
-                    { // shadow rays from surface
-                        fake_diffusion -= ambient_diffuse;
-                        RayRework shadowRay = directLight(0, enrollRay, fake_diffusion.xyz * (1.f - spca) * (1.f - prom), tbn);
-                        invokeBlockForNodes(shadowRay, shadowBlock, overwriteBlock);
-                    }
-#endif
-#else
                     { // diffuse rays from surface
                         invokeBlockForNodes(reflectionRay, reflectionBlock, overwriteBlock);
                         invokeBlockForNodes(diffuseRay, diffuseBlock, overwriteBlock);
@@ -321,7 +301,6 @@ void main() {
                         RayRework shadowRay = directLight(0, enrollRay, diffcolor.xyz * (1.f - spca) * (1.f - prom), tbn);
                         invokeBlockForNodes(shadowRay, shadowBlock, overwriteBlock);
                     }
-#endif
 
                     overwriteBlock = -1;
 
@@ -334,24 +313,11 @@ void main() {
                         invokeBlockForNodes(envRay, envBlock, overwriteBlock);
                     }
                     
-#ifdef USE_SIMPLIFIED_MODE // fake diffuse (beginner shading mode)
-                    { // simple shading + possible emissions
-#ifdef USE_HARD_SHADOWS
-                        vec3 a_diffuse = ambient_diffuse;
-#else
-                        vec3 a_diffuse = fake_diffusion;
-#endif
-                        RayRework rayTemplate = emissive(enrollRay, emission_addition + a_diffuse * (1.f - qspca) * (1.f - qprom), tbn);
-                        IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
-                        invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
-                    }
-#else    
                     { // PBR emissions
-                        RayRework rayTemplate = emissive(enrollRay, emiscolor.xyz * (1.f - freflcolor * (1.f - metallic)) * (1.f - qprom), tbn);
+                        RayRework rayTemplate = emissive(enrollRay, emiscolor.xyz * (1.f - spca) * (1.f - qprom), tbn);
                         IF (RayActived(rayTemplate)) WriteColor(rayTemplate.dcolor, 0.0f.xxxx); // any actives inaccessible
                         invokeBlockForNodes(rayTemplate, emissionBlock, overwriteBlock);
                     }
-#endif
 
                 }
             }

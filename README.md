@@ -10,6 +10,8 @@
 
 * **02.05.2018**. We made support for nearly all current graphics platforms (2017, 2018 and higher). We now supported in Intel UHD Graphics 630, AMD RX Vega 64 (and may be 56), NVidia GTX 1070 (and may GTX 1080 family).
 
+* **06.06.2018**. We published shaders in standalone repository (https://github.com/world8th/rt-vulkan-shaders). Compatible only with *Vulkan API 1.1*. 
+
 ### What we can be do, if we had desires
 
 * Appveyor, etc. support 

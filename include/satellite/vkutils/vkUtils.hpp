@@ -212,8 +212,7 @@ namespace NSM
         imageInfo.sharingMode = vk::SharingMode::eExclusive;
         imageInfo.arrayLayers = 1; // unsupported
         imageInfo.tiling = vk::ImageTiling::eOptimal;
-        imageInfo.extent = { size.width, size.height,
-                            size.depth * (isCubemap ? 6 : 1) };
+        imageInfo.extent = { size.width, size.height, size.depth * (isCubemap ? 6 : 1) };
         imageInfo.format = format;
         imageInfo.mipLevels = mipLevels;
         imageInfo.pQueueFamilyIndices = &deviceQueue->mainQueue->familyIndex;
@@ -237,8 +236,7 @@ namespace NSM
 
         // subresource layers
         texture->subresourceLayers.layerCount = texture->subresourceRange.layerCount;
-        texture->subresourceLayers.baseArrayLayer =
-            texture->subresourceRange.baseArrayLayer;
+        texture->subresourceLayers.baseArrayLayer = texture->subresourceRange.baseArrayLayer;
         texture->subresourceLayers.aspectMask = texture->subresourceRange.aspectMask;
         texture->subresourceLayers.mipLevel = texture->subresourceRange.baseMipLevel;
 
@@ -252,8 +250,7 @@ namespace NSM
                 vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA))
             .setImage(texture->image)
             .setFormat(format));
-        texture->descriptorInfo =
-            vk::DescriptorImageInfo(nullptr, texture->view, texture->layout);
+        texture->descriptorInfo = vk::DescriptorImageInfo(nullptr, texture->view, texture->layout);
         texture->initialized = true;
 
         // do layout transition

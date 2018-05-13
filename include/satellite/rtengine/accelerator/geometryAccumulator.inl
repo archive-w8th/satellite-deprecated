@@ -7,9 +7,10 @@ namespace NSM
     namespace rt
     {
 
-        void GeometryAccumulator::init(DeviceQueueType &_device)
+        void GeometryAccumulator::init(Queue &_queue)
         {
-            this->device = _device;
+            this->queue = _queue;
+            this->device = _queue->device;
 
             std::vector<vk::DescriptorSetLayoutBinding> loaderDescriptorSetBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // counters
@@ -59,15 +60,15 @@ namespace NSM
             }
 
             // vertex loader
-            geometryLoader = createCompute(device, shadersPathPrefix + "/vertex/vloader.comp.spv", pipelineLayout);
+            geometryLoader = createCompute(queue, shadersPathPrefix + "/vertex/vloader.comp.spv", pipelineLayout);
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb
-            generalStagingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            generalLoadingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
+            generalStagingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            generalLoadingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
             // create didcated counter for accumulator
-            geometryCounter = createBuffer(device, strided<uint32_t>(2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            geometryCounter = createBuffer(queue, strided<uint32_t>(2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // descriptor templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -76,8 +77,8 @@ namespace NSM
             }, nullptr);
 
             {
-                zerosBufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-                debugOnes32BufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                zerosBufferReference = createBuffer(queue, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                debugOnes32BufferReference = createBuffer(queue, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // minmaxes
                 std::vector<bbox> minmaxes(32);
@@ -89,10 +90,10 @@ namespace NSM
                 std::for_each(std::execution::par_unseq, ones.begin(), ones.end(), [&](auto&& m) { m = 1u; });
 
                 // make reference buffers
-                auto command = getCommandBuffer(device, true);
+                auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
-                flushCommandBuffer(device, command, true);
+                flushCommandBuffer(queue, command, true);
             }
 
             resetAccumulationCounter();
@@ -100,17 +101,17 @@ namespace NSM
 
         void GeometryAccumulator::resetAccumulationCounter()
         {
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, geometryCounter, { 0, 0, strided<uint32_t>(2) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, geometryCounter, { 0, 0, strided<uint32_t>(2) }), true);
         }
 
         void GeometryAccumulator::allocatePrimitiveReserve(size_t primitiveCount)
         {
             // sideloader
             size_t _MAX_HEIGHT = tiled(primitiveCount * 3 * ATTRIBUTE_EXTENT, _WIDTH) + 1;
-            attributeTexelWorking = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Uint);
-            materialIndicesWorking = createBuffer(device, strided<uint32_t>(primitiveCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            orderIndicesWorking = createBuffer(device, strided<uint32_t>(primitiveCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            vertexLinearWorking = createBuffer(device, strided<float>(primitiveCount * 9), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            attributeTexelWorking = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Uint);
+            materialIndicesWorking = createBuffer(queue, strided<uint32_t>(primitiveCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            orderIndicesWorking = createBuffer(queue, strided<uint32_t>(primitiveCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            vertexLinearWorking = createBuffer(queue, strided<float>(primitiveCount * 9), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // descriptor templates
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -155,7 +156,7 @@ namespace NSM
             }
 
             dispatchCompute(geometryLoader, INTENSIVITY, loaderDescriptorSets, instanceConst);
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }), true); // save counted state
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }), true); // save counted state
         }
 
     }

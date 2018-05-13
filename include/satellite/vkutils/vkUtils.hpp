@@ -199,7 +199,7 @@ namespace NSM
     }
 
     // create texture object
-    auto createTexture(const Queue &deviceQueue,
+    auto createImage(const Queue &deviceQueue,
         vk::ImageViewType imageViewType, vk::ImageLayout layout,
         vk::Extent3D size, vk::ImageUsageFlags usage,
         vk::Format format = vk::Format::eR8G8B8A8Unorm,
@@ -207,7 +207,7 @@ namespace NSM
         VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY)
     {
         Image texture = std::make_shared<ImageType>();
-        texture->device = deviceQueue;
+        texture->queue = deviceQueue;
         texture->layout = layout;
         texture->initialLayout = vk::ImageLayout::eUndefined;
 
@@ -297,15 +297,13 @@ namespace NSM
     }
 
     //
-    auto createTexture(const Queue &deviceQueue,
+    auto createImage(const Queue &deviceQueue,
         vk::ImageViewType viewType, vk::Extent3D size,
         vk::ImageUsageFlags usage,
         vk::Format format = vk::Format::eR8G8B8A8Unorm,
         uint32_t mipLevels = 1,
-        VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY)
-    {
-        return createTexture(deviceQueue, viewType, vk::ImageLayout::eGeneral, size,
-            usage, format, mipLevels, usageType);
+        VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY) {
+        return createImage(deviceQueue, viewType, vk::ImageLayout::eGeneral, size, usage, format, mipLevels, usageType);
     }
 
     // create buffer function
@@ -315,7 +313,7 @@ namespace NSM
         Buffer buffer = std::make_shared<BufferType>();
 
         // link with device
-        buffer->device = deviceQueue->device;
+        buffer->queue = deviceQueue;
 
         auto binfo = vk::BufferCreateInfo(vk::BufferCreateFlags(), bufferSize,
             usageBits, vk::SharingMode::eExclusive, 1,
@@ -341,7 +339,7 @@ namespace NSM
 
     // fill buffer function
     template <class T>
-    void bufferSubData(vk::CommandBuffer &cmd, const BufferType &buffer,
+    void bufferSubData(vk::CommandBuffer &cmd, const Buffer &buffer,
         const std::vector<T> &hostdata, intptr_t offset = 0)
     {
         const size_t bufferSize = hostdata.size() * sizeof(T);
@@ -360,7 +358,7 @@ namespace NSM
 
     // get buffer data function
     template <class T>
-    void getBufferSubData(const BufferType &buffer, std::vector<T> &hostdata,
+    void getBufferSubData(const Buffer &buffer, std::vector<T> &hostdata,
         intptr_t offset = 0)
     {
         memcpy(hostdata.data(),
@@ -419,14 +417,14 @@ namespace NSM
 
     /*
     template<class ...T>
-    void copyMemoryProxy(const DeviceQueueType& deviceQueue, T... args, bool async =
+    void copyMemoryProxy(const Queue& deviceQueue, T... args, bool async =
     true) { // copy staging buffers vk::CommandBuffer copyCmd =
     getCommandBuffer(deviceQueue, true); memoryCopyCmd(copyCmd, args...);
     flushCommandBuffer(deviceQueue, copyCmd, async);
     }
 
     template<class ...T>
-    void copyMemoryProxy(const DeviceQueueType& deviceQueue, T... args, const
+    void copyMemoryProxy(const Queue& deviceQueue, T... args, const
     std::function<void()>& asyncCallback) { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...); flushCommandBuffer(deviceQueue, copyCmd,
@@ -476,8 +474,8 @@ namespace NSM
     {
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (buffer && buffer->initialized) {
-                buffer->device->logical.waitIdle();
-                vmaDestroyBuffer(buffer->device->allocator, buffer->buffer, buffer->allocation);
+                buffer->queue->device->logical.waitIdle();
+                vmaDestroyBuffer(buffer->queue->device->allocator, buffer->buffer, buffer->allocation);
                 buffer->initialized = false;
             }
         });
@@ -487,8 +485,8 @@ namespace NSM
     {
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (image && image->initialized) {
-                image->device->logical.waitIdle();
-                vmaDestroyImage(image->device->allocator, image->image, image->allocation);
+                image->queue->device->logical.waitIdle();
+                vmaDestroyImage(image->queue->device->allocator, image->image, image->allocation);
                 image->initialized = false;
             }
         });

@@ -33,7 +33,7 @@ namespace NSM
         vk::Instance instance;
 
         // cached Vulkan API data
-        std::vector<DeviceQueueType> devices;
+        std::vector<Queue> devices;
 
         // instance extensions
         std::vector<const char *> wantedExtensions = {
@@ -175,7 +175,7 @@ namespace NSM
             return instance;
         };
 
-        virtual DeviceQueueType createDevice(std::shared_ptr<vk::PhysicalDevice> gpu, bool isComputePrior = false)
+        virtual Queue createDeviceQueue(std::shared_ptr<vk::PhysicalDevice> gpu, bool isComputePrior = false)
         {
             // use extensions
             auto deviceExtensions = std::vector<const char *>();
@@ -213,21 +213,18 @@ namespace NSM
             auto gpuQueueProps = gpu->getQueueFamilyProperties();
 
             // search graphics supported queue family
-            std::vector<DevQueueType> queues;
+            std::vector<DevQueue> queues;
 
             float priority = 1.0f;
             uint32_t computeFamilyIndex = -1, graphicsFamilyIndex = -1;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
-
-
-
 
             // compute/graphics queue family
             for (auto &queuefamily : gpuQueueProps) {
                 computeFamilyIndex++;
                 if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute)) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
-                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ computeFamilyIndex, vk::Queue{} }));
+                    queues.push_back(std::make_shared<DevQueueType>(DevQueueType{ computeFamilyIndex, vk::Queue{} }));
                     break;
                 }
             }
@@ -238,7 +235,7 @@ namespace NSM
                 graphicsFamilyIndex++;
                 if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu->getSurfaceSupportKHR(graphicsFamilyIndex, *applicationWindow.surface) && graphicsFamilyIndex != computeFamilyIndex) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
-                    queues.push_back(std::make_shared<DevQueue>(DevQueue{ graphicsFamilyIndex, vk::Queue{} }));
+                    queues.push_back(std::make_shared<DevQueueType>(DevQueueType{ graphicsFamilyIndex, vk::Queue{} }));
                     break;
                 }
             }
@@ -258,38 +255,42 @@ namespace NSM
 
 
             // pre-declare logical device
-            auto deviceQueuePtr = std::shared_ptr<DeviceQueue>(new DeviceQueue);
+            auto deviceQueuePtr = std::make_shared<QueueType>();
+            auto devicePtr = std::make_shared<DeviceType>();
+            deviceQueuePtr->device = devicePtr;
 
             // if have supported queue family, then use this device
             if (queueCreateInfos.size() > 0)
             {
-                deviceQueuePtr->physical = gpu;
-                deviceQueuePtr->logical = gpu->createDevice(vk::DeviceCreateInfo().setFlags(vk::DeviceCreateFlags())
+                devicePtr->physical = gpu;
+                devicePtr->logical = gpu->createDevice(vk::DeviceCreateInfo().setFlags(vk::DeviceCreateFlags())
                     .setPEnabledFeatures(&gpuFeatures)
                     .setPQueueCreateInfos(queueCreateInfos.data()).setQueueCreateInfoCount(queueCreateInfos.size())
                     .setPpEnabledExtensionNames(deviceExtensions.data()).setEnabledExtensionCount(deviceExtensions.size())
                     .setPpEnabledLayerNames(deviceValidationLayers.data()).setEnabledLayerCount(deviceValidationLayers.size()));
-                volkLoadDevice(deviceQueuePtr->logical);
+                volkLoadDevice(devicePtr->logical);
 
                 VolkDeviceTable vktable;
-                volkLoadDeviceTable(&vktable, deviceQueuePtr->logical);
+                volkLoadDeviceTable(&vktable, devicePtr->logical);
 
                 // init dispatch loader
-                deviceQueuePtr->dldid = vk::DispatchLoaderDynamic(instance, deviceQueuePtr->logical);
+                devicePtr->dldid = vk::DispatchLoaderDynamic(instance, devicePtr->logical);
 
                 // getting queues by family
-                for (int i = 0; i < queues.size(); i++) { queues[i]->queue = deviceQueuePtr->logical.getQueue(queues[i]->familyIndex, 0); }
-                deviceQueuePtr->queues = queues;
+                for (int i = 0; i < queues.size(); i++) { queues[i]->queue = devicePtr->logical.getQueue(queues[i]->familyIndex, 0); }
+                devicePtr->queues = queues;
                 
                 // add device and use this device
                 devices.push_back(deviceQueuePtr);
 
                 // create semaphores
-                deviceQueuePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
+                //devicePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
 
                 // create queue and command pool
-                deviceQueuePtr->mainQueue = deviceQueuePtr->queues[isComputePrior ? 0 : 1]; // make role prior
-                deviceQueuePtr->commandPool = deviceQueuePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->mainQueue->familyIndex));
+                //devicePtr->mainQueue = deviceQueuePtr->queues[isComputePrior ? 0 : 1]; // make role prior
+                deviceQueuePtr->commandPool = devicePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->familyIndex));
+                deviceQueuePtr->queue = devicePtr->queues[isComputePrior ? 0 : 1]->queue; // make role prior
+                deviceQueuePtr->familyIndex = devicePtr->queues[isComputePrior ? 0 : 1]->familyIndex;
 
                 // mapping volk with VMA functions
                 VmaVulkanFunctions vfuncs;
@@ -313,14 +314,14 @@ namespace NSM
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
                 allocatorInfo.pVulkanFunctions = &vfuncs;
-                allocatorInfo.physicalDevice = *deviceQueuePtr->physical;
-                allocatorInfo.device = deviceQueuePtr->logical;
+                allocatorInfo.physicalDevice = *devicePtr->physical;
+                allocatorInfo.device = devicePtr->logical;
                 allocatorInfo.preferredLargeHeapBlockSize = 16384; // 16kb
                 allocatorInfo.flags =
                     VmaAllocationCreateFlagBits::
                     VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT ||
                     VmaAllocationCreateFlagBits::VMA_ALLOCATION_CREATE_MAPPED_BIT;
-                vmaCreateAllocator(&allocatorInfo, &deviceQueuePtr->allocator);
+                vmaCreateAllocator(&allocatorInfo, &devicePtr->allocator);
 
                 // pool sizes, and create descriptor pool
                 std::vector<vk::DescriptorPoolSize> psizes = {
@@ -329,16 +330,10 @@ namespace NSM
                     vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, 16),
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 128),
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 16) };
-                deviceQueuePtr->descriptorPool =
-                    deviceQueuePtr->logical.createDescriptorPool(
-                        vk::DescriptorPoolCreateInfo()
-                        .setPPoolSizes(psizes.data())
-                        .setPoolSizeCount(psizes.size())
-                        .setMaxSets(16)
-                    );
-                deviceQueuePtr->fence = createFence(deviceQueuePtr, false);
-                deviceQueuePtr->initialized = true;
-                deviceQueuePtr->pipelineCache = deviceQueuePtr->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
+                devicePtr->descriptorPool = devicePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
+                devicePtr->fence = createFence(devicePtr, false);
+                devicePtr->initialized = true;
+                devicePtr->pipelineCache = devicePtr->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
             }
 
             // return device with queue pointer
@@ -431,8 +426,7 @@ namespace NSM
             return sfd;
         }
 
-        virtual vk::RenderPass createRenderpass(DeviceQueueType &device,
-            SurfaceFormat &formats)
+        virtual vk::RenderPass createRenderpass(Queue &queue, SurfaceFormat &formats)
         {
             // attachments
             std::vector<vk::AttachmentDescription> attachmentDescriptions = {
@@ -506,32 +500,30 @@ namespace NSM
             };
 
             // create renderpass
-            return device->logical.createRenderPass(vk::RenderPassCreateInfo(
+            return queue->device->logical.createRenderPass(vk::RenderPassCreateInfo(
                 vk::RenderPassCreateFlags(), attachmentDescriptions.size(),
                 attachmentDescriptions.data(), subpasses.size(), subpasses.data(),
                 dependencies.size(), dependencies.data()));
         }
 
         // update swapchain framebuffer
-        virtual void
-            updateSwapchainFramebuffer(DeviceQueueType &device,
+        virtual void updateSwapchainFramebuffer(Queue &queue,
                 vk::SwapchainKHR &swapchain,
                 vk::RenderPass &renderpass, SurfaceFormat &formats,
                 std::vector<Framebuffer> &swapchainBuffers)
         {
             // The swapchain handles allocating frame images.
-            auto swapchainImages = device->logical.getSwapchainImagesKHR(swapchain);
-            auto gpuMemoryProps = device->physical->getMemoryProperties();
+            auto swapchainImages = queue->device->logical.getSwapchainImagesKHR(swapchain);
+            auto gpuMemoryProps = queue->device->physical->getMemoryProperties();
 
             // create depth image
             auto imageInfo = vk::ImageCreateInfo(
                 vk::ImageCreateFlags(), vk::ImageType::e2D, formats.depthFormat,
-                vk::Extent3D(applicationWindow.surfaceSize.width,
-                    applicationWindow.surfaceSize.height, 1),
+                vk::Extent3D(applicationWindow.surfaceSize.width, applicationWindow.surfaceSize.height, 1),
                 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eDepthStencilAttachment |
                 vk::ImageUsageFlagBits::eTransferSrc,
-                vk::SharingMode::eExclusive, 1, &device->queues[1]->familyIndex,
+                vk::SharingMode::eExclusive, 1, &queue->device->queues[1]->familyIndex,
                 vk::ImageLayout::eUndefined);
 
             VmaAllocationCreateInfo allocCreateInfo = {};
@@ -539,14 +531,14 @@ namespace NSM
 
             VmaAllocation _allocation;
             VkImage _image;
-            vmaCreateImage(device->allocator, &(VkImageCreateInfo)imageInfo,
+            vmaCreateImage(queue->device->allocator, &(VkImageCreateInfo)imageInfo,
                 &allocCreateInfo, &_image, &_allocation,
                 nullptr); // allocators planned structs
             auto depthImage = vk::Image(_image);
 
             // create image viewer
             auto depthImageView =
-                device->logical.createImageView(vk::ImageViewCreateInfo(
+                queue->device->logical.createImageView(vk::ImageViewCreateInfo(
                     vk::ImageViewCreateFlags(), depthImage, vk::ImageViewType::e2D,
                     formats.depthFormat, vk::ComponentMapping(),
                     vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth |
@@ -561,7 +553,7 @@ namespace NSM
                 views[1] = depthImageView;
 
                 // color view
-                views[0] = device->logical.createImageView(vk::ImageViewCreateInfo(
+                views[0] = queue->device->logical.createImageView(vk::ImageViewCreateInfo(
                     vk::ImageViewCreateFlags(), image, vk::ImageViewType::e2D,
                     formats.colorFormat, vk::ComponentMapping(),
                     vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0,
@@ -569,20 +561,19 @@ namespace NSM
 
                 // create framebuffers
                 swapchainBuffers[i].frameBuffer =
-                    device->logical.createFramebuffer(vk::FramebufferCreateInfo(
+                    queue->device->logical.createFramebuffer(vk::FramebufferCreateInfo(
                         vk::FramebufferCreateFlags(), renderpass, views.size(),
                         views.data(), applicationWindow.surfaceSize.width,
                         applicationWindow.surfaceSize.height, 1));
             }
         }
 
-        virtual std::vector<Framebuffer> createSwapchainFramebuffer(
-            DeviceQueueType &device, vk::SwapchainKHR &swapchain,
+        virtual std::vector<Framebuffer> createSwapchainFramebuffer( Queue &queue, vk::SwapchainKHR &swapchain,
             vk::RenderPass &renderpass, SurfaceFormat &formats)
         {
             // The swapchain handles allocating frame images.
-            auto swapchainImages = device->logical.getSwapchainImagesKHR(swapchain);
-            auto gpuMemoryProps = device->physical->getMemoryProperties();
+            auto swapchainImages = queue->device->logical.getSwapchainImagesKHR(swapchain);
+            auto gpuMemoryProps = queue->device->physical->getMemoryProperties();
 
             // create depth image
             auto imageInfo = vk::ImageCreateInfo(
@@ -592,7 +583,7 @@ namespace NSM
                 1, 1, vk::SampleCountFlagBits::e1, vk::ImageTiling::eOptimal,
                 vk::ImageUsageFlagBits::eDepthStencilAttachment |
                 vk::ImageUsageFlagBits::eTransferSrc,
-                vk::SharingMode::eExclusive, 1, &device->queues[1]->familyIndex,
+                vk::SharingMode::eExclusive, 1, &queue->device->queues[1]->familyIndex,
                 vk::ImageLayout::eUndefined);
 
             VmaAllocationCreateInfo allocCreateInfo = {};
@@ -600,14 +591,14 @@ namespace NSM
 
             VmaAllocation _allocation;
             VkImage _image;
-            vmaCreateImage(device->allocator, &(VkImageCreateInfo)imageInfo,
+            vmaCreateImage(queue->device->allocator, &(VkImageCreateInfo)imageInfo,
                 &allocCreateInfo, &_image, &_allocation,
                 nullptr); // allocators planned structs
             auto depthImage = vk::Image(_image);
 
             // create image viewer
             auto depthImageView =
-                device->logical.createImageView(vk::ImageViewCreateInfo(
+                queue->device->logical.createImageView(vk::ImageViewCreateInfo(
                     vk::ImageViewCreateFlags(), depthImage, vk::ImageViewType::e2D,
                     formats.depthFormat, vk::ComponentMapping(),
                     vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth |
@@ -628,7 +619,7 @@ namespace NSM
                 views[1] = depthImageView;
 
                 // color view
-                views[0] = device->logical.createImageView(vk::ImageViewCreateInfo(
+                views[0] = queue->device->logical.createImageView(vk::ImageViewCreateInfo(
                     vk::ImageViewCreateFlags(), image, vk::ImageViewType::e2D,
                     formats.colorFormat, vk::ComponentMapping(),
                     vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0,
@@ -636,15 +627,15 @@ namespace NSM
 
                 // create framebuffers
                 swapchainBuffers[i].frameBuffer =
-                    device->logical.createFramebuffer(vk::FramebufferCreateInfo(
+                    queue->device->logical.createFramebuffer(vk::FramebufferCreateInfo(
                         vk::FramebufferCreateFlags(), renderpass, views.size(),
                         views.data(), applicationWindow.surfaceSize.width,
                         applicationWindow.surfaceSize.height, 1));
 
                 // create semaphore
                 swapchainBuffers[i].semaphore =
-                    device->logical.createSemaphore(vk::SemaphoreCreateInfo());
-                swapchainBuffers[i].waitFence = device->logical.createFence(
+                    queue->device->logical.createSemaphore(vk::SemaphoreCreateInfo());
+                swapchainBuffers[i].waitFence = queue->device->logical.createFence(
                     vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled));
             }
 
@@ -652,12 +643,10 @@ namespace NSM
         }
 
         // create swapchain template
-        virtual vk::SwapchainKHR createSwapchain(DeviceQueueType &device,
-            vk::SurfaceKHR &surface,
-            SurfaceFormat &formats)
+        virtual vk::SwapchainKHR createSwapchain(Queue &queue, vk::SurfaceKHR &surface, SurfaceFormat &formats)
         {
-            auto surfaceCapabilities = device->physical->getSurfaceCapabilitiesKHR(surface);
-            auto surfacePresentModes = device->physical->getSurfacePresentModesKHR(surface);
+            auto surfaceCapabilities = queue->device->physical->getSurfaceCapabilitiesKHR(surface);
+            auto surfacePresentModes = queue->device->physical->getSurfacePresentModesKHR(surface);
 
             // check the surface width/height.
             if (!(surfaceCapabilities.currentExtent.width == -1 ||
@@ -668,9 +657,7 @@ namespace NSM
 
             // get supported present mode, but prefer mailBox
             auto presentMode = vk::PresentModeKHR::eImmediate;
-            std::vector<vk::PresentModeKHR> priorityModes = {
-                vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoRelaxed,
-                vk::PresentModeKHR::eFifo };
+            std::vector<vk::PresentModeKHR> priorityModes = { vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eFifoRelaxed, vk::PresentModeKHR::eFifo };
             for (auto &pm : priorityModes)
             {
                 if (presentMode != vk::PresentModeKHR::eImmediate)
@@ -696,24 +683,21 @@ namespace NSM
             swapchainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
             swapchainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
             swapchainCreateInfo.queueFamilyIndexCount = 1;
-            swapchainCreateInfo.pQueueFamilyIndices = &device->queues[1]->familyIndex;
-            swapchainCreateInfo.preTransform =
-                vk::SurfaceTransformFlagBitsKHR::eIdentity;
+            swapchainCreateInfo.pQueueFamilyIndices = &queue->device->queues[1]->familyIndex;
+            swapchainCreateInfo.preTransform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
             swapchainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
             swapchainCreateInfo.presentMode = presentMode;
             swapchainCreateInfo.clipped = true;
 
             // create swapchain
-            return device->logical.createSwapchainKHR(swapchainCreateInfo);
+            return queue->device->logical.createSwapchainKHR(swapchainCreateInfo);
         }
 
-        virtual void initVulkan(const int32_t &argc, const char **argv,
-            GLFWwindow *wind) = 0;
+        virtual void initVulkan(const int32_t &argc, const char **argv, GLFWwindow *wind) = 0;
         virtual void mainLoop() = 0;
 
     public:
-        virtual void run(const int32_t &argc, const char **argv, GLFWwindow *wind)
-        {
+        virtual void run(const int32_t &argc, const char **argv, GLFWwindow *wind) {
             initVulkan(argc, argv, wind);
             mainLoop();
         }

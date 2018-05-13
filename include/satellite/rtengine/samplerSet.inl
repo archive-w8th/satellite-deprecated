@@ -7,11 +7,12 @@ namespace NSM
     namespace rt
     {
 
-        void SamplerSet::init(DeviceQueueType &device)
+        void SamplerSet::init(Queue &queue)
         {
-            this->device = device;
+            this->queue = queue;
+            this->device = queue->device;
 
-            samplers = std::vector<SamplerType>(0);
+            samplers = std::vector<Sampler>(0);
             freedomSamplers = std::vector<size_t>(0);
         }
 
@@ -40,7 +41,7 @@ namespace NSM
             samplers.resize(0);
         }
 
-        void SamplerSet::setSampler(const int32_t& location, const SamplerType &texture)
+        void SamplerSet::setSampler(const int32_t& location, const Sampler &texture)
         {
             for (int i = 0; i < freedomSamplers.size(); i++) {
                 if (freedomSamplers[i] == location) freedomSamplers.erase(freedomSamplers.begin() + i);
@@ -49,7 +50,7 @@ namespace NSM
             samplers[location] = texture;
         }
 
-        int32_t SamplerSet::addSampler(const SamplerType &sampler)
+        int32_t SamplerSet::addSampler(const Sampler &sampler)
         {
             int32_t idx = -1;
             if (freedomSamplers.size() > 0) {
@@ -65,6 +66,6 @@ namespace NSM
         }
 
         bool SamplerSet::haveSamplers() { return samplers.size() > 0; }
-        std::vector<SamplerType>& SamplerSet::getSamplers() { return samplers; }
+        std::vector<Sampler>& SamplerSet::getSamplers() { return samplers; }
     }
 }

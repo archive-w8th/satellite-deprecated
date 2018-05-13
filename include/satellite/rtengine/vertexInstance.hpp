@@ -12,9 +12,10 @@ namespace NSM
         protected:
             friend class VertexInstance;
 
-            DeviceQueueType device;
+            Queue queue;
+            Device device;
 
-            void init(DeviceQueueType &device);
+            void init(Queue &device);
             //void syncUniform();
 
             std::shared_ptr<MeshUniformSet> meshUniformSet;
@@ -25,7 +26,7 @@ namespace NSM
             std::shared_ptr<BufferRegionSet> bufferRegions;
 
             std::vector<MeshUniformStruct> meshUniformData;
-            BufferType meshUniformStager, meshUniformBuffer;
+            Buffer meshUniformStager, meshUniformBuffer;
 
             VertexInstanceViews descViews;
             bool needUpdateUniform = true;
@@ -34,7 +35,7 @@ namespace NSM
 
         public:
             VertexInstance() {}
-            VertexInstance(DeviceQueueType &device) { init(device); }
+            VertexInstance(Queue &device) { init(device); }
             VertexInstance(VertexInstance &&another);
             VertexInstance(VertexInstance &another);
 
@@ -69,12 +70,12 @@ namespace NSM
 
         protected:
             // getters of buffers
-            BufferType getBufferSpaceBuffer() { return bufferSpace->getDataBuffer(); };
-            BufferType getBufferSpaceRegions(){ return bufferRegions->getBuffer(); };
-            BufferType getBufferViewsBuffer() { return bufferViewSet->getBuffer(); };
-            BufferType getDataFormatBuffer() { return dataFormatSet->getBuffer(); };
-            BufferType getBufferBindingBuffer() { return dataBindingSet->getBuffer(); };
-            BufferType getUniformBuffer() { return meshUniformSet->getBuffer(); };
+            Buffer getBufferSpaceBuffer() { return bufferSpace->getDataBuffer(); };
+            Buffer getBufferSpaceRegions(){ return bufferRegions->getBuffer(); };
+            Buffer getBufferViewsBuffer() { return bufferViewSet->getBuffer(); };
+            Buffer getDataFormatBuffer() { return dataFormatSet->getBuffer(); };
+            Buffer getBufferBindingBuffer() { return dataBindingSet->getBuffer(); };
+            Buffer getUniformBuffer() { return meshUniformSet->getBuffer(); };
         };
     } // namespace rt
 } // namespace NSM

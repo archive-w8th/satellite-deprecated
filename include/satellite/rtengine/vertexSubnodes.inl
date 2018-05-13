@@ -8,13 +8,12 @@ namespace NSM
     {
 
         template <int BINDING, class STRUCTURE>
-        BufferComposer<BINDING, STRUCTURE>::BufferComposer(
-            BufferComposer<BINDING, STRUCTURE> &another)
-        {
+        BufferComposer<BINDING, STRUCTURE>::BufferComposer( BufferComposer<BINDING, STRUCTURE> &another) {
             cache = another.cache;
             stager = another.stager;
             data = another.data;
             device = another.device;
+            queue = another.queue;
         }
 
         template <int BINDING, class STRUCTURE>
@@ -25,19 +24,20 @@ namespace NSM
             stager = std::move(another.stager);
             data = std::move(another.data);
             device = std::move(another.device);
+            queue = std::move(another.queue);
         }
 
         template <int BINDING, class STRUCTURE>
-        BufferComposer<BINDING, STRUCTURE>::BufferComposer(DeviceQueueType &device,
-            const size_t bsize)
-        {
-            this->device = device;
-            cache = createBuffer(device, strided<STRUCTURE>(bsize),
+        BufferComposer<BINDING, STRUCTURE>::BufferComposer(Queue &queue, const size_t bsize) {
+            this->queue = queue;
+            this->device = queue->device;
+
+            cache = createBuffer(queue, strided<STRUCTURE>(bsize),
                 vk::BufferUsageFlagBits::eStorageBuffer |
                 vk::BufferUsageFlagBits::eTransferDst |
                 vk::BufferUsageFlagBits::eTransferSrc,
                 VMA_MEMORY_USAGE_GPU_ONLY);
-            stager = createBuffer(device, strided<STRUCTURE>(bsize),
+            stager = createBuffer(queue, strided<STRUCTURE>(bsize),
                 vk::BufferUsageFlagBits::eTransferDst |
                 vk::BufferUsageFlagBits::eTransferSrc,
                 VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -53,13 +53,13 @@ namespace NSM
         };
 
         template <int BINDING, class STRUCTURE>
-        BufferType BufferComposer<BINDING, STRUCTURE>::getBuffer()
+        Buffer BufferComposer<BINDING, STRUCTURE>::getBuffer()
         {
             if (data.size() > 0 && needUpdateBuffer) {
-                auto commandBuffer = getCommandBuffer(device, true);
+                auto commandBuffer = getCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, stager, data, 0);
                 memoryCopyCmd(commandBuffer, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) });
-                flushCommandBuffer(device, commandBuffer, true);
+                flushCommandBuffer(queue, commandBuffer, true);
             }
             needUpdateBuffer = false;
             return cache;
@@ -81,20 +81,17 @@ namespace NSM
             return data[ptr];
         }
 
-
-
-
-
-
-        BufferSpace::BufferSpace(DeviceQueueType &device, const size_t spaceSize)
+        BufferSpace::BufferSpace(Queue &queue, const size_t spaceSize)
         {
-            this->device = device;
-            dataBuffer = createBuffer(device, strided<uint8_t>(tiled(spaceSize, 4) * 4),
+            this->device = queue->device;
+            this->queue = queue;
+
+            dataBuffer = createBuffer(queue, strided<uint8_t>(tiled(spaceSize, 4) * 4),
                 vk::BufferUsageFlagBits::eStorageBuffer |
                 vk::BufferUsageFlagBits::eTransferDst |
                 vk::BufferUsageFlagBits::eTransferSrc,
                 VMA_MEMORY_USAGE_GPU_ONLY);
-            dataStage = createBuffer(device, strided<uint8_t>(tiled(spaceSize, 4) * 4),
+            dataStage = createBuffer(queue, strided<uint8_t>(tiled(spaceSize, 4) * 4),
                 vk::BufferUsageFlagBits::eTransferDst |
                 vk::BufferUsageFlagBits::eTransferSrc,
                 VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -102,16 +99,16 @@ namespace NSM
 
         intptr_t BufferSpace::getLastKnownOffset() { return lastKnownOffset; }
 
-        BufferType BufferSpace::getDataBuffer() { return dataBuffer; }
+        Buffer BufferSpace::getDataBuffer() { return dataBuffer; }
 
-        intptr_t BufferSpace::copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset) {
+        intptr_t BufferSpace::copyGPUBuffer(Buffer external, const size_t size, const intptr_t offset) {
             if (size > 0) {
-                flushCommandBuffer( device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>( device, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }), true);
+                flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }), true);
             }
             return offset;
         }
 
-        intptr_t BufferSpace::copyGPUBuffer(BufferType external, const size_t size)
+        intptr_t BufferSpace::copyGPUBuffer(Buffer external, const size_t size)
         {
             const intptr_t offset = lastKnownOffset;
             lastKnownOffset += size;
@@ -122,10 +119,10 @@ namespace NSM
         intptr_t BufferSpace::copyHostBuffer(const uint8_t *external, const size_t size, const intptr_t offset) {
             if (size > 0)
             {
-                auto commandBuffer = getCommandBuffer(device, true);
+                auto commandBuffer = getCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, dataStage, external, size, 0);
                 memoryCopyCmd(commandBuffer, dataStage, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) });
-                flushCommandBuffer(device, commandBuffer, true);
+                flushCommandBuffer(queue, commandBuffer, true);
             }
             return offset;
         }

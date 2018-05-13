@@ -8,7 +8,7 @@ namespace NSM {
     class GuiRenderEngine {
     protected:
 
-        DeviceQueueType device;
+        Queue device;
         std::string shadersPathPrefix = "shaders-spv";
 
 
@@ -22,11 +22,11 @@ namespace NSM {
         vk::PipelineCache pipelineCache;
 
         // where will upload/loading data
-        BufferType generalStagingBuffer, generalLoadingBuffer;
+        Buffer generalStagingBuffer, generalLoadingBuffer;
 
         // vertex and indices buffers
-        BufferType vertBuffer, idcsBuffer;
-        ImageType fontTexture;
+        Buffer vertBuffer, idcsBuffer;
+        Image fontTexture;
 
 
         struct GuiUniform {
@@ -39,7 +39,7 @@ namespace NSM {
         UniformBuffer guiBlockUniform; // buffer of uniforms
 
 
-        void init(DeviceQueueType& deviceQueue, vk::RenderPass& _renderpass) {
+        void init(Queue& deviceQueue, vk::RenderPass& _renderpass) {
             device = deviceQueue, renderpass = _renderpass;
 
             // define descriptor pool sizes
@@ -242,7 +242,7 @@ namespace NSM {
     public:
         GuiRenderEngine() {}
 
-        GuiRenderEngine(DeviceQueueType& device, vk::RenderPass& renderpass, std::string shadersPack) {
+        GuiRenderEngine(Queue& device, vk::RenderPass& renderpass, std::string shadersPack) {
             shadersPathPrefix = shadersPack;
             init(device, renderpass);
         }
@@ -253,7 +253,7 @@ namespace NSM {
 
 
             //bufferSubData(guiBlockUniform.staging, guiBlockData, 0);
-            //copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, guiBlockUniform.staging, guiBlockUniform.buffer, { 0, 0, strided<GuiUniform>(1) }, true);
+            //copyMemoryProxy<Buffer&, Buffer&, vk::BufferCopy>(device, guiBlockUniform.staging, guiBlockUniform.buffer, { 0, 0, strided<GuiUniform>(1) }, true);
         }
 
 
@@ -285,7 +285,7 @@ namespace NSM {
                     .setBufferImageHeight(height)
                     .setImageSubresource(fontTexture->subresourceLayers);
 
-                copyMemoryProxy<BufferType&, ImageType&, vk::BufferImageCopy>(device, tstage, fontTexture, bufferImageCopy, [&]() {
+                copyMemoryProxy<Buffer&, Image&, vk::BufferImageCopy>(device, tstage, fontTexture, bufferImageCopy, [&]() {
                     destroyBuffer(tstage);
                 });
             }
@@ -334,12 +334,12 @@ namespace NSM {
                     const ImDrawList* cmd_list = imData->CmdLists[n];
                     {
                         bufferSubData(generalStagingBuffer, (const uint8_t*)cmd_list->VtxBuffer.Data, strided<ImDrawVert>(cmd_list->VtxBuffer.Size), 0);
-                        copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, generalStagingBuffer, vertBuffer, { 0, vtx_buffer_offset, strided<ImDrawVert>(cmd_list->VtxBuffer.Size) }, true);
+                        copyMemoryProxy<Buffer&, Buffer&, vk::BufferCopy>(device, generalStagingBuffer, vertBuffer, { 0, vtx_buffer_offset, strided<ImDrawVert>(cmd_list->VtxBuffer.Size) }, true);
                         vtx_buffer_offset += strided<ImDrawVert>(cmd_list->VtxBuffer.Size);
                     }
                     {
                         bufferSubData(generalStagingBuffer, (const uint8_t*)cmd_list->IdxBuffer.Data, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size), 0);
-                        copyMemoryProxy<BufferType&, BufferType&, vk::BufferCopy>(device, generalStagingBuffer, idcsBuffer, { 0, idx_buffer_offset, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size) }, true);
+                        copyMemoryProxy<Buffer&, Buffer&, vk::BufferCopy>(device, generalStagingBuffer, idcsBuffer, { 0, idx_buffer_offset, strided<ImDrawIdx>(cmd_list->IdxBuffer.Size) }, true);
                         idx_buffer_offset += strided<ImDrawIdx>(cmd_list->IdxBuffer.Size);
                     }
                 }

@@ -5,10 +5,11 @@
 namespace NSM {
     namespace rt {
 
-        void TextureSet::init(DeviceQueueType& device) {
-            this->device = device;
+        void TextureSet::init(Queue& queue) {
+            this->queue = queue;
+            this->device = queue->device;
 
-            textures = std::vector<ImageType>(0);
+            textures = std::vector<Image>(0);
             freedomTextures = std::vector<size_t>(0);
         }
 
@@ -33,7 +34,7 @@ namespace NSM {
             textures.resize(0);
         }
 
-        void TextureSet::setTexture(const int32_t &idx, const ImageType& texture) {
+        void TextureSet::setTexture(const int32_t &idx, const Image& texture) {
             for (int i = 0; i < freedomTextures.size(); i++) {
                 if (freedomTextures[i] == idx) freedomTextures.erase(freedomTextures.begin() + i);
             }
@@ -41,7 +42,7 @@ namespace NSM {
             textures[idx] = texture;
         }
 
-        int32_t TextureSet::loadTexture(const ImageType& texture) {
+        int32_t TextureSet::loadTexture(const Image& texture) {
             int32_t idx = -1;
             if (freedomTextures.size() > 0) {
                 idx = freedomTextures[freedomTextures.size() - 1];
@@ -58,7 +59,7 @@ namespace NSM {
             return textures.size() > 0;
         }
 
-        std::vector<ImageType>& TextureSet::getTextures() {
+        std::vector<Image>& TextureSet::getTextures() {
             return textures;
         }
 
@@ -72,12 +73,12 @@ namespace NSM {
             if (image->component == 3) format = vk::Format::eR8G8B8Unorm;
 
             // create texture
-            auto texture = createTexture(device, vk::ImageViewType::e2D, { uint32_t(image->width), uint32_t(image->height), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, format, 1);
-            auto tstage = createBuffer(device, image->image.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            auto texture = createImage(queue, vk::ImageViewType::e2D, { uint32_t(image->width), uint32_t(image->height), 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, format, 1);
+            auto tstage = createBuffer(queue, image->image.size() * sizeof(uint8_t), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
             // purple-black square
             {
-                auto command = getCommandBuffer(device, true);
+                auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, tstage, (const uint8_t *)image->image.data(), image->image.size(), 0);
                 memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                     .setImageExtent({ uint32_t(image->width), uint32_t(image->height), 1 })
@@ -86,7 +87,7 @@ namespace NSM {
                     .setBufferRowLength(image->width)
                     .setBufferImageHeight(image->height)
                     .setImageSubresource(texture->subresourceLayers));
-                flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+                flushCommandBuffer(queue, command, [&]() { destroyBuffer(tstage); });
             }
 
             return this->loadTexture(texture);

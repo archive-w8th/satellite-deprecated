@@ -5,8 +5,9 @@
 namespace NSM {
     namespace gr {
 
-        void RadixSort::init(DeviceQueueType& device) {
-            this->device = device;
+        void RadixSort::init(Queue& queue) {
+            this->device = queue->device;
+            this->queue = queue;
 
             // define descriptor pool sizes
             std::vector<vk::DescriptorPoolSize> descriptorPoolSizes = {
@@ -35,17 +36,17 @@ namespace NSM {
             pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(1));
 
             // pipelines
-            histogram = createCompute(device, shadersPathPrefix + "/radix/histogram.comp.spv", pipelineLayout);
-            permute = createCompute(device, shadersPathPrefix + "/radix/permute.comp.spv", pipelineLayout);
-            workPrefixSum = createCompute(device, shadersPathPrefix + "/radix/pfx-work.comp.spv", pipelineLayout);
+            histogram = createCompute(queue, shadersPathPrefix + "/radix/histogram.comp.spv", pipelineLayout);
+            permute = createCompute(queue, shadersPathPrefix + "/radix/permute.comp.spv", pipelineLayout);
+            workPrefixSum = createCompute(queue, shadersPathPrefix + "/radix/pfx-work.comp.spv", pipelineLayout);
 
             // buffers
-            VarStaging = createBuffer(device, strided<Consts>(8), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            VarBuffer = createBuffer(device, strided<Consts>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            TmpKeys = createBuffer(device, strided<uint64_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            TmpValues = createBuffer(device, strided<uint32_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            Histograms = createBuffer(device, strided<uint32_t>(WG_COUNT * 16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            PrefixSums = createBuffer(device, strided<uint32_t>(WG_COUNT * 16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            VarStaging = createBuffer(queue, strided<Consts>(8), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            VarBuffer = createBuffer(queue, strided<Consts>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            TmpKeys = createBuffer(queue, strided<uint64_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            TmpValues = createBuffer(queue, strided<uint32_t>(1024 * 1024 * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            Histograms = createBuffer(queue, strided<uint32_t>(WG_COUNT * 16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            PrefixSums = createBuffer(queue, strided<uint32_t>(WG_COUNT * 16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // write desks
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -64,6 +65,7 @@ namespace NSM {
             permute = another.permute;
             workPrefixSum = another.workPrefixSum;
             singleRadix = another.singleRadix;
+            queue = another.queue;
             device = another.device;
             TmpKeys = another.TmpKeys;
             TmpValues = another.TmpValues;
@@ -83,6 +85,7 @@ namespace NSM {
             permute = std::move(another.permute);
             workPrefixSum = std::move(another.workPrefixSum);
             singleRadix = std::move(another.singleRadix);
+            queue = std::move(another.queue);
             device = std::move(another.device);
             TmpKeys = std::move(another.TmpKeys);
             TmpValues = std::move(another.TmpValues);
@@ -97,7 +100,7 @@ namespace NSM {
 
 
 
-        void RadixSort::sort(BufferType& InKeys, BufferType& InVals, uint32_t size, uint32_t descending) {
+        void RadixSort::sort(Buffer& InKeys, Buffer& InVals, uint32_t size, uint32_t descending) {
 
             // write buffers to descriptors
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(descriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -112,21 +115,21 @@ namespace NSM {
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
 
             // upload to buffer
-            auto commandBuffer = getCommandBuffer(device, true);
+            auto commandBuffer = getCommandBuffer(queue, true);
             bufferSubData(commandBuffer, VarStaging, steps, 0);
-            flushCommandBuffer(device, commandBuffer, true);
+            flushCommandBuffer(queue, commandBuffer, true);
 
             // copy headers buffer command
             std::vector<vk::CommandBuffer> copyBuffers;
             for (int i = 0; i < stepCount; i++) {
-                auto copyCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
+                auto copyCmd = createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
                 //memoryCopyCmd(copyCmd, InKeys, TmpKeys , { 0, 0, strided<uint64_t>(size) });
                 //memoryCopyCmd(copyCmd, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
                 copyCmd.end(); copyBuffers.push_back(copyCmd);
             }
 
             // copy back
-            auto copyToBuffers = getCommandBuffer(device, true); 
+            auto copyToBuffers = getCommandBuffer(queue, true);
             memoryCopyCmd(copyToBuffers, TmpKeys  , InKeys, { 0, 0, strided<uint64_t>(size) });
             memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
             copyToBuffers.end();
@@ -148,17 +151,17 @@ namespace NSM {
 
             // submit radix sort
             vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
-            device->mainQueue->queue.submit(buildSubmitInfos, fence);
+            queue->queue.submit(buildSubmitInfos, fence);
 
             // async clean up
             std::async(std::launch::async | std::launch::deferred, [=](){
                 device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
                 device->logical.destroyFence(fence);
-                device->logical.freeCommandBuffers(device->commandPool, copyBuffers);
-                device->logical.freeCommandBuffers(device->commandPool, 1, &histogramCommand);
-                device->logical.freeCommandBuffers(device->commandPool, 1, &workPrefixCommand);
-                device->logical.freeCommandBuffers(device->commandPool, 1, &permuteCommand);
-                device->logical.freeCommandBuffers(device->commandPool, 1, &copyToBuffers);
+                device->logical.freeCommandBuffers(queue->commandPool, copyBuffers);
+                device->logical.freeCommandBuffers(queue->commandPool, 1, &histogramCommand);
+                device->logical.freeCommandBuffers(queue->commandPool, 1, &workPrefixCommand);
+                device->logical.freeCommandBuffers(queue->commandPool, 1, &permuteCommand);
+                device->logical.freeCommandBuffers(queue->commandPool, 1, &copyToBuffers);
             });
 
         }

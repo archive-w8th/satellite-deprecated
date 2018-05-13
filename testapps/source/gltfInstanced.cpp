@@ -38,7 +38,7 @@ namespace SatelliteExample {
         //mscale = 1.f;
     }
 
-    void GltfViewer::init(DeviceQueueType& device, const int32_t& argc, const char ** argv) {
+    void GltfViewer::init(Queue& device, const int32_t& argc, const char ** argv) {
         
         rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(device, shaderPack));
 

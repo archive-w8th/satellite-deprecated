@@ -24,19 +24,21 @@ namespace NSM
 
             std::string shadersPathPrefix = "shaders-spv";
 
-            DeviceQueueType device;
+            Queue queue;
+            Device device;
+
             ComputeContext bvhTraverse, vertexInterpolator;
 
-            BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
-            BufferType traverseBlockData, traverseCacheData;
+            Buffer boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
+            Buffer traverseBlockData, traverseCacheData;
 
             // BVH storage
-            BufferType bvhBoxStorage;
-            BufferType bvhMetaStorage;
+            Buffer bvhBoxStorage;
+            Buffer bvhMetaStorage;
 
             // vertex data storage
-            ImageType attributeTexelStorage;
-            BufferType vertexLinearStorage, materialIndicesStorage, orderIndicesStorage;
+            Image attributeTexelStorage;
+            Buffer vertexLinearStorage, materialIndicesStorage, orderIndicesStorage;
 
             std::vector<GeometryBlockUniform> geometryBlockData;
             UniformBuffer geometryBlockUniform; // buffer of uniforms
@@ -47,21 +49,21 @@ namespace NSM
             std::vector<vk::DescriptorSetLayout> clientDescriptorLayout; // may be single layout
 
             // streaming of buffers data
-            BufferType generalStagingBuffer, generalLoadingBuffer;
+            Buffer generalStagingBuffer, generalLoadingBuffer;
 
         public:
             HieararchyStorage() {}
-            HieararchyStorage(DeviceQueueType &device, std::string shadersPack)
+            HieararchyStorage(Queue &queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
-                init(device);
+                init(queue);
             }
 
             void resetInternalGeometryCount()
             {
                 // confirm geometry accumulation by counter (planned locking ops)
                 auto geometrySourceCounterHandler = zerosBufferReference;
-                flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); //
+                flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); //
             };
 
             // static allocation
@@ -72,14 +74,14 @@ namespace NSM
             UniformBuffer &getGeometryBlockUniform() { return geometryBlockUniform; }; // here will confirmation and copying counters
 
             // for bvh building (loads from geometry accumulator and builder)
-            BufferType getBvhBox() { return bvhBoxStorage; }
-            BufferType getBvhMeta() { return bvhMetaStorage; }
+            Buffer getBvhBox() { return bvhBoxStorage; }
+            Buffer getBvhMeta() { return bvhMetaStorage; }
 
             // geometry related buffers
-            ImageType getAttributeTexel() { return attributeTexelStorage; }
-            BufferType getVertexLinear() { return vertexLinearStorage; }
-            BufferType getMaterialIndices() { return materialIndicesStorage; }
-            BufferType getOrderIndices() { return orderIndicesStorage; }
+            Image getAttributeTexel() { return attributeTexelStorage; }
+            Buffer getVertexLinear() { return vertexLinearStorage; }
+            Buffer getMaterialIndices() { return materialIndicesStorage; }
+            Buffer getOrderIndices() { return orderIndicesStorage; }
 
             // getter for hierarchy builder
             vk::DescriptorSet& getStorageDescSec() { return clientDescriptorSets[1]; };
@@ -88,7 +90,7 @@ namespace NSM
             void queryTraverse(TraversibleData& tbsData);
 
         protected:
-            void init(DeviceQueueType &device);
+            void init(Queue &queue);
         };
     }
 } // namespace NSM

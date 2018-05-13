@@ -8,7 +8,7 @@ namespace NSM
     {
 
         /*
-        void MaterialSet::init(DeviceQueueType &device)
+        void MaterialSet::init(Queue &device)
         {
             this->device = device;
             vtextures = std::vector<glm::uvec2>(0);
@@ -106,17 +106,17 @@ namespace NSM
             needUpdate = true;
         }
 
-        BufferType &MaterialSet::getCountBuffer()
+        Buffer &MaterialSet::getCountBuffer()
         {
             return countBuffer;
         }
 
-        BufferType &MaterialSet::getMaterialBuffer()
+        Buffer &MaterialSet::getMaterialBuffer()
         {
             return materialBuffer;
         }
 
-        BufferType &MaterialSet::getVTextureBuffer()
+        Buffer &MaterialSet::getVTextureBuffer()
         {
             return vtexturesBuffer;
         }

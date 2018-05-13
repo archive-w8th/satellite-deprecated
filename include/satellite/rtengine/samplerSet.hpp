@@ -11,24 +11,25 @@ namespace NSM
         protected:
             friend class SamplerSet;
 
-            DeviceQueueType device;
-            void init(DeviceQueueType &device);
+            Queue queue;
+            Device device;
+            void init(Queue &device);
 
             std::vector<size_t> freedomSamplers;
-            std::vector<SamplerType> samplers;
+            std::vector<Sampler> samplers;
 
         public:
             SamplerSet() {}
-            SamplerSet(DeviceQueueType &device) { init(device); }
+            SamplerSet(Queue &device) { init(device); }
             SamplerSet(SamplerSet &another);
             SamplerSet(SamplerSet &&another);
 
             void freeSampler(const int32_t& idx);
             void clearSamplers();
-            void setSampler(const int32_t& location, const SamplerType &texture);
+            void setSampler(const int32_t& location, const Sampler &texture);
             bool haveSamplers();
-            std::vector<SamplerType> &getSamplers();
-            int32_t addSampler(const SamplerType &texture);
+            std::vector<Sampler> &getSamplers();
+            int32_t addSampler(const Sampler &texture);
         };
     } // namespace rt
 } // namespace NSM

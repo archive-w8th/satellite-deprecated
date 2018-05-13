@@ -9,10 +9,13 @@ namespace NSM
     namespace rt
     {
 
-        void HieararchyBuilder::init(DeviceQueueType &_device)
+        void HieararchyBuilder::init(Queue &_queue)
         {
-            this->device = _device;
-            radixSort = std::shared_ptr<gr::RadixSort>(new gr::RadixSort(device, shadersPathPrefix));
+            this->queue = _queue;
+            this->device = _queue->device;
+
+
+            radixSort = std::make_shared<gr::RadixSort>(this->queue, shadersPathPrefix);
 
             // descriptor set bindings
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
@@ -45,8 +48,8 @@ namespace NSM
 
             // recommended alloc 256Mb for all staging
             // but here can be used 4Kb
-            generalStagingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            generalLoadingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
+            generalStagingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            generalLoadingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
             // layouts of descriptor sets
             builderDescriptorLayout = {
@@ -59,21 +62,21 @@ namespace NSM
             builderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&builderDescriptorLayout[0]));
 
             // bvh builder pipelines 
-            buildBVHPpl = createCompute(device, shadersPathPrefix + "/hlbvh2/bvh-build.comp.spv", pipelineLayout);
-            refitBVH = createCompute(device, shadersPathPrefix + "/hlbvh2/bvh-fit.comp.spv", pipelineLayout);
-            boundPrimitives = createCompute(device, shadersPathPrefix + "/hlbvh2/bound-calc.comp.spv", pipelineLayout);
-            childLink = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout);
-            aabbCalculate = createCompute(device, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout);
+            buildBVHPpl = createCompute(queue, shadersPathPrefix + "/hlbvh2/bvh-build.comp.spv", pipelineLayout);
+            refitBVH = createCompute(queue, shadersPathPrefix + "/hlbvh2/bvh-fit.comp.spv", pipelineLayout);
+            boundPrimitives = createCompute(queue, shadersPathPrefix + "/hlbvh2/bound-calc.comp.spv", pipelineLayout);
+            childLink = createCompute(queue, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout);
+            aabbCalculate = createCompute(queue, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout);
 
             { // boundary buffer cache
-                countersBuffer = createBuffer(device, strided<uint32_t>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-                boundaryBuffer = createBuffer(device, strided<glm::vec4>(CACHED_BBOX * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-                boundaryBufferReference = createBuffer(device, strided<glm::vec4>(CACHED_BBOX*2), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                countersBuffer = createBuffer(queue, strided<uint32_t>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                boundaryBuffer = createBuffer(queue, strided<glm::vec4>(CACHED_BBOX * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                boundaryBufferReference = createBuffer(queue, strided<glm::vec4>(CACHED_BBOX*2), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             }
 
             {
-                zerosBufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-                debugOnes32BufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                zerosBufferReference = createBuffer(queue, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                debugOnes32BufferReference = createBuffer(queue, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // minmaxes
                 std::vector<bbox> minmaxes(CACHED_BBOX);
@@ -85,18 +88,18 @@ namespace NSM
                 std::for_each(std::execution::par_unseq, ones.begin(), ones.end(), [&](auto&& m) { m = 1u; });
 
                 // make reference buffers
-                auto command = getCommandBuffer(device, true);
+                auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, boundaryBufferReference, minmaxes, 0); // make reference buffer of boundary
                 bufferSubData(command, zerosBufferReference, zeros, 0);       // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
-                flushCommandBuffer(device, command, true);
+                flushCommandBuffer(queue, command, true);
             }
 
             {
                 // create bvh uniform
                 bvhBlockData = std::vector<BVHBlockUniform>(1);
-                bvhBlockUniform.buffer = createBuffer(device, strided<BVHBlockUniform>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-                bvhBlockUniform.staging = createBuffer(device, strided<BVHBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                bvhBlockUniform.buffer = createBuffer(queue, strided<BVHBlockUniform>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+                bvhBlockUniform.staging = createBuffer(queue, strided<BVHBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // descriptor templates
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(builderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -108,28 +111,28 @@ namespace NSM
             }
 
             // initial counters
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
         }
 
         void HieararchyBuilder::syncUniforms() {
-            auto command = getCommandBuffer(device, true);
+            auto command = getCommandBuffer(queue, true);
             bufferSubData(command, bvhBlockUniform.staging, bvhBlockData, 0);
             memoryCopyCmd(command, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) });
-            flushCommandBuffer(device, command, true);
+            flushCommandBuffer(queue, command, true);
         }
 
         void HieararchyBuilder::build(glm::dmat4 optproj) {
             // reset BVH counters
-            //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
+            //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
 
             // confirm geometry accumulation by counter (planned locking ops)
             auto geometrySourceCounterHandler = geometrySourceLink->getGeometrySourceCounterHandler();
             auto geometryBlockUniform = hierarchyStorageLink->getGeometryBlockUniform();
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); //
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1) }), true); //
 
             // get triangle count from staging
             std::vector<uint32_t> triangleCount(1);
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, geometrySourceCounterHandler, generalLoadingBuffer, { strided<uint32_t>(0), 0, strided<uint32_t>(1) }), false); // copy to staging
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, generalLoadingBuffer, { strided<uint32_t>(0), 0, strided<uint32_t>(1) }), false); // copy to staging
             getBufferSubData(generalLoadingBuffer, triangleCount, 0);
 
             // no need to build BVH
@@ -147,12 +150,12 @@ namespace NSM
                 copyDesc.dstSubresource = hierarchyStorageLink->getAttributeTexel()->subresourceLayers;
 
                 // copy images command
-                auto command = getCommandBuffer(device, true);
+                auto command = getCommandBuffer(queue, true);
                 memoryCopyCmd(command, geometrySourceLink->getAttributeTexel(), hierarchyStorageLink->getAttributeTexel(), copyDesc);
                 memoryCopyCmd(command, geometrySourceLink->getMaterialIndices(), hierarchyStorageLink->getMaterialIndices(), { 0, 0, strided<uint32_t>(triangleCount[0]) });
                 memoryCopyCmd(command, geometrySourceLink->getVertexLinear(), hierarchyStorageLink->getVertexLinear(), { 0, 0, strided<float>(triangleCount[0] * 9) });
                 memoryCopyCmd(command, geometrySourceLink->getOrderIndices(), hierarchyStorageLink->getOrderIndices(), { 0, 0, strided<uint32_t>(triangleCount[0]) });
-                flushCommandBuffer(device, command, true);
+                flushCommandBuffer(queue, command, true);
             }
 
             { // use use initial matrix
@@ -165,9 +168,9 @@ namespace NSM
             }
 
             // calculate general AABB
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), true);
             dispatchCompute(boundPrimitives, CACHED_BBOX, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), false);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX*2) }), false);
 
             // receive boundary (planned to save in GPU)
             std::vector<bbox> bounds(CACHED_BBOX);
@@ -193,18 +196,18 @@ namespace NSM
             }
 
             // copy bvh optimal transformation to hierarchy storage
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }), true);
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(3), strided<uint32_t>(1) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(3), strided<uint32_t>(1) }), true);
 
             // calculate leafs and checksums
             dispatchCompute(aabbCalculate, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(3), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true); // copy to staging  
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(3), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }), true); // copy to staging  
 
             // need update geometry uniform optimization matrices, and sort morton codes
             radixSort->sort(mortonCodesBuffer, mortonIndicesBuffer, triangleCount[0]); // do radix sort
             
             // refit BVH with linking leafs
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
             dispatchCompute(buildBVHPpl, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(childLink, INTENSIVITY, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, 1, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
@@ -212,46 +215,46 @@ namespace NSM
             
             if (triangleCount[0] > 0) {
                 //std::vector<bbox> bboxes(triangleCount[0] * 2);
-                //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
+                //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
                 //getBufferSubData(generalLoadingBuffer, bboxes);
                 
                 // debug BVH Meta
                 //std::vector<uint64_t> mortons(triangleCount[0]);
-                //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
+                //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
                 //getBufferSubData(generalLoadingBuffer, mortons);
 
                 // debug BVH Meta
                 //std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2);
-                //flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
+                //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
                 //getBufferSubData(generalLoadingBuffer, bvhMeta);
             }
 
             { // resolve BVH buffers for copying
-                auto command = getCommandBuffer(device, true);
+                auto command = getCommandBuffer(queue, true);
                 memoryCopyCmd(command, bvhMetaWorking, hierarchyStorageLink->getBvhMeta(), { 0, 0, strided<glm::ivec4>(triangleCount[0] * 2) });
                 memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<glm::mat4>(triangleCount[0]) });
-                flushCommandBuffer(device, command, true);
+                flushCommandBuffer(queue, command, true);
             }
 
             // finish BVH building
             syncUniforms();
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
         }
 
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)
         {
             // buffer for working with
-            bvhNodesFlags = createBuffer(device, strided<uint32_t>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            workingBVHNodesBuffer = createBuffer(device, strided<uint32_t>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            leafBVHIndicesBuffer = createBuffer(device, strided<uint32_t>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            mortonIndicesBuffer = createBuffer(device, strided<uint32_t>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            mortonCodesBuffer = createBuffer(device, strided<uint64_t>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            leafsBuffer = createBuffer(device, strided<HlbvhNode>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhNodesFlags = createBuffer(queue, strided<uint32_t>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            workingBVHNodesBuffer = createBuffer(queue, strided<uint32_t>(nodeCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            leafBVHIndicesBuffer = createBuffer(queue, strided<uint32_t>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            mortonIndicesBuffer = createBuffer(queue, strided<uint32_t>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            mortonCodesBuffer = createBuffer(queue, strided<uint64_t>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            leafsBuffer = createBuffer(queue, strided<HlbvhNode>(nodeCount * 1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // these buffers will sharing
-            bvhMetaWorking = createBuffer(device, strided<glm::ivec4>(nodeCount*2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            bvhBoxWorking = createBuffer(device, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            bvhBoxWorkingResulting = createBuffer(device, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhMetaWorking = createBuffer(queue, strided<glm::ivec4>(nodeCount*2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhBoxWorking = createBuffer(queue, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            bvhBoxWorkingResulting = createBuffer(queue, strided<glm::mat4>(nodeCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // write buffer to bvh builder descriptors
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(builderDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);

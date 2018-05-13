@@ -15,23 +15,23 @@ namespace NSM
         class MaterialSet
         {
         protected:
-            DeviceQueueType device;
+            Queue device;
 
             std::vector<VirtualMaterial> materials;
             std::vector<glm::uvec2> vtextures;
 
-            BufferType countBuffer;
-            BufferType materialBuffer;
-            BufferType materialStaging;
-            BufferType vtexturesBuffer;
+            Buffer countBuffer;
+            Buffer materialBuffer;
+            Buffer materialStaging;
+            Buffer vtexturesBuffer;
 
             intptr_t loadOffset = 0;
-            void init(DeviceQueueType &device);
+            void init(Queue &device);
             bool needUpdate = true;
 
         public:
             MaterialSet() {}
-            MaterialSet(DeviceQueueType &device) { init(device); }
+            MaterialSet(Queue &device) { init(device); }
 
             // copying from material set
             MaterialSet(MaterialSet &another);
@@ -47,9 +47,9 @@ namespace NSM
             void setLoadingOffset(intptr_t loadOffset);
 
             // planned descriptor template instead of...
-            BufferType &getCountBuffer();
-            BufferType &getMaterialBuffer();
-            BufferType &getVTextureBuffer();
+            Buffer &getCountBuffer();
+            Buffer &getMaterialBuffer();
+            Buffer &getVTextureBuffer();
 
             bool haveMaterials();
 

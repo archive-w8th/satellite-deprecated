@@ -28,7 +28,9 @@ namespace NSM
 
             std::string shadersPathPrefix = "shaders-spv";
             std::shared_ptr<gr::RadixSort> radixSort;
-            DeviceQueueType device;
+
+            Queue queue;
+            Device device;
 
             std::shared_ptr<HieararchyStorage> hierarchyStorageLink;
             std::shared_ptr<GeometryAccumulator> geometrySourceLink;
@@ -36,10 +38,10 @@ namespace NSM
             vk::PipelineLayout pipelineLayout;
 
             ComputeContext buildBVHPpl, aabbCalculate, refitBVH, boundPrimitives, childLink;
-            BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
-            BufferType bvhBoxWorking, bvhBoxWorkingResulting, leafsBuffer, countersBuffer, mortonCodesBuffer, mortonIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
-            BufferType bvhMetaWorking;
-            //ImageType bvhMetaWorking;
+            Buffer boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
+            Buffer bvhBoxWorking, bvhBoxWorkingResulting, leafsBuffer, countersBuffer, mortonCodesBuffer, mortonIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
+            Buffer bvhMetaWorking;
+            //Image bvhMetaWorking;
 
             std::vector<vk::DescriptorSet> builderDescriptorSets;
             std::vector<vk::DescriptorSetLayout> builderDescriptorLayout; // may be single layout
@@ -49,14 +51,14 @@ namespace NSM
             UniformBuffer bvhBlockUniform; // buffer of uniforms
 
             // streaming of buffers data
-            BufferType generalStagingBuffer, generalLoadingBuffer;
+            Buffer generalStagingBuffer, generalLoadingBuffer;
 
         public:
             HieararchyBuilder() {}
-            HieararchyBuilder(DeviceQueueType &device, std::string shadersPack)
+            HieararchyBuilder(Queue &queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
-                init(device);
+                init(queue);
             }
 
             void allocateNodeReserve(size_t maxt);
@@ -65,7 +67,7 @@ namespace NSM
             void build(glm::dmat4 optproj);
 
         protected:
-            void init(DeviceQueueType &device);
+            void init(Queue &queue);
             void syncUniforms();
         };
     }

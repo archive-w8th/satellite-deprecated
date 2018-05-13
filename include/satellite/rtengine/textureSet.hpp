@@ -15,26 +15,28 @@ namespace NSM
         protected:
             friend class TextureSet;
 
-            DeviceQueueType device;
-            void init(DeviceQueueType &device);
+            Device device;
+            Queue queue;
+
+            void init(Queue &queue);
 
             std::vector<size_t> freedomTextures;
-            std::vector<ImageType> textures;
+            std::vector<Image> textures;
 
         public:
             TextureSet() {}
-            TextureSet(DeviceQueueType &device) { init(device); }
+            TextureSet(Queue &device) { init(device); }
             TextureSet(TextureSet &another);
             TextureSet(TextureSet &&another);
 
             void freeTexture(const int32_t &idx);
-            void setTexture(const int32_t &idx, const ImageType &texture);
+            void setTexture(const int32_t &idx, const Image &texture);
 
             void clearTextures();
             bool haveTextures();
-            std::vector<ImageType> &getTextures();
+            std::vector<Image> &getTextures();
 
-            int32_t loadTexture(const ImageType &texture);
+            int32_t loadTexture(const Image &texture);
 
             // planned merge to externaled
 #ifdef EXPERIMENTAL_GLTF

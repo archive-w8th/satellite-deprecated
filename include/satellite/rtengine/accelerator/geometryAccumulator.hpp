@@ -18,14 +18,17 @@ namespace NSM
             // Worker metrics
             const size_t INTENSIVITY = 4096;
 
+            // current compute device
+            Device device;
+            Queue queue;
+
             std::string shadersPathPrefix = "shaders-spv";
-            DeviceQueueType device;
             ComputeContext geometryLoader;
 
-            ImageType attributeTexelWorking;
+            Image attributeTexelWorking;
 
-            BufferType vertexLinearWorking, materialIndicesWorking, orderIndicesWorking;
-            BufferType zerosBufferReference, debugOnes32BufferReference, geometryCounter;
+            Buffer vertexLinearWorking, materialIndicesWorking, orderIndicesWorking;
+            Buffer zerosBufferReference, debugOnes32BufferReference, geometryCounter;
 
             vk::PipelineLayout pipelineLayout;
 
@@ -35,14 +38,14 @@ namespace NSM
 
 
             // streaming of buffers data
-            BufferType generalStagingBuffer, generalLoadingBuffer;
+            Buffer generalStagingBuffer, generalLoadingBuffer;
 
         public:
             GeometryAccumulator() {}
-            GeometryAccumulator(DeviceQueueType &device, std::string shadersPack)
+            GeometryAccumulator(Queue &queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
-                init(device);
+                init(queue);
             }
 
             void pushGeometryMulti(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor = true, uint32_t count = 1, uint32_t instanceConst = 0); // planned support for transformations
@@ -50,14 +53,14 @@ namespace NSM
             void resetAccumulationCounter();
             void allocatePrimitiveReserve(size_t primitiveCount);
 
-            BufferType getGeometrySourceCounterHandler() { return geometryCounter; }
-            ImageType getAttributeTexel() { return attributeTexelWorking; }
-            BufferType getVertexLinear() { return vertexLinearWorking; }
-            BufferType getMaterialIndices() { return materialIndicesWorking; }
-            BufferType getOrderIndices() { return orderIndicesWorking; }
+            Buffer getGeometrySourceCounterHandler() { return geometryCounter; }
+            Image getAttributeTexel() { return attributeTexelWorking; }
+            Buffer getVertexLinear() { return vertexLinearWorking; }
+            Buffer getMaterialIndices() { return materialIndicesWorking; }
+            Buffer getOrderIndices() { return orderIndicesWorking; }
 
         protected:
-            void init(DeviceQueueType &device);
+            void init(Queue &queue);
         };
     }
 } // namespace NSM

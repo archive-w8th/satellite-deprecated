@@ -17,9 +17,9 @@ namespace NSM
         public:
             BufferComposer(BufferComposer<BINDING, STRUCTURE> &another);
             BufferComposer(BufferComposer<BINDING, STRUCTURE> &&another);
-            BufferComposer(DeviceQueueType &device, const size_t bsize = 1024 * 128);
+            BufferComposer(Queue &device, const size_t bsize = 1024 * 128);
             int32_t addElement(STRUCTURE accessorDesc);
-            BufferType getBuffer();
+            Buffer getBuffer();
             void resetStack() { needUpdateBuffer = true; data.resize(0); }
             uint32_t getCount() { return data.size(); }
             bool haveElements() { return data.size() > 0; }
@@ -30,20 +30,22 @@ namespace NSM
             STRUCTURE getStructure(intptr_t ptr = 0) const;
 
         protected:
-            BufferType cache;
-            BufferType stager;
+            Buffer cache;
+            Buffer stager;
             std::vector<STRUCTURE> data;
-            DeviceQueueType device;
+
+            Device device;
+            Queue queue;
         };
 
         class BufferSpace
         {
         public:
-            BufferSpace(DeviceQueueType &device, const size_t space);
-            BufferType getDataBuffer();
+            BufferSpace(Queue &device, const size_t space);
+            Buffer getDataBuffer();
 
-            intptr_t copyGPUBuffer(BufferType external, const size_t size);
-            intptr_t copyGPUBuffer(BufferType external, const size_t size, const intptr_t offset);
+            intptr_t copyGPUBuffer(Buffer external, const size_t size);
+            intptr_t copyGPUBuffer(Buffer external, const size_t size, const intptr_t offset);
 
             intptr_t copyHostBuffer(const uint8_t *external, const size_t size);
             intptr_t copyHostBuffer(const uint8_t *external, const size_t size, const intptr_t offset);
@@ -55,9 +57,11 @@ namespace NSM
             void resetOffsetCounter() { needUpdateSpaceDescs = true; lastKnownOffset = 0; }
 
         protected:
-            BufferType dataStage;
-            BufferType dataBuffer;
-            DeviceQueueType device;
+            Buffer dataStage;
+            Buffer dataBuffer;
+            Queue queue;
+            Device device;
+
             intptr_t lastKnownOffset = 0;
 
             bool needUpdateSpaceDescs = true;

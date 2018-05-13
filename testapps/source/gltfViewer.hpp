@@ -184,12 +184,12 @@ namespace SatelliteExample {
     public:
         GltfViewer(const int32_t& argc, const char ** argv, GLFWwindow * wind) : PathTracerApplication(argc, argv, wind) { execute(argc, argv, wind); };
         GltfViewer() : PathTracerApplication() {};
-        virtual void init(DeviceQueueType& device, const int32_t& argc, const char ** argv) override;
+        virtual void init(Queue& device, const int32_t& argc, const char ** argv) override;
         virtual void process() override;
         virtual void parseArguments(const int32_t& argc, const char ** argv) override;
         virtual void handleGUI() override;
 
-        virtual ImageType getOutputImage() override;
+        virtual Image getOutputImage() override;
         virtual void saveHdr(std::string name) override;
     };
 
@@ -197,7 +197,7 @@ namespace SatelliteExample {
 
     // pre-implement
 
-    ImageType GltfViewer::getOutputImage() { return rays->getRawImage(); }
+    Image GltfViewer::getOutputImage() { return rays->getRawImage(); }
     void GltfViewer::handleGUI() {}
     void GltfViewer::resizeBuffers(const int32_t& width, const int32_t& height) { rays->reallocRays(width, height); }
     void GltfViewer::resize(const int32_t& width, const int32_t& height) { rays->resizeCanvas(width, height); }
@@ -209,7 +209,7 @@ namespace SatelliteExample {
 
         {
             auto texture = rays->getRawImage();
-            flushCommandBuffer(currentContext->device, createCopyCmd<ImageType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
+            flushCommandBuffer(currentContext->queue, createCopyCmd<Image&, Buffer&, vk::BufferImageCopy>(currentContext->queue, texture, memoryBufferToHost, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
                 .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
                 .setBufferOffset(0)

@@ -27,7 +27,8 @@ namespace NSM
             const size_t HIT_PAYLOAD_COUNTER = 7;
 
             // current compute device
-            DeviceQueueType device;
+            Device device;
+            Queue queue;
 
             // compute pipelines
             ComputeContext rayGeneration, sampleCollection, surfaceShadingPpl,
@@ -35,32 +36,32 @@ namespace NSM
                 unorderedFormer;
 
             // swap PTR's (now no swapping)
-            BufferType indicesSwap[2];
-            BufferType availableSwap[2];
+            Buffer indicesSwap[2];
+            Buffer availableSwap[2];
 
             // for staging
-            BufferType generalStagingBuffer;
-            BufferType generalLoadingBuffer;
+            Buffer generalStagingBuffer;
+            Buffer generalLoadingBuffer;
 
             // static buffers
-            BufferType zerosBufferReference;
-            BufferType debugOnes32BufferReference;
+            Buffer zerosBufferReference;
+            Buffer debugOnes32BufferReference;
 
             // blocks
-            BufferType rayNodeBuffer, rayBlockBuffer, rayIndexSpaceBuffer, blockBinBuffer, texelBuffer,
+            Buffer rayNodeBuffer, rayBlockBuffer, rayIndexSpaceBuffer, blockBinBuffer, texelBuffer,
                 hitBuffer, hitPayloadBuffer, countersBuffer, unorderedTempBuffer; //
 
             // active blocks
-            BufferType currentBlocks, preparingBlocks;
+            Buffer currentBlocks, preparingBlocks;
 
             // block where will rewrite
-            BufferType clearingBlocks, availableBlocks;
+            Buffer clearingBlocks, availableBlocks;
 
             // traverse buffers
-            /*BufferType traverseBlockData, traverseCacheData, prepareTraverseBuffer*/;
+            /*Buffer traverseBlockData, traverseCacheData, prepareTraverseBuffer*/;
 
             // output images
-            ImageType accumulationImage, filteredImage, flagsImage, depthImage,
+            Image accumulationImage, filteredImage, flagsImage, depthImage,
                 normalImage, albedoImage;
 
             // uniforms
@@ -107,7 +108,7 @@ namespace NSM
             void initLights();
             void reloadQueuedRays();
             void initBuffers();
-            void init(DeviceQueueType &device);
+            void init(Queue &device);
 
 
         protected:
@@ -123,7 +124,7 @@ namespace NSM
             void clearSampling();
             void dispatchRayTracing();
 
-            void setSkybox(ImageType &skybox);
+            void setSkybox(Image &skybox);
             void resizeCanvas(uint32_t width, uint32_t height);
             void reallocRays(uint32_t width, uint32_t height);
             
@@ -141,10 +142,10 @@ namespace NSM
             uint32_t getCanvasWidth();
             uint32_t getCanvasHeight();
 
-            ImageType &getRawImage();
-            ImageType &getFilteredImage();
-            ImageType &getAlbedoImage();
-            ImageType &getNormalImage();
+            Image &getRawImage();
+            Image &getFilteredImage();
+            Image &getAlbedoImage();
+            Image &getNormalImage();
 
             // panorama mode
             void enable360mode(bool mode);
@@ -152,10 +153,10 @@ namespace NSM
 
         public:
             Pipeline() {}
-            Pipeline(DeviceQueueType &device, std::string shadersPack)
+            Pipeline(Queue &queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
-                init(device);
+                init(queue);
             }
         };
 

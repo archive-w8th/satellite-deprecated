@@ -7,9 +7,10 @@ namespace NSM
     namespace rt
     {
 
-        void VertexInstance::init(DeviceQueueType &_device)
+        void VertexInstance::init(Queue &_queue)
         {
-            this->device = _device;
+            this->queue = _queue;
+            this->device = _queue->device;
 
             std::vector<vk::DescriptorSetLayoutBinding> vertexInstanceDescreiptorBindings = {
                 vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space
@@ -21,13 +22,14 @@ namespace NSM
             };
 
             meshUniformData = std::vector<MeshUniformStruct>{ MeshUniformStruct() };
-            meshUniformBuffer = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            meshUniformStager = createBuffer(device, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            meshUniformBuffer = createBuffer(queue, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            meshUniformStager = createBuffer(queue, strided<MeshUniformStruct>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             needUpdateUniform = true;
         }
 
         VertexInstance::VertexInstance(VertexInstance &&another)
         {
+            queue = std::move(another.queue);
             device = std::move(another.device);
             bufferViewSet = std::move(another.bufferViewSet);
             dataBindingSet = std::move(another.dataBindingSet);
@@ -36,6 +38,7 @@ namespace NSM
 
         VertexInstance::VertexInstance(VertexInstance &another)
         {
+            queue = another.queue;
             device = another.device;
             bufferViewSet = another.bufferViewSet;
             dataBindingSet = another.dataBindingSet;

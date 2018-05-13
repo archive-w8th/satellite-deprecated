@@ -9,7 +9,7 @@ namespace NSM
 
         void Pipeline::syncUniforms()
         {
-            auto command = getCommandBuffer(device, true);
+            auto command = getCommandBuffer(queue, true);
             bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
             bufferSubData(command, lightUniform.staging, lightUniformData, 0);
             bufferSubData(command, rayStreamsUniform.staging, rayStreamsData, 0);
@@ -18,7 +18,7 @@ namespace NSM
             memoryCopyCmd(command, lightUniform.staging, lightUniform.buffer, { 0, 0, strided<LightUniformStruct>(lightUniformData.size()) });
             memoryCopyCmd(command, rayStreamsUniform.staging, rayStreamsUniform.buffer, { 0, 0, strided<RayStream>(rayStreamsData.size()) });
             memoryCopyCmd(command, shuffledSeqUniform.staging, shuffledSeqUniform.buffer, { 0, 0, strided<uint32_t>(shuffledSeqData.size()) });
-            flushCommandBuffer(device, command, true);
+            flushCommandBuffer(queue, command, true);
         }
 
         void Pipeline::initDescriptorSets()
@@ -89,8 +89,8 @@ namespace NSM
             surfaceDescriptors = { descriptorSets[0], descriptorSets[1] };
 
             // create staging buffer
-            generalStagingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            generalLoadingBuffer = createBuffer(device, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
+            generalStagingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            generalLoadingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
         }
 
         void Pipeline::initPipelines()
@@ -101,14 +101,14 @@ namespace NSM
             surfacePipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(surfaceDescriptorsLayout.data()).setSetLayoutCount(surfaceDescriptorsLayout.size()));
 
             // create pipelines (TODO: make true names in C++ or host code)
-            unorderedFormer = createCompute(device, shadersPathPrefix + "/rendering/traverse-pre.comp.spv", rayTracingPipelineLayout);
-            rayGeneration = createCompute(device, shadersPathPrefix + "/rendering/gen-primary.comp.spv", rayTracingPipelineLayout);
+            unorderedFormer = createCompute(queue, shadersPathPrefix + "/rendering/traverse-pre.comp.spv", rayTracingPipelineLayout);
+            rayGeneration = createCompute(queue, shadersPathPrefix + "/rendering/gen-primary.comp.spv", rayTracingPipelineLayout);
             
-            surfaceShadingPpl = createCompute(device, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout);
-            rayShadePipeline = createCompute(device, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout);
-            sampleCollection = createCompute(device, shadersPathPrefix + "/rendering/pgather.comp.spv", samplingPipelineLayout);
-            clearSamples = createCompute(device, shadersPathPrefix + "/rendering/pclear.comp.spv", samplingPipelineLayout);
-            binCollect = createCompute(device, shadersPathPrefix + "/rendering/accumulation.comp.spv", rayTracingPipelineLayout);
+            surfaceShadingPpl = createCompute(queue, shadersPathPrefix + "/rendering/hit-shader.comp.spv", surfacePipelineLayout);
+            rayShadePipeline = createCompute(queue, shadersPathPrefix + "/rendering/gen-secondary.comp.spv", rayTracingPipelineLayout);
+            sampleCollection = createCompute(queue, shadersPathPrefix + "/rendering/pgather.comp.spv", samplingPipelineLayout);
+            clearSamples = createCompute(queue, shadersPathPrefix + "/rendering/pclear.comp.spv", samplingPipelineLayout);
+            binCollect = createCompute(queue, shadersPathPrefix + "/rendering/accumulation.comp.spv", rayTracingPipelineLayout);
         }
 
         void Pipeline::initLights()
@@ -130,8 +130,8 @@ namespace NSM
 
             // getting counters values
             std::vector<int32_t> counters(8);
-            auto copyCmd = createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
-            flushCommandBuffer(device, copyCmd, false);
+            auto copyCmd = createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
+            flushCommandBuffer(queue, copyCmd, false);
             getBufferSubData(generalLoadingBuffer, counters, 0);
 
             counters[AVAILABLE_COUNTER] = counters[AVAILABLE_COUNTER] >= 0 ? counters[AVAILABLE_COUNTER] : 0;
@@ -141,17 +141,17 @@ namespace NSM
 
             // set bounded
             {
-                auto commandBuffer = getCommandBuffer(device, true);
+                auto commandBuffer = getCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, generalStagingBuffer, counters, 0);
                 memoryCopyCmd(commandBuffer, generalStagingBuffer, countersBuffer, { 0, 0, strided<uint32_t>(8) });
-                flushCommandBuffer(device, commandBuffer, true);
+                flushCommandBuffer(queue, commandBuffer, true);
             }
 
             // setup active blocks count in host
             rayBlockData[0].samplerUniform.blockCount = counters[PREPARING_BLOCK_COUNTER];
 
             // copying batch
-            auto command = getCommandBuffer(device, true);
+            auto command = getCommandBuffer(queue, true);
             memoryCopyCmd(command, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(PREPARING_BLOCK_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, blockCount), sizeof(uint32_t) });
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(CLEANING_COUNTER), sizeof(uint32_t) });
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(PREPARING_BLOCK_COUNTER), sizeof(uint32_t) });
@@ -162,37 +162,37 @@ namespace NSM
             cmds.push_back(command);
             if (rayBlockData[0].samplerUniform.blockCount > 0)
             {
-                cmds.push_back(createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, indicesSwap[1], indicesSwap[0], { 0, 0, strided<uint32_t>(rayBlockData[0].samplerUniform.blockCount) }));
+                cmds.push_back(createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, indicesSwap[1], indicesSwap[0], { 0, 0, strided<uint32_t>(rayBlockData[0].samplerUniform.blockCount) }));
             }
             if (includeCount > 0)
             {
-                cmds.push_back(createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) })); // move unused to preparing
+                cmds.push_back(createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) })); // move unused to preparing
             }
-            flushCommandBuffers(device, cmds, true);
+            flushCommandBuffers(queue, cmds, true);
         }
 
         void Pipeline::initBuffers()
         {
             // filler buffers
-            zerosBufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            debugOnes32BufferReference = createBuffer(device, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            zerosBufferReference = createBuffer(queue, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            debugOnes32BufferReference = createBuffer(queue, strided<uint32_t>(1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
             // create uniform buffer
-            rayBlockUniform.buffer = createBuffer(device, strided<RayBlockUniform>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            rayBlockUniform.staging = createBuffer(device, strided<RayBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            lightUniform.buffer = createBuffer(device, strided<LightUniformStruct>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            lightUniform.staging = createBuffer(device, strided<LightUniformStruct>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
-            rayStreamsUniform.buffer = createBuffer(device, strided<RayStream>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            rayStreamsUniform.staging = createBuffer(device, strided<RayStream>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            rayBlockUniform.buffer = createBuffer(queue, strided<RayBlockUniform>(1), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            rayBlockUniform.staging = createBuffer(queue, strided<RayBlockUniform>(1), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            lightUniform.buffer = createBuffer(queue, strided<LightUniformStruct>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            lightUniform.staging = createBuffer(queue, strided<LightUniformStruct>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            rayStreamsUniform.buffer = createBuffer(queue, strided<RayStream>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            rayStreamsUniform.staging = createBuffer(queue, strided<RayStream>(16), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 
-            shuffledSeqUniform.buffer = createBuffer(device, strided<uint32_t>(64), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            shuffledSeqUniform.staging = createBuffer(device, strided<uint32_t>(64), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
+            shuffledSeqUniform.buffer = createBuffer(queue, strided<uint32_t>(64), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            shuffledSeqUniform.staging = createBuffer(queue, strided<uint32_t>(64), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             shuffledSeqData = std::vector<uint32_t>(64);
             for (uint32_t i = 0; i < shuffledSeqData.size(); i++) { shuffledSeqData[i] = i; }
 
             // counters buffer
-            countersBuffer = createBuffer(device, strided<uint32_t>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            countersBuffer = createBuffer(queue, strided<uint32_t>(16), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // zeros and ones
             std::vector<uint32_t> zeros(1024), ones(1024);
@@ -201,10 +201,10 @@ namespace NSM
 
             {
                 // make reference buffers
-                auto command = getCommandBuffer(device, true);
+                auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
-                flushCommandBuffer(device, command, true);
+                flushCommandBuffer(queue, command, true);
             }
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -219,15 +219,15 @@ namespace NSM
             // null envmap
             {
                 auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
-                auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
-                auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                auto texture = createImage(queue, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
+                auto tstage = createBuffer(queue, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
                 {
-                    auto command = getCommandBuffer(device, true);
+                    auto command = getCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f) }));
                     memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(texture->subresourceLayers));
-                    flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+                    flushCommandBuffer(queue, command, [&]() { destroyBuffer(tstage); });
                 }
 
                 // update descriptors
@@ -245,15 +245,15 @@ namespace NSM
             // null texture define
             {
                 // create texture
-                auto texture = createTexture(device, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
-                auto tstage = createBuffer(device, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+                auto texture = createImage(queue, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
+                auto tstage = createBuffer(queue, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
                 {
-                    auto command = getCommandBuffer(device, true);
+                    auto command = getCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) }));
                     memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(texture->subresourceLayers));
-                    flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+                    flushCommandBuffer(queue, command, [&]() { destroyBuffer(tstage); });
                 }
 
                 // write with same images
@@ -305,14 +305,13 @@ namespace NSM
             clearRays();
         }
 
-        void Pipeline::init(DeviceQueueType &device)
+        void Pipeline::init(Queue &queue)
         {
             pcg_extras::seed_seq_from<std::random_device> seed_source;
             rndEngine = std::make_shared<pcg64>(seed_source);
 
-
-
-            this->device = device;
+            this->queue = queue;
+            this->device = queue->device;
             rayBlockData.resize(1);
             starttime = milliseconds();
 
@@ -326,7 +325,7 @@ namespace NSM
         void Pipeline::clearRays()
         {
             rayBlockData[0].samplerUniform.iterationCount = 0;
-            flushCommandBuffer(device, createCopyCmd<BufferType &, BufferType &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }), true);
+            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }), true);
         }
 
         void Pipeline::resizeCanvas(uint32_t width, uint32_t height)
@@ -339,9 +338,9 @@ namespace NSM
             destroyTexture(filteredImage);
             destroyTexture(flagsImage);
 
-            accumulationImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-            filteredImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
-            flagsImage = createTexture(device, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
+            accumulationImage = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            filteredImage = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
+            flagsImage = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32Sint);
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(samplingDescriptors[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageImage);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
@@ -354,7 +353,7 @@ namespace NSM
             syncUniforms();
         }
 
-        void Pipeline::setSkybox(ImageType &skybox)
+        void Pipeline::setSkybox(Image &skybox)
         {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{ vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&skybox->descriptorInfo)}, nullptr);
@@ -379,24 +378,24 @@ namespace NSM
             syncUniforms();
 
             // block headers 
-            rayNodeBuffer = createBuffer(device, BLOCK_NODES_SIZE * BLOCK_SIZE * blockLimit, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            hitBuffer = createBuffer(device, strided<HitData>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            hitPayloadBuffer = createBuffer(device, strided<HitPayload>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            rayNodeBuffer = createBuffer(queue, BLOCK_NODES_SIZE * BLOCK_SIZE * blockLimit, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            hitBuffer = createBuffer(queue, strided<HitData>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            hitPayloadBuffer = createBuffer(queue, strided<HitPayload>(blockLimit * BLOCK_SIZE / 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // blocked isolated index spaces
-            rayIndexSpaceBuffer = createBuffer(device, strided<uint32_t>(blockLimit * BLOCK_SIZE * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            rayIndexSpaceBuffer = createBuffer(queue, strided<uint32_t>(blockLimit * BLOCK_SIZE * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // structured blocks 
-            texelBuffer = createBuffer(device, strided<Texel>(wrsize*4), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            blockBinBuffer = createBuffer(device, strided<glm::uvec4>(rayBlockData[0].samplerUniform.blockBinCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            rayBlockBuffer = createBuffer(device, strided<glm::uvec4>(blockLimit * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            texelBuffer = createBuffer(queue, strided<Texel>(wrsize*4), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            blockBinBuffer = createBuffer(queue, strided<glm::uvec4>(rayBlockData[0].samplerUniform.blockBinCount * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            rayBlockBuffer = createBuffer(queue, strided<glm::uvec4>(blockLimit * 2), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // wide index spaces
-            currentBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            preparingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            availableBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            clearingBlocks = createBuffer(device, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            unorderedTempBuffer = createBuffer(device, strided<glm::u64vec4>(blockLimit * BLOCK_SIZE), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            currentBlocks = createBuffer(queue, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            preparingBlocks = createBuffer(queue, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            availableBlocks = createBuffer(queue, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            clearingBlocks = createBuffer(queue, strided<uint32_t>(blockLimit), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            unorderedTempBuffer = createBuffer(queue, strided<glm::u64vec4>(blockLimit * BLOCK_SIZE), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
             // minmaxes
             std::vector<glm::vec4> minmaxes(64);
@@ -447,7 +446,7 @@ namespace NSM
             copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight), 1 };
 
             // copy images command
-            auto copyCommand = getCommandBuffer(device, true);
+            auto copyCommand = getCommandBuffer(queue, true);
             copyDesc.srcSubresource = accumulationImage->subresourceLayers;
             copyDesc.dstSubresource = accumulationImage->subresourceLayers;
             memoryCopyCmd(copyCommand, accumulationImage, accumulationImage, copyDesc);
@@ -464,7 +463,7 @@ namespace NSM
             // execute commands
             if (doCleanSamples) dispatchCompute(clearSamples, INTENSIVITY, samplingDescriptors);
             dispatchCompute(sampleCollection, INTENSIVITY, samplingDescriptors);
-            flushCommandBuffer(device, copyCommand, true);
+            flushCommandBuffer(queue, copyCommand, true);
 
             // unflag
             doCleanSamples = false;
@@ -479,13 +478,13 @@ namespace NSM
             //auto rft = offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, time); // choice update target offset
 
             // copy commands
-            auto copyCommandBuffer = getCommandBuffer(device, true);
+            auto copyCommandBuffer = getCommandBuffer(queue, true);
             bufferSubData(copyCommandBuffer, rayBlockUniform.staging, rayBlockData, 0);
             memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) });                     // don't touch criticals
             memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
 
             // flush commands
-            flushCommandBuffer(device, copyCommandBuffer, true);
+            flushCommandBuffer(queue, copyCommandBuffer, true);
             dispatchCompute(rayShadePipeline, INTENSIVITY, rayTracingDescriptors);
 
             // refine rays
@@ -574,10 +573,10 @@ namespace NSM
                 memcpy(&rayBlockData[0].materialUniform.materialOffset, mcount.data(), mcount.size() * sizeof(glm::uvec2)); // copy to original uniform
 
                 // copy to surfaces and update material set
-                auto copyCommand = getCommandBuffer(device, true);
+                auto copyCommand = getCommandBuffer(queue, true);
                 bufferSubData(copyCommand, generalStagingBuffer, mcount, 0); // upload to staging
                 memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-                flushCommandBuffer(device, copyCommand, true);
+                flushCommandBuffer(queue, copyCommand, true);
             }
 
             auto materialBuffer = boundMaterialSet->getBuffer();
@@ -671,10 +670,10 @@ namespace NSM
                 memcpy(&rayBlockData[0].materialUniform.materialOffset, mcount.data(), mcount.size() * sizeof(glm::uvec2)); // copy to original uniform
 
                 // copy to surfaces and update material set
-                auto copyCommand = getCommandBuffer(device, true);
+                auto copyCommand = getCommandBuffer(queue, true);
                 bufferSubData(copyCommand, generalStagingBuffer, mcount); // upload to staging
                 memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-                flushCommandBuffer(device, copyCommand, true);
+                flushCommandBuffer(queue, copyCommand, true);
 
                 // trigger update 
                 boundMaterialSet->getBuffer();
@@ -686,9 +685,9 @@ namespace NSM
             }
 
             // reset hit counter
-            auto copyCommand = getCommandBuffer(device, true);
+            auto copyCommand = getCommandBuffer(queue, true);
             memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
-            flushCommandBuffer(device, copyCommand, true);
+            flushCommandBuffer(queue, copyCommand, true);
 
             // form descriptors for traversers
             TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
@@ -708,10 +707,10 @@ namespace NSM
         uint32_t Pipeline::getCanvasWidth() { return canvasWidth; }
         uint32_t Pipeline::getCanvasHeight() { return canvasHeight; }
 
-        ImageType &Pipeline::getRawImage() { return accumulationImage; }
-        ImageType &Pipeline::getFilteredImage() { return filteredImage; }
-        ImageType &Pipeline::getNormalImage() { return normalImage; }
-        ImageType &Pipeline::getAlbedoImage() { return albedoImage; }
+        Image &Pipeline::getRawImage() { return accumulationImage; }
+        Image &Pipeline::getFilteredImage() { return filteredImage; }
+        Image &Pipeline::getNormalImage() { return normalImage; }
+        Image &Pipeline::getAlbedoImage() { return albedoImage; }
 
         void Pipeline::dispatchRayTracing() {
             const int32_t MDEPTH = 16;

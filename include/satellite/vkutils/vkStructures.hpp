@@ -12,6 +12,15 @@
 
 namespace NSM
 {
+    struct QueueType;
+
+    struct DevQueueType {
+        uint32_t familyIndex = 0;
+        vk::Queue queue;
+    };
+
+    using DevQueue = std::shared_ptr<DevQueueType>;
+
 
     struct DeviceType {
         bool initialized = false;
@@ -25,6 +34,7 @@ namespace NSM
         VmaAllocator allocator;
         vk::DispatchLoaderDynamic dldid;
 
+        std::vector<DevQueue> queues;
         operator vk::Device() const { return logical; }
     };
 
@@ -70,7 +80,7 @@ namespace NSM
     struct BufferType
     {
         bool initialized = false;
-        Device device;
+        Queue queue;
         // vk::DeviceMemory memory;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
@@ -82,7 +92,7 @@ namespace NSM
     struct ImageType
     {
         bool initialized = false;
-        Device device;
+        Queue queue;
         // vk::DeviceMemory memory;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
@@ -110,7 +120,7 @@ namespace NSM
     using Image = std::shared_ptr<ImageType>;
     using Sampler = std::shared_ptr<SamplerType>;
 
-    struct ImageCompinedType
+    struct ImageCombinedType
     {
         Image texture;
         Sampler sampler;

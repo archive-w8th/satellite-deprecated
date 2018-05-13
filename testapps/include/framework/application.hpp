@@ -9,7 +9,7 @@ using U_MEM_HANDLE = uint8_t * ;
 namespace SatelliteExample {
     using namespace NSM;
 
-    ImageType loadEnvmap(std::string bgTexName, DeviceQueueType& device) {
+    Image loadEnvmap(std::string bgTexName, Queue& devQueue) {
 #ifdef USE_CIMG
         cil::CImg<float> image(bgTexName.c_str());
         if (!image) return nullptr;
@@ -21,11 +21,11 @@ namespace SatelliteExample {
 
 
         // create texture
-        auto texture = createTexture(device, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
-        auto tstage = createBuffer(device, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        auto texture = createImage(devQueue, vk::ImageViewType::e2D, { width, height, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
+        auto tstage = createBuffer(devQueue, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
         {
-            auto command = getCommandBuffer(device, true);
+            auto command = getCommandBuffer(devQueue, true);
             bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
             memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
@@ -34,11 +34,11 @@ namespace SatelliteExample {
                 .setBufferRowLength(width)
                 .setBufferImageHeight(height)
                 .setImageSubresource(texture->subresourceLayers));
-            flushCommandBuffer(device, command, [&]() { destroyBuffer(tstage); });
+            flushCommandBuffer(devQueue, command, [&]() { destroyBuffer(tstage); });
         }
 
         // create sampler for combined
-        texture->descriptorInfo.sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
+        texture->descriptorInfo.sampler = devQueue->device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eMirroredRepeat).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));;
         return texture;
 #else
         return nullptr;
@@ -81,12 +81,12 @@ namespace SatelliteExample {
         virtual void saveHdr(std::string name = "") {};
         std::vector<Framebuffer>& getFramebuffers() { return currentContext->framebuffers; }
 
-        virtual void init(DeviceQueueType& device, const int32_t& argc, const char ** argv) = 0;
+        virtual void init(Queue& device, const int32_t& argc, const char ** argv) = 0;
         virtual void process() = 0;
         virtual void execute(const int32_t& argc, const char ** argv, GLFWwindow * wind);
         virtual void parseArguments(const int32_t& argc, const char ** argv) = 0;
         virtual void handleGUI() {};
-        virtual ImageType getOutputImage() { return nullptr; };
+        virtual Image getOutputImage() { return nullptr; };
 
     protected:
 
@@ -128,8 +128,8 @@ namespace SatelliteExample {
         // base sizing (for buffers)
         int32_t baseWidth = 1, baseHeight = 1;
 
-        BufferType memoryBufferToHost;
-        BufferType memoryBufferFromHost;
+        Buffer memoryBufferToHost;
+        Buffer memoryBufferFromHost;
 
 
         virtual void updateSwapchains() {
@@ -138,10 +138,10 @@ namespace SatelliteExample {
 
                 // update swapchain
                 {
-                    currentContext->device->logical.waitIdle();
-                    currentContext->device->logical.destroySwapchainKHR(currentContext->swapchain);
-                    currentContext->swapchain = createSwapchain(currentContext->device, *applicationWindow.surface, applicationWindow.surfaceFormat);
-                    updateSwapchainFramebuffer(currentContext->device, currentContext->swapchain, currentContext->renderpass, applicationWindow.surfaceFormat, currentContext->framebuffers);
+                    currentContext->queue->device->logical.waitIdle();
+                    currentContext->queue->device->logical.destroySwapchainKHR(currentContext->swapchain);
+                    currentContext->swapchain = createSwapchain(currentContext->queue, *applicationWindow.surface, applicationWindow.surfaceFormat);
+                    updateSwapchainFramebuffer(currentContext->queue, currentContext->swapchain, currentContext->renderpass, applicationWindow.surfaceFormat, currentContext->framebuffers);
                     currentBuffer = 0;
                 }
 
@@ -152,11 +152,11 @@ namespace SatelliteExample {
                 // write descriptors for showing texture
                 {
                     // create sampler
-                    auto sampler = currentContext->device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eClampToEdge).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMagFilter(vk::Filter::eLinear).setMinFilter(vk::Filter::eLinear).setCompareEnable(false));
+                    auto sampler = currentContext->queue->device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eClampToEdge).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMagFilter(vk::Filter::eLinear).setMinFilter(vk::Filter::eLinear).setCompareEnable(false));
                     auto image = this->getOutputImage();
 
                     // update descriptors
-                    currentContext->device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    currentContext->queue->device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                         vk::WriteDescriptorSet()
                             .setDstSet(currentContext->descriptorSets[0])
                             .setDstBinding(0)
@@ -199,7 +199,7 @@ namespace SatelliteExample {
             applicationWindow.surfaceFormat = getSurfaceFormat(applicationWindow.surface, gpu);
 
             // create basic Vulkan objects
-            auto deviceQueue = createDevice(gpu); // create default graphical device
+            auto deviceQueue = createDeviceQueue(gpu); // create default graphical device
             auto renderpass = createRenderpass(deviceQueue, applicationWindow.surfaceFormat);
 
             // create dedicated buffer zones
@@ -243,20 +243,20 @@ namespace SatelliteExample {
 
             // descriptor set bindings
             std::vector<vk::DescriptorSetLayoutBinding> descriptorSetLayoutBindings = { vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, nullptr) };
-            std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = { deviceQueue->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(1)) };
+            std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = { deviceQueue->device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(1)) };
 
             // pipeline layout and cache
-            auto pipelineLayout = deviceQueue->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(descriptorSetLayouts.size()));
+            auto pipelineLayout = deviceQueue->device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(descriptorSetLayouts.data()).setSetLayoutCount(descriptorSetLayouts.size()));
 
             // descriptor sets (where will writing binding)
-            auto descriptorSets = deviceQueue->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(deviceQueue->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
+            auto descriptorSets = deviceQueue->device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(deviceQueue->device->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
 
             // create pipeline
             {
                 // pipeline stages
                 std::vector<vk::PipelineShaderStageCreateInfo> pipelineShaderStages = {
-                    vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(deviceQueue, shaderPack + "/output/render.vert.spv")).setPName("main").setStage(vk::ShaderStageFlagBits::eVertex),
-                    vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(deviceQueue, shaderPack + "/output/render.frag.spv")).setPName("main").setStage(vk::ShaderStageFlagBits::eFragment)
+                    vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(deviceQueue->device, shaderPack + "/output/render.vert.spv")).setPName("main").setStage(vk::ShaderStageFlagBits::eVertex),
+                    vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(deviceQueue->device, shaderPack + "/output/render.frag.spv")).setPName("main").setStage(vk::ShaderStageFlagBits::eFragment)
                 };
 
                 // blend modes per framebuffer targets
@@ -272,7 +272,7 @@ namespace SatelliteExample {
                 std::vector<vk::DynamicState> dynamicStates = { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
 
                 // create graphics pipeline
-                trianglePipeline = deviceQueue->logical.createGraphicsPipeline(deviceQueue->pipelineCache,
+                trianglePipeline = deviceQueue->device->logical.createGraphicsPipeline(deviceQueue->device->pipelineCache,
                     vk::GraphicsPipelineCreateInfo()
                     .setPStages(pipelineShaderStages.data()).setStageCount(pipelineShaderStages.size())
                     .setFlags(vk::PipelineCreateFlagBits::eAllowDerivatives)
@@ -320,7 +320,7 @@ namespace SatelliteExample {
                 samplerInfo.minFilter = vk::Filter::eLinear;
                 samplerInfo.magFilter = vk::Filter::eLinear;
                 samplerInfo.compareEnable = false;
-                auto sampler = deviceQueue->logical.createSampler(samplerInfo);
+                auto sampler = deviceQueue->device->logical.createSampler(samplerInfo);
                 auto image = this->getOutputImage();
 
                 // desc texture texture
@@ -330,7 +330,7 @@ namespace SatelliteExample {
                 imageDesc.sampler = sampler;
 
                 // update descriptors
-                deviceQueue->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                deviceQueue->device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                     vk::WriteDescriptorSet()
                         .setDstSet(descriptorSets[0])
                         .setDstBinding(0)
@@ -346,9 +346,9 @@ namespace SatelliteExample {
 
             {
                 // create graphics context
-                context->device = deviceQueue;
+                deviceQueue->device = deviceQueue;
                 context->pipeline = trianglePipeline;
-                context->descriptorPool = deviceQueue->descriptorPool;
+                context->descriptorPool = deviceQueue->device->descriptorPool;
                 context->descriptorSets = descriptorSets;
                 context->pipelineLayout = pipelineLayout;
 
@@ -372,7 +372,7 @@ namespace SatelliteExample {
 
                     // acquire next image where will rendered (and get semaphore when will presented finally)
                     n_semaphore = (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1));
-                    currentContext->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
+                    currentContext->queue->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
 
                     // submit rendering (and wait presentation in device)
                     {
@@ -382,7 +382,7 @@ namespace SatelliteExample {
                         auto viewport = vk::Viewport(0.0f, 0.0f, window.surfaceSize.width, window.surfaceSize.height, 0, 1.0f);
 
                         // bind with framebuffer 
-                        currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->device, true);
+                        currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->queue, true);
 
                         // create command buffer (with rewrite)
                         auto& commandBuffer = currentContext->framebuffers[n_semaphore].commandBuffer; // do reference of cmd buffer
@@ -397,14 +397,14 @@ namespace SatelliteExample {
                         // create render submission 
                         std::vector<vk::Semaphore> waitSemaphores = { currentContext->framebuffers[n_semaphore].semaphore }, signalSemaphores = { currentContext->framebuffers[c_semaphore].semaphore };
                         std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-                        flushCommandBuffer(currentContext->device, commandBuffer, vk::SubmitInfo()
+                        flushCommandBuffer(currentContext->queue, commandBuffer, vk::SubmitInfo()
                             .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
                             .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
                             .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), [&]() {});
                     }
 
                     // present for displaying of this image
-                    currentContext->device->queues[1]->queue.presentKHR(vk::PresentInfoKHR(
+                    currentContext->queue->device->queues[1]->queue.presentKHR(vk::PresentInfoKHR(
                         1, &currentContext->framebuffers[c_semaphore].semaphore,
                         1, &currentContext->swapchain,
                         &currentBuffer, nullptr
@@ -512,7 +512,7 @@ namespace SatelliteExample {
         }
 
         // wait device if anything work in 
-        currentContext->device->logical.waitIdle();
+        currentContext->queue->device->logical.waitIdle();
         glfwDestroyWindow(applicationWindow.window);
         glfwTerminate();
     }

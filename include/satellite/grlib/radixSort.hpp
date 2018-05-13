@@ -10,8 +10,11 @@ namespace NSM {
             friend class RadixSort;
 
             ComputeContext histogram, permute, workPrefixSum, singleRadix;
-            DeviceQueueType device;
-            BufferType TmpKeys, TmpValues, VarBuffer, Histograms, PrefixSums, VarStaging;
+
+            Queue queue;
+            Device device;
+
+            Buffer TmpKeys, TmpValues, VarBuffer, Histograms, PrefixSums, VarStaging;
 
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
             std::vector<vk::DescriptorSet> descriptorSets;
@@ -21,16 +24,16 @@ namespace NSM {
             const uint32_t WG_COUNT = 64;
             const uint32_t RADICE_AFFINE = 1;
             std::string shadersPathPrefix = "shaders-spv";
-            void init(DeviceQueueType& device);
+            void init(Queue& queue);
 
         public:
             RadixSort() {}
-            RadixSort(DeviceQueueType& device, std::string shadersPack) { shadersPathPrefix = shadersPack; init(device); }
+            RadixSort(Queue& queue, std::string shadersPack) { shadersPathPrefix = shadersPack; init(queue); }
             RadixSort(RadixSort& another); // copying/reference constructor
             RadixSort(RadixSort&& another); // copying/reference constructor
 
             // sorting
-            void sort(BufferType& InKeys, BufferType& InVals, uint32_t size = 1, uint32_t descending = 0);
+            void sort(Buffer& InKeys, Buffer& InVals, uint32_t size = 1, uint32_t descending = 0);
         };
 
     }

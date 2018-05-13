@@ -251,11 +251,11 @@ namespace SatelliteExample {
         geometryCollector = std::make_shared<rt::GeometryAccumulator>(queue, shaderPack);
         geometryCollector->allocatePrimitiveReserve(1024 * 2048);
 
-        bvhStore = std::shared_ptr<rt::HieararchyStorage>(queue, shaderPack);
+        bvhStore = std::make_shared<rt::HieararchyStorage>(queue, shaderPack);
         bvhStore->allocatePrimitiveReserve(1024 * 2048);
         bvhStore->allocateNodeReserve(1024 * 2048);
 
-        bvhBuilder = std::shared_ptr<rt::HieararchyBuilder>(queue, shaderPack);
+        bvhBuilder = std::make_shared<rt::HieararchyBuilder>(queue, shaderPack);
         bvhBuilder->allocateNodeReserve(1024 * 2048);
         bvhBuilder->setHieararchyOutput(bvhStore);
         bvhBuilder->setPrimitiveSource(geometryCollector);

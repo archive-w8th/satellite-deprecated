@@ -1,7 +1,7 @@
 #pragma once
 
 #include "./structs.hpp"
-#include "./vertexSubnodes.hpp"
+#include "./vertex/vertexSubnodes.hpp"
 
 namespace NSM
 {

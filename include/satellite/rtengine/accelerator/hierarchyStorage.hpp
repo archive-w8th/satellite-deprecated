@@ -2,7 +2,7 @@
 
 #include "../structs.hpp"
 #include "../../grlib/radixSort.hpp"
-#include "../vertexInstance.hpp"
+#include "../vertex/vertexInstance.hpp"
 
 namespace NSM
 {

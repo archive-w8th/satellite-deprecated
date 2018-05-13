@@ -12,8 +12,9 @@
 #include "./rtengine/samplerSet.hpp"
 #include "./rtengine/textureSet.hpp"
 #include "./rtengine/triangleHierarchy.hpp"
-#include "./rtengine/vertexInstance.hpp"
-#include "./rtengine/vertexSubnodes.hpp"
+#include "./rtengine/vertex/vertexInstance.hpp"
+#include "./rtengine/vertex/vertexSubnodes.hpp"
+#include "./rtengine/vertex/geometryAccumulator.hpp"
 
 // for C++ files, or implementations
 #ifdef RT_ENGINE_IMPLEMENT
@@ -24,6 +25,7 @@
 #include "./rtengine/samplerSet.inl"
 #include "./rtengine/textureSet.inl"
 #include "./rtengine/triangleHierarchy.inl"
-#include "./rtengine/vertexInstance.inl"
-#include "./rtengine/vertexSubnodes.inl"
+#include "./rtengine/vertex/vertexInstance.inl"
+#include "./rtengine/vertex/vertexSubnodes.inl"
+#include "./rtengine/vertex/geometryAccumulator.inl"
 #endif

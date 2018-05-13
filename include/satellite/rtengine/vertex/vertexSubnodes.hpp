@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./structs.hpp"
+#include "../structs.hpp"
 
 namespace NSM
 {

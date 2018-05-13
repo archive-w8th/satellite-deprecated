@@ -2,7 +2,7 @@
 
 #include "hierarchyBuilder.hpp"
 #include "hierarchyStorage.hpp"
-#include "geometryAccumulator.hpp"
+#include "../vertex/geometryAccumulator.hpp"
 
 namespace NSM
 {

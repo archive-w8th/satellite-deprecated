@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../structs.hpp"
-#include "./geometryAccumulator.hpp"
+#include "./vertex/geometryAccumulator.hpp"
 #include "./hierarchyStorage.hpp"
 #include "../../grlib/radixSort.hpp"
 

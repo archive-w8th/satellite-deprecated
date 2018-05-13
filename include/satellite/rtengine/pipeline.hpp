@@ -4,7 +4,7 @@
 #include "./materialSet.hpp"
 #include "./samplerSet.hpp"
 #include "./textureSet.hpp"
-#include "./vertexSubnodes.hpp"
+#include "./vertex/vertexSubnodes.hpp"
 #include "./triangleHierarchy.hpp"
 
 namespace NSM

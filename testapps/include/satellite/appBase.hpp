@@ -331,9 +331,11 @@ namespace NSM
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 128),
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 16) };
                 devicePtr->descriptorPool = devicePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
-                devicePtr->fence = createFence(devicePtr, false);
+                //devicePtr->fence = createFence(devicePtr, false);
                 devicePtr->initialized = true;
                 devicePtr->pipelineCache = devicePtr->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
+
+                deviceQueuePtr->fence = createFence(devicePtr, false);
             }
 
             // return device with queue pointer

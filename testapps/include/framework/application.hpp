@@ -81,7 +81,7 @@ namespace SatelliteExample {
         virtual void saveHdr(std::string name = "") {};
         std::vector<Framebuffer>& getFramebuffers() { return currentContext->framebuffers; }
 
-        virtual void init(Queue& device, const int32_t& argc, const char ** argv) = 0;
+        virtual void init(Queue& queue, const int32_t& argc, const char ** argv) = 0;
         virtual void process() = 0;
         virtual void execute(const int32_t& argc, const char ** argv, GLFWwindow * wind);
         virtual void parseArguments(const int32_t& argc, const char ** argv) = 0;
@@ -346,7 +346,7 @@ namespace SatelliteExample {
 
             {
                 // create graphics context
-                deviceQueue->device = deviceQueue;
+                context->queue = deviceQueue;
                 context->pipeline = trianglePipeline;
                 context->descriptorPool = deviceQueue->device->descriptorPool;
                 context->descriptorSets = descriptorSets;

@@ -30,7 +30,6 @@ namespace NSM
 
         vk::DescriptorPool descriptorPool;
         vk::PipelineCache pipelineCache;
-        vk::Fence fence;
         VmaAllocator allocator;
         vk::DispatchLoaderDynamic dldid;
 

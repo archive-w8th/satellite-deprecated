@@ -9,7 +9,7 @@ using U_MEM_HANDLE = uint8_t * ;
 namespace SatelliteExample {
     using namespace NSM;
 
-    TextureType loadEnvmap(std::string bgTexName, DeviceQueueType& device) {
+    ImageType loadEnvmap(std::string bgTexName, DeviceQueueType& device) {
 #ifdef USE_CIMG
         cil::CImg<float> image(bgTexName.c_str());
         if (!image) return nullptr;
@@ -86,7 +86,7 @@ namespace SatelliteExample {
         virtual void execute(const int32_t& argc, const char ** argv, GLFWwindow * wind);
         virtual void parseArguments(const int32_t& argc, const char ** argv) = 0;
         virtual void handleGUI() {};
-        virtual TextureType getOutputImage() { return nullptr; };
+        virtual ImageType getOutputImage() { return nullptr; };
 
     protected:
 

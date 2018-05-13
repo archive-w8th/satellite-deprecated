@@ -22,7 +22,7 @@ namespace NSM
             DeviceQueueType device;
             ComputeContext geometryLoader;
 
-            TextureType attributeTexelWorking;
+            ImageType attributeTexelWorking;
 
             BufferType vertexLinearWorking, materialIndicesWorking, orderIndicesWorking;
             BufferType zerosBufferReference, debugOnes32BufferReference, geometryCounter;
@@ -51,7 +51,7 @@ namespace NSM
             void allocatePrimitiveReserve(size_t primitiveCount);
 
             BufferType getGeometrySourceCounterHandler() { return geometryCounter; }
-            TextureType getAttributeTexel() { return attributeTexelWorking; }
+            ImageType getAttributeTexel() { return attributeTexelWorking; }
             BufferType getVertexLinear() { return vertexLinearWorking; }
             BufferType getMaterialIndices() { return materialIndicesWorking; }
             BufferType getOrderIndices() { return orderIndicesWorking; }

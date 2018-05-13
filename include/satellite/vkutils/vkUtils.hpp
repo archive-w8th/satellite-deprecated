@@ -6,9 +6,9 @@ namespace NSM
 {
 
     // get or create command buffer
-    auto getCommandBuffer(const DeviceQueueType &deviceQueue, bool begin = true)
+    auto getCommandBuffer(const Queue &deviceQueue, bool begin = true)
     {
-        vk::CommandBuffer cmdBuffer = deviceQueue->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
+        vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
         if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
         cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe |
             vk::PipelineStageFlagBits::eTransfer,
@@ -19,7 +19,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffers(const DeviceQueueType &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true) 
+    void flushCommandBuffers(const Queue &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true)
     {
         std::vector<vk::SubmitInfo> submitInfos = {
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
@@ -27,29 +27,29 @@ namespace NSM
 
         // submit and don't disagree sequences
         for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
-        auto fence = async ? deviceQueue->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
-        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
+        auto fence = async ? deviceQueue->device->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
+        deviceQueue->queue.submit(submitInfos, fence);
 
         if (async)
         {
             std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-                deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-                deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
+                deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+                deviceQueue->device->logical.destroyFence(fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
             });
         }
         else
         {
-            deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->logical.resetFences(1, &fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
+                deviceQueue->device->logical.resetFences(1, &fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
             });
         }
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffers(const DeviceQueueType &deviceQueue,
+    void flushCommandBuffers(const Queue &deviceQueue,
         const std::vector<vk::CommandBuffer> &commandBuffers,
         const std::function<void()> &asyncCallback)
     {
@@ -59,118 +59,154 @@ namespace NSM
 
         // submit and don't disagree sequences
         for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
-        vk::Fence fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
+        vk::Fence fence = deviceQueue->device->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->queue.submit(submitInfos, fence);
 
         std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-            deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
+                deviceQueue->device->logical.destroyFence(fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
             });
             asyncCallback();
         });
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
+    void flushCommandBuffer(const Queue &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
     {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
 
         // submit and don't disagree sequences
-        auto fence = async ? deviceQueue->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
-        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
+        auto fence = async ? deviceQueue->device->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
+        deviceQueue->queue.submit(submitInfos, fence);
 
         if (async)
         {
             std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-                deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-                deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+                deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+                deviceQueue->device->logical.destroyFence(fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
         }
         else
         {
-            deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->logical.resetFences(1, &fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+                deviceQueue->device->logical.resetFences(1, &fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
         }
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
+    void flushCommandBuffer(const Queue &deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
-        auto fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->mainQueue->queue.submit(submitInfos, fence);
+        auto fence = deviceQueue->device->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->queue.submit(submitInfos, fence);
 
         std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-            deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+                deviceQueue->device->logical.destroyFence(fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
             asyncCallback();
         });
     };
 
     // flush command for rendering
-    void flushCommandBuffer(const DeviceQueueType &deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
+    void flushCommandBuffer(const Queue &deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-        auto fence = deviceQueue->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->mainQueue->queue.submit(1, &kernel, fence);
+        auto fence = deviceQueue->device->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->queue.submit(1, &kernel, fence);
 
         std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-            deviceQueue->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
             std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->logical.destroyFence(fence);
-                deviceQueue->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
+                deviceQueue->device->logical.destroyFence(fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
             });
             asyncCallback();
         });
     };
 
     // transition texture layout
-    void imageBarrier(const vk::CommandBuffer &cmd, const TextureType &image,
-        vk::ImageLayout oldLayout)
-    {
-        // image memory barrier transfer
-        vk::ImageMemoryBarrier srcImb;
-        srcImb.oldLayout = oldLayout;
-        srcImb.newLayout = image->layout;
-        srcImb.subresourceRange = image->subresourceRange;
-        srcImb.image = image->image;
-        srcImb.srcAccessMask = {};
+    void imageBarrier(const vk::CommandBuffer &cmd, const Image &image, vk::ImageLayout oldLayout) {
+        vk::ImageMemoryBarrier imageMemoryBarriers = {};
+        imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imageMemoryBarriers.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        imageMemoryBarriers.oldLayout = oldLayout;
+        imageMemoryBarriers.newLayout = image->layout;
+        imageMemoryBarriers.image = image->image;
+        imageMemoryBarriers.subresourceRange = image->subresourceRange;
+
+        // Put barrier on top
+        vk::PipelineStageFlags srcStageMask{ vk::PipelineStageFlagBits::eTopOfPipe };
+        vk::PipelineStageFlags dstStageMask{ vk::PipelineStageFlagBits::eTopOfPipe };
+        vk::DependencyFlags dependencyFlags{};
+        vk::AccessFlags srcMask{};
+        vk::AccessFlags dstMask{};
+
+        typedef vk::ImageLayout il;
+        typedef vk::AccessFlagBits afb;
+
+        // Is it me, or are these the same?
+        switch (oldLayout) {
+            case il::eUndefined: break;
+            case il::eGeneral: srcMask = afb::eTransferWrite; break;
+            case il::eColorAttachmentOptimal: srcMask = afb::eColorAttachmentWrite; break;
+            case il::eDepthStencilAttachmentOptimal: srcMask = afb::eDepthStencilAttachmentWrite; break;
+            case il::eDepthStencilReadOnlyOptimal: srcMask = afb::eDepthStencilAttachmentRead; break;
+            case il::eShaderReadOnlyOptimal: srcMask = afb::eShaderRead; break;
+            case il::eTransferSrcOptimal: srcMask = afb::eTransferRead; break;
+            case il::eTransferDstOptimal: srcMask = afb::eTransferWrite; break;
+            case il::ePreinitialized: srcMask = afb::eTransferWrite | afb::eHostWrite; break;
+            case il::ePresentSrcKHR: srcMask = afb::eMemoryRead; break;
+        }
+
+        switch (image->layout) {
+            case il::eUndefined: break;
+            case il::eGeneral: dstMask = afb::eTransferWrite; break;
+            case il::eColorAttachmentOptimal: dstMask = afb::eColorAttachmentWrite; break;
+            case il::eDepthStencilAttachmentOptimal: dstMask = afb::eDepthStencilAttachmentWrite; break;
+            case il::eDepthStencilReadOnlyOptimal: dstMask = afb::eDepthStencilAttachmentRead; break;
+            case il::eShaderReadOnlyOptimal: dstMask = afb::eShaderRead; break;
+            case il::eTransferSrcOptimal: dstMask = afb::eTransferRead; break;
+            case il::eTransferDstOptimal: dstMask = afb::eTransferWrite; break;
+            case il::ePreinitialized: dstMask = afb::eTransferWrite; break;
+            case il::ePresentSrcKHR: dstMask = afb::eMemoryRead; break;
+        }
+
+        imageMemoryBarriers.srcAccessMask = srcMask;
+        imageMemoryBarriers.dstAccessMask = dstMask;
 
         // barrier
-        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eAllCommands, {}, nullptr,
-            nullptr, std::array<vk::ImageMemoryBarrier, 1>{srcImb});
-        image->initialLayout = srcImb.newLayout;
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, nullptr, nullptr, std::array<vk::ImageMemoryBarrier, 1>{imageMemoryBarriers});
+        image->initialLayout = imageMemoryBarriers.newLayout;
     }
 
     // transition texture layout
-    void imageBarrier(const vk::CommandBuffer &cmd, const TextureType &image)
+    void imageBarrier(const vk::CommandBuffer &cmd, const Image &image)
     {
         imageBarrier(cmd, image, image->initialLayout);
     }
 
     // create texture object
-    auto createTexture(const DeviceQueueType &deviceQueue,
+    auto createTexture(const Queue &deviceQueue,
         vk::ImageViewType imageViewType, vk::ImageLayout layout,
         vk::Extent3D size, vk::ImageUsageFlags usage,
         vk::Format format = vk::Format::eR8G8B8A8Unorm,
         uint32_t mipLevels = 1,
         VmaMemoryUsage usageType = VMA_MEMORY_USAGE_GPU_ONLY)
     {
-        std::shared_ptr<Texture> texture(new Texture);
+        Image texture = std::make_shared<ImageType>();
         texture->device = deviceQueue;
         texture->layout = layout;
         texture->initialLayout = vk::ImageLayout::eUndefined;
@@ -215,7 +251,7 @@ namespace NSM
         imageInfo.extent = { size.width, size.height, size.depth * (isCubemap ? 6 : 1) };
         imageInfo.format = format;
         imageInfo.mipLevels = mipLevels;
-        imageInfo.pQueueFamilyIndices = &deviceQueue->mainQueue->familyIndex;
+        imageInfo.pQueueFamilyIndices = &deviceQueue->familyIndex;
         imageInfo.queueFamilyIndexCount = 1;
         imageInfo.samples = vk::SampleCountFlagBits::e1; // at now not supported MSAA
         imageInfo.usage = usage;
@@ -223,7 +259,7 @@ namespace NSM
         // create image with allocation
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usageType;
-        vmaCreateImage(deviceQueue->allocator, &(VkImageCreateInfo)imageInfo,
+        vmaCreateImage(deviceQueue->device->allocator, &(VkImageCreateInfo)imageInfo,
             &allocCreateInfo, (VkImage *)&texture->image,
             &texture->allocation, &texture->allocationInfo);
 
@@ -241,7 +277,7 @@ namespace NSM
         texture->subresourceLayers.mipLevel = texture->subresourceRange.baseMipLevel;
 
         // descriptor for usage
-        texture->view = deviceQueue->logical.createImageView(
+        texture->view = deviceQueue->device->logical.createImageView(
             vk::ImageViewCreateInfo()
             .setSubresourceRange(texture->subresourceRange)
             .setViewType(imageViewType)
@@ -261,7 +297,7 @@ namespace NSM
     }
 
     //
-    auto createTexture(const DeviceQueueType &deviceQueue,
+    auto createTexture(const Queue &deviceQueue,
         vk::ImageViewType viewType, vk::Extent3D size,
         vk::ImageUsageFlags usage,
         vk::Format format = vk::Format::eR8G8B8A8Unorm,
@@ -273,17 +309,17 @@ namespace NSM
     }
 
     // create buffer function
-    auto createBuffer(const DeviceQueueType &deviceQueue, size_t bufferSize,
+    auto createBuffer(const Queue &deviceQueue, size_t bufferSize,
         vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType)
     {
-        std::shared_ptr<Buffer> buffer(new Buffer);
+        Buffer buffer = std::make_shared<BufferType>();
 
         // link with device
-        buffer->device = deviceQueue;
+        buffer->device = deviceQueue->device;
 
         auto binfo = vk::BufferCreateInfo(vk::BufferCreateFlags(), bufferSize,
             usageBits, vk::SharingMode::eExclusive, 1,
-            &deviceQueue->mainQueue->familyIndex);
+            &deviceQueue->familyIndex);
 
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = usageType;
@@ -292,7 +328,7 @@ namespace NSM
             allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
 
-        vmaCreateBuffer(deviceQueue->allocator, &(VkBufferCreateInfo)binfo,
+        vmaCreateBuffer(deviceQueue->device->allocator, &(VkBufferCreateInfo)binfo,
             &allocCreateInfo, (VkBuffer *)&buffer->buffer,
             &buffer->allocation, &buffer->allocationInfo);
 
@@ -314,13 +350,12 @@ namespace NSM
                 hostdata.data(), bufferSize);
     }
 
-    void bufferSubData(vk::CommandBuffer &cmd, const BufferType &buffer,
+    void bufferSubData(vk::CommandBuffer &cmd, const Buffer &buffer,
         const uint8_t *hostdata, const size_t bufferSize,
         intptr_t offset = 0)
     {
         if (bufferSize > 0)
-            memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata,
-                bufferSize);
+            memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata, bufferSize);
     }
 
     // get buffer data function
@@ -334,61 +369,50 @@ namespace NSM
     }
 
     // get buffer data function
-    void getBufferSubData(const BufferType &buffer, uint8_t *hostdata,
+    void getBufferSubData(const Buffer &buffer, uint8_t *hostdata,
         const size_t bufferSize, intptr_t offset = 0)
     {
-        memcpy(hostdata, (const uint8_t *)buffer->allocationInfo.pMappedData + offset,
-            bufferSize);
+        memcpy(hostdata, (const uint8_t *)buffer->allocationInfo.pMappedData + offset, bufferSize);
     }
 
     // copy buffer command by region
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const BufferType &src,
-        const BufferType &dst, vk::BufferCopy region)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Buffer &src, const Buffer &dst, vk::BufferCopy region)
     {
         cmd.copyBuffer(src->buffer, dst->buffer, 1, &region);
     }
 
     // store buffer data to subimage
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const BufferType &src,
-        const TextureType &dst, vk::BufferImageCopy region,
-        vk::ImageLayout oldLayout)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Buffer &src, const Image &dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout)
     {
         cmd.copyBufferToImage(src->buffer, dst->image, dst->layout, 1, &region);
     }
 
     // load image subdata to buffer
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const TextureType &src,
-        const BufferType &dst, vk::BufferImageCopy region,
-        vk::ImageLayout oldLayout)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Image &src, const Buffer &dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout)
     {
         cmd.copyImageToBuffer(src->image, src->layout, dst->buffer, 1, &region);
     }
 
     // copy image to image
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const TextureType &src,
-        const TextureType &dst, vk::ImageCopy region,
-        vk::ImageLayout srcOldLayout, vk::ImageLayout dstOldLayout)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Image &src, const Image &dst, vk::ImageCopy region, vk::ImageLayout srcOldLayout, vk::ImageLayout dstOldLayout)
     {
         cmd.copyImage(src->image, src->layout, dst->image, dst->layout, 1, &region);
     }
 
     // store buffer data to subimage
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const BufferType &src,
-        const TextureType &dst, vk::BufferImageCopy region)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Buffer &src, const Image &dst, vk::BufferImageCopy region)
     {
         memoryCopyCmd(cmd, src, dst, region, dst->initialLayout);
     }
 
     // store buffer data to subimage
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const TextureType &src,
-        const TextureType &dst, vk::ImageCopy region)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Image &src, const Image &dst, vk::ImageCopy region)
     {
         memoryCopyCmd(cmd, src, dst, region, src->initialLayout, dst->initialLayout);
     }
 
     // load image subdata to buffer
-    void memoryCopyCmd(vk::CommandBuffer &cmd, const TextureType &src,
-        const BufferType &dst, vk::BufferImageCopy region)
+    void memoryCopyCmd(vk::CommandBuffer &cmd, const Image &src, const Buffer &dst, vk::BufferImageCopy region)
     {
         memoryCopyCmd(cmd, src, dst, region, src->initialLayout);
     }
@@ -411,7 +435,7 @@ namespace NSM
     */
 
     template <class... T>
-    vk::CommandBuffer createCopyCmd(const DeviceQueueType &deviceQueue,
+    vk::CommandBuffer createCopyCmd(const Queue &deviceQueue,
         T... args)
     { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
@@ -421,8 +445,7 @@ namespace NSM
     }
 
     // create fence function
-    vk::Fence createFence(DeviceQueueType &device, bool signaled = true)
-    {
+    vk::Fence createFence(Device &device, bool signaled = true) {
         vk::FenceCreateInfo info;
         if (signaled)
             info.setFlags(vk::FenceCreateFlagBits::eSignaled);
@@ -430,36 +453,26 @@ namespace NSM
     }
 
     // create command buffer function
-    vk::CommandBuffer createCommandBuffer(DeviceQueueType &deviceQueue)
-    {
-        return deviceQueue->logical.allocateCommandBuffers(
-            vk::CommandBufferAllocateInfo(deviceQueue->commandPool,
-                vk::CommandBufferLevel::ePrimary, 1))[0];
+    vk::CommandBuffer createCommandBuffer(Queue &deviceQueue) {
+        return deviceQueue->device->logical.allocateCommandBuffers( vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
     }
 
     // create wait fences
-    std::vector<vk::Fence> createFences(DeviceQueueType &device,
-        uint32_t fenceCount)
-    {
+    std::vector<vk::Fence> createFences(Device &device, uint32_t fenceCount) {
         std::vector<vk::Fence> waitFences;
-        for (int i = 0; i < fenceCount; i++)
-        {
+        for (int i = 0; i < fenceCount; i++) {
             waitFences.push_back(device->logical.createFence(vk::FenceCreateInfo()));
         }
         return waitFences;
     }
 
     // create command buffers
-    std::vector<vk::CommandBuffer>
-        createCommandBuffers(DeviceQueueType &deviceQueue, uint32_t bcount = 1)
-    {
-        return deviceQueue->logical.allocateCommandBuffers(
-            vk::CommandBufferAllocateInfo(deviceQueue->commandPool,
-                vk::CommandBufferLevel::ePrimary, bcount));
+    std::vector<vk::CommandBuffer> createCommandBuffers(Queue &deviceQueue, uint32_t bcount = 1) {
+        return deviceQueue->device->logical.allocateCommandBuffers( vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, bcount));
     }
 
     // destroy buffer function (by linked device)
-    void destroyBuffer(BufferType &buffer)
+    void destroyBuffer(Buffer &buffer)
     {
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (buffer && buffer->initialized) {
@@ -470,7 +483,7 @@ namespace NSM
         });
     }
 
-    void destroyTexture(TextureType &image)
+    void destroyTexture(Image &image)
     {
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (image && image->initialized) {
@@ -525,26 +538,23 @@ namespace NSM
     };
 
     // load module for Vulkan device
-    vk::ShaderModule loadAndCreateShaderModule(DeviceQueueType &device,
-        std::string path)
+    vk::ShaderModule loadAndCreateShaderModule(Device &device, std::string path)
     {
         auto code = readBinary(path);
-        return device->logical.createShaderModule(vk::ShaderModuleCreateInfo(
-            vk::ShaderModuleCreateFlags(), code.size(), (uint32_t *)code.data()));
+        return device->logical.createShaderModule(vk::ShaderModuleCreateInfo(vk::ShaderModuleCreateFlags(), code.size(), (uint32_t *)code.data()));
     }
 
     // create compute pipeline
-    auto createCompute(DeviceQueueType &device, std::string path,
-        vk::PipelineLayout &layout)
+    auto createCompute(Queue &queue, std::string path, vk::PipelineLayout &layout)
     {
         ComputeContext cmpx;
-        cmpx.device = device;
+        cmpx.queue = queue;
         cmpx.pipelineLayout = layout;
-        cmpx.pipelineCache = device->pipelineCache;
+        cmpx.pipelineCache = queue->device->pipelineCache;
 
         auto cmpi = vk::ComputePipelineCreateInfo()
             .setStage(vk::PipelineShaderStageCreateInfo()
-            .setModule(loadAndCreateShaderModule(device, path))
+            .setModule(loadAndCreateShaderModule(queue->device, path))
             .setPName("main")
             .setStage(vk::ShaderStageFlagBits::eCompute))
             .setLayout(layout);
@@ -552,7 +562,7 @@ namespace NSM
         vk::Pipeline pipeline;
         try
         {
-            pipeline = device->logical.createComputePipeline(device->pipelineCache, cmpi);
+            pipeline = queue->device->logical.createComputePipeline(queue->device->pipelineCache, cmpi);
         }
         catch (vk::Result const &e)
         {
@@ -568,7 +578,7 @@ namespace NSM
 
 
     auto makeDispatchCommand(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
-        auto commandBuffer = getCommandBuffer(compute.device, true);
+        auto commandBuffer = getCommandBuffer(compute.queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
         commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
@@ -577,18 +587,18 @@ namespace NSM
     }
 
     auto dispatchCompute(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets) {
-        auto commandBuffer = getCommandBuffer(compute.device, true);
+        auto commandBuffer = getCommandBuffer(compute.queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
         commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
-        flushCommandBuffer(compute.device, commandBuffer, true);
+        flushCommandBuffer(compute.queue, commandBuffer, true);
     }
 
 
 
 
     auto makeDispatchCommand(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
-        auto commandBuffer = getCommandBuffer(compute.device, true);
+        auto commandBuffer = getCommandBuffer(compute.queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
         commandBuffer.dispatch(workGroups1D, 1, 1);
@@ -599,31 +609,31 @@ namespace NSM
 
 
     auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute.device, true);
+        auto commandBuffer = getCommandBuffer(compute.queue, true);
         commandBuffer.pushConstants(compute.pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
         commandBuffer.dispatch(workGroups1D, 1, 1);
-        flushCommandBuffer(compute.device, commandBuffer, true);
+        flushCommandBuffer(compute.queue, commandBuffer, true);
     }
 
 
     auto dispatchCompute(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute.device, true);
+        auto commandBuffer = getCommandBuffer(compute.queue, true);
         commandBuffer.pushConstants(compute.pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
         commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
-        flushCommandBuffer(compute.device, commandBuffer, true);
+        flushCommandBuffer(compute.queue, commandBuffer, true);
     }
 
 
     auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets) {
-        auto commandBuffer = getCommandBuffer(compute.device, true);
+        auto commandBuffer = getCommandBuffer(compute.queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
         commandBuffer.dispatch(workGroups1D, 1, 1);
-        flushCommandBuffer(compute.device, commandBuffer, true);
+        flushCommandBuffer(compute.queue, commandBuffer, true);
     }
 
 

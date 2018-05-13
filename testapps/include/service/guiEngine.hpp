@@ -26,7 +26,7 @@ namespace NSM {
 
         // vertex and indices buffers
         BufferType vertBuffer, idcsBuffer;
-        TextureType fontTexture;
+        ImageType fontTexture;
 
 
         struct GuiUniform {
@@ -285,7 +285,7 @@ namespace NSM {
                     .setBufferImageHeight(height)
                     .setImageSubresource(fontTexture->subresourceLayers);
 
-                copyMemoryProxy<BufferType&, TextureType&, vk::BufferImageCopy>(device, tstage, fontTexture, bufferImageCopy, [&]() {
+                copyMemoryProxy<BufferType&, ImageType&, vk::BufferImageCopy>(device, tstage, fontTexture, bufferImageCopy, [&]() {
                     destroyBuffer(tstage);
                 });
             }

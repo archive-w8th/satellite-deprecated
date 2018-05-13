@@ -35,7 +35,7 @@ namespace NSM
             BufferType bvhMetaStorage;
 
             // vertex data storage
-            TextureType attributeTexelStorage;
+            ImageType attributeTexelStorage;
             BufferType vertexLinearStorage, materialIndicesStorage, orderIndicesStorage;
 
             std::vector<GeometryBlockUniform> geometryBlockData;
@@ -76,7 +76,7 @@ namespace NSM
             BufferType getBvhMeta() { return bvhMetaStorage; }
 
             // geometry related buffers
-            TextureType getAttributeTexel() { return attributeTexelStorage; }
+            ImageType getAttributeTexel() { return attributeTexelStorage; }
             BufferType getVertexLinear() { return vertexLinearStorage; }
             BufferType getMaterialIndices() { return materialIndicesStorage; }
             BufferType getOrderIndices() { return orderIndicesStorage; }

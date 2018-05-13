@@ -8,7 +8,7 @@ namespace NSM {
         void TextureSet::init(DeviceQueueType& device) {
             this->device = device;
 
-            textures = std::vector<TextureType>(0);
+            textures = std::vector<ImageType>(0);
             freedomTextures = std::vector<size_t>(0);
         }
 
@@ -33,7 +33,7 @@ namespace NSM {
             textures.resize(0);
         }
 
-        void TextureSet::setTexture(const int32_t &idx, const TextureType& texture) {
+        void TextureSet::setTexture(const int32_t &idx, const ImageType& texture) {
             for (int i = 0; i < freedomTextures.size(); i++) {
                 if (freedomTextures[i] == idx) freedomTextures.erase(freedomTextures.begin() + i);
             }
@@ -41,7 +41,7 @@ namespace NSM {
             textures[idx] = texture;
         }
 
-        int32_t TextureSet::loadTexture(const TextureType& texture) {
+        int32_t TextureSet::loadTexture(const ImageType& texture) {
             int32_t idx = -1;
             if (freedomTextures.size() > 0) {
                 idx = freedomTextures[freedomTextures.size() - 1];
@@ -58,7 +58,7 @@ namespace NSM {
             return textures.size() > 0;
         }
 
-        std::vector<TextureType>& TextureSet::getTextures() {
+        std::vector<ImageType>& TextureSet::getTextures() {
             return textures;
         }
 

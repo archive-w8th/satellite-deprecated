@@ -60,7 +60,7 @@ namespace NSM
             /*BufferType traverseBlockData, traverseCacheData, prepareTraverseBuffer*/;
 
             // output images
-            TextureType accumulationImage, filteredImage, flagsImage, depthImage,
+            ImageType accumulationImage, filteredImage, flagsImage, depthImage,
                 normalImage, albedoImage;
 
             // uniforms
@@ -123,7 +123,7 @@ namespace NSM
             void clearSampling();
             void dispatchRayTracing();
 
-            void setSkybox(TextureType &skybox);
+            void setSkybox(ImageType &skybox);
             void resizeCanvas(uint32_t width, uint32_t height);
             void reallocRays(uint32_t width, uint32_t height);
             
@@ -141,10 +141,10 @@ namespace NSM
             uint32_t getCanvasWidth();
             uint32_t getCanvasHeight();
 
-            TextureType &getRawImage();
-            TextureType &getFilteredImage();
-            TextureType &getAlbedoImage();
-            TextureType &getNormalImage();
+            ImageType &getRawImage();
+            ImageType &getFilteredImage();
+            ImageType &getAlbedoImage();
+            ImageType &getNormalImage();
 
             // panorama mode
             void enable360mode(bool mode);

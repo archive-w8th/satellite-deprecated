@@ -19,7 +19,7 @@ namespace NSM
             void init(DeviceQueueType &device);
 
             std::vector<size_t> freedomTextures;
-            std::vector<TextureType> textures;
+            std::vector<ImageType> textures;
 
         public:
             TextureSet() {}
@@ -28,13 +28,13 @@ namespace NSM
             TextureSet(TextureSet &&another);
 
             void freeTexture(const int32_t &idx);
-            void setTexture(const int32_t &idx, const TextureType &texture);
+            void setTexture(const int32_t &idx, const ImageType &texture);
 
             void clearTextures();
             bool haveTextures();
-            std::vector<TextureType> &getTextures();
+            std::vector<ImageType> &getTextures();
 
-            int32_t loadTexture(const TextureType &texture);
+            int32_t loadTexture(const ImageType &texture);
 
             // planned merge to externaled
 #ifdef EXPERIMENTAL_GLTF

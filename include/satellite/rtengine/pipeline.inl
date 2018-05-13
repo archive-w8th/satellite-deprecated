@@ -354,7 +354,7 @@ namespace NSM
             syncUniforms();
         }
 
-        void Pipeline::setSkybox(TextureType &skybox)
+        void Pipeline::setSkybox(ImageType &skybox)
         {
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{ vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&skybox->descriptorInfo)}, nullptr);
@@ -708,10 +708,10 @@ namespace NSM
         uint32_t Pipeline::getCanvasWidth() { return canvasWidth; }
         uint32_t Pipeline::getCanvasHeight() { return canvasHeight; }
 
-        TextureType &Pipeline::getRawImage() { return accumulationImage; }
-        TextureType &Pipeline::getFilteredImage() { return filteredImage; }
-        TextureType &Pipeline::getNormalImage() { return normalImage; }
-        TextureType &Pipeline::getAlbedoImage() { return albedoImage; }
+        ImageType &Pipeline::getRawImage() { return accumulationImage; }
+        ImageType &Pipeline::getFilteredImage() { return filteredImage; }
+        ImageType &Pipeline::getNormalImage() { return normalImage; }
+        ImageType &Pipeline::getAlbedoImage() { return albedoImage; }
 
         void Pipeline::dispatchRayTracing() {
             const int32_t MDEPTH = 16;

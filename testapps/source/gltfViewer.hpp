@@ -189,7 +189,7 @@ namespace SatelliteExample {
         virtual void parseArguments(const int32_t& argc, const char ** argv) override;
         virtual void handleGUI() override;
 
-        virtual TextureType getOutputImage() override;
+        virtual ImageType getOutputImage() override;
         virtual void saveHdr(std::string name) override;
     };
 
@@ -197,7 +197,7 @@ namespace SatelliteExample {
 
     // pre-implement
 
-    TextureType GltfViewer::getOutputImage() { return rays->getRawImage(); }
+    ImageType GltfViewer::getOutputImage() { return rays->getRawImage(); }
     void GltfViewer::handleGUI() {}
     void GltfViewer::resizeBuffers(const int32_t& width, const int32_t& height) { rays->reallocRays(width, height); }
     void GltfViewer::resize(const int32_t& width, const int32_t& height) { rays->resizeCanvas(width, height); }
@@ -209,7 +209,7 @@ namespace SatelliteExample {
 
         {
             auto texture = rays->getRawImage();
-            flushCommandBuffer(currentContext->device, createCopyCmd<TextureType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
+            flushCommandBuffer(currentContext->device, createCopyCmd<ImageType&, BufferType&, vk::BufferImageCopy>(currentContext->device, texture, memoryBufferToHost, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
                 .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
                 .setBufferOffset(0)

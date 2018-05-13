@@ -13,39 +13,39 @@
 namespace NSM
 {
 
-    struct DevQueue
-    {
-        uint32_t familyIndex;
-        vk::Queue queue;
-    };
-
-    using DevQueueType = std::shared_ptr<DevQueue>;
-
-    // application device structure
-    struct DeviceQueue
-    {
+    struct DeviceType {
         bool initialized = false;
         bool executed = false;
         vk::Device logical;
         std::shared_ptr<vk::PhysicalDevice> physical;
 
-        vk::Semaphore wsemaphore;
-        vk::CommandPool commandPool;
-        vk::Semaphore currentSemaphore = nullptr;
         vk::DescriptorPool descriptorPool;
         vk::PipelineCache pipelineCache;
         vk::Fence fence;
         VmaAllocator allocator;
-
-        // queue managment
-        DevQueueType mainQueue;
-        std::vector<DevQueueType> queues;
-
-        // dispatch loader
         vk::DispatchLoaderDynamic dldid;
+
+        operator vk::Device() const { return logical; }
     };
 
-    using DeviceQueueType = std::shared_ptr<DeviceQueue>;
+    using Device = std::shared_ptr<DeviceType>;
+
+
+    // application device structure
+    struct QueueType
+    {
+        Device device;
+        vk::CommandPool commandPool;
+        vk::Queue queue;
+        vk::Fence fence;
+        uint32_t familyIndex = 0;
+
+        operator Device() const { return device; }
+        operator vk::Device() const { return device->logical; }
+        operator vk::Queue() const { return queue; }
+    };
+
+    using Queue = std::shared_ptr<QueueType>;
 
     // application surface format information structure
     struct SurfaceFormat
@@ -67,10 +67,10 @@ namespace NSM
     };
 
     // buffer with memory
-    struct Buffer
+    struct BufferType
     {
         bool initialized = false;
-        DeviceQueueType device;
+        Device device;
         // vk::DeviceMemory memory;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
@@ -79,10 +79,10 @@ namespace NSM
     };
 
     // texture
-    struct Texture
+    struct ImageType
     {
         bool initialized = false;
-        DeviceQueueType device;
+        Device device;
         // vk::DeviceMemory memory;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
@@ -97,23 +97,23 @@ namespace NSM
     };
 
     // sampler
-    struct Sampler
+    struct SamplerType
     {
         bool initialized = false;
-        DeviceQueueType device;
+        Device device;
         vk::Sampler sampler;
         vk::DescriptorImageInfo descriptorInfo;
     };
 
     // shared pointer for objects
-    using BufferType = std::shared_ptr<Buffer>;
-    using TextureType = std::shared_ptr<Texture>;
-    using SamplerType = std::shared_ptr<Sampler>;
+    using Buffer = std::shared_ptr<BufferType>;
+    using Image = std::shared_ptr<ImageType>;
+    using Sampler = std::shared_ptr<SamplerType>;
 
-    struct TextureCombined
+    struct ImageCompinedType
     {
-        TextureType texture;
-        SamplerType sampler;
+        Image texture;
+        Sampler sampler;
         vk::DescriptorBufferInfo descriptorInfo;
         vk::DescriptorBufferInfo &combine()
         { // TODO for implement
@@ -134,13 +134,13 @@ namespace NSM
     {
         uint64_t binding = 0;
         vk::DeviceSize voffset = 0;
-        BufferType buffer;
+        Buffer buffer;
     };
 
     // indice buffer
     struct IndexBuffer
     {
-        BufferType buffer;
+        Buffer buffer;
         uint32_t count;
         vk::IndexType indexType = vk::IndexType::eUint32;
     };
@@ -148,8 +148,8 @@ namespace NSM
     // uniform buffer
     struct UniformBuffer
     {
-        BufferType buffer;
-        BufferType staging;
+        Buffer buffer;
+        Buffer staging;
         vk::DescriptorBufferInfo descriptor;
     };
 
@@ -161,7 +161,7 @@ namespace NSM
     // context for rendering (can be switched)
     struct GraphicsContext
     {
-        DeviceQueueType device;     // used device by context
+        Queue queue;     // used device by context
         vk::SwapchainKHR swapchain; // swapchain state
         vk::Pipeline pipeline;      // current pipeline
         vk::PipelineLayout pipelineLayout;
@@ -176,7 +176,7 @@ namespace NSM
     // compute context
     struct ComputeContext
     {
-        DeviceQueueType device;          // used device by context
+        Queue queue;          // used device by context
         vk::CommandBuffer commandBuffer; // command buffer of compute context
         vk::Pipeline pipeline;           // current pipeline
         vk::PipelineCache pipelineCache;

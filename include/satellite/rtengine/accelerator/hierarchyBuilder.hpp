@@ -39,7 +39,7 @@ namespace NSM
             BufferType boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
             BufferType bvhBoxWorking, bvhBoxWorkingResulting, leafsBuffer, countersBuffer, mortonCodesBuffer, mortonIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
             BufferType bvhMetaWorking;
-            //TextureType bvhMetaWorking;
+            //ImageType bvhMetaWorking;
 
             std::vector<vk::DescriptorSet> builderDescriptorSets;
             std::vector<vk::DescriptorSetLayout> builderDescriptorLayout; // may be single layout

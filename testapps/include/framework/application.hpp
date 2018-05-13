@@ -342,7 +342,7 @@ namespace SatelliteExample {
             }
 
             // graphics context
-            std::shared_ptr<GraphicsContext> context = std::shared_ptr<GraphicsContext>(new GraphicsContext);
+            auto context = std::make_shared<GraphicsContext>();
 
             {
                 // create graphics context

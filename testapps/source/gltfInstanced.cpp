@@ -38,25 +38,25 @@ namespace SatelliteExample {
         //mscale = 1.f;
     }
 
-    void GltfViewer::init(Queue& device, const int32_t& argc, const char ** argv) {
+    void GltfViewer::init(Queue& queue, const int32_t& argc, const char ** argv) {
         
-        rays = std::shared_ptr<rt::Pipeline>(new rt::Pipeline(device, shaderPack));
+        rays = std::make_shared<rt::Pipeline>(queue, shaderPack);
 
         // init material system
-        materialManager = std::shared_ptr<rt::MaterialSet>(new rt::MaterialSet(device));
-        textureManager = std::shared_ptr<rt::TextureSet>(new rt::TextureSet(device));
-        samplerManager = std::shared_ptr<rt::SamplerSet>(new rt::SamplerSet(device));
-        vTextureSet = std::shared_ptr<rt::VirtualTextureSet>(new rt::VirtualTextureSet(device));
+        materialManager = std::make_shared<rt::MaterialSet>(queue);
+        textureManager = std::make_shared<rt::TextureSet>(queue);
+        samplerManager = std::make_shared<rt::SamplerSet>(queue);
+        vTextureSet = std::make_shared<rt::VirtualTextureSet>(queue);
 
 
         // load env map 
-        auto cbmap = loadEnvmap(bgTexName, device);
+        auto cbmap = loadEnvmap(bgTexName, queue);
         if (cbmap && cbmap->initialized) {
             rays->setSkybox(cbmap);
         }
 
         // camera contoller
-        cam = std::shared_ptr<CameraController>(new CameraController());
+        cam = std::make_shared<CameraController>();
         cam->setRays(rays);
 
 #ifdef EXPERIMENTAL_GLTF
@@ -131,11 +131,11 @@ namespace SatelliteExample {
         for (int i = 0; i < gltfModel.buffers.size(); i++) { gsize += tiled(gltfModel.buffers[i].data.size(), 4) * 4; }
 
         // create binding buffers
-        vtbSpace = std::shared_ptr<rt::BufferSpace>(new rt::BufferSpace(device, gsize)); // allocate buffer space (with some spacing)
-        bfvi = std::shared_ptr<rt::BufferViewSet>(new rt::BufferViewSet(device));
-        acs = std::shared_ptr<rt::DataAccessSet>(new rt::DataAccessSet(device));
-        bnds = std::shared_ptr<rt::DataBindingSet>(new rt::DataBindingSet(device));
-        bfst = std::shared_ptr<rt::BufferRegionSet>(new rt::BufferRegionSet(device));
+        vtbSpace = std::make_shared<rt::BufferSpace>(queue, gsize); // allocate buffer space (with some spacing)
+        bfvi = std::make_shared<rt::BufferViewSet>(queue);
+        acs = std::make_shared<rt::DataAccessSet>(queue);
+        bnds = std::make_shared<rt::DataBindingSet>(queue);
+        bfst = std::make_shared<rt::BufferRegionSet>(queue);
 
         // unify buffers
         for (int i = 0; i < gltfModel.buffers.size(); i++) {
@@ -173,8 +173,8 @@ namespace SatelliteExample {
 
 
             // create vertex instance
-            std::shared_ptr<rt::MeshUniformSet> murst = std::shared_ptr<rt::MeshUniformSet>(new rt::MeshUniformSet(device, glMesh.primitives.size()));
-            std::shared_ptr<rt::VertexInstance> geom = std::shared_ptr<rt::VertexInstance>(new rt::VertexInstance(device));
+            std::shared_ptr<rt::MeshUniformSet> murst = std::make_shared<rt::MeshUniformSet>(queue, glMesh.primitives.size());
+            std::shared_ptr<rt::VertexInstance> geom = std::make_shared<rt::VertexInstance>(queue);
             geom->setBufferSpace(vtbSpace);
             geom->setDataAccessSet(acs);
             geom->setBufferViewSet(bfvi);
@@ -248,14 +248,14 @@ namespace SatelliteExample {
 #endif
 
         // create geometry intersector
-        geometryCollector = std::shared_ptr<rt::GeometryAccumulator>(new rt::GeometryAccumulator(device, shaderPack));
+        geometryCollector = std::make_shared<rt::GeometryAccumulator>(queue, shaderPack);
         geometryCollector->allocatePrimitiveReserve(1024 * 2048);
 
-        bvhStore = std::shared_ptr<rt::HieararchyStorage>(new rt::HieararchyStorage(device, shaderPack));
+        bvhStore = std::shared_ptr<rt::HieararchyStorage>(queue, shaderPack);
         bvhStore->allocatePrimitiveReserve(1024 * 2048);
         bvhStore->allocateNodeReserve(1024 * 2048);
 
-        bvhBuilder = std::shared_ptr<rt::HieararchyBuilder>(new rt::HieararchyBuilder(device, shaderPack));
+        bvhBuilder = std::shared_ptr<rt::HieararchyBuilder>(queue, shaderPack);
         bvhBuilder->allocateNodeReserve(1024 * 2048);
         bvhBuilder->setHieararchyOutput(bvhStore);
         bvhBuilder->setPrimitiveSource(geometryCollector);
@@ -397,7 +397,7 @@ int main(const int argc, const char ** argv)
     ambientIO::handleGlfw(window);
 
     // create application
-    auto app = new SatelliteExample::GltfViewer(argc, argv, window);
+    auto app = std::make_shared<SatelliteExample::GltfViewer>(argc, argv, window);
 
     glfwTerminate();
     exit(EXIT_SUCCESS);

@@ -12,7 +12,8 @@
 
 * **06.05.2018**. We published shaders in standalone repository (https://github.com/world8th/rt-vulkan-shaders). Compatible only with *Vulkan API 1.1*. 
 
-* **08.05.2018**. We working on new Vulkan API 1.1 engine with full ray tracing support. 
+* ~~**08.05.2018**. We working on new Vulkan API 1.1 engine with full ray tracing support.~~ DIED!
+* **13.05.2018**. Updated Vulkan headers and added Volk meta loader. "vulkan.lib" no more required. 
 
 ### What we can be do, if we had desires
 

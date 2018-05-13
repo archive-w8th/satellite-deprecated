@@ -10,7 +10,7 @@ namespace NSM
 {
     namespace rt
     {
-        class TextureSet
+        class TextureSet : public std::enable_shared_from_this<TextureSet>
         {
         protected:
             friend class TextureSet;

@@ -8,7 +8,7 @@ namespace NSM
 {
     namespace rt
     {
-        class HieararchyStorage
+        class HieararchyStorage : public std::enable_shared_from_this<HieararchyStorage>
         {
         protected:
 

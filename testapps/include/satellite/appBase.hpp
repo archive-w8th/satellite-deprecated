@@ -224,7 +224,10 @@ namespace NSM
                 computeFamilyIndex++;
                 if (queuefamily.queueFlags & (vk::QueueFlagBits::eCompute)) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
-                    queues.push_back(std::make_shared<DevQueueType>(DevQueueType{ computeFamilyIndex, vk::Queue{} }));
+                    auto devQueue = std::make_shared<DevQueueType>();
+                    devQueue->familyIndex = computeFamilyIndex;
+                    devQueue->queue = vk::Queue{};
+                    queues.push_back(devQueue);
                     break;
                 }
             }
@@ -235,7 +238,10 @@ namespace NSM
                 graphicsFamilyIndex++;
                 if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu->getSurfaceSupportKHR(graphicsFamilyIndex, *applicationWindow.surface) && graphicsFamilyIndex != computeFamilyIndex) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
-                    queues.push_back(std::make_shared<DevQueueType>(DevQueueType{ graphicsFamilyIndex, vk::Queue{} }));
+                    auto devQueue = std::make_shared<DevQueueType>();
+                    devQueue->familyIndex = graphicsFamilyIndex;
+                    devQueue->queue = vk::Queue{};
+                    queues.push_back(devQueue);
                     break;
                 }
             }

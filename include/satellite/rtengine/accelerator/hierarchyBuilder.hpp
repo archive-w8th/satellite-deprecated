@@ -9,8 +9,7 @@ namespace NSM
 {
     namespace rt
     {
-        class HieararchyBuilder
-        {
+        class HieararchyBuilder : public std::enable_shared_from_this<HieararchyBuilder> {
         protected:
             const size_t CACHED_BBOX = 128;
 

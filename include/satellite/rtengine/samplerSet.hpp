@@ -6,7 +6,7 @@ namespace NSM
 {
     namespace rt
     {
-        class SamplerSet
+        class SamplerSet : public std::enable_shared_from_this<SamplerSet>
         {
         protected:
             friend class SamplerSet;

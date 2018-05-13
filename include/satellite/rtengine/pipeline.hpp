@@ -12,7 +12,7 @@ namespace NSM
     namespace rt
     {
 
-        class Pipeline
+        class Pipeline : public std::enable_shared_from_this<Pipeline>
         {
         protected:
             const size_t INTENSIVITY = 4096;

@@ -5,7 +5,7 @@
 namespace NSM {
     namespace gr {
 
-        class RadixSort {
+        class RadixSort : public std::enable_shared_from_this<RadixSort> {
         protected:
             friend class RadixSort;
 

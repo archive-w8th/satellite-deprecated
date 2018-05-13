@@ -7,7 +7,7 @@ namespace NSM
 {
     namespace rt
     {
-        class VertexInstance
+        class VertexInstance : public std::enable_shared_from_this<VertexInstance>
         {
         protected:
             friend class VertexInstance;

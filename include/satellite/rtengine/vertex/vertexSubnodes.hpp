@@ -8,7 +8,7 @@ namespace NSM
     {
 
         template <int BINDING, class STRUCTURE>
-        class BufferComposer
+        class BufferComposer : public std::enable_shared_from_this<BufferComposer<BINDING, STRUCTURE>>
         {
         protected:
             friend class BufferComposer<BINDING, STRUCTURE>;

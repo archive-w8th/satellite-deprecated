@@ -13,16 +13,29 @@
 namespace NSM
 {
     struct QueueType;
+    struct DevQueueType;
+    struct DeviceType;
+    struct QueueType;
+    struct BufferType;
+    struct ImageType;
+    struct SamplerType;
+    struct ImageCombinedType;
 
-    struct DevQueueType {
+    using DevQueue = std::shared_ptr<DevQueueType>;
+    using Device = std::shared_ptr<DeviceType>;
+    using Queue = std::shared_ptr<QueueType>;
+    using Buffer = std::shared_ptr<BufferType>;
+    using Image = std::shared_ptr<ImageType>;
+    using Sampler = std::shared_ptr<SamplerType>;
+    using ImageCombined = std::shared_ptr<ImageCombinedType>;
+
+
+    struct DevQueueType : public std::enable_shared_from_this<DevQueueType> {
         uint32_t familyIndex = 0;
         vk::Queue queue;
     };
 
-    using DevQueue = std::shared_ptr<DevQueueType>;
-
-
-    struct DeviceType {
+    struct DeviceType : public std::enable_shared_from_this<DeviceType> {
         bool initialized = false;
         bool executed = false;
         vk::Device logical;
@@ -37,12 +50,8 @@ namespace NSM
         operator vk::Device() const { return logical; }
     };
 
-    using Device = std::shared_ptr<DeviceType>;
-
-
     // application device structure
-    struct QueueType
-    {
+    struct QueueType : public std::enable_shared_from_this<QueueType> {
         Device device;
         vk::CommandPool commandPool;
         vk::Queue queue;
@@ -54,11 +63,8 @@ namespace NSM
         operator vk::Queue() const { return queue; }
     };
 
-    using Queue = std::shared_ptr<QueueType>;
-
     // application surface format information structure
-    struct SurfaceFormat
-    {
+    struct SurfaceFormat : public std::enable_shared_from_this<SurfaceFormat> {
         vk::Format colorFormat;
         vk::Format depthFormat;
         vk::Format stencilFormat;
@@ -67,8 +73,7 @@ namespace NSM
     };
 
     // framebuffer with command buffer and fence
-    struct Framebuffer
-    {
+    struct Framebuffer : public std::enable_shared_from_this<Framebuffer> {
         vk::Framebuffer frameBuffer;
         vk::CommandBuffer commandBuffer; // terminal command (barrier)
         vk::Fence waitFence;
@@ -76,8 +81,7 @@ namespace NSM
     };
 
     // buffer with memory
-    struct BufferType
-    {
+    struct BufferType : public std::enable_shared_from_this<BufferType> {
         bool initialized = false;
         Queue queue;
         // vk::DeviceMemory memory;
@@ -88,8 +92,7 @@ namespace NSM
     };
 
     // texture
-    struct ImageType
-    {
+    struct ImageType : public std::enable_shared_from_this<ImageType> {
         bool initialized = false;
         Queue queue;
         // vk::DeviceMemory memory;
@@ -106,40 +109,29 @@ namespace NSM
     };
 
     // sampler
-    struct SamplerType
-    {
+    struct SamplerType : public std::enable_shared_from_this<SamplerType> {
         bool initialized = false;
         Device device;
         vk::Sampler sampler;
         vk::DescriptorImageInfo descriptorInfo;
     };
 
-    // shared pointer for objects
-    using Buffer = std::shared_ptr<BufferType>;
-    using Image = std::shared_ptr<ImageType>;
-    using Sampler = std::shared_ptr<SamplerType>;
-
-    struct ImageCombinedType
-    {
+    struct ImageCombinedType : public std::enable_shared_from_this<ImageCombinedType> {
         Image texture;
         Sampler sampler;
         vk::DescriptorBufferInfo descriptorInfo;
-        vk::DescriptorBufferInfo &combine()
-        { // TODO for implement
-
-            return descriptorInfo;
-        }
+        vk::DescriptorBufferInfo &combine() { return descriptorInfo; }
     };
 
     // vertex layout
-    struct VertexLayout
+    struct VertexLayout : public std::enable_shared_from_this<VertexLayout>
     {
         std::vector<vk::VertexInputBindingDescription> inputBindings;
         std::vector<vk::VertexInputAttributeDescription> inputAttributes;
     };
 
     // vertex with layouts
-    struct VertexBuffer
+    struct VertexBuffer : public std::enable_shared_from_this<VertexBuffer>
     {
         uint64_t binding = 0;
         vk::DeviceSize voffset = 0;
@@ -147,7 +139,7 @@ namespace NSM
     };
 
     // indice buffer
-    struct IndexBuffer
+    struct IndexBuffer : public std::enable_shared_from_this<IndexBuffer>
     {
         Buffer buffer;
         uint32_t count;
@@ -155,20 +147,15 @@ namespace NSM
     };
 
     // uniform buffer
-    struct UniformBuffer
+    struct UniformBuffer : public std::enable_shared_from_this<UniformBuffer>
     {
         Buffer buffer;
         Buffer staging;
         vk::DescriptorBufferInfo descriptor;
     };
 
-    // sampler
-    // struct Sampler {
-    //    vk::Sampler sampler;
-    //};
-
     // context for rendering (can be switched)
-    struct GraphicsContext
+    struct GraphicsContext : public std::enable_shared_from_this<GraphicsContext>
     {
         Queue queue;     // used device by context
         vk::SwapchainKHR swapchain; // swapchain state
@@ -183,7 +170,7 @@ namespace NSM
     };
 
     // compute context
-    struct ComputeContext
+    struct ComputeContext : public std::enable_shared_from_this<ComputeContext>
     {
         Queue queue;          // used device by context
         vk::CommandBuffer commandBuffer; // command buffer of compute context

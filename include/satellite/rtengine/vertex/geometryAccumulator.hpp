@@ -7,7 +7,7 @@ namespace NSM
 {
     namespace rt
     {
-        class GeometryAccumulator
+        class GeometryAccumulator : public std::enable_shared_from_this<GeometryAccumulator>
         {
         protected:
             // Geometry metrics

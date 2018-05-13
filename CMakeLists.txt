@@ -83,13 +83,7 @@ find_package(CUDA QUIET)
 find_package(OptiX QUIET)
 endif()
 
-set (LIBS 
-    glfw3 
-    libpng16_static
-    turbojpeg
-    turbojpeg-static
-    zlibstatic
-)
+set (LIBS glfw3 )
 
 # if OptiX was has
 if (OptiX_INSTALL_DIR AND ENABLE_OPTIX_DENOISER) 

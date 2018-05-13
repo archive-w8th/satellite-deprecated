@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rtengine/vertexSubnodes.hpp"
+#include "vertexSubnodes.hpp"
 
 namespace NSM
 {

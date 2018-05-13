@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rtengine/samplerSet.hpp"
+#include "samplerSet.hpp"
 
 namespace NSM
 {

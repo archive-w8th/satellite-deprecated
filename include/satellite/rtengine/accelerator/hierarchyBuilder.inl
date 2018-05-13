@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../../rtengine/accelerator/hierarchyBuilder.hpp"
-#include "../../../rtengine/accelerator/hierarchyStorage.hpp"
-#include "../../../rtengine/accelerator/geometryAccumulator.hpp"
+#include "hierarchyBuilder.hpp"
+#include "hierarchyStorage.hpp"
+#include "geometryAccumulator.hpp"
 
 namespace NSM
 {

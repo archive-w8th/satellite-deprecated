@@ -1,5 +1,5 @@
 #pragma once
-#include "../gapi.hpp"
+#include "gapi.hpp"
 
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr.h"

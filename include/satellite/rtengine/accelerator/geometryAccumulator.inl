@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../rtengine/accelerator/geometryAccumulator.hpp"
+#include "geometryAccumulator.hpp"
 
 namespace NSM
 {

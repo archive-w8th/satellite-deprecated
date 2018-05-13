@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../grlib/radixSort.hpp"
+#include "radixSort.hpp"
 
 namespace NSM {
     namespace gr {

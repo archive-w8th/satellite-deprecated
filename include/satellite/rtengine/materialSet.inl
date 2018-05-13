@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rtengine/materialSet.hpp"
+#include "materialSet.hpp"
 
 namespace NSM
 {

@@ -354,6 +354,7 @@ int main(const int argc, const char ** argv)
     // create application window (planned to merge)
     GLFWwindow* window = glfwCreateWindow(baseWidth, baseHeight, "Running...", NULL, NULL);
     if (!window) { glfwTerminate(); exit(EXIT_FAILURE); }
+    volkInitialize();
 
     // use ambient static event provider
     ambientIO::handleGlfw(window);

@@ -169,6 +169,7 @@ namespace NSM
 
             // create instance
             instance = vk::createInstance(cinstanceinfo);
+            volkLoadInstance(instance);
 
             // get physical device for application
             return instance;
@@ -268,6 +269,10 @@ namespace NSM
                     .setPQueueCreateInfos(queueCreateInfos.data()).setQueueCreateInfoCount(queueCreateInfos.size())
                     .setPpEnabledExtensionNames(deviceExtensions.data()).setEnabledExtensionCount(deviceExtensions.size())
                     .setPpEnabledLayerNames(deviceValidationLayers.data()).setEnabledLayerCount(deviceValidationLayers.size()));
+                volkLoadDevice(deviceQueuePtr->logical);
+
+                VolkDeviceTable vktable;
+                volkLoadDeviceTable(&vktable, deviceQueuePtr->logical);
 
                 // init dispatch loader
                 deviceQueuePtr->dldid = vk::DispatchLoaderDynamic(instance, deviceQueuePtr->logical);
@@ -286,8 +291,28 @@ namespace NSM
                 deviceQueuePtr->mainQueue = deviceQueuePtr->queues[isComputePrior ? 0 : 1]; // make role prior
                 deviceQueuePtr->commandPool = deviceQueuePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->mainQueue->familyIndex));
 
+                // mapping volk with VMA functions
+                VmaVulkanFunctions vfuncs;
+                vfuncs.vkAllocateMemory = vktable.vkAllocateMemory;
+                vfuncs.vkBindBufferMemory = vktable.vkBindBufferMemory;
+                vfuncs.vkBindImageMemory = vktable.vkBindImageMemory;
+                vfuncs.vkCreateBuffer = vktable.vkCreateBuffer;
+                vfuncs.vkCreateImage = vktable.vkCreateImage;
+                vfuncs.vkDestroyBuffer = vktable.vkDestroyBuffer;
+                vfuncs.vkDestroyImage = vktable.vkDestroyImage;
+                vfuncs.vkFreeMemory = vktable.vkFreeMemory;
+                vfuncs.vkGetBufferMemoryRequirements = vktable.vkGetBufferMemoryRequirements;
+                vfuncs.vkGetBufferMemoryRequirements2KHR = vktable.vkGetBufferMemoryRequirements2KHR;
+                vfuncs.vkGetImageMemoryRequirements = vktable.vkGetImageMemoryRequirements;
+                vfuncs.vkGetImageMemoryRequirements2KHR = vktable.vkGetImageMemoryRequirements2KHR;
+                vfuncs.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+                vfuncs.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+                vfuncs.vkMapMemory = vktable.vkMapMemory;
+                vfuncs.vkUnmapMemory = vktable.vkUnmapMemory;
+
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
+                allocatorInfo.pVulkanFunctions = &vfuncs;
                 allocatorInfo.physicalDevice = *deviceQueuePtr->physical;
                 allocatorInfo.device = deviceQueuePtr->logical;
                 allocatorInfo.preferredLargeHeapBlockSize = 16384; // 16kb

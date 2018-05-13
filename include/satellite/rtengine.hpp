@@ -17,13 +17,13 @@
 
 // for C++ files, or implementations
 #ifdef RT_ENGINE_IMPLEMENT
-#include "./detail/gapi.inl"
-#include "./detail/grlib/radixSort.inl"
-#include "./detail/rtengine/materialSet.inl"
-#include "./detail/rtengine/pipeline.inl"
-#include "./detail/rtengine/samplerSet.inl"
-#include "./detail/rtengine/textureSet.inl"
-#include "./detail/rtengine/triangleHierarchy.inl"
-#include "./detail/rtengine/vertexInstance.inl"
-#include "./detail/rtengine/vertexSubnodes.inl"
+#include "./gapi.inl"
+#include "./grlib/radixSort.inl"
+#include "./rtengine/materialSet.inl"
+#include "./rtengine/pipeline.inl"
+#include "./rtengine/samplerSet.inl"
+#include "./rtengine/textureSet.inl"
+#include "./rtengine/triangleHierarchy.inl"
+#include "./rtengine/vertexInstance.inl"
+#include "./rtengine/vertexSubnodes.inl"
 #endif

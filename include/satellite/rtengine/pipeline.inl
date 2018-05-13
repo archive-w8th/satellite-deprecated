@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rtengine/pipeline.hpp"
+#include "pipeline.hpp"
 
 namespace NSM
 {

@@ -1,7 +1,6 @@
 #pragma once
-#pragma once
 
-#include "../../../rtengine/accelerator/hierarchyStorage.hpp"
+#include "hierarchyStorage.hpp"
 
 namespace NSM
 {

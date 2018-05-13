@@ -24,6 +24,8 @@ set(SOURCES_LIST
     "./testapps/imgui/imgui.cpp"
     "./testapps/source/*.hpp"
     
+    "./include/vulkan/*.c"
+    "./include/vulkan/*.cpp"
     "./include/*/*.h"
     "./include/*/*.hpp"
     "./include/*/*.inl"
@@ -82,7 +84,6 @@ find_package(OptiX QUIET)
 endif()
 
 set (LIBS 
-	${Vulkan_LIBRARY} 
     glfw3 
     libpng16_static
     turbojpeg

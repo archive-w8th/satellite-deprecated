@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../rtengine/textureSet.hpp"
+#include "textureSet.hpp"
 
 namespace NSM {
     namespace rt {

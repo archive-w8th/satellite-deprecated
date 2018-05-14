@@ -5,7 +5,7 @@
 // application space itself
 namespace SatelliteExample {
 
-    void GltfViewer::parseArguments(const int32_t& argc, const char ** argv) {
+    int GltfViewer::parseArguments(const int32_t& argc, const char ** argv, GLFWwindow * window) {
         args::ArgumentParser parser("This is a test rendering program.", "GeForce GTX 560 still sucks in 2018 year...");
         args::HelpFlag help(parser, "help", "Available flags", { 'h', "help" });
         args::ValueFlag<int> computeflag(parser, "compute-device-id", "Vulkan compute device (UNDER CONSIDERATION)", { 'c' });
@@ -21,7 +21,7 @@ namespace SatelliteExample {
         }
         catch (args::Help)
         {
-            std::cout << parser; glfwDestroyWindow(applicationWindow.window); glfwTerminate(); system("pause"); exit(0);
+            std::cout << parser; glfwDestroyWindow(window); glfwTerminate(); system("pause"); return 0;
         }
 
         // read arguments
@@ -31,11 +31,12 @@ namespace SatelliteExample {
         if (modelflag) model_input = args::get(modelflag);
         if (scaleflag) mscale = args::get(scaleflag);
         if (directoryflag) directory = args::get(directoryflag);
-        if (help || argc <= 1) { std::cout << parser; glfwDestroyWindow(applicationWindow.window); glfwTerminate(); system("pause"); exit(0); } // required help or no arguments
+        if (help || argc <= 1) { std::cout << parser; glfwDestroyWindow(appfw->window()); glfwTerminate(); system("pause"); exit(0); } // required help or no arguments
         if (model_input == "") std::cerr << "No model found :(" << std::endl;
+        return 1;
     }
 
-    void GltfViewer::init(Queue& queue, const int32_t& argc, const char ** argv) {
+    void GltfViewer::init(Queue queue, const int32_t& argc, const char ** argv) {
         
         rays = std::make_shared<rt::Pipeline>(queue, shaderPack);
 

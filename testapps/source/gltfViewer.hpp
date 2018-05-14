@@ -146,7 +146,7 @@ namespace SatelliteExample {
 
 
 
-    class GltfViewer : public PathTracerApplication {
+    class GltfViewer : public AbstractApplication {
     protected:
         bool e360m = false;
         std::string model_input = "";
@@ -182,11 +182,11 @@ namespace SatelliteExample {
         virtual void resize(const int32_t& width, const int32_t& height) override;
 
     public:
-        GltfViewer(const int32_t& argc, const char ** argv, GLFWwindow * wind) : PathTracerApplication(argc, argv, wind) { execute(argc, argv, wind); };
-        GltfViewer() : PathTracerApplication() {};
-        virtual void init(Queue& device, const int32_t& argc, const char ** argv) override;
+        GltfViewer(const int32_t& argc, const char ** argv, GLFWwindow * wind) : AbstractApplication(argc, argv, wind) { execute(argc, argv, wind); };
+        GltfViewer() : AbstractApplication() {};
+        virtual void init(Queue device, const int32_t& argc, const char ** argv) override;
         virtual void process() override;
-        virtual void parseArguments(const int32_t& argc, const char ** argv) override;
+        virtual int parseArguments(const int32_t& argc, const char ** argv, GLFWwindow * wind) override;
         virtual void handleGUI() override;
 
         virtual Image getOutputImage() override;
@@ -197,10 +197,16 @@ namespace SatelliteExample {
 
     // pre-implement
 
-    Image GltfViewer::getOutputImage() { return rays->getRawImage(); }
+    Image GltfViewer::getOutputImage() { 
+        return rays->getRawImage(); 
+    }
     void GltfViewer::handleGUI() {}
-    void GltfViewer::resizeBuffers(const int32_t& width, const int32_t& height) { rays->reallocRays(width, height); }
-    void GltfViewer::resize(const int32_t& width, const int32_t& height) { rays->resizeCanvas(width, height); }
+    void GltfViewer::resizeBuffers(const int32_t& width, const int32_t& height) { 
+        rays->reallocRays(width, height); 
+    }
+    void GltfViewer::resize(const int32_t& width, const int32_t& height) { 
+        rays->resizeCanvas(width, height); 
+    }
 
     void GltfViewer::saveHdr(std::string name) {
 #ifdef USE_CIMG

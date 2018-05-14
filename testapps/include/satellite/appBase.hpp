@@ -20,12 +20,7 @@ namespace NSM
 {
     class ApplicationBase : public std::enable_shared_from_this<ApplicationBase> {
     protected:
-        struct SurfaceWindow {
-            GLFWwindow *window;
-            std::shared_ptr<vk::SurfaceKHR> surface;
-            SurfaceFormat surfaceFormat;
-            vk::Extent2D surfaceSize;
-        } applicationWindow;
+        
 
         // application binding
         vk::Instance instance;
@@ -110,6 +105,18 @@ namespace NSM
         std::vector<const char *> wantedDeviceValidationLayers = {
             "VK_LAYER_AMD_switchable_graphics"
         };
+
+
+        struct SurfaceWindow {
+            GLFWwindow *window;
+            std::shared_ptr<vk::SurfaceKHR> surface;
+            SurfaceFormat surfaceFormat;
+            vk::Extent2D surfaceSize;
+        } applicationWindow;
+
+    public:
+
+        
 
         vk::Instance createInstance()
         {
@@ -366,9 +373,38 @@ namespace NSM
             return applicationWindow;
         }
 
-        virtual SurfaceFormat getSurfaceFormat(std::shared_ptr<vk::SurfaceKHR> surface, std::shared_ptr<vk::PhysicalDevice> gpu)
+
+        // getters
+        std::shared_ptr<vk::SurfaceKHR> surface() const {
+            return applicationWindow.surface;
+        }
+
+        GLFWwindow * window() const {
+            return applicationWindow.window;
+        }
+
+        const SurfaceFormat& format() const {
+            return applicationWindow.surfaceFormat;
+        }
+
+        const vk::Extent2D& size() const {
+            return applicationWindow.surfaceSize;
+        }
+
+        
+        // setters
+        void format(SurfaceFormat format) {
+            applicationWindow.surfaceFormat = format;
+        }
+
+        void size(const vk::Extent2D& size) {
+            applicationWindow.surfaceSize = size;
+        }
+
+
+        virtual SurfaceFormat getSurfaceFormat(std::shared_ptr<vk::PhysicalDevice> gpu)
         {
-            auto surfaceFormats = gpu->getSurfaceFormatsKHR(*surface);
+            auto surfaceFormats = gpu->getSurfaceFormatsKHR(*applicationWindow.surface);
 
             const std::vector<vk::Format> preferredFormats = {vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm };
 
@@ -432,8 +468,10 @@ namespace NSM
             return sfd;
         }
 
-        virtual vk::RenderPass createRenderpass(Queue &queue, SurfaceFormat &formats)
+        virtual vk::RenderPass createRenderpass(Queue &queue)
         {
+            auto formats = applicationWindow.surfaceFormat;
+
             // attachments
             std::vector<vk::AttachmentDescription> attachmentDescriptions = {
 
@@ -513,14 +551,12 @@ namespace NSM
         }
 
         // update swapchain framebuffer
-        virtual void updateSwapchainFramebuffer(Queue &queue,
-                vk::SwapchainKHR &swapchain,
-                vk::RenderPass &renderpass, SurfaceFormat &formats,
-                std::vector<Framebuffer> &swapchainBuffers)
+        virtual void updateSwapchainFramebuffer(Queue queue, vk::SwapchainKHR &swapchain, vk::RenderPass &renderpass, std::vector<Framebuffer> &swapchainBuffers)
         {
             // The swapchain handles allocating frame images.
             auto swapchainImages = queue->device->logical.getSwapchainImagesKHR(swapchain);
             auto gpuMemoryProps = queue->device->physical->getMemoryProperties();
+            auto formats = applicationWindow.surfaceFormat;
 
             // create depth image
             auto imageInfo = vk::ImageCreateInfo(
@@ -574,9 +610,9 @@ namespace NSM
             }
         }
 
-        virtual std::vector<Framebuffer> createSwapchainFramebuffer( Queue &queue, vk::SwapchainKHR &swapchain,
-            vk::RenderPass &renderpass, SurfaceFormat &formats)
-        {
+        virtual std::vector<Framebuffer> createSwapchainFramebuffer( Queue queue, vk::SwapchainKHR swapchain, vk::RenderPass renderpass) {
+            auto &formats = applicationWindow.surfaceFormat;
+
             // The swapchain handles allocating frame images.
             auto swapchainImages = queue->device->logical.getSwapchainImagesKHR(swapchain);
             auto gpuMemoryProps = queue->device->physical->getMemoryProperties();
@@ -649,10 +685,13 @@ namespace NSM
         }
 
         // create swapchain template
-        virtual vk::SwapchainKHR createSwapchain(Queue &queue, vk::SurfaceKHR &surface, SurfaceFormat &formats)
+        virtual vk::SwapchainKHR createSwapchain(Queue &queue)
         {
-            auto surfaceCapabilities = queue->device->physical->getSurfaceCapabilitiesKHR(surface);
-            auto surfacePresentModes = queue->device->physical->getSurfacePresentModesKHR(surface);
+            std::shared_ptr<vk::SurfaceKHR> surface = applicationWindow.surface;
+            SurfaceFormat &formats = applicationWindow.surfaceFormat;
+
+            auto surfaceCapabilities = queue->device->physical->getSurfaceCapabilitiesKHR(*surface);
+            auto surfacePresentModes = queue->device->physical->getSurfacePresentModesKHR(*surface);
 
             // check the surface width/height.
             if (!(surfaceCapabilities.currentExtent.width == -1 ||
@@ -680,7 +719,7 @@ namespace NSM
 
             // swapchain info
             auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR();
-            swapchainCreateInfo.surface = surface;
+            swapchainCreateInfo.surface = *surface;
             swapchainCreateInfo.minImageCount = glm::min(surfaceCapabilities.maxImageCount, 3u);
             swapchainCreateInfo.imageFormat = formats.colorFormat;
             swapchainCreateInfo.imageColorSpace = formats.colorSpace;
@@ -698,7 +737,9 @@ namespace NSM
             // create swapchain
             return queue->device->logical.createSwapchainKHR(swapchainCreateInfo);
         }
-
+        
+    /*
+    protected:
         virtual void initVulkan(const int32_t &argc, const char **argv, GLFWwindow *wind) = 0;
         virtual void mainLoop() = 0;
 
@@ -707,6 +748,7 @@ namespace NSM
             initVulkan(argc, argv, wind);
             mainLoop();
         }
+        */
     };
 
 }; // namespace NSM

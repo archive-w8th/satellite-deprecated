@@ -65,10 +65,13 @@ namespace SatelliteExample {
         static const int32_t kL = 11;
     };
 
-    class PathTracerApplication : public ApplicationBase {
+    class AbstractApplication : public std::enable_shared_from_this<AbstractApplication> {
+    protected: 
+        std::shared_ptr<ApplicationBase> appfw;
+
     public:
-        PathTracerApplication(const int32_t& argc, const char ** argv, GLFWwindow * wind) { };
-        PathTracerApplication() { };
+        AbstractApplication(const int32_t& argc, const char ** argv, GLFWwindow * wind) { appfw = std::make_shared<ApplicationBase>(); };
+        AbstractApplication() { appfw = std::make_shared<ApplicationBase>(); };
 
         void passKeyDown(const int32_t& key);
         void passKeyRelease(const int32_t& key);
@@ -76,17 +79,17 @@ namespace SatelliteExample {
         void mouseRelease(const int32_t& button);
         void mouseMove(const double& x, const double& y);
 
-        virtual void resize(const int32_t& width, const int32_t& height) {};
-        virtual void resizeBuffers(const int32_t& width, const int32_t& height) {};
-        virtual void saveHdr(std::string name = "") {};
+        virtual void resize(const int32_t& width, const int32_t& height) = 0;
+        virtual void resizeBuffers(const int32_t& width, const int32_t& height) = 0;
+        virtual void saveHdr(std::string name = "") = 0;
         std::vector<Framebuffer>& getFramebuffers() { return currentContext->framebuffers; }
 
-        virtual void init(Queue& queue, const int32_t& argc, const char ** argv) = 0;
+        virtual void init(Queue queue, const int32_t& argc, const char ** argv) = 0;
         virtual void process() = 0;
         virtual void execute(const int32_t& argc, const char ** argv, GLFWwindow * wind);
-        virtual void parseArguments(const int32_t& argc, const char ** argv) = 0;
+        virtual int parseArguments(const int32_t& argc, const char ** argv, GLFWwindow * wind) = 0;
         virtual void handleGUI() {};
-        virtual Image getOutputImage() { return nullptr; };
+        virtual Image getOutputImage() = 0;
 
     protected:
 
@@ -140,8 +143,8 @@ namespace SatelliteExample {
                 {
                     currentContext->queue->device->logical.waitIdle();
                     currentContext->queue->device->logical.destroySwapchainKHR(currentContext->swapchain);
-                    currentContext->swapchain = createSwapchain(currentContext->queue, *applicationWindow.surface, applicationWindow.surfaceFormat);
-                    updateSwapchainFramebuffer(currentContext->queue, currentContext->swapchain, currentContext->renderpass, applicationWindow.surfaceFormat, currentContext->framebuffers);
+                    currentContext->swapchain = appfw->createSwapchain(currentContext->queue);
+                    appfw->updateSwapchainFramebuffer(currentContext->queue, currentContext->swapchain, currentContext->renderpass, currentContext->framebuffers);
                     currentBuffer = 0;
                 }
 
@@ -170,12 +173,14 @@ namespace SatelliteExample {
             }
         }
 
-        virtual void initVulkan(const int32_t& argc, const char ** argv, GLFWwindow * wind) override {
-            applicationWindow.window = wind;
-            parseArguments(argc, argv);
+        virtual void initVulkan(const int32_t& argc, const char ** argv, GLFWwindow * wind) {
+
+            if (!parseArguments(argc, argv, wind)) {
+                return;
+            }
 
             // create vulkan instance
-            auto instance = createInstance();
+            auto instance = appfw->createInstance();
 
             // get physical devices
             auto physicalDevices = instance.enumeratePhysicalDevices();
@@ -193,14 +198,16 @@ namespace SatelliteExample {
             auto gpu = std::make_shared<vk::PhysicalDevice>(physicalDevices[gpuID]);
 
             // create surface
-            applicationWindow = createWindowSurface(wind, canvasWidth, canvasHeight, title);
+            appfw->createWindowSurface(wind, canvasWidth, canvasHeight, title);
+            //applicationWindow = createWindowSurface(wind, canvasWidth, canvasHeight, title);
 
             // get surface format from physical device
-            applicationWindow.surfaceFormat = getSurfaceFormat(applicationWindow.surface, gpu);
+            //appfw->format() = appfw->getSurfaceFormat(gpu);
+            appfw->format(appfw->getSurfaceFormat(gpu));
 
             // create basic Vulkan objects
-            auto deviceQueue = createDeviceQueue(gpu); // create default graphical device
-            auto renderpass = createRenderpass(deviceQueue, applicationWindow.surfaceFormat);
+            auto deviceQueue = appfw->createDeviceQueue(gpu); // create default graphical device
+            auto renderpass = appfw->createRenderpass(deviceQueue);
 
             // create dedicated buffer zones
             memoryBufferToHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
@@ -219,7 +226,7 @@ namespace SatelliteExample {
             {
                 auto app = this;
                 auto& cb = this->currentBuffer;
-                auto& sfz = this->applicationWindow.surfaceSize;
+                auto& sfz = appfw->size();
 
                 ambientIO::addMouseActionCallback([app](GLFWwindow* window, int32_t button, int32_t action, int32_t mods) {
                     if (app) {
@@ -354,15 +361,16 @@ namespace SatelliteExample {
 
                 // create framebuffers by size
                 context->renderpass = renderpass;
-                context->swapchain = createSwapchain(deviceQueue, *applicationWindow.surface, applicationWindow.surfaceFormat);
-                context->framebuffers = createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass, applicationWindow.surfaceFormat);
+                context->swapchain = appfw->createSwapchain(deviceQueue);
+                context->framebuffers = appfw->createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass);
 
                 auto app = this;
-                auto& window = this->applicationWindow;
+                auto window = appfw->window();
+                auto appfww = appfw;
                 auto& cb = this->currentBuffer;
 
                 std::shared_ptr<int32_t> curr_semaphore = std::make_shared<int32_t>(-1); // use locked ptr () 
-                context->draw = [context, curr_semaphore, &cb, &window, app]() {
+                context->draw = [context, curr_semaphore, &cb, &window, app, appfww]() {
                     auto& currentContext = context;
                     auto& currentBuffer = cb;
 
@@ -378,8 +386,8 @@ namespace SatelliteExample {
                     {
                         // prepare viewport and clear info
                         std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
-                        auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), window.surfaceSize);
-                        auto viewport = vk::Viewport(0.0f, 0.0f, window.surfaceSize.width, window.surfaceSize.height, 0, 1.0f);
+                        auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), appfww->size());
+                        auto viewport = vk::Viewport(0.0f, 0.0f, appfww->size().width, appfww->size().height, 0, 1.0f);
 
                         // bind with framebuffer 
                         currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->queue, true);
@@ -415,13 +423,14 @@ namespace SatelliteExample {
             currentContext = context;
         }
 
-        // preinit
-        virtual void initVulkan() {}
-        virtual void mainLoop() {}
+    public:
+        virtual void run(const int32_t &argc, const char **argv, GLFWwindow *wind) {
+            execute(argc, argv, wind);
+        }
     };
 
 
-    void PathTracerApplication::execute(const int32_t& argc, const char ** argv, GLFWwindow * wind) {
+    void AbstractApplication::execute(const int32_t& argc, const char ** argv, GLFWwindow * wind) {
         glfwGetWindowSize(wind, &baseWidth, &baseHeight); // initially window too small
 
         // get DPI scaling
@@ -441,7 +450,7 @@ namespace SatelliteExample {
         bool safe_polling = true;
 
         auto tIdle = std::chrono::high_resolution_clock::now();
-        while (!glfwWindowShouldClose(applicationWindow.window)) {
+        while (!glfwWindowShouldClose(appfw->window())) {
             double pollEventsTime = 0.0;
             double sizingTime = 0.0;
             double sysUpdateTime = 0.0;
@@ -462,19 +471,18 @@ namespace SatelliteExample {
 
                 // DPI scaling for Windows
                 {
-                    glfwGetWindowSize(applicationWindow.window, &windowWidth, &windowHeight); // get as base width and height
+                    glfwGetWindowSize(appfw->window(), &windowWidth, &windowHeight); // get as base width and height
                     windowWidth /= windowScale, windowHeight /= windowScale;
-                    glfwGetWindowContentScale(applicationWindow.window, &windowScale, nullptr);
+                    glfwGetWindowContentScale(appfw->window(), &windowScale, nullptr);
                 }
 
                 // rescale window by DPI
-                if (oldScale != windowScale) glfwSetWindowSize(applicationWindow.window, windowWidth * windowScale, windowHeight * windowScale);
+                if (oldScale != windowScale) glfwSetWindowSize(appfw->window(), windowWidth * windowScale, windowHeight * windowScale);
 
                 // on resizing (include DPI scaling)
                 if (oldWidth != windowWidth || oldHeight != windowHeight) {
-                    glfwGetFramebufferSize(applicationWindow.window, &canvasWidth, &canvasHeight);
-                    applicationWindow.surfaceSize.width = canvasWidth;
-                    applicationWindow.surfaceSize.height = canvasHeight;
+                    glfwGetFramebufferSize(appfw->window(), &canvasWidth, &canvasHeight);
+                    appfw->size({ uint32_t(canvasWidth), uint32_t(canvasHeight) });
                     needToUpdate = true;
                 }
 
@@ -508,17 +516,17 @@ namespace SatelliteExample {
             // showing timing results in details
             std::stringstream ststream;
             ststream << title << " - " << int(glm::round(rayTracingTime)) << "ms of ray tracing time, " << int(glm::round(showTime)) << "ms of present time, " << int(glm::round(pollEventsTime + sizingTime + sysUpdateTime)) << "ms of other times";
-            glfwSetWindowTitle(applicationWindow.window, ststream.str().c_str());
+            glfwSetWindowTitle(appfw->window(), ststream.str().c_str());
         }
 
         // wait device if anything work in 
         currentContext->queue->device->logical.waitIdle();
-        glfwDestroyWindow(applicationWindow.window);
+        glfwDestroyWindow(appfw->window());
         glfwTerminate();
     }
 
     // key downs
-    void PathTracerApplication::passKeyDown(const int32_t& key) {
+    void AbstractApplication::passKeyDown(const int32_t& key) {
         if (key == GLFW_KEY_W) kmap.keys[ControlMap::kW] = true;
         if (key == GLFW_KEY_A) kmap.keys[ControlMap::kA] = true;
         if (key == GLFW_KEY_S) kmap.keys[ControlMap::kS] = true;
@@ -533,7 +541,7 @@ namespace SatelliteExample {
     }
 
     // key release
-    void PathTracerApplication::passKeyRelease(const int32_t& key) {
+    void AbstractApplication::passKeyRelease(const int32_t& key) {
         if (key == GLFW_KEY_W) kmap.keys[ControlMap::kW] = false;
         if (key == GLFW_KEY_A) kmap.keys[ControlMap::kA] = false;
         if (key == GLFW_KEY_S) kmap.keys[ControlMap::kS] = false;
@@ -554,7 +562,7 @@ namespace SatelliteExample {
     }
 
     // mouse moving and pressing
-    void PathTracerApplication::mousePress(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = true; }
-    void PathTracerApplication::mouseRelease(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = false; }
-    void PathTracerApplication::mouseMove(const double& x, const double& y) { mousepos.x = x, mousepos.y = y; }
+    void AbstractApplication::mousePress(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = true; }
+    void AbstractApplication::mouseRelease(const int32_t& button) { if (button == GLFW_MOUSE_BUTTON_LEFT) kmap.mouseleft = false; }
+    void AbstractApplication::mouseMove(const double& x, const double& y) { mousepos.x = x, mousepos.y = y; }
 };

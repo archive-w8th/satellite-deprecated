@@ -73,7 +73,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffer(const Queue &deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
+    void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
     {
         commandBuffer.end();
 
@@ -102,7 +102,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffer(const Queue &deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
+    void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
@@ -120,7 +120,7 @@ namespace NSM
     };
 
     // flush command for rendering
-    void flushCommandBuffer(const Queue &deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
+    void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
         commandBuffer.end();
 
         kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
@@ -138,7 +138,7 @@ namespace NSM
     };
 
     // transition texture layout
-    void imageBarrier(const vk::CommandBuffer &cmd, const Image &image, vk::ImageLayout oldLayout) {
+    void imageBarrier(const vk::CommandBuffer &cmd, Image image, vk::ImageLayout oldLayout) {
         vk::ImageMemoryBarrier imageMemoryBarriers = {};
         imageMemoryBarriers.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         imageMemoryBarriers.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -193,13 +193,13 @@ namespace NSM
     }
 
     // transition texture layout
-    void imageBarrier(const vk::CommandBuffer &cmd, const Image &image)
+    void imageBarrier(const vk::CommandBuffer &cmd, Image image)
     {
         imageBarrier(cmd, image, image->initialLayout);
     }
 
     // create texture object
-    auto createImage(const Queue &deviceQueue,
+    auto createImage(Queue deviceQueue,
         vk::ImageViewType imageViewType, vk::ImageLayout layout,
         vk::Extent3D size, vk::ImageUsageFlags usage,
         vk::Format format = vk::Format::eR8G8B8A8Unorm,
@@ -297,7 +297,7 @@ namespace NSM
     }
 
     //
-    auto createImage(const Queue &deviceQueue,
+    auto createImage(Queue deviceQueue,
         vk::ImageViewType viewType, vk::Extent3D size,
         vk::ImageUsageFlags usage,
         vk::Format format = vk::Format::eR8G8B8A8Unorm,
@@ -307,8 +307,7 @@ namespace NSM
     }
 
     // create buffer function
-    auto createBuffer(const Queue &deviceQueue, size_t bufferSize,
-        vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType)
+    auto createBuffer(Queue deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType)
     {
         Buffer buffer = std::make_shared<BufferType>();
 
@@ -339,8 +338,7 @@ namespace NSM
 
     // fill buffer function
     template <class T>
-    void bufferSubData(vk::CommandBuffer &cmd, const Buffer &buffer,
-        const std::vector<T> &hostdata, intptr_t offset = 0)
+    void bufferSubData(vk::CommandBuffer &cmd, Buffer buffer, const std::vector<T> &hostdata, intptr_t offset = 0)
     {
         const size_t bufferSize = hostdata.size() * sizeof(T);
         if (bufferSize > 0)
@@ -348,9 +346,7 @@ namespace NSM
                 hostdata.data(), bufferSize);
     }
 
-    void bufferSubData(vk::CommandBuffer &cmd, const Buffer &buffer,
-        const uint8_t *hostdata, const size_t bufferSize,
-        intptr_t offset = 0)
+    void bufferSubData(vk::CommandBuffer &cmd, Buffer buffer, const uint8_t *hostdata, const size_t bufferSize, intptr_t offset = 0)
     {
         if (bufferSize > 0)
             memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata, bufferSize);
@@ -358,8 +354,7 @@ namespace NSM
 
     // get buffer data function
     template <class T>
-    void getBufferSubData(const Buffer &buffer, std::vector<T> &hostdata,
-        intptr_t offset = 0)
+    void getBufferSubData(const Buffer &buffer, std::vector<T> &hostdata, intptr_t offset = 0)
     {
         memcpy(hostdata.data(),
             (const uint8_t *)buffer->allocationInfo.pMappedData + offset,
@@ -367,9 +362,7 @@ namespace NSM
     }
 
     // get buffer data function
-    void getBufferSubData(const Buffer &buffer, uint8_t *hostdata,
-        const size_t bufferSize, intptr_t offset = 0)
-    {
+    void getBufferSubData(const Buffer &buffer, uint8_t *hostdata, const size_t bufferSize, intptr_t offset = 0) {
         memcpy(hostdata, (const uint8_t *)buffer->allocationInfo.pMappedData + offset, bufferSize);
     }
 
@@ -437,16 +430,14 @@ namespace NSM
         T... args)
     { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
-        memoryCopyCmd(copyCmd,
-            args...); // flushCommandBuffer(deviceQueue, copyCmd, async);
+        memoryCopyCmd(copyCmd, args...); // flushCommandBuffer(deviceQueue, copyCmd, async);
         return copyCmd;
     }
 
     // create fence function
     vk::Fence createFence(Device &device, bool signaled = true) {
         vk::FenceCreateInfo info;
-        if (signaled)
-            info.setFlags(vk::FenceCreateFlagBits::eSignaled);
+        if (signaled) info.setFlags(vk::FenceCreateFlagBits::eSignaled);
         return device->logical.createFence(info);
     }
 
@@ -496,12 +487,12 @@ namespace NSM
     // destructors for shared pointer system
     BufferType::~BufferType() {
         this->queue->device->logical.waitIdle();
-        this->initialized = false;
         auto buffer = this;
+        auto queue = this->queue;
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (buffer && buffer->initialized) {
-                buffer->queue->device->logical.waitIdle();
-                vmaDestroyBuffer(buffer->queue->device->allocator, buffer->buffer, buffer->allocation);
+                queue->device->logical.waitIdle();
+                vmaDestroyBuffer(queue->device->allocator, buffer->buffer, buffer->allocation);
                 buffer->initialized = false;
             }
         });
@@ -511,12 +502,12 @@ namespace NSM
     // destructors for shared pointer system
     ImageType::~ImageType() {
         this->queue->device->logical.waitIdle();
-        this->initialized = false;
         auto image = this;
+        auto queue = this->queue;
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (image && image->initialized) {
-                image->queue->device->logical.waitIdle();
-                vmaDestroyImage(image->queue->device->allocator, image->image, image->allocation);
+                queue->device->logical.waitIdle();
+                vmaDestroyImage(queue->device->allocator, image->image, image->allocation);
                 image->initialized = false;
             }
         });

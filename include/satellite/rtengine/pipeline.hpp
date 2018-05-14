@@ -29,6 +29,7 @@ namespace NSM
             //Sampler nullEnvSampler;
             Image nullEnvImage;
             Image nullImage;
+            Image boundSkybox;
 
             // current compute device
             Device device;
@@ -112,7 +113,7 @@ namespace NSM
             void initLights();
             void reloadQueuedRays();
             void initBuffers();
-            void init(Queue &device);
+            void init(Queue device);
 
 
         protected:
@@ -128,7 +129,7 @@ namespace NSM
             void clearSampling();
             void dispatchRayTracing();
 
-            void setSkybox(Image &skybox);
+            void setSkybox(Image skybox);
             void resizeCanvas(uint32_t width, uint32_t height);
             void reallocRays(uint32_t width, uint32_t height);
             
@@ -157,7 +158,7 @@ namespace NSM
 
         public:
             Pipeline() {}
-            Pipeline(Queue &queue, std::string shadersPack)
+            Pipeline(Queue queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
                 init(queue);

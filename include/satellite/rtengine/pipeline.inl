@@ -210,10 +210,10 @@ namespace NSM
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
             device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
                 vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(8).setPBufferInfo(&countersBuffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(12).setPBufferInfo(&lightUniform.buffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(13).setPBufferInfo(&rayBlockUniform.buffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo),
-                    vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&shuffledSeqUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(12).setPBufferInfo(&lightUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(13).setPBufferInfo(&rayBlockUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(14).setPBufferInfo(&rayStreamsUniform.buffer->descriptorInfo),
+                vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&shuffledSeqUniform.buffer->descriptorInfo),
             }, nullptr);
 
             // null envmap
@@ -305,7 +305,7 @@ namespace NSM
             clearRays();
         }
 
-        void Pipeline::init(Queue &queue)
+        void Pipeline::init(Queue queue)
         {
             pcg_extras::seed_seq_from<std::random_device> seed_source;
             rndEngine = std::make_shared<pcg64>(seed_source);
@@ -353,10 +353,11 @@ namespace NSM
             syncUniforms();
         }
 
-        void Pipeline::setSkybox(Image &skybox)
+        void Pipeline::setSkybox(Image skybox)
         {
+            boundSkybox = skybox; nullEnvImage = nullptr;
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eCombinedImageSampler);
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{ vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&skybox->descriptorInfo)}, nullptr);
+            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{ vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(20).setPImageInfo(&boundSkybox->descriptorInfo)}, nullptr);
         }
 
         void Pipeline::reallocRays(uint32_t width, uint32_t height)

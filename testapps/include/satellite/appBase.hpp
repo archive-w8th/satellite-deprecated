@@ -18,11 +18,9 @@
 
 namespace NSM
 {
-    class ApplicationBase
-    {
+    class ApplicationBase : public std::enable_shared_from_this<ApplicationBase> {
     protected:
-        struct SurfaceWindow
-        {
+        struct SurfaceWindow {
             GLFWwindow *window;
             std::shared_ptr<vk::SurfaceKHR> surface;
             SurfaceFormat surfaceFormat;

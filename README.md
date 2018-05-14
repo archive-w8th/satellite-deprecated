@@ -7,13 +7,11 @@
 ### Alarm of New dawn... 
 
 * **12.04.2018**. We can no actively support this project. We understand that we will no longer be able to support our old friend for a long time. Despite the adopted amendments to the draft, we understand that we are still weak in competition, and so far we can not enter the final market. We are thinking about creating a radically new project, but so far we do not even know what it will be like ... At first glance, this should be a correction of old and fundamental mistakes. But in our opinion it should be a complete change of the basic concept.
-
 * **02.05.2018**. We made support for nearly all current graphics platforms (2017, 2018 and higher). We now supported in Intel UHD Graphics 630, AMD RX Vega 64 (and may be 56), NVidia GTX 1070 (and may GTX 1080 family).
-
 * **06.05.2018**. We published shaders in standalone repository (https://github.com/world8th/rt-vulkan-shaders). Compatible only with *Vulkan API 1.1*. 
-
 * ~~**08.05.2018**. We working on new Vulkan API 1.1 engine with full ray tracing support.~~ DIED!
 * **13.05.2018**. Updated Vulkan headers and added Volk meta loader. "vulkan.lib" no more required. 
+* **14.05.2018**. Application base refactoring and refresh.
 
 ### What we can be do, if we had desires
 

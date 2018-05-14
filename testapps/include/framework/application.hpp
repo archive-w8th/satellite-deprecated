@@ -195,7 +195,7 @@ namespace SatelliteExample {
                 gpuID = physicalDevices.size() - 1;
             }
             if (gpuID < 0 || gpuID == -1) gpuID = 0;
-            auto gpu = std::make_shared<vk::PhysicalDevice>(physicalDevices[gpuID]);
+            auto gpu = physicalDevices[gpuID];
 
             // create surface
             appfw->createWindowSurface(wind, canvasWidth, canvasHeight, title);

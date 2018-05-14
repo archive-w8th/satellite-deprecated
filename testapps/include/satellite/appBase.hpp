@@ -108,18 +108,15 @@ namespace NSM
 
 
         struct SurfaceWindow {
-            GLFWwindow *window;
-            std::shared_ptr<vk::SurfaceKHR> surface;
             SurfaceFormat surfaceFormat;
             vk::Extent2D surfaceSize;
+            vk::SurfaceKHR surface;
+            GLFWwindow *window;
         } applicationWindow;
 
     public:
 
-        
-
-        vk::Instance createInstance()
-        {
+        vk::Instance createInstance() {
 
             // get required extensions
             unsigned int glfwExtensionCount = 0;
@@ -180,11 +177,11 @@ namespace NSM
             return instance;
         };
 
-        virtual Queue createDeviceQueue(std::shared_ptr<vk::PhysicalDevice> gpu, bool isComputePrior = false)
+        virtual Queue createDeviceQueue(vk::PhysicalDevice gpu, bool isComputePrior = false)
         {
             // use extensions
             auto deviceExtensions = std::vector<const char *>();
-            auto gpuExtensions = gpu->enumerateDeviceExtensionProperties();
+            auto gpuExtensions = gpu.enumerateDeviceExtensionProperties();
             for (auto &w : wantedDeviceExtensions)
             {
                 for (auto &i : gpuExtensions)
@@ -200,7 +197,7 @@ namespace NSM
             // use layers
             auto layers = std::vector<const char *>();
             auto deviceValidationLayers = std::vector<const char *>();
-            auto gpuLayers = gpu->enumerateDeviceLayerProperties();
+            auto gpuLayers = gpu.enumerateDeviceLayerProperties();
             for (auto &w : wantedLayers)
             {
                 for (auto &i : gpuLayers)
@@ -214,8 +211,8 @@ namespace NSM
             }
 
             // get features and queue family properties
-            auto gpuFeatures = gpu->getFeatures();
-            auto gpuQueueProps = gpu->getQueueFamilyProperties();
+            auto gpuFeatures = gpu.getFeatures();
+            auto gpuQueueProps = gpu.getQueueFamilyProperties();
 
             // search graphics supported queue family
             std::vector<DevQueue> queues;
@@ -241,7 +238,7 @@ namespace NSM
             // graphics/presentation queue family
             for (auto &queuefamily : gpuQueueProps) {
                 graphicsFamilyIndex++;
-                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu->getSurfaceSupportKHR(graphicsFamilyIndex, *applicationWindow.surface) && graphicsFamilyIndex != computeFamilyIndex) {
+                if (queuefamily.queueFlags & (vk::QueueFlagBits::eGraphics) && gpu.getSurfaceSupportKHR(graphicsFamilyIndex, applicationWindow.surface) && graphicsFamilyIndex != computeFamilyIndex) {
                     queueCreateInfos.push_back(vk::DeviceQueueCreateInfo(vk::DeviceQueueCreateFlags()).setQueueFamilyIndex(computeFamilyIndex).setQueueCount(1).setPQueuePriorities(&priority));
                     auto devQueue = std::make_shared<DevQueueType>();
                     devQueue->familyIndex = graphicsFamilyIndex;
@@ -274,7 +271,7 @@ namespace NSM
             if (queueCreateInfos.size() > 0)
             {
                 devicePtr->physical = gpu;
-                devicePtr->logical = gpu->createDevice(vk::DeviceCreateInfo().setFlags(vk::DeviceCreateFlags())
+                devicePtr->logical = gpu.createDevice(vk::DeviceCreateInfo().setFlags(vk::DeviceCreateFlags())
                     .setPEnabledFeatures(&gpuFeatures)
                     .setPQueueCreateInfos(queueCreateInfos.data()).setQueueCreateInfoCount(queueCreateInfos.size())
                     .setPpEnabledExtensionNames(deviceExtensions.data()).setEnabledExtensionCount(deviceExtensions.size())
@@ -325,7 +322,7 @@ namespace NSM
                 // create allocator
                 VmaAllocatorCreateInfo allocatorInfo = {};
                 allocatorInfo.pVulkanFunctions = &vfuncs;
-                allocatorInfo.physicalDevice = *devicePtr->physical;
+                allocatorInfo.physicalDevice = devicePtr->physical;
                 allocatorInfo.device = devicePtr->logical;
                 allocatorInfo.preferredLargeHeapBlockSize = 16384; // 16kb
                 allocatorInfo.flags =
@@ -359,7 +356,7 @@ namespace NSM
             applicationWindow.surfaceSize = { WIDTH, HEIGHT };
             auto vksurface = VkSurfaceKHR();
             glfwCreateWindowSurface(instance, applicationWindow.window, nullptr, &vksurface);
-            applicationWindow.surface = std::make_shared<vk::SurfaceKHR>(vksurface);
+            applicationWindow.surface = vksurface;
             return applicationWindow;
         }
 
@@ -369,13 +366,13 @@ namespace NSM
             applicationWindow.surfaceSize = { WIDTH, HEIGHT };
             auto vksurface = VkSurfaceKHR();
             glfwCreateWindowSurface(instance, applicationWindow.window, nullptr, &vksurface);
-            applicationWindow.surface = std::make_shared<vk::SurfaceKHR>(vksurface);
+            applicationWindow.surface = vksurface;
             return applicationWindow;
         }
 
 
         // getters
-        std::shared_ptr<vk::SurfaceKHR> surface() const {
+        vk::SurfaceKHR surface() const {
             return applicationWindow.surface;
         }
 
@@ -402,9 +399,9 @@ namespace NSM
         }
 
 
-        virtual SurfaceFormat getSurfaceFormat(std::shared_ptr<vk::PhysicalDevice> gpu)
+        virtual SurfaceFormat getSurfaceFormat(vk::PhysicalDevice gpu)
         {
-            auto surfaceFormats = gpu->getSurfaceFormatsKHR(*applicationWindow.surface);
+            auto surfaceFormats = gpu.getSurfaceFormatsKHR(applicationWindow.surface);
 
             const std::vector<vk::Format> preferredFormats = {vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm };
 
@@ -438,7 +435,7 @@ namespace NSM
                 surfaceFormats[surfaceFormatID].colorSpace;
 
             // get format properties?
-            auto formatProperties = gpu->getFormatProperties(surfaceColorFormat);
+            auto formatProperties = gpu.getFormatProperties(surfaceColorFormat);
 
             // only if these depth formats
             std::vector<vk::Format> depthFormats = {
@@ -450,7 +447,7 @@ namespace NSM
             vk::Format surfaceDepthFormat = depthFormats[0];
             for (auto &format : depthFormats)
             {
-                auto depthFormatProperties = gpu->getFormatProperties(format);
+                auto depthFormatProperties = gpu.getFormatProperties(format);
                 if (depthFormatProperties.optimalTilingFeatures &
                     vk::FormatFeatureFlagBits::eDepthStencilAttachment)
                 {
@@ -555,7 +552,7 @@ namespace NSM
         {
             // The swapchain handles allocating frame images.
             auto swapchainImages = queue->device->logical.getSwapchainImagesKHR(swapchain);
-            auto gpuMemoryProps = queue->device->physical->getMemoryProperties();
+            auto gpuMemoryProps = queue->device->physical.getMemoryProperties();
             auto formats = applicationWindow.surfaceFormat;
 
             // create depth image
@@ -615,7 +612,7 @@ namespace NSM
 
             // The swapchain handles allocating frame images.
             auto swapchainImages = queue->device->logical.getSwapchainImagesKHR(swapchain);
-            auto gpuMemoryProps = queue->device->physical->getMemoryProperties();
+            auto gpuMemoryProps = queue->device->physical.getMemoryProperties();
 
             // create depth image
             auto imageInfo = vk::ImageCreateInfo(
@@ -687,11 +684,11 @@ namespace NSM
         // create swapchain template
         virtual vk::SwapchainKHR createSwapchain(Queue queue)
         {
-            std::shared_ptr<vk::SurfaceKHR> surface = applicationWindow.surface;
+            vk::SurfaceKHR surface = applicationWindow.surface;
             SurfaceFormat &formats = applicationWindow.surfaceFormat;
 
-            auto surfaceCapabilities = queue->device->physical->getSurfaceCapabilitiesKHR(*surface);
-            auto surfacePresentModes = queue->device->physical->getSurfacePresentModesKHR(*surface);
+            auto surfaceCapabilities = queue->device->physical.getSurfaceCapabilitiesKHR(surface);
+            auto surfacePresentModes = queue->device->physical.getSurfacePresentModesKHR(surface);
 
             // check the surface width/height.
             if (!(surfaceCapabilities.currentExtent.width == -1 ||
@@ -719,8 +716,8 @@ namespace NSM
 
             // swapchain info
             auto swapchainCreateInfo = vk::SwapchainCreateInfoKHR();
-            swapchainCreateInfo.surface = *surface;
-            swapchainCreateInfo.minImageCount = glm::min(surfaceCapabilities.maxImageCount, 3u);
+            swapchainCreateInfo.surface = surface;
+            swapchainCreateInfo.minImageCount = std::min(surfaceCapabilities.maxImageCount, 3u);
             swapchainCreateInfo.imageFormat = formats.colorFormat;
             swapchainCreateInfo.imageColorSpace = formats.colorSpace;
             swapchainCreateInfo.imageExtent = applicationWindow.surfaceSize;

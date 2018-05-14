@@ -39,7 +39,7 @@ namespace NSM
         bool initialized = false;
         bool executed = false;
         vk::Device logical;
-        std::shared_ptr<vk::PhysicalDevice> physical;
+        vk::PhysicalDevice physical;
 
         vk::DescriptorPool descriptorPool;
         vk::PipelineCache pipelineCache;

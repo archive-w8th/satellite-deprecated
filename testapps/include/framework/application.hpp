@@ -197,6 +197,10 @@ namespace SatelliteExample {
             if (gpuID < 0 || gpuID == -1) gpuID = 0;
             auto gpu = physicalDevices[gpuID];
 
+            vk::PhysicalDeviceProperties devProperties = gpu.getProperties();
+            std::cout << "Current Device: ";
+            std::cout << devProperties.deviceName << std::endl;
+
             // create surface
             appfw->createWindowSurface(wind, canvasWidth, canvasHeight, title);
             //applicationWindow = createWindowSurface(wind, canvasWidth, canvasHeight, title);

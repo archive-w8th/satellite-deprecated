@@ -20,6 +20,7 @@ namespace NSM
     struct ImageType;
     struct SamplerType;
     struct ImageCombinedType;
+    struct ComputeContextType;
 
     using DevQueue = std::shared_ptr<DevQueueType>;
     using Device = std::shared_ptr<DeviceType>;
@@ -28,7 +29,7 @@ namespace NSM
     using Image = std::shared_ptr<ImageType>;
     using Sampler = std::shared_ptr<SamplerType>;
     using ImageCombined = std::shared_ptr<ImageCombinedType>;
-
+    using ComputeContext = std::shared_ptr<ComputeContextType>;
 
     struct DevQueueType : public std::enable_shared_from_this<DevQueueType> {
         uint32_t familyIndex = 0;
@@ -168,11 +169,11 @@ namespace NSM
         vk::RenderPass renderpass;
         std::vector<vk::DescriptorSet> descriptorSets; // descriptor sets
         std::vector<Framebuffer> framebuffers;         // swapchain framebuffers
-        std::function<void()> draw;
+        //std::function<void()> draw;
     };
 
     // compute context
-    struct ComputeContext : public std::enable_shared_from_this<ComputeContext>
+    struct ComputeContextType : public std::enable_shared_from_this<ComputeContextType>
     {
         Queue queue;          // used device by context
         vk::CommandBuffer commandBuffer; // command buffer of compute context
@@ -182,6 +183,6 @@ namespace NSM
         vk::Fence waitFence;             // wait fence of computing
         vk::DescriptorPool descriptorPool;             // current descriptor pool
         std::vector<vk::DescriptorSet> descriptorSets; // descriptor sets
-        std::function<void()> dispatch;
+        //std::function<void()> dispatch;
     };
 }; // namespace NSM

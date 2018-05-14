@@ -68,6 +68,45 @@ namespace SatelliteExample {
     class AbstractApplication : public std::enable_shared_from_this<AbstractApplication> {
     protected: 
         std::shared_ptr<ApplicationBase> appfw;
+        std::shared_ptr<GraphicsContext> currentContext;
+
+        // keymap with GLFW and application/controller
+        ControlMap kmap;
+
+        // current state
+        int32_t curr_semaphore = -1; 
+        int32_t depth = 16;
+        int32_t img_counter = 0;
+        int32_t switch360key = false;
+        
+        // device ID and used current buffer
+        uint32_t gpuID = 0;
+        uint32_t currentBuffer = 0;
+
+        // window title
+        std::string title = "TestApp";
+
+        // declared pipelines for application
+        vk::Pipeline trianglePipeline;
+
+        // rendering options
+        const double superSampling = 2.0; // super sampling (in high DPI may 0.5x sample)
+        bool needToUpdate = false;
+
+        // general shader pack path
+        std::string shaderPack = "./";
+
+        // input data
+        double time = 0, diff = 0;
+        glm::dvec2 mousepos = glm::dvec2(0.0);
+        
+        // window and canvas sizing
+        float windowScale = 1.0f;
+        int32_t windowWidth = baseWidth, windowHeight = baseHeight;
+        int32_t canvasWidth = baseWidth, canvasHeight = baseHeight;
+
+        // base size (got from glfw)
+        int32_t baseWidth = 1, baseHeight = 1;
 
     public:
         AbstractApplication(const int32_t& argc, const char ** argv, GLFWwindow * wind) { appfw = std::make_shared<ApplicationBase>(); };
@@ -91,49 +130,56 @@ namespace SatelliteExample {
         virtual void handleGUI() {};
         virtual Image getOutputImage() = 0;
 
+
+        // unified draw function, bound with class
+        virtual void draw(std::shared_ptr<GraphicsContext> currentContext) {
+            int32_t n_semaphore = curr_semaphore;
+            int32_t c_semaphore = (curr_semaphore + 1) % currentContext->framebuffers.size();
+            curr_semaphore = c_semaphore;
+
+            // acquire next image where will rendered (and get semaphore when will presented finally)
+            n_semaphore = (n_semaphore >= 0 ? n_semaphore : (currentContext->framebuffers.size() - 1));
+            currentContext->queue->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
+
+            // submit rendering (and wait presentation in device)
+            {
+                // prepare viewport and clear info
+                std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
+                auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), appfw->size());
+                auto viewport = vk::Viewport(0.0f, 0.0f, appfw->size().width, appfw->size().height, 0, 1.0f);
+
+                // bind with framebuffer 
+                currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->queue, true);
+
+                // create command buffer (with rewrite)
+                auto& commandBuffer = currentContext->framebuffers[n_semaphore].commandBuffer; // do reference of cmd buffer
+                commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(currentContext->renderpass, currentContext->framebuffers[currentBuffer].frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
+                commandBuffer.setViewport(0, std::vector<vk::Viewport> { viewport });
+                commandBuffer.setScissor(0, std::vector<vk::Rect2D> { renderArea });
+                commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, currentContext->pipeline);
+                commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, currentContext->pipelineLayout, 0, currentContext->descriptorSets, nullptr);
+                commandBuffer.draw(4, 1, 0, 0);
+                commandBuffer.endRenderPass();
+
+                // create render submission 
+                std::vector<vk::Semaphore> waitSemaphores = { currentContext->framebuffers[n_semaphore].semaphore }, signalSemaphores = { currentContext->framebuffers[c_semaphore].semaphore };
+                std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+                flushCommandBuffer(currentContext->queue, commandBuffer, vk::SubmitInfo()
+                    .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
+                    .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
+                    .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), [&]() {});
+            }
+
+            // present for displaying of this image
+            currentContext->queue->device->queues[1]->queue.presentKHR(vk::PresentInfoKHR(
+                1, &currentContext->framebuffers[c_semaphore].semaphore,
+                1, &currentContext->swapchain,
+                &currentBuffer, nullptr
+            ));
+        };
+
+
     protected:
-
-        ControlMap kmap;
-
-
-        std::string title = "TestApp";
-
-        // current context of application
-        //std::shared_ptr<GuiRenderEngine> grengine;
-        std::shared_ptr<GraphicsContext> currentContext;
-
-        // declared pipelines for application
-        vk::Pipeline trianglePipeline;
-        vk::Pipeline computePipeline;
-
-        // default width and height of application
-        const double superSampling = 2.0; // super sampling (in high DPI may 0.5x sample)
-
-
-
-        uint32_t gpuID = 0;
-        std::string shaderPack = "shaders-spv";
-
-
-        double time = 0, diff = 0;
-        glm::dvec2 mousepos = glm::dvec2(0.0);
-        int32_t depth = 16;
-        int32_t switch360key = false;
-        int32_t img_counter = 0;
-        uint32_t currentBuffer = 0;
-        bool needToUpdate = false;
-
-        // window and canvas sizing
-        float windowScale = 1.0f;
-        int32_t windowWidth = baseWidth, windowHeight = baseHeight;
-        int32_t canvasWidth = baseWidth, canvasHeight = baseHeight;
-
-        // base sizing (for buffers)
-        int32_t baseWidth = 1, baseHeight = 1;
-
-        Buffer memoryBufferToHost;
-        Buffer memoryBufferFromHost;
-
 
         virtual void updateSwapchains() {
             if (needToUpdate) {
@@ -212,10 +258,6 @@ namespace SatelliteExample {
             // create basic Vulkan objects
             auto deviceQueue = appfw->createDeviceQueue(gpu); // create default graphical device
             auto renderpass = appfw->createRenderpass(deviceQueue);
-
-            // create dedicated buffer zones
-            memoryBufferToHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
-            memoryBufferFromHost = createBuffer(deviceQueue, 4096 * 4096 * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
             // resize buffers and canvas
             glfwGetWindowContentScale(wind, &windowScale, nullptr);
@@ -353,9 +395,11 @@ namespace SatelliteExample {
             }
 
             // graphics context
-            auto context = std::make_shared<GraphicsContext>();
+            
 
             {
+                auto context = std::make_shared<GraphicsContext>();
+
                 // create graphics context
                 context->queue = deviceQueue;
                 context->pipeline = trianglePipeline;
@@ -367,64 +411,8 @@ namespace SatelliteExample {
                 context->renderpass = renderpass;
                 context->swapchain = appfw->createSwapchain(deviceQueue);
                 context->framebuffers = appfw->createSwapchainFramebuffer(deviceQueue, context->swapchain, context->renderpass);
-
-                auto app = this;
-                auto window = appfw->window();
-                auto appfww = appfw;
-                auto& cb = this->currentBuffer;
-
-                std::shared_ptr<int32_t> curr_semaphore = std::make_shared<int32_t>(-1); // use locked ptr () 
-                context->draw = [context, curr_semaphore, &cb, &window, app, appfww]() {
-                    auto& currentContext = context;
-                    auto& currentBuffer = cb;
-
-                    int32_t n_semaphore = *curr_semaphore;
-                    int32_t c_semaphore = (*curr_semaphore + 1) % context->framebuffers.size();
-                    *curr_semaphore = c_semaphore;
-
-                    // acquire next image where will rendered (and get semaphore when will presented finally)
-                    n_semaphore = (n_semaphore >= 0 ? n_semaphore : (context->framebuffers.size() - 1));
-                    currentContext->queue->device->logical.acquireNextImageKHR(currentContext->swapchain, std::numeric_limits<uint64_t>::max(), currentContext->framebuffers[n_semaphore].semaphore, nullptr, &currentBuffer);
-
-                    // submit rendering (and wait presentation in device)
-                    {
-                        // prepare viewport and clear info
-                        std::vector<vk::ClearValue> clearValues = { vk::ClearColorValue(std::array<float,4>{0.2f, 0.2f, 0.2f, 1.0f}), vk::ClearDepthStencilValue(1.0f, 0) };
-                        auto renderArea = vk::Rect2D(vk::Offset2D(0, 0), appfww->size());
-                        auto viewport = vk::Viewport(0.0f, 0.0f, appfww->size().width, appfww->size().height, 0, 1.0f);
-
-                        // bind with framebuffer 
-                        currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->queue, true);
-
-                        // create command buffer (with rewrite)
-                        auto& commandBuffer = currentContext->framebuffers[n_semaphore].commandBuffer; // do reference of cmd buffer
-                        commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(context->renderpass, currentContext->framebuffers[currentBuffer].frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
-                        commandBuffer.setViewport(0, std::vector<vk::Viewport> { viewport });
-                        commandBuffer.setScissor(0, std::vector<vk::Rect2D> { renderArea });
-                        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, currentContext->pipeline);
-                        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, currentContext->pipelineLayout, 0, currentContext->descriptorSets, nullptr);
-                        commandBuffer.draw(4, 1, 0, 0);
-                        commandBuffer.endRenderPass();
-
-                        // create render submission 
-                        std::vector<vk::Semaphore> waitSemaphores = { currentContext->framebuffers[n_semaphore].semaphore }, signalSemaphores = { currentContext->framebuffers[c_semaphore].semaphore };
-                        std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-                        flushCommandBuffer(currentContext->queue, commandBuffer, vk::SubmitInfo()
-                            .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
-                            .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
-                            .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), [&]() {});
-                    }
-
-                    // present for displaying of this image
-                    currentContext->queue->device->queues[1]->queue.presentKHR(vk::PresentInfoKHR(
-                        1, &currentContext->framebuffers[c_semaphore].semaphore,
-                        1, &currentContext->swapchain,
-                        &currentBuffer, nullptr
-                    ));
-                };
+                currentContext = context;
             }
-
-            currentContext = context;
         }
 
     public:
@@ -513,7 +501,7 @@ namespace SatelliteExample {
                 timeAccumulate = 0.0001;
 
                 auto tStart = std::chrono::high_resolution_clock::now(); // may have issues 
-                currentContext->draw();
+                this->draw(currentContext); // present output
                 showTime = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tStart).count();
             }
 

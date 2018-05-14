@@ -560,38 +560,29 @@ namespace NSM
     };
 
     // load module for Vulkan device
-    vk::ShaderModule loadAndCreateShaderModule(Device &device, std::string path)
-    {
+    vk::ShaderModule loadAndCreateShaderModule(Device device, std::string path) {
         auto code = readBinary(path);
         return device->logical.createShaderModule(vk::ShaderModuleCreateInfo(vk::ShaderModuleCreateFlags(), code.size(), (uint32_t *)code.data()));
     }
 
     // create compute pipeline
-    auto createCompute(Queue queue, std::string path, vk::PipelineLayout &layout)
-    {
-        ComputeContext cmpx;
-        cmpx.queue = queue;
-        cmpx.pipelineLayout = layout;
-        cmpx.pipelineCache = queue->device->pipelineCache;
-
+    auto createCompute(Queue queue, std::string path, vk::PipelineLayout &layout) {
         auto cmpi = vk::ComputePipelineCreateInfo()
-            .setStage(vk::PipelineShaderStageCreateInfo()
-            .setModule(loadAndCreateShaderModule(queue->device, path))
-            .setPName("main")
-            .setStage(vk::ShaderStageFlagBits::eCompute))
+            .setStage(vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(queue->device, path)).setPName("main").setStage(vk::ShaderStageFlagBits::eCompute))
             .setLayout(layout);
 
         vk::Pipeline pipeline;
-        try
-        {
+        try {
             pipeline = queue->device->logical.createComputePipeline(queue->device->pipelineCache, cmpi);
-        }
-        catch (vk::Result const &e)
-        {
-            std::cout << "something wrong" << std::endl;
+        } catch (vk::Result const &e) {
+            std::cout << "Something wrong (" << path << ")" << std::endl;
         }
 
-        cmpx.pipeline = pipeline;
+        ComputeContext cmpx = std::make_shared<ComputeContextType>();
+        cmpx->queue = queue;
+        cmpx->pipelineLayout = layout;
+        cmpx->pipelineCache = queue->device->pipelineCache;
+        cmpx->pipeline = pipeline;
         return cmpx;
     }
 
@@ -599,30 +590,30 @@ namespace NSM
 
 
 
-    auto makeDispatchCommand(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
-        auto commandBuffer = getCommandBuffer(compute.queue, true);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+    auto makeDispatchCommand(ComputeContext compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
         if (end) commandBuffer.end();
         return commandBuffer;
     }
 
-    auto dispatchCompute(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets) {
-        auto commandBuffer = getCommandBuffer(compute.queue, true);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+    auto dispatchCompute(ComputeContext compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets) {
+        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
-        flushCommandBuffer(compute.queue, commandBuffer, true);
+        flushCommandBuffer(compute->queue, commandBuffer, true);
     }
 
 
 
 
-    auto makeDispatchCommand(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
-        auto commandBuffer = getCommandBuffer(compute.queue, true);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+    auto makeDispatchCommand(ComputeContext compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups1D, 1, 1);
         if (end) commandBuffer.end();
         return commandBuffer;
@@ -630,32 +621,32 @@ namespace NSM
 
 
 
-    auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute.queue, true);
-        commandBuffer.pushConstants(compute.pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+    auto dispatchCompute(ComputeContext compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
+        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups1D, 1, 1);
-        flushCommandBuffer(compute.queue, commandBuffer, true);
+        flushCommandBuffer(compute->queue, commandBuffer, true);
     }
 
 
-    auto dispatchCompute(const ComputeContext& compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute.queue, true);
-        commandBuffer.pushConstants(compute.pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+    auto dispatchCompute(ComputeContext compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
+        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
-        flushCommandBuffer(compute.queue, commandBuffer, true);
+        flushCommandBuffer(compute->queue, commandBuffer, true);
     }
 
 
-    auto dispatchCompute(const ComputeContext& compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets) {
-        auto commandBuffer = getCommandBuffer(compute.queue, true);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute.pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute.pipeline);
+    auto dispatchCompute(ComputeContext compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets) {
+        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups1D, 1, 1);
-        flushCommandBuffer(compute.queue, commandBuffer, true);
+        flushCommandBuffer(compute->queue, commandBuffer, true);
     }
 
 

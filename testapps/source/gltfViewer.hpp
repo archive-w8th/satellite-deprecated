@@ -200,10 +200,13 @@ namespace SatelliteExample {
     Image GltfViewer::getOutputImage() { 
         return rays->getRawImage(); 
     }
+
     void GltfViewer::handleGUI() {}
+
     void GltfViewer::resizeBuffers(const int32_t& width, const int32_t& height) { 
         rays->reallocRays(width, height); 
     }
+
     void GltfViewer::resize(const int32_t& width, const int32_t& height) { 
         rays->resizeCanvas(width, height); 
     }
@@ -213,20 +216,17 @@ namespace SatelliteExample {
         auto width = rays->getCanvasWidth(), height = rays->getCanvasHeight();
         std::vector<float> imageData(width * height * 4);
 
-        {
-            auto texture = rays->getRawImage();
-            flushCommandBuffer(currentContext->queue, createCopyCmd<Image&, Buffer&, vk::BufferImageCopy>(currentContext->queue, texture, memoryBufferToHost, vk::BufferImageCopy()
-                .setImageExtent({ width, height, 1 })
-                .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
-                .setBufferOffset(0)
-                .setBufferRowLength(width)
-                .setBufferImageHeight(height)
-                .setImageSubresource(texture->subresourceLayers)), false);
-        }
+        auto memoryBufferToHost = createBuffer(currentContext->queue, imageData.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
+        auto texture = rays->getRawImage();
+        flushCommandBuffer(currentContext->queue, createCopyCmd<Image&, Buffer&, vk::BufferImageCopy>(currentContext->queue, texture, memoryBufferToHost, vk::BufferImageCopy()
+            .setImageExtent({ width, height, 1 })
+            .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
+            .setBufferOffset(0)
+            .setBufferRowLength(width)
+            .setBufferImageHeight(height)
+            .setImageSubresource(texture->subresourceLayers)), false);
 
-        {
-            getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)imageData.data(), sizeof(float) * width * height * 4, 0);
-        }
+        { getBufferSubData(memoryBufferToHost, (U_MEM_HANDLE)imageData.data(), sizeof(float) * width * height * 4, 0); }
 
         {
             cil::CImg<float> image(imageData.data(), 4, width, height, 1, true);

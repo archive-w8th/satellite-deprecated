@@ -26,6 +26,10 @@ namespace NSM
             const size_t HIT_COUNTER = 6;
             const size_t HIT_PAYLOAD_COUNTER = 7;
 
+            //Sampler nullEnvSampler;
+            Image nullEnvImage;
+            Image nullImage;
+
             // current compute device
             Device device;
             Queue queue;

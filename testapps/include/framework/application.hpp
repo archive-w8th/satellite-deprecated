@@ -34,7 +34,7 @@ namespace SatelliteExample {
                 .setBufferRowLength(width)
                 .setBufferImageHeight(height)
                 .setImageSubresource(texture->subresourceLayers));
-            flushCommandBuffer(devQueue, command, [&]() { destroyBuffer(tstage); });
+            flushCommandBuffer(devQueue, command, [=]() {  });
         }
 
         // create sampler for combined

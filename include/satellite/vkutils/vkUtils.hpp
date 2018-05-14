@@ -469,9 +469,10 @@ namespace NSM
         return deviceQueue->device->logical.allocateCommandBuffers( vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, bcount));
     }
 
+
+    /*
     // destroy buffer function (by linked device)
-    void destroyBuffer(Buffer &buffer)
-    {
+    void destroyBuffer(Buffer buffer) {
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (buffer && buffer->initialized) {
                 buffer->queue->device->logical.waitIdle();
@@ -481,8 +482,7 @@ namespace NSM
         });
     }
 
-    void destroyTexture(Image &image)
-    {
+    void destroyImage(Image image) {
         std::async(std::launch::async | std::launch::deferred, [=]() {
             if (image && image->initialized) {
                 image->queue->device->logical.waitIdle();
@@ -490,7 +490,40 @@ namespace NSM
                 image->initialized = false;
             }
         });
+    }*/
+
+
+    // destructors for shared pointer system
+    BufferType::~BufferType() {
+        this->queue->device->logical.waitIdle();
+        this->initialized = false;
+        auto buffer = this;
+        std::async(std::launch::async | std::launch::deferred, [=]() {
+            if (buffer && buffer->initialized) {
+                buffer->queue->device->logical.waitIdle();
+                vmaDestroyBuffer(buffer->queue->device->allocator, buffer->buffer, buffer->allocation);
+                buffer->initialized = false;
+            }
+        });
+        //destroyBuffer(shared_from_this());
     }
+
+    // destructors for shared pointer system
+    ImageType::~ImageType() {
+        this->queue->device->logical.waitIdle();
+        this->initialized = false;
+        auto image = this;
+        std::async(std::launch::async | std::launch::deferred, [=]() {
+            if (image && image->initialized) {
+                image->queue->device->logical.waitIdle();
+                vmaDestroyImage(image->queue->device->allocator, image->image, image->allocation);
+                image->initialized = false;
+            }
+        });
+        //destroyImage(shared_from_this());
+    }
+
+
 
     // read source (unused)
     std::string readSource(const std::string &filePath,

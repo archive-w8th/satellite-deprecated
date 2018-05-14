@@ -218,16 +218,16 @@ namespace NSM
 
             // null envmap
             {
-                auto sampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
-                auto texture = createImage(queue, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
+                auto nullEnvSampler = device->logical.createSampler(vk::SamplerCreateInfo().setAddressModeU(vk::SamplerAddressMode::eRepeat).setAddressModeV(vk::SamplerAddressMode::eClampToEdge).setMinFilter(vk::Filter::eLinear).setMagFilter(vk::Filter::eLinear).setCompareEnable(false));
+                nullEnvImage = createImage(queue, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1);
                 auto tstage = createBuffer(queue, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
                 {
                     auto command = getCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f) }));
-                    memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(texture->subresourceLayers));
-                    flushCommandBuffer(queue, command, [&]() { destroyBuffer(tstage); });
+                    memoryCopyCmd(command, tstage, nullEnvImage, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(nullEnvImage->subresourceLayers));
+                    flushCommandBuffer(queue, command, [=]() {  });
                 }
 
                 // update descriptors
@@ -238,29 +238,29 @@ namespace NSM
                         .setDstArrayElement(0)
                         .setDescriptorCount(1)
                         .setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
-                        .setPImageInfo(&vk::DescriptorImageInfo().setImageLayout(texture->layout).setImageView(texture->view).setSampler(sampler))},
+                        .setPImageInfo(&vk::DescriptorImageInfo().setImageLayout(nullEnvImage->layout).setImageView(nullEnvImage->view).setSampler(nullEnvSampler))},
                     nullptr);
             }
 
             // null texture define
             {
                 // create texture
-                auto texture = createImage(queue, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
+                nullImage = createImage(queue, vk::ImageViewType::e2D, { 2, 2, 1 }, vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc, vk::Format::eR32G32B32A32Sfloat, 1, VMA_MEMORY_USAGE_GPU_ONLY);
                 auto tstage = createBuffer(queue, 4 * sizeof(glm::vec4), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
                 // purple-black square
                 {
                     auto command = getCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) }));
-                    memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(texture->subresourceLayers));
-                    flushCommandBuffer(queue, command, [&]() { destroyBuffer(tstage); });
+                    memoryCopyCmd(command, tstage, nullImage, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(nullEnvImage->subresourceLayers));
+                    flushCommandBuffer(queue, command, [=]() {  });
                 }
 
                 // write with same images
                 std::vector<vk::DescriptorImageInfo> imageDescs;
                 for (int i = 0; i < MAX_SURFACE_IMAGES; i++)
                 {
-                    imageDescs.push_back(vk::DescriptorImageInfo().setImageLayout(texture->layout).setImageView(texture->view));
+                    imageDescs.push_back(vk::DescriptorImageInfo().setImageLayout(nullImage->layout).setImageView(nullImage->view));
                 }
 
                 // update descriptors
@@ -333,10 +333,10 @@ namespace NSM
             const double superCanvas = 1;
             canvasWidth = width * superCanvas, canvasHeight = height * superCanvas;
 
-            device->logical.waitIdle();
-            destroyTexture(accumulationImage);
-            destroyTexture(filteredImage);
-            destroyTexture(flagsImage);
+            //device->logical.waitIdle();
+            //destroyTexture(accumulationImage);
+            //destroyTexture(filteredImage);
+            //destroyTexture(flagsImage);
 
             accumulationImage = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);
             filteredImage = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(canvasWidth), uint32_t(canvasHeight * 2), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Sfloat);

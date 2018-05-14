@@ -87,7 +87,7 @@ namespace NSM {
                     .setBufferRowLength(image->width)
                     .setBufferImageHeight(image->height)
                     .setImageSubresource(texture->subresourceLayers));
-                flushCommandBuffer(queue, command, [&]() { destroyBuffer(tstage); });
+                flushCommandBuffer(queue, command, [=]() {  });
             }
 
             return this->loadTexture(texture);

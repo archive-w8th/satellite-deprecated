@@ -89,6 +89,7 @@ namespace NSM
         VmaAllocationInfo allocationInfo;
         vk::Buffer buffer;
         vk::DescriptorBufferInfo descriptorInfo;
+        ~BufferType();
     };
 
     // texture
@@ -106,6 +107,7 @@ namespace NSM
         vk::ImageSubresourceRange subresourceRange;
         vk::ImageSubresourceLayers subresourceLayers;
         vk::DescriptorImageInfo descriptorInfo;
+        ~ImageType();
     };
 
     // sampler

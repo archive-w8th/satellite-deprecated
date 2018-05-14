@@ -7,7 +7,7 @@ namespace NSM
     namespace rt
     {
 
-        void VertexInstance::init(Queue &_queue)
+        void VertexInstance::init(Queue _queue)
         {
             this->queue = _queue;
             this->device = _queue->device;

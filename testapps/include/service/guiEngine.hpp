@@ -39,7 +39,7 @@ namespace NSM {
         UniformBuffer guiBlockUniform; // buffer of uniforms
 
 
-        void init(Queue& deviceQueue, vk::RenderPass& _renderpass) {
+        void init(Queue deviceQueue, vk::RenderPass& _renderpass) {
             device = deviceQueue, renderpass = _renderpass;
 
             // define descriptor pool sizes
@@ -242,7 +242,7 @@ namespace NSM {
     public:
         GuiRenderEngine() {}
 
-        GuiRenderEngine(Queue& device, vk::RenderPass& renderpass, std::string shadersPack) {
+        GuiRenderEngine(Queue device, vk::RenderPass& renderpass, std::string shadersPack) {
             shadersPathPrefix = shadersPack;
             init(device, renderpass);
         }

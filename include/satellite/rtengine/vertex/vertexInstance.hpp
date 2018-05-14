@@ -15,7 +15,7 @@ namespace NSM
             Queue queue;
             Device device;
 
-            void init(Queue &device);
+            void init(Queue device);
             //void syncUniform();
 
             std::shared_ptr<MeshUniformSet> meshUniformSet;
@@ -35,7 +35,7 @@ namespace NSM
 
         public:
             VertexInstance() {}
-            VertexInstance(Queue &device) { init(device); }
+            VertexInstance(Queue device) { init(device); }
             VertexInstance(VertexInstance &&another);
             VertexInstance(VertexInstance &another);
 

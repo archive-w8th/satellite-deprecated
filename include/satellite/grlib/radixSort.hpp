@@ -24,11 +24,11 @@ namespace NSM {
             const uint32_t WG_COUNT = 64;
             const uint32_t RADICE_AFFINE = 1;
             std::string shadersPathPrefix = "shaders-spv";
-            void init(Queue& queue);
+            void init(Queue queue);
 
         public:
             RadixSort() {}
-            RadixSort(Queue& queue, std::string shadersPack) { shadersPathPrefix = shadersPack; init(queue); }
+            RadixSort(Queue queue, std::string shadersPack) { shadersPathPrefix = shadersPack; init(queue); }
             RadixSort(RadixSort& another); // copying/reference constructor
             RadixSort(RadixSort&& another); // copying/reference constructor
 

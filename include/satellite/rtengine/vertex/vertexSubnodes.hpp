@@ -17,7 +17,7 @@ namespace NSM
         public:
             BufferComposer(BufferComposer<BINDING, STRUCTURE> &another);
             BufferComposer(BufferComposer<BINDING, STRUCTURE> &&another);
-            BufferComposer(Queue &device, const size_t bsize = 1024 * 128);
+            BufferComposer(Queue device, const size_t bsize = 1024 * 128);
             int32_t addElement(STRUCTURE accessorDesc);
             Buffer getBuffer();
             void resetStack() { needUpdateBuffer = true; data.resize(0); }
@@ -41,7 +41,7 @@ namespace NSM
         class BufferSpace
         {
         public:
-            BufferSpace(Queue &device, const size_t space);
+            BufferSpace(Queue device, const size_t space);
             Buffer getDataBuffer();
 
             intptr_t copyGPUBuffer(Buffer external, const size_t size);

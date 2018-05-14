@@ -9,7 +9,7 @@ namespace NSM
     namespace rt
     {
 
-        void HieararchyBuilder::init(Queue &_queue)
+        void HieararchyBuilder::init(Queue _queue)
         {
             this->queue = _queue;
             this->device = _queue->device;

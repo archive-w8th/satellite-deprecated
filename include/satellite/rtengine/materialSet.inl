@@ -8,7 +8,7 @@ namespace NSM
     {
 
         /*
-        void MaterialSet::init(Queue &device)
+        void MaterialSet::init(Queue device)
         {
             this->device = device;
             vtextures = std::vector<glm::uvec2>(0);

@@ -28,7 +28,7 @@ namespace NSM
         }
 
         template <int BINDING, class STRUCTURE>
-        BufferComposer<BINDING, STRUCTURE>::BufferComposer(Queue &queue, const size_t bsize) {
+        BufferComposer<BINDING, STRUCTURE>::BufferComposer(Queue queue, const size_t bsize) {
             this->queue = queue;
             this->device = queue->device;
 
@@ -81,7 +81,7 @@ namespace NSM
             return data[ptr];
         }
 
-        BufferSpace::BufferSpace(Queue &queue, const size_t spaceSize)
+        BufferSpace::BufferSpace(Queue queue, const size_t spaceSize)
         {
             this->device = queue->device;
             this->queue = queue;

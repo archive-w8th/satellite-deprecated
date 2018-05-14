@@ -53,7 +53,7 @@ namespace NSM
 
         public:
             HieararchyStorage() {}
-            HieararchyStorage(Queue &queue, std::string shadersPack)
+            HieararchyStorage(Queue queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
                 init(queue);
@@ -90,7 +90,7 @@ namespace NSM
             void queryTraverse(TraversibleData& tbsData);
 
         protected:
-            void init(Queue &queue);
+            void init(Queue queue);
         };
     }
 } // namespace NSM

@@ -26,12 +26,12 @@ namespace NSM
             Buffer vtexturesBuffer;
 
             intptr_t loadOffset = 0;
-            void init(Queue &device);
+            void init(Queue device);
             bool needUpdate = true;
 
         public:
             MaterialSet() {}
-            MaterialSet(Queue &device) { init(device); }
+            MaterialSet(Queue device) { init(device); }
 
             // copying from material set
             MaterialSet(MaterialSet &another);

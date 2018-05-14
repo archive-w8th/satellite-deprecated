@@ -42,7 +42,7 @@ namespace NSM
 
         public:
             GeometryAccumulator() {}
-            GeometryAccumulator(Queue &queue, std::string shadersPack)
+            GeometryAccumulator(Queue queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
                 init(queue);
@@ -60,7 +60,7 @@ namespace NSM
             Buffer getOrderIndices() { return orderIndicesWorking; }
 
         protected:
-            void init(Queue &queue);
+            void init(Queue queue);
         };
     }
 } // namespace NSM

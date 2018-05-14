@@ -31143,14 +31143,14 @@ public:
     {}
 
 #if defined(VULKAN_HPP_TYPESAFE_CONVERSION)
-    Queue & operator=(VkQueue queue)
+    Queue  operator=(VkQueue queue)
     {
       m_queue = queue;
       return *this; 
     }
 #endif
 
-    Queue & operator=( std::nullptr_t )
+    Queue  operator=( std::nullptr_t )
     {
       m_queue = VK_NULL_HANDLE;
       return *this;

@@ -7,7 +7,7 @@ namespace NSM
     namespace rt
     {
 
-        void HieararchyStorage::init(Queue &_queue)
+        void HieararchyStorage::init(Queue _queue)
         {
             this->device = _queue->device;
             this->queue = _queue;

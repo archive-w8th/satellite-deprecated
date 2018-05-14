@@ -5,7 +5,7 @@
 namespace NSM {
     namespace gr {
 
-        void RadixSort::init(Queue& queue) {
+        void RadixSort::init(Queue queue) {
             this->device = queue->device;
             this->queue = queue;
 

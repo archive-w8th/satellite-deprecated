@@ -18,14 +18,14 @@ namespace NSM
             Device device;
             Queue queue;
 
-            void init(Queue &queue);
+            void init(Queue queue);
 
             std::vector<size_t> freedomTextures;
             std::vector<Image> textures;
 
         public:
             TextureSet() {}
-            TextureSet(Queue &device) { init(device); }
+            TextureSet(Queue device) { init(device); }
             TextureSet(TextureSet &another);
             TextureSet(TextureSet &&another);
 

@@ -13,14 +13,14 @@ namespace NSM
 
             Queue queue;
             Device device;
-            void init(Queue &device);
+            void init(Queue device);
 
             std::vector<size_t> freedomSamplers;
             std::vector<Sampler> samplers;
 
         public:
             SamplerSet() {}
-            SamplerSet(Queue &device) { init(device); }
+            SamplerSet(Queue device) { init(device); }
             SamplerSet(SamplerSet &another);
             SamplerSet(SamplerSet &&another);
 

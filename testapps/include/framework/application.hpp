@@ -9,7 +9,7 @@ using U_MEM_HANDLE = uint8_t * ;
 namespace SatelliteExample {
     using namespace NSM;
 
-    Image loadEnvmap(std::string bgTexName, Queue& devQueue) {
+    Image loadEnvmap(std::string bgTexName, Queue devQueue) {
 #ifdef USE_CIMG
         cil::CImg<float> image(bgTexName.c_str());
         if (!image) return nullptr;

@@ -6,7 +6,7 @@ namespace NSM
 {
 
     // get or create command buffer
-    auto getCommandBuffer(const Queue &deviceQueue, bool begin = true)
+    auto getCommandBuffer(const Queue deviceQueue, bool begin = true)
     {
         vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
         if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
@@ -19,7 +19,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffers(const Queue &deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true)
+    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true)
     {
         std::vector<vk::SubmitInfo> submitInfos = {
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
@@ -49,7 +49,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffers(const Queue &deviceQueue,
+    void flushCommandBuffers(const Queue deviceQueue,
         const std::vector<vk::CommandBuffer> &commandBuffers,
         const std::function<void()> &asyncCallback)
     {
@@ -410,14 +410,14 @@ namespace NSM
 
     /*
     template<class ...T>
-    void copyMemoryProxy(const Queue& deviceQueue, T... args, bool async =
+    void copyMemoryProxy(const Queue deviceQueue, T... args, bool async =
     true) { // copy staging buffers vk::CommandBuffer copyCmd =
     getCommandBuffer(deviceQueue, true); memoryCopyCmd(copyCmd, args...);
     flushCommandBuffer(deviceQueue, copyCmd, async);
     }
 
     template<class ...T>
-    void copyMemoryProxy(const Queue& deviceQueue, T... args, const
+    void copyMemoryProxy(const Queue deviceQueue, T... args, const
     std::function<void()>& asyncCallback) { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...); flushCommandBuffer(deviceQueue, copyCmd,
@@ -426,7 +426,7 @@ namespace NSM
     */
 
     template <class... T>
-    vk::CommandBuffer createCopyCmd(const Queue &deviceQueue,
+    vk::CommandBuffer createCopyCmd(const Queue deviceQueue,
         T... args)
     { // copy staging buffers
         vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
@@ -442,7 +442,7 @@ namespace NSM
     }
 
     // create command buffer function
-    vk::CommandBuffer createCommandBuffer(Queue &deviceQueue) {
+    vk::CommandBuffer createCommandBuffer(Queue deviceQueue) {
         return deviceQueue->device->logical.allocateCommandBuffers( vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
     }
 
@@ -456,7 +456,7 @@ namespace NSM
     }
 
     // create command buffers
-    std::vector<vk::CommandBuffer> createCommandBuffers(Queue &deviceQueue, uint32_t bcount = 1) {
+    std::vector<vk::CommandBuffer> createCommandBuffers(Queue deviceQueue, uint32_t bcount = 1) {
         return deviceQueue->device->logical.allocateCommandBuffers( vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, bcount));
     }
 
@@ -567,7 +567,7 @@ namespace NSM
     }
 
     // create compute pipeline
-    auto createCompute(Queue &queue, std::string path, vk::PipelineLayout &layout)
+    auto createCompute(Queue queue, std::string path, vk::PipelineLayout &layout)
     {
         ComputeContext cmpx;
         cmpx.queue = queue;

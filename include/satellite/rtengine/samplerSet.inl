@@ -7,7 +7,7 @@ namespace NSM
     namespace rt
     {
 
-        void SamplerSet::init(Queue &queue)
+        void SamplerSet::init(Queue queue)
         {
             this->queue = queue;
             this->device = queue->device;

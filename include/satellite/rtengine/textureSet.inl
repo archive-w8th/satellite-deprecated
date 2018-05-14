@@ -5,7 +5,7 @@
 namespace NSM {
     namespace rt {
 
-        void TextureSet::init(Queue& queue) {
+        void TextureSet::init(Queue queue) {
             this->queue = queue;
             this->device = queue->device;
 

@@ -54,7 +54,7 @@ namespace NSM
 
         public:
             HieararchyBuilder() {}
-            HieararchyBuilder(Queue &queue, std::string shadersPack)
+            HieararchyBuilder(Queue queue, std::string shadersPack)
             {
                 shadersPathPrefix = shadersPack;
                 init(queue);
@@ -66,7 +66,7 @@ namespace NSM
             void build(glm::dmat4 optproj);
 
         protected:
-            void init(Queue &queue);
+            void init(Queue queue);
             void syncUniforms();
         };
     }

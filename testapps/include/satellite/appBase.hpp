@@ -468,7 +468,7 @@ namespace NSM
             return sfd;
         }
 
-        virtual vk::RenderPass createRenderpass(Queue &queue)
+        virtual vk::RenderPass createRenderpass(Queue queue)
         {
             auto formats = applicationWindow.surfaceFormat;
 
@@ -685,7 +685,7 @@ namespace NSM
         }
 
         // create swapchain template
-        virtual vk::SwapchainKHR createSwapchain(Queue &queue)
+        virtual vk::SwapchainKHR createSwapchain(Queue queue)
         {
             std::shared_ptr<vk::SurfaceKHR> surface = applicationWindow.surface;
             SurfaceFormat &formats = applicationWindow.surfaceFormat;

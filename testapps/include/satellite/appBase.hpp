@@ -177,17 +177,13 @@ namespace NSM
             return instance;
         };
 
-        virtual Queue createDeviceQueue(vk::PhysicalDevice gpu, bool isComputePrior = false)
-        {
+        virtual Queue createDeviceQueue(vk::PhysicalDevice gpu, bool isComputePrior = false) {
             // use extensions
             auto deviceExtensions = std::vector<const char *>();
             auto gpuExtensions = gpu.enumerateDeviceExtensionProperties();
-            for (auto &w : wantedDeviceExtensions)
-            {
-                for (auto &i : gpuExtensions)
-                {
-                    if (std::string(i.extensionName).compare(w) == 0)
-                    {
+            for (auto &w : wantedDeviceExtensions) {
+                for (auto &i : gpuExtensions) {
+                    if (std::string(i.extensionName).compare(w) == 0) {
                         deviceExtensions.emplace_back(w);
                         break;
                     }
@@ -198,12 +194,9 @@ namespace NSM
             auto layers = std::vector<const char *>();
             auto deviceValidationLayers = std::vector<const char *>();
             auto gpuLayers = gpu.enumerateDeviceLayerProperties();
-            for (auto &w : wantedLayers)
-            {
-                for (auto &i : gpuLayers)
-                {
-                    if (std::string(i.layerName).compare(w) == 0)
-                    {
+            for (auto &w : wantedLayers) {
+                for (auto &i : gpuLayers) {
+                    if (std::string(i.layerName).compare(w) == 0) {
                         layers.emplace_back(w);
                         break;
                     }
@@ -214,9 +207,8 @@ namespace NSM
             auto gpuFeatures = gpu.getFeatures();
             auto gpuQueueProps = gpu.getQueueFamilyProperties();
 
-            // search graphics supported queue family
+            // queue family initial
             std::vector<DevQueue> queues;
-
             float priority = 1.0f;
             uint32_t computeFamilyIndex = -1, graphicsFamilyIndex = -1;
             auto queueCreateInfos = std::vector<vk::DeviceQueueCreateInfo>();
@@ -234,7 +226,6 @@ namespace NSM
                 }
             }
 
-
             // graphics/presentation queue family
             for (auto &queuefamily : gpuQueueProps) {
                 graphicsFamilyIndex++;
@@ -248,36 +239,34 @@ namespace NSM
                 }
             }
 
-
             // assign presentation (may not working)
             if (int(graphicsFamilyIndex) < 0 || graphicsFamilyIndex >= gpuQueueProps.size()) {
                 std::wcerr << "Device may not support presentation" << std::endl;
                 graphicsFamilyIndex = computeFamilyIndex;
             }
 
-
             // make graphics queue family same as compute
             if ((graphicsFamilyIndex == computeFamilyIndex || queues.size() <= 1) && queues.size() > 0) {
                 queues.push_back(queues[0]);
             }
 
-
             // pre-declare logical device
-            auto deviceQueuePtr = std::make_shared<QueueType>();
             auto devicePtr = std::make_shared<DeviceType>();
-            deviceQueuePtr->device = devicePtr;
 
             // if have supported queue family, then use this device
-            if (queueCreateInfos.size() > 0)
-            {
+            if (queueCreateInfos.size() > 0) {
+                // create device
                 devicePtr->physical = gpu;
                 devicePtr->logical = gpu.createDevice(vk::DeviceCreateInfo().setFlags(vk::DeviceCreateFlags())
                     .setPEnabledFeatures(&gpuFeatures)
                     .setPQueueCreateInfos(queueCreateInfos.data()).setQueueCreateInfoCount(queueCreateInfos.size())
                     .setPpEnabledExtensionNames(deviceExtensions.data()).setEnabledExtensionCount(deviceExtensions.size())
                     .setPpEnabledLayerNames(deviceValidationLayers.data()).setEnabledLayerCount(deviceValidationLayers.size()));
+
+                // load API calls for context
                 volkLoadDevice(devicePtr->logical);
 
+                // load API calls for mapping
                 VolkDeviceTable vktable;
                 volkLoadDeviceTable(&vktable, devicePtr->logical);
 
@@ -286,19 +275,6 @@ namespace NSM
 
                 // getting queues by family
                 for (int i = 0; i < queues.size(); i++) { queues[i]->queue = devicePtr->logical.getQueue(queues[i]->familyIndex, 0); }
-                devicePtr->queues = queues;
-                
-                // add device and use this device
-                devices.push_back(deviceQueuePtr);
-
-                // create semaphores
-                //devicePtr->wsemaphore = deviceQueuePtr->logical.createSemaphore(vk::SemaphoreCreateInfo());
-
-                // create queue and command pool
-                //devicePtr->mainQueue = deviceQueuePtr->queues[isComputePrior ? 0 : 1]; // make role prior
-                deviceQueuePtr->commandPool = devicePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->familyIndex));
-                deviceQueuePtr->queue = devicePtr->queues[isComputePrior ? 0 : 1]->queue; // make role prior
-                deviceQueuePtr->familyIndex = devicePtr->queues[isComputePrior ? 0 : 1]->familyIndex;
 
                 // mapping volk with VMA functions
                 VmaVulkanFunctions vfuncs;
@@ -339,14 +315,21 @@ namespace NSM
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampledImage, 128),
                     vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 16) };
                 devicePtr->descriptorPool = devicePtr->logical.createDescriptorPool(vk::DescriptorPoolCreateInfo().setPPoolSizes(psizes.data()).setPoolSizeCount(psizes.size()).setMaxSets(16));
-                //devicePtr->fence = createFence(devicePtr, false);
-                devicePtr->initialized = true;
                 devicePtr->pipelineCache = devicePtr->logical.createPipelineCache(vk::PipelineCacheCreateInfo());
-
-                deviceQueuePtr->fence = createFence(devicePtr, false);
+                devicePtr->initialized = true;
             }
 
+            // assign queues
+            devicePtr->queues = queues;
+
             // return device with queue pointer
+            auto deviceQueuePtr = std::make_shared<QueueType>();
+            deviceQueuePtr->device = devicePtr;
+            deviceQueuePtr->fence = createFence(devicePtr, false);
+            deviceQueuePtr->commandPool = devicePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->familyIndex));
+            deviceQueuePtr->queue = devicePtr->queues[isComputePrior ? 0 : 1]->queue; // make role prior
+            deviceQueuePtr->familyIndex = devicePtr->queues[isComputePrior ? 0 : 1]->familyIndex;
+            devices.push_back(deviceQueuePtr);
             return std::move(deviceQueuePtr);
         }
 

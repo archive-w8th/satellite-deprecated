@@ -373,6 +373,8 @@ namespace SatelliteExample {
         rays->setPerspective(glm::perspectiveFov(glm::radians(60.0), double(canvasWidth), double(canvasHeight), 0.0001, 10000.0));
 
         bvhBuilder->build(glm::dmat4(1.0)); // build BVH dynamicly in device (with linked data)
+
+        rays->clearSampling();
         rays->dispatchRayTracing(); // dispatch ray tracing pipeline
     }
 };

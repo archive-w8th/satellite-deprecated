@@ -2,7 +2,7 @@
 
 #include "../utils.hpp"
 
-#define GLFW_INCLUDE_VULKAN
+//#define GLFW_INCLUDE_VULKAN
 #define VK_USE_PLATFORM_WIN32_KHR
 #define DEFAULT_FENCE_TIMEOUT 100000000000
 

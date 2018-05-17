@@ -56,7 +56,9 @@ namespace NSM
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(clientDescriptorSetLayoutBindings.data()).setBindingCount(clientDescriptorSetLayoutBindings.size())) };
 
-            pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(builderDescriptorLayout.data()).setSetLayoutCount(builderDescriptorLayout.size()));
+            auto ranges = vk::PushConstantRange().setOffset(0).setSize(strided<uint32_t>(2)).setStageFlags(vk::ShaderStageFlagBits::eCompute);
+            auto pipelineLayout = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(builderDescriptorLayout.data()).setSetLayoutCount(builderDescriptorLayout.size()));
+            auto pipelineLayoutCnst = device->logical.createPipelineLayout(vk::PipelineLayoutCreateInfo().setPSetLayouts(builderDescriptorLayout.data()).setSetLayoutCount(builderDescriptorLayout.size()).setPushConstantRangeCount(1).setPPushConstantRanges(&ranges));
 
             // another part if foreign object (where storing)
             builderDescriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(1).setPSetLayouts(&builderDescriptorLayout[0]));
@@ -67,6 +69,7 @@ namespace NSM
             boundPrimitives = createCompute(queue, shadersPathPrefix + "/hlbvh2/bound-calc.comp.spv", pipelineLayout);
             childLink = createCompute(queue, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout);
             aabbCalculate = createCompute(queue, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout);
+            buildBVHLargePpl = createCompute(queue, shadersPathPrefix + "/hlbvh2/bvh-build-large.comp.spv", pipelineLayoutCnst);
 
             { // boundary buffer cache
                 countersBuffer = createBuffer(queue, strided<uint32_t>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -209,6 +212,32 @@ namespace NSM
             // refit BVH with linking leafs
             flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
             dispatchCompute(buildBVHPpl, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+
+
+            // large stages of BVH building
+            for (int i = 0; i < 128;i++) {
+                const int swap_ = 1, swap_inv_ = 0;
+
+                // getting counter data
+                std::vector<uint32_t> nodeTaskCount(1);
+                flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer,{ strided<uint32_t>(swap_inv_ * 4), 0, strided<uint32_t>(1) }) }, false); // copy to staging
+                getBufferSubData(generalLoadingBuffer, nodeTaskCount, 0);
+                if (nodeTaskCount[0] <= 0) break;
+
+                // consts for dispatch
+                auto cnst = glm::uvec2(swap_, 0u);
+                auto cnst_inv = glm::uvec2(swap_inv_, 0u);
+
+                // submit GPU operate long as possible 
+                for (int j = 0; j < 4;j++) {
+                    flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(swap_ * 4), strided<uint32_t>(1) }) }, true);
+                    dispatchCompute(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst);
+                    flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(swap_inv_ * 4), strided<uint32_t>(1) }) }, true);
+                    dispatchCompute(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst_inv);
+                }
+            }
+
+            
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 

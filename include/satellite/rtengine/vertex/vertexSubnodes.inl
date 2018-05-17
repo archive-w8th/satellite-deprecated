@@ -59,7 +59,7 @@ namespace NSM
                 auto commandBuffer = getCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, stager, data, 0);
                 memoryCopyCmd(commandBuffer, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) });
-                flushCommandBuffer(queue, commandBuffer, true);
+                flushCommandBuffers(queue, { commandBuffer }, true);
             }
             needUpdateBuffer = false;
             return cache;
@@ -103,7 +103,7 @@ namespace NSM
 
         intptr_t BufferSpace::copyGPUBuffer(Buffer external, const size_t size, const intptr_t offset) {
             if (size > 0) {
-                flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }), true);
+                flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }) }, true);
             }
             return offset;
         }
@@ -122,7 +122,7 @@ namespace NSM
                 auto commandBuffer = getCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, dataStage, external, size, 0);
                 memoryCopyCmd(commandBuffer, dataStage, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) });
-                flushCommandBuffer(queue, commandBuffer, true);
+                flushCommandBuffers(queue, { commandBuffer }, true);
             }
             return offset;
         }

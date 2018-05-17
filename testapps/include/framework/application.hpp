@@ -34,7 +34,7 @@ namespace SatelliteExample {
                 .setBufferRowLength(width)
                 .setBufferImageHeight(height)
                 .setImageSubresource(texture->subresourceLayers));
-            flushCommandBuffer(devQueue, command, [=]() {  });
+            flushCommandBuffers(devQueue, { command }, [=]() {});
         }
 
         // create sampler for combined
@@ -164,10 +164,10 @@ namespace SatelliteExample {
                 // create render submission 
                 std::vector<vk::Semaphore> waitSemaphores = { currentContext->framebuffers[n_semaphore].semaphore }, signalSemaphores = { currentContext->framebuffers[c_semaphore].semaphore };
                 std::vector<vk::PipelineStageFlags> waitStages = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-                flushCommandBuffer(currentContext->queue, commandBuffer, vk::SubmitInfo()
+                flushCommandBuffers(currentContext->queue, { commandBuffer }, vk::SubmitInfo()
                     .setPWaitDstStageMask(waitStages.data()).setPWaitSemaphores(waitSemaphores.data()).setWaitSemaphoreCount(waitSemaphores.size())
                     .setPCommandBuffers(&commandBuffer).setCommandBufferCount(1)
-                    .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()), [&]() {});
+                    .setPSignalSemaphores(signalSemaphores.data()).setSignalSemaphoreCount(signalSemaphores.size()));
             }
 
             // present for displaying of this image

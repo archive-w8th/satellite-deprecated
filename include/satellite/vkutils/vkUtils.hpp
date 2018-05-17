@@ -19,8 +19,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer> &commandBuffers, bool async = true)
-    {
+    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer>& commandBuffers, bool async = true) {
         std::vector<vk::SubmitInfo> submitInfos = {
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
         };
@@ -49,12 +48,7 @@ namespace NSM
     };
 
     // finish temporary command buffer function
-    void flushCommandBuffers(const Queue deviceQueue,
-        const std::vector<vk::CommandBuffer> &commandBuffers,
-        const std::function<void()> &asyncCallback)
-    {
-        for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
-
+    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer>& commandBuffers, const std::function<void()> &asyncCallback) {
         std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) };
 
         // submit and don't disagree sequences
@@ -72,6 +66,27 @@ namespace NSM
         });
     };
 
+
+    // finish temporary command buffer function
+    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer>& commandBuffers, vk::SubmitInfo sinfo) {
+        std::vector<vk::SubmitInfo> submitInfos = { sinfo.setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) };
+
+        // submit and don't disagree sequences
+        for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
+        vk::Fence fence = deviceQueue->device->logical.createFence(vk::FenceCreateInfo());
+        deviceQueue->queue.submit(submitInfos, fence);
+
+        std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            std::async(std::launch::async | std::launch::deferred, [=]() {
+                deviceQueue->device->logical.destroyFence(fence);
+                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, commandBuffers);
+            });
+        });
+    };
+
+
+    /*
     // finish temporary command buffer function
     void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
     {
@@ -136,6 +151,7 @@ namespace NSM
             asyncCallback();
         });
     };
+    */
 
     // transition texture layout
     void imageBarrier(const vk::CommandBuffer &cmd, Image image, vk::ImageLayout oldLayout) {
@@ -292,7 +308,7 @@ namespace NSM
         // do layout transition
         auto commandBuffer = getCommandBuffer(deviceQueue, true);
         imageBarrier(commandBuffer, texture); // transit to new layouts
-        flushCommandBuffer(deviceQueue, commandBuffer, true);
+        flushCommandBuffers(deviceQueue, { commandBuffer }, true);
         return std::move(texture);
     }
 
@@ -590,63 +606,32 @@ namespace NSM
 
 
 
-    auto makeDispatchCommand(ComputeContext compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+    auto makeDispatchCommand(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
         auto commandBuffer = getCommandBuffer(compute->queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
-        commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
+        commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
         if (end) commandBuffer.end();
         return commandBuffer;
     }
-
-    auto dispatchCompute(ComputeContext compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets) {
+    
+    // may used with push constants
+    template<class T = uint32_t>
+    auto dispatchCompute(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, const T * instanceConst) {
         auto commandBuffer = getCommandBuffer(compute->queue, true);
+        commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(T), instanceConst);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
-        commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
-        flushCommandBuffer(compute->queue, commandBuffer, true);
+        commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        flushCommandBuffers(compute->queue, { commandBuffer }, true);
     }
 
-
-
-
-    auto makeDispatchCommand(ComputeContext compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+    auto dispatchCompute(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets) {
         auto commandBuffer = getCommandBuffer(compute->queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
-        commandBuffer.dispatch(workGroups1D, 1, 1);
-        if (end) commandBuffer.end();
-        return commandBuffer;
-    }
-
-
-
-    auto dispatchCompute(ComputeContext compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute->queue, true);
-        commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
-        commandBuffer.dispatch(workGroups1D, 1, 1);
-        flushCommandBuffer(compute->queue, commandBuffer, true);
-    }
-
-
-    auto dispatchCompute(ComputeContext compute, glm::uvec2 workGroups2D, const std::vector<vk::DescriptorSet>& sets, const uint32_t &instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute->queue, true);
-        commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(instanceConst), &instanceConst);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
-        commandBuffer.dispatch(workGroups2D.x, workGroups2D.y, 1);
-        flushCommandBuffer(compute->queue, commandBuffer, true);
-    }
-
-
-    auto dispatchCompute(ComputeContext compute, uint32_t workGroups1D, const std::vector<vk::DescriptorSet>& sets) {
-        auto commandBuffer = getCommandBuffer(compute->queue, true);
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
-        commandBuffer.dispatch(workGroups1D, 1, 1);
-        flushCommandBuffer(compute->queue, commandBuffer, true);
+        commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        flushCommandBuffers(compute->queue, { commandBuffer }, true);
     }
 
 

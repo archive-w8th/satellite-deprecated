@@ -117,7 +117,7 @@ namespace NSM {
             // upload to buffer
             auto commandBuffer = getCommandBuffer(queue, true);
             bufferSubData(commandBuffer, VarStaging, steps, 0);
-            flushCommandBuffer(queue, commandBuffer, true);
+            flushCommandBuffers(queue, { commandBuffer }, true);
 
             // copy headers buffer command
             std::vector<vk::CommandBuffer> copyBuffers;
@@ -135,9 +135,9 @@ namespace NSM {
             copyToBuffers.end();
 
             // make command buffers
-            auto histogramCommand = makeDispatchCommand(histogram, glm::uvec2(WG_COUNT, RADICE_AFFINE), descriptorSets);
-            auto workPrefixCommand = makeDispatchCommand(workPrefixSum, 1, descriptorSets);
-            auto permuteCommand = makeDispatchCommand(permute, glm::uvec2(WG_COUNT, RADICE_AFFINE), descriptorSets);
+            auto histogramCommand = makeDispatchCommand(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
+            auto workPrefixCommand = makeDispatchCommand(workPrefixSum, { 1u, 1u, 1u }, descriptorSets);
+            auto permuteCommand = makeDispatchCommand(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
             
             // stepped radix sort
             std::vector<vk::SubmitInfo> buildSubmitInfos;

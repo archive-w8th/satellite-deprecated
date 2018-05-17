@@ -18,7 +18,7 @@ namespace NSM
             memoryCopyCmd(command, lightUniform.staging, lightUniform.buffer, { 0, 0, strided<LightUniformStruct>(lightUniformData.size()) });
             memoryCopyCmd(command, rayStreamsUniform.staging, rayStreamsUniform.buffer, { 0, 0, strided<RayStream>(rayStreamsData.size()) });
             memoryCopyCmd(command, shuffledSeqUniform.staging, shuffledSeqUniform.buffer, { 0, 0, strided<uint32_t>(shuffledSeqData.size()) });
-            flushCommandBuffer(queue, command, true);
+            flushCommandBuffers(queue, { command }, true);
         }
 
         void Pipeline::initDescriptorSets()
@@ -126,12 +126,12 @@ namespace NSM
         void Pipeline::reloadQueuedRays()
         {
             // collect colors to texels
-            dispatchCompute(binCollect, INTENSIVITY, rayTracingDescriptors);
+            dispatchCompute(binCollect, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors);
 
             // getting counters values
             std::vector<int32_t> counters(8);
             auto copyCmd = createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
-            flushCommandBuffer(queue, copyCmd, false);
+            flushCommandBuffers(queue, { copyCmd }, false);
             getBufferSubData(generalLoadingBuffer, counters, 0);
 
             counters[AVAILABLE_COUNTER] = counters[AVAILABLE_COUNTER] >= 0 ? counters[AVAILABLE_COUNTER] : 0;
@@ -144,7 +144,7 @@ namespace NSM
                 auto commandBuffer = getCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, generalStagingBuffer, counters, 0);
                 memoryCopyCmd(commandBuffer, generalStagingBuffer, countersBuffer, { 0, 0, strided<uint32_t>(8) });
-                flushCommandBuffer(queue, commandBuffer, true);
+                flushCommandBuffers(queue, { commandBuffer }, true);
             }
 
             // setup active blocks count in host
@@ -204,7 +204,7 @@ namespace NSM
                 auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
-                flushCommandBuffer(queue, command, true);
+                flushCommandBuffers(queue, { command }, true);
             }
 
             auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(rayTracingDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
@@ -227,7 +227,7 @@ namespace NSM
                     auto command = getCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f) }));
                     memoryCopyCmd(command, tstage, nullEnvImage, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(nullEnvImage->subresourceLayers));
-                    flushCommandBuffer(queue, command, [=]() {  });
+                    flushCommandBuffers(queue, { command }, [=]() {});
                 }
 
                 // update descriptors
@@ -253,7 +253,7 @@ namespace NSM
                     auto command = getCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) }));
                     memoryCopyCmd(command, tstage, nullImage, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(nullEnvImage->subresourceLayers));
-                    flushCommandBuffer(queue, command, [=]() {  });
+                    flushCommandBuffers(queue, { command }, [=]() {});
                 }
 
                 // write with same images
@@ -325,7 +325,7 @@ namespace NSM
         void Pipeline::clearRays()
         {
             rayBlockData[0].samplerUniform.iterationCount = 0;
-            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }), true);
+            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }) }, true);
         }
 
         void Pipeline::resizeCanvas(uint32_t width, uint32_t height)
@@ -462,9 +462,9 @@ namespace NSM
             memoryCopyCmd(copyCommand, accumulationImage, filteredImage, copyDesc);
 
             // execute commands
-            if (doCleanSamples) dispatchCompute(clearSamples, INTENSIVITY, samplingDescriptors);
-            dispatchCompute(sampleCollection, INTENSIVITY, samplingDescriptors);
-            flushCommandBuffer(queue, copyCommand, true);
+            if (doCleanSamples) dispatchCompute(clearSamples, { INTENSIVITY, 1u, 1u }, samplingDescriptors);
+            dispatchCompute(sampleCollection, { INTENSIVITY, 1u, 1u }, samplingDescriptors);
+            flushCommandBuffers(queue, { copyCommand }, true);
 
             // unflag
             doCleanSamples = false;
@@ -485,8 +485,8 @@ namespace NSM
             memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
 
             // flush commands
-            flushCommandBuffer(queue, copyCommandBuffer, true);
-            dispatchCompute(rayShadePipeline, INTENSIVITY, rayTracingDescriptors);
+            flushCommandBuffers(queue, { copyCommandBuffer }, true);
+            dispatchCompute(rayShadePipeline, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors);
 
             // refine rays
             reloadQueuedRays();
@@ -536,7 +536,7 @@ namespace NSM
             syncUniforms();
 
             // shorter dispatcher of generation
-            dispatchCompute(rayGeneration, INTENSIVITY, rayTracingDescriptors);
+            dispatchCompute(rayGeneration, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors);
 
             // refine rays
             reloadQueuedRays();
@@ -577,7 +577,7 @@ namespace NSM
                 auto copyCommand = getCommandBuffer(queue, true);
                 bufferSubData(copyCommand, generalStagingBuffer, mcount, 0); // upload to staging
                 memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-                flushCommandBuffer(queue, copyCommand, true);
+                flushCommandBuffers(queue, { copyCommand }, true);
             }
 
             auto materialBuffer = boundMaterialSet->getBuffer();
@@ -674,7 +674,7 @@ namespace NSM
                 auto copyCommand = getCommandBuffer(queue, true);
                 bufferSubData(copyCommand, generalStagingBuffer, mcount); // upload to staging
                 memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
-                flushCommandBuffer(queue, copyCommand, true);
+                flushCommandBuffers(queue, { copyCommand }, true);
 
                 // trigger update 
                 boundMaterialSet->getBuffer();
@@ -688,17 +688,17 @@ namespace NSM
             // reset hit counter
             auto copyCommand = getCommandBuffer(queue, true);
             memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
-            flushCommandBuffer(queue, copyCommand, true);
+            flushCommandBuffers(queue, { copyCommand }, true);
 
             // form descriptors for traversers
             TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
-            dispatchCompute(unorderedFormer, INTENSIVITY, rayTracingDescriptors);
+            dispatchCompute(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors);
 
             // push bvh traverse commands
             for (auto& him : hstorages) { him->queryTraverse(tbsData); }
 
             // push surface shaders commands
-            dispatchCompute(surfaceShadingPpl, INTENSIVITY, surfaceDescriptors);
+            dispatchCompute(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors);
 
             return;
         }

@@ -93,7 +93,7 @@ namespace NSM
                 auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
-                flushCommandBuffer(queue, command, true);
+                flushCommandBuffers(queue, { command }, true);
             }
 
             resetAccumulationCounter();
@@ -101,7 +101,7 @@ namespace NSM
 
         void GeometryAccumulator::resetAccumulationCounter()
         {
-            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, geometryCounter, { 0, 0, strided<uint32_t>(2) }), true);
+            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, geometryCounter, { 0, 0, strided<uint32_t>(2) }) }, true);
         }
 
         void GeometryAccumulator::allocatePrimitiveReserve(size_t primitiveCount)
@@ -138,7 +138,7 @@ namespace NSM
                         vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&dstruct.vInstanceBufferInfos[5]),
                 }, nullptr);
             }
-            dispatchCompute(geometryLoader, glm::uvec2(INTENSIVITY, count), loaderDescriptorSets, instanceConst);
+            dispatchCompute(geometryLoader, { uint32_t(INTENSIVITY), uint32_t(count), 1u }, loaderDescriptorSets, &instanceConst);
         };
 
         void GeometryAccumulator::pushGeometry(std::shared_ptr<VertexInstance> vertexInstance, bool needUpdateDescriptor, uint32_t instanceConst) {
@@ -155,8 +155,8 @@ namespace NSM
                 }, nullptr);
             }
 
-            dispatchCompute(geometryLoader, INTENSIVITY, loaderDescriptorSets, instanceConst);
-            flushCommandBuffer(queue, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }), true); // save counted state
+            dispatchCompute(geometryLoader, { INTENSIVITY, 1u, 1u }, loaderDescriptorSets, &instanceConst);
+            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }) }, true); // save counted state
         }
 
     }

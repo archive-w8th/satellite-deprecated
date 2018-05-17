@@ -85,7 +85,7 @@ namespace NSM
                 auto command = getCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
-                flushCommandBuffer(queue, command, true);
+                flushCommandBuffers(queue, { command }, true);
             }
 
             {
@@ -145,8 +145,8 @@ namespace NSM
             }, nullptr);
 
             // dispatch traversing
-            dispatchCompute(bvhTraverse, INTENSIVITY, clientDescriptorSets);
-            dispatchCompute(vertexInterpolator, INTENSIVITY, clientDescriptorSets);
+            dispatchCompute(bvhTraverse, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets);
+            dispatchCompute(vertexInterpolator, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets);
         }
     }
 } // namespace NSM

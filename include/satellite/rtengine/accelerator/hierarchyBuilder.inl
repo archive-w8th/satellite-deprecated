@@ -250,7 +250,8 @@ namespace NSM
 
             
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            dispatchCompute(refitBVH, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+            dispatchCompute(refitBVH, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
+            //dispatchCompute(refitBVH, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 
             
             if (triangleCount[0] > 0) {

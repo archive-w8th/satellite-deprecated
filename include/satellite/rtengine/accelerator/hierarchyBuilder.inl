@@ -232,7 +232,7 @@ namespace NSM
                 if (nodeTaskCount[0] <= 0) break;
 
                 // submit GPU operate long as possible 
-                for (int j = 0; j < 8;j++) {
+                for (int j = 0; j < 4;j++) {
                     //executeCommands(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true);
                     executeCommands(queue, { copy_cmd_ }, true);
                     executeCommands(queue, { disp_cmd_ }, true);

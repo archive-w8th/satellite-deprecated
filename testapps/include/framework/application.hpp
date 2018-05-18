@@ -25,7 +25,7 @@ namespace SatelliteExample {
         auto tstage = createBuffer(devQueue, image.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
         {
-            auto command = getCommandBuffer(devQueue, true);
+            auto command = createCommandBuffer(devQueue, true);
             bufferSubData(command, tstage, (const uint8_t *)image.data(), image.size() * sizeof(float), 0);
             memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                 .setImageExtent({ width, height, 1 })
@@ -149,7 +149,7 @@ namespace SatelliteExample {
                 auto viewport = vk::Viewport(0.0f, 0.0f, appfw->size().width, appfw->size().height, 0, 1.0f);
 
                 // bind with framebuffer 
-                currentContext->framebuffers[n_semaphore].commandBuffer = getCommandBuffer(currentContext->queue, true);
+                currentContext->framebuffers[n_semaphore].commandBuffer = createCommandBuffer(currentContext->queue, true);
 
                 // create command buffer (with rewrite)
                 auto& commandBuffer = currentContext->framebuffers[n_semaphore].commandBuffer; // do reference of cmd buffer

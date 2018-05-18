@@ -115,7 +115,7 @@ namespace NSM {
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
 
             // upload to buffer
-            auto commandBuffer = getCommandBuffer(queue, true);
+            auto commandBuffer = createCommandBuffer(queue, true);
             bufferSubData(commandBuffer, VarStaging, steps, 0);
             flushCommandBuffers(queue, { commandBuffer }, true);
 
@@ -129,7 +129,7 @@ namespace NSM {
             }
 
             // copy back
-            auto copyToBuffers = getCommandBuffer(queue, true);
+            auto copyToBuffers = createCommandBuffer(queue, true);
             memoryCopyCmd(copyToBuffers, TmpKeys  , InKeys, { 0, 0, strided<uint64_t>(size) });
             memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
             copyToBuffers.end();

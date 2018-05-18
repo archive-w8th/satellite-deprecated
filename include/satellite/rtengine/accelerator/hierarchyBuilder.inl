@@ -91,7 +91,7 @@ namespace NSM
                 std::for_each(std::execution::par_unseq, ones.begin(), ones.end(), [&](auto&& m) { m = 1u; });
 
                 // make reference buffers
-                auto command = getCommandBuffer(queue, true);
+                auto command = createCommandBuffer(queue, true);
                 bufferSubData(command, boundaryBufferReference, minmaxes, 0); // make reference buffer of boundary
                 bufferSubData(command, zerosBufferReference, zeros, 0);       // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
@@ -118,7 +118,7 @@ namespace NSM
         }
 
         void HieararchyBuilder::syncUniforms() {
-            auto command = getCommandBuffer(queue, true);
+            auto command = createCommandBuffer(queue, true);
             bufferSubData(command, bvhBlockUniform.staging, bvhBlockData, 0);
             memoryCopyCmd(command, bvhBlockUniform.staging, bvhBlockUniform.buffer, { 0, 0, strided<BVHBlockUniform>(1) });
             flushCommandBuffers(queue, { command }, true);
@@ -153,7 +153,7 @@ namespace NSM
                 copyDesc.dstSubresource = hierarchyStorageLink->getAttributeTexel()->subresourceLayers;
 
                 // copy images command
-                auto command = getCommandBuffer(queue, true);
+                auto command = createCommandBuffer(queue, true);
                 memoryCopyCmd(command, geometrySourceLink->getAttributeTexel(), hierarchyStorageLink->getAttributeTexel(), copyDesc);
                 memoryCopyCmd(command, geometrySourceLink->getMaterialIndices(), hierarchyStorageLink->getMaterialIndices(), { 0, 0, strided<uint32_t>(triangleCount[0]) });
                 memoryCopyCmd(command, geometrySourceLink->getVertexLinear(), hierarchyStorageLink->getVertexLinear(), { 0, 0, strided<float>(triangleCount[0] * 9) });
@@ -259,7 +259,7 @@ namespace NSM
             }
 
             { // resolve BVH buffers for copying
-                auto command = getCommandBuffer(queue, true);
+                auto command = createCommandBuffer(queue, true);
                 memoryCopyCmd(command, bvhMetaWorking, hierarchyStorageLink->getBvhMeta(), { 0, 0, strided<glm::ivec4>(triangleCount[0] * 2) });
                 memoryCopyCmd(command, bvhBoxWorkingResulting, hierarchyStorageLink->getBvhBox(), { 0, 0, strided<glm::mat4>(triangleCount[0]) });
                 flushCommandBuffers(queue, { command }, true);

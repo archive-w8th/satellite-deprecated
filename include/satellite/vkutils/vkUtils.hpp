@@ -2,19 +2,23 @@
 
 #include "./vkStructures.hpp"
 
-namespace NSM
-{
+namespace NSM {
 
-    // get or create command buffer
-    auto getCommandBuffer(const Queue deviceQueue, bool begin = true)
-    {
-        vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
-        if (begin) cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+    void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
         cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe |
             vk::PipelineStageFlagBits::eTransfer,
             vk::PipelineStageFlagBits::eTopOfPipe |
             vk::PipelineStageFlagBits::eTransfer,
             {}, nullptr, nullptr, nullptr);
+    };
+
+    // get or create command buffer
+    auto createCommandBuffer(const Queue deviceQueue, bool begin = true) {
+        vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
+        if (begin) {
+            cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+            commandBarrier(cmdBuffer);
+        }
         return cmdBuffer;
     };
 
@@ -306,7 +310,7 @@ namespace NSM
         texture->initialized = true;
 
         // do layout transition
-        auto commandBuffer = getCommandBuffer(deviceQueue, true);
+        auto commandBuffer = createCommandBuffer(deviceQueue, true);
         imageBarrier(commandBuffer, texture); // transit to new layouts
         flushCommandBuffers(deviceQueue, { commandBuffer }, true);
         return std::move(texture);
@@ -428,14 +432,14 @@ namespace NSM
     template<class ...T>
     void copyMemoryProxy(const Queue deviceQueue, T... args, bool async =
     true) { // copy staging buffers vk::CommandBuffer copyCmd =
-    getCommandBuffer(deviceQueue, true); memoryCopyCmd(copyCmd, args...);
+    createCommandBuffer(deviceQueue, true); memoryCopyCmd(copyCmd, args...);
     flushCommandBuffer(deviceQueue, copyCmd, async);
     }
 
     template<class ...T>
     void copyMemoryProxy(const Queue deviceQueue, T... args, const
     std::function<void()>& asyncCallback) { // copy staging buffers
-        vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
+        vk::CommandBuffer copyCmd = createCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...); flushCommandBuffer(deviceQueue, copyCmd,
     asyncCallback);
     }
@@ -445,7 +449,7 @@ namespace NSM
     vk::CommandBuffer createCopyCmd(const Queue deviceQueue,
         T... args)
     { // copy staging buffers
-        vk::CommandBuffer copyCmd = getCommandBuffer(deviceQueue, true);
+        vk::CommandBuffer copyCmd = createCommandBuffer(deviceQueue, true);
         memoryCopyCmd(copyCmd, args...); // flushCommandBuffer(deviceQueue, copyCmd, async);
         return copyCmd;
     }
@@ -607,7 +611,7 @@ namespace NSM
 
 
     auto makeDispatchCommand(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
-        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        auto commandBuffer = createCommandBuffer(compute->queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
@@ -618,7 +622,7 @@ namespace NSM
     // may used with push constants
     template<class T = uint32_t>
     auto dispatchCompute(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, const T * instanceConst) {
-        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        auto commandBuffer = createCommandBuffer(compute->queue, true);
         commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(T), instanceConst);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
@@ -627,7 +631,7 @@ namespace NSM
     }
 
     auto dispatchCompute(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets) {
-        auto commandBuffer = getCommandBuffer(compute->queue, true);
+        auto commandBuffer = createCommandBuffer(compute->queue, true);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);

@@ -77,7 +77,7 @@ namespace NSM
             if (needUpdate) {
                 // copy materials
                 {
-                    auto commandBuffer = getCommandBuffer(device, true);
+                    auto commandBuffer = createCommandBuffer(device, true);
                     bufferSubData(commandBuffer, countBuffer, std::vector<int32_t>{int32_t(loadOffset), int32_t(materials.size())}, 0);
                     bufferSubData(commandBuffer, materialStaging, materials, 0);
                     memoryCopyCmd(commandBuffer, materialStaging, materialBuffer, { 0, 0, strided<VirtualMaterial>(materials.size()) });
@@ -86,7 +86,7 @@ namespace NSM
 
                 // copy virtual textures
                 {
-                    auto commandBuffer = getCommandBuffer(device, true);
+                    auto commandBuffer = createCommandBuffer(device, true);
                     bufferSubData(commandBuffer, materialStaging, vtextures, 0);
                     memoryCopyCmd(commandBuffer, materialStaging, vtexturesBuffer, { 0, 0, strided<glm::uvec2>(vtextures.size()) });
                     flushCommandBuffer(device, commandBuffer, true);

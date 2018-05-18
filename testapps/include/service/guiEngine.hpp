@@ -366,7 +366,7 @@ namespace NSM {
                             scissors[0].extent.width = uint32_t(abs(pcmd->ClipRect.z - pcmd->ClipRect.x));
                             scissors[0].extent.height = uint32_t(abs(pcmd->ClipRect.w - pcmd->ClipRect.y));
 
-                            auto commandBuffer = getCommandBuffer(device, true);
+                            auto commandBuffer = createCommandBuffer(device, true);
                             commandBuffer.beginRenderPass(vk::RenderPassBeginInfo(renderpass, framebuffer.frameBuffer, renderArea, clearValues.size(), clearValues.data()), vk::SubpassContents::eInline);
                             commandBuffer.setViewport(0, viewports);
                             commandBuffer.setScissor(0, scissors);

@@ -56,7 +56,7 @@ namespace NSM
         Buffer BufferComposer<BINDING, STRUCTURE>::getBuffer()
         {
             if (data.size() > 0 && needUpdateBuffer) {
-                auto commandBuffer = getCommandBuffer(queue, true);
+                auto commandBuffer = createCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, stager, data, 0);
                 memoryCopyCmd(commandBuffer, stager, cache, { 0, 0, strided<STRUCTURE>(data.size()) });
                 flushCommandBuffers(queue, { commandBuffer }, true);
@@ -119,7 +119,7 @@ namespace NSM
         intptr_t BufferSpace::copyHostBuffer(const uint8_t *external, const size_t size, const intptr_t offset) {
             if (size > 0)
             {
-                auto commandBuffer = getCommandBuffer(queue, true);
+                auto commandBuffer = createCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, dataStage, external, size, 0);
                 memoryCopyCmd(commandBuffer, dataStage, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) });
                 flushCommandBuffers(queue, { commandBuffer }, true);

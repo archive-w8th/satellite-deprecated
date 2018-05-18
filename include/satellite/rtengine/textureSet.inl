@@ -78,7 +78,7 @@ namespace NSM {
 
             // purple-black square
             {
-                auto command = getCommandBuffer(queue, true);
+                auto command = createCommandBuffer(queue, true);
                 bufferSubData(command, tstage, (const uint8_t *)image->image.data(), image->image.size(), 0);
                 memoryCopyCmd(command, tstage, texture, vk::BufferImageCopy()
                     .setImageExtent({ uint32_t(image->width), uint32_t(image->height), 1 })

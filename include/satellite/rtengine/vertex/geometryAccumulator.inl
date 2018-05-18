@@ -90,7 +90,7 @@ namespace NSM
                 std::for_each(std::execution::par_unseq, ones.begin(), ones.end(), [&](auto&& m) { m = 1u; });
 
                 // make reference buffers
-                auto command = getCommandBuffer(queue, true);
+                auto command = createCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
                 flushCommandBuffers(queue, { command }, true);

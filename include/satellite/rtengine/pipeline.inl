@@ -9,7 +9,7 @@ namespace NSM
 
         void Pipeline::syncUniforms()
         {
-            auto command = getCommandBuffer(queue, true);
+            auto command = createCommandBuffer(queue, true);
             bufferSubData(command, rayBlockUniform.staging, rayBlockData, 0);
             bufferSubData(command, lightUniform.staging, lightUniformData, 0);
             bufferSubData(command, rayStreamsUniform.staging, rayStreamsData, 0);
@@ -141,7 +141,7 @@ namespace NSM
 
             // set bounded
             {
-                auto commandBuffer = getCommandBuffer(queue, true);
+                auto commandBuffer = createCommandBuffer(queue, true);
                 bufferSubData(commandBuffer, generalStagingBuffer, counters, 0);
                 memoryCopyCmd(commandBuffer, generalStagingBuffer, countersBuffer, { 0, 0, strided<uint32_t>(8) });
                 flushCommandBuffers(queue, { commandBuffer }, true);
@@ -151,7 +151,7 @@ namespace NSM
             rayBlockData[0].samplerUniform.blockCount = counters[PREPARING_BLOCK_COUNTER];
 
             // copying batch
-            auto command = getCommandBuffer(queue, true);
+            auto command = createCommandBuffer(queue, true);
             memoryCopyCmd(command, countersBuffer, rayBlockUniform.buffer, { strided<uint32_t>(PREPARING_BLOCK_COUNTER), offsetof(RayBlockUniform, samplerUniform) + offsetof(SamplerUniformStruct, blockCount), sizeof(uint32_t) });
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(CLEANING_COUNTER), sizeof(uint32_t) });
             memoryCopyCmd(command, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(PREPARING_BLOCK_COUNTER), sizeof(uint32_t) });
@@ -201,7 +201,7 @@ namespace NSM
 
             {
                 // make reference buffers
-                auto command = getCommandBuffer(queue, true);
+                auto command = createCommandBuffer(queue, true);
                 bufferSubData(command, zerosBufferReference, zeros, 0); // make reference of zeros
                 bufferSubData(command, debugOnes32BufferReference, ones, 0);
                 flushCommandBuffers(queue, { command }, true);
@@ -224,7 +224,7 @@ namespace NSM
 
                 // purple-black square
                 {
-                    auto command = getCommandBuffer(queue, true);
+                    auto command = createCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f), glm::vec4(0.8f, 0.9f, 1.0f, 1.0f) }));
                     memoryCopyCmd(command, tstage, nullEnvImage, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(nullEnvImage->subresourceLayers));
                     flushCommandBuffers(queue, { command }, [=]() {});
@@ -250,7 +250,7 @@ namespace NSM
 
                 // purple-black square
                 {
-                    auto command = getCommandBuffer(queue, true);
+                    auto command = createCommandBuffer(queue, true);
                     bufferSubData(command, tstage, std::vector<glm::vec4>({ glm::vec4(0.5f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), glm::vec4(0.5f, 0.5f, 0.5f, 1.0f) }));
                     memoryCopyCmd(command, tstage, nullImage, vk::BufferImageCopy().setImageExtent({ 2, 2, 1 }).setImageOffset({ 0, 0, 0 }).setBufferOffset(0).setBufferRowLength(2).setBufferImageHeight(2).setImageSubresource(nullEnvImage->subresourceLayers));
                     flushCommandBuffers(queue, { command }, [=]() {});
@@ -447,7 +447,7 @@ namespace NSM
             copyDesc.extent = { uint32_t(canvasWidth), uint32_t(canvasHeight), 1 };
 
             // copy images command
-            auto copyCommand = getCommandBuffer(queue, true);
+            auto copyCommand = createCommandBuffer(queue, true);
             copyDesc.srcSubresource = accumulationImage->subresourceLayers;
             copyDesc.dstSubresource = accumulationImage->subresourceLayers;
             memoryCopyCmd(copyCommand, accumulationImage, accumulationImage, copyDesc);
@@ -479,7 +479,7 @@ namespace NSM
             //auto rft = offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, time); // choice update target offset
 
             // copy commands
-            auto copyCommandBuffer = getCommandBuffer(queue, true);
+            auto copyCommandBuffer = createCommandBuffer(queue, true);
             bufferSubData(copyCommandBuffer, rayBlockUniform.staging, rayBlockData, 0);
             memoryCopyCmd(copyCommandBuffer, rayBlockUniform.staging, rayBlockUniform.buffer, { fft, fft, sizeof(uint32_t) });                     // don't touch criticals
             memoryCopyCmd(copyCommandBuffer, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(UNORDERED_COUNTER), sizeof(uint32_t) }); // don't touch criticals
@@ -574,7 +574,7 @@ namespace NSM
                 memcpy(&rayBlockData[0].materialUniform.materialOffset, mcount.data(), mcount.size() * sizeof(glm::uvec2)); // copy to original uniform
 
                 // copy to surfaces and update material set
-                auto copyCommand = getCommandBuffer(queue, true);
+                auto copyCommand = createCommandBuffer(queue, true);
                 bufferSubData(copyCommand, generalStagingBuffer, mcount, 0); // upload to staging
                 memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
                 flushCommandBuffers(queue, { copyCommand }, true);
@@ -671,7 +671,7 @@ namespace NSM
                 memcpy(&rayBlockData[0].materialUniform.materialOffset, mcount.data(), mcount.size() * sizeof(glm::uvec2)); // copy to original uniform
 
                 // copy to surfaces and update material set
-                auto copyCommand = getCommandBuffer(queue, true);
+                auto copyCommand = createCommandBuffer(queue, true);
                 bufferSubData(copyCommand, generalStagingBuffer, mcount); // upload to staging
                 memoryCopyCmd(copyCommand, generalStagingBuffer, rayBlockUniform.buffer, { 0, offsetof(RayBlockUniform, materialUniform) + offsetof(MaterialUniformStruct, materialOffset), sizeof(int32_t) * 2 });
                 flushCommandBuffers(queue, { copyCommand }, true);
@@ -686,7 +686,7 @@ namespace NSM
             }
 
             // reset hit counter
-            auto copyCommand = getCommandBuffer(queue, true);
+            auto copyCommand = createCommandBuffer(queue, true);
             memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
             flushCommandBuffers(queue, { copyCommand }, true);
 

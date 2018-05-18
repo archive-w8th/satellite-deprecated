@@ -218,7 +218,7 @@ namespace SatelliteExample {
 
         auto memoryBufferToHost = createBuffer(currentContext->queue, imageData.size() * sizeof(float), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_TO_CPU);
         auto texture = rays->getRawImage();
-        flushCommandBuffers(currentContext->queue, { createCopyCmd<Image&, Buffer&, vk::BufferImageCopy>(currentContext->queue, texture, memoryBufferToHost, vk::BufferImageCopy()
+        flushCommandBuffers(currentContext->queue, { makeCopyCmd<Image&, Buffer&, vk::BufferImageCopy>(currentContext->queue, texture, memoryBufferToHost, vk::BufferImageCopy()
             .setImageExtent({ width, height, 1 })
             .setImageOffset({ 0, int32_t(height), 0 }) // copy ready (rendered) image
             .setBufferOffset(0)

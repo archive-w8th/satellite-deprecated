@@ -22,14 +22,42 @@ namespace NSM {
         return cmdBuffer;
     };
 
+
+    // should be done by ".end()", we at now have no "autoend" mechanism for Vulkan API
+    // usefull for dispatch command, that can be reused
+    void executeCommands(const Queue deviceQueue, const std::vector<vk::CommandBuffer>& commandBuffers, bool async = true) {
+        std::vector<vk::SubmitInfo> submitInfos = {
+            vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data())
+        };
+
+        auto fence = async ? deviceQueue->device->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
+        deviceQueue->queue.submit(submitInfos, fence);
+
+        if (async) {
+            std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
+                deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+                deviceQueue->device->logical.destroyFence(fence);
+            });
+        } else {
+            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
+            std::async(std::launch::async | std::launch::deferred, [=]() {
+                deviceQueue->device->logical.resetFences(1, &fence);
+            });
+        }
+    };
+
+
+
     // finish temporary command buffer function
-    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer>& commandBuffers, bool async = true) {
+    void flushCommandBuffers(const Queue deviceQueue, const std::vector<vk::CommandBuffer>& commandBuffers, bool async = true, bool needEnd = true) {
         std::vector<vk::SubmitInfo> submitInfos = {
             vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(commandBuffers.size()).setPCommandBuffers(commandBuffers.data()) 
         };
 
         // submit and don't disagree sequences
-        for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
+        if (needEnd) {
+            for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
+        }
         auto fence = async ? deviceQueue->device->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
         deviceQueue->queue.submit(submitInfos, fence);
 
@@ -446,11 +474,11 @@ namespace NSM {
     */
 
     template <class... T>
-    vk::CommandBuffer createCopyCmd(const Queue deviceQueue,
-        T... args)
+    vk::CommandBuffer makeCopyCmd(const Queue deviceQueue, T... args, bool end = false)
     { // copy staging buffers
         vk::CommandBuffer copyCmd = createCommandBuffer(deviceQueue, true);
-        memoryCopyCmd(copyCmd, args...); // flushCommandBuffer(deviceQueue, copyCmd, async);
+        memoryCopyCmd(copyCmd, args...);
+        if (end) copyCmd.end();
         return copyCmd;
     }
 
@@ -481,29 +509,6 @@ namespace NSM {
     }
 
 
-    /*
-    // destroy buffer function (by linked device)
-    void destroyBuffer(Buffer buffer) {
-        std::async(std::launch::async | std::launch::deferred, [=]() {
-            if (buffer && buffer->initialized) {
-                buffer->queue->device->logical.waitIdle();
-                vmaDestroyBuffer(buffer->queue->device->allocator, buffer->buffer, buffer->allocation);
-                buffer->initialized = false;
-            }
-        });
-    }
-
-    void destroyImage(Image image) {
-        std::async(std::launch::async | std::launch::deferred, [=]() {
-            if (image && image->initialized) {
-                image->queue->device->logical.waitIdle();
-                vmaDestroyImage(image->queue->device->allocator, image->image, image->allocation);
-                image->initialized = false;
-            }
-        });
-    }*/
-
-
     // destructors for shared pointer system
     BufferType::~BufferType() {
         this->queue->device->logical.waitIdle();
@@ -516,7 +521,6 @@ namespace NSM {
                 buffer->initialized = false;
             }
         });
-        //destroyBuffer(shared_from_this());
     }
 
     // destructors for shared pointer system
@@ -531,15 +535,12 @@ namespace NSM {
                 image->initialized = false;
             }
         });
-        //destroyImage(shared_from_this());
     }
 
 
 
     // read source (unused)
-    std::string readSource(const std::string &filePath,
-        const bool &lineDirective = false)
-    {
+    std::string readSource(const std::string &filePath, const bool &lineDirective = false) {
         std::string content;
         std::ifstream fileStream(filePath, std::ios::in);
         if (!fileStream.is_open())
@@ -560,8 +561,7 @@ namespace NSM {
     }
 
     // read binary (for SPIR-V)
-    std::vector<char> readBinary(const std::string &filePath)
-    {
+    std::vector<char> readBinary(const std::string &filePath) {
         std::ifstream file(filePath, std::ios::in | std::ios::binary | std::ios::ate);
         std::vector<char> data;
         if (file.is_open())
@@ -587,9 +587,7 @@ namespace NSM {
 
     // create compute pipeline
     auto createCompute(Queue queue, std::string path, vk::PipelineLayout &layout) {
-        auto cmpi = vk::ComputePipelineCreateInfo()
-            .setStage(vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(queue->device, path)).setPName("main").setStage(vk::ShaderStageFlagBits::eCompute))
-            .setLayout(layout);
+        auto cmpi = vk::ComputePipelineCreateInfo().setStage(vk::PipelineShaderStageCreateInfo().setModule(loadAndCreateShaderModule(queue->device, path)).setPName("main").setStage(vk::ShaderStageFlagBits::eCompute)).setLayout(layout);
 
         vk::Pipeline pipeline;
         try {
@@ -610,8 +608,20 @@ namespace NSM {
 
 
 
-    auto makeDispatchCommand(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
+    auto makeDispatchCmd(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
         auto commandBuffer = createCommandBuffer(compute->queue, true);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
+        commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        if (end) commandBuffer.end();
+        return commandBuffer;
+    }
+
+    // make dispatch with push constant
+    template<class T = uint32_t>
+    auto makeDispatchCmd(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, const T * instanceConst, bool end = true) {
+        auto commandBuffer = createCommandBuffer(compute->queue, true);
+        commandBuffer.pushConstants(compute->pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(T), instanceConst);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);

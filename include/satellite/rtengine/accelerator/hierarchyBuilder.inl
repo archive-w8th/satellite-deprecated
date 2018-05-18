@@ -114,7 +114,7 @@ namespace NSM
             }
 
             // initial counters
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
         }
 
         void HieararchyBuilder::syncUniforms() {
@@ -126,16 +126,16 @@ namespace NSM
 
         void HieararchyBuilder::build(glm::dmat4 optproj) {
             // reset BVH counters
-            //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
+            //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }), true);
 
             // confirm geometry accumulation by counter (planned locking ops)
             auto geometrySourceCounterHandler = geometrySourceLink->getGeometrySourceCounterHandler();
             auto geometryBlockUniform = hierarchyStorageLink->getGeometryBlockUniform();
-            flushCommandBuffers(queue, {createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1)})}, true); //
+            flushCommandBuffers(queue, {makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, geometryBlockUniform.buffer, { strided<uint32_t>(0), offsetof(GeometryBlockUniform, geometryUniform) + offsetof(GeometryUniformStruct, triangleCount), strided<uint32_t>(1)})}, true); //
 
             // get triangle count from staging
             std::vector<uint32_t> triangleCount(1);
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, generalLoadingBuffer, { strided<uint32_t>(0), 0, strided<uint32_t>(1) }) }, false); // copy to staging
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometrySourceCounterHandler, generalLoadingBuffer, { strided<uint32_t>(0), 0, strided<uint32_t>(1) }) }, false); // copy to staging
             getBufferSubData(generalLoadingBuffer, triangleCount, 0);
 
             // no need to build BVH
@@ -171,9 +171,9 @@ namespace NSM
             }
 
             // calculate general AABB
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }) }, true);
             dispatchCompute(boundPrimitives, { CACHED_BBOX, 1, 1 }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }) }, false);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }) }, false);
 
             // receive boundary (planned to save in GPU)
             std::vector<bbox> bounds(CACHED_BBOX);
@@ -199,43 +199,54 @@ namespace NSM
             }
 
             // copy bvh optimal transformation to hierarchy storage
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }) }, true);
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(3), strided<uint32_t>(1) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(3), strided<uint32_t>(1) }) }, true);
 
             // calculate leafs and checksums
             dispatchCompute(aabbCalculate, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(3), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }) }, true); // copy to staging  
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, bvhBlockUniform.buffer, { strided<uint32_t>(3), offsetof(BVHBlockUniform, leafCount), strided<uint32_t>(1) }) }, true); // copy to staging  
 
             // need update geometry uniform optimization matrices, and sort morton codes
             radixSort->sort(mortonCodesBuffer, mortonIndicesBuffer, triangleCount[0]); // do radix sort
             
             // refit BVH with linking leafs
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
             dispatchCompute(buildBVHPpl, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 
+            const int swap_ = 1, swap_inv_ = 0;
+            auto cnst = glm::uvec2(swap_, 0u);
+            auto cnst_inv = glm::uvec2(swap_inv_, 0u);
+            
+            auto copy_cmd_ = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(swap_ * 4), strided<uint32_t>(1) }, true);
+            auto copy_cmd_inv_ = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(swap_inv_ * 4), strided<uint32_t>(1) }, true);
+            auto disp_cmd_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst);
+            auto disp_cmd_inv_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst_inv);
 
             // large stages of BVH building
             for (int i = 0; i < 128;i++) {
-                const int swap_ = 1, swap_inv_ = 0;
 
                 // getting counter data
                 std::vector<uint32_t> nodeTaskCount(1);
-                flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer,{ strided<uint32_t>(swap_inv_ * 4), 0, strided<uint32_t>(1) }) }, false); // copy to staging
+                flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer,{ strided<uint32_t>(swap_inv_ * 4), 0, strided<uint32_t>(1) }) }, false); // copy to staging
                 getBufferSubData(generalLoadingBuffer, nodeTaskCount, 0);
                 if (nodeTaskCount[0] <= 0) break;
 
-                // consts for dispatch
-                auto cnst = glm::uvec2(swap_, 0u);
-                auto cnst_inv = glm::uvec2(swap_inv_, 0u);
-
                 // submit GPU operate long as possible 
-                for (int j = 0; j < 4;j++) {
-                    flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(swap_ * 4), strided<uint32_t>(1) }) }, true);
-                    dispatchCompute(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst);
-                    flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(swap_inv_ * 4), strided<uint32_t>(1) }) }, true);
-                    dispatchCompute(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst_inv);
+                for (int j = 0; j < 8;j++) {
+                    //executeCommands(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true);
+                    executeCommands(queue, { copy_cmd_ }, true);
+                    executeCommands(queue, { disp_cmd_ }, true);
+                    executeCommands(queue, { copy_cmd_inv_ }, true);
+                    executeCommands(queue, { disp_cmd_inv_ }, true);
                 }
             }
+
+            // anti-pattern, but we does not made waiter for resolve to free resources
+            //flushCommandBuffers(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true, false);
+            flushCommandBuffers(queue, { copy_cmd_ }, true, false);
+            flushCommandBuffers(queue, { disp_cmd_ }, true, false);
+            flushCommandBuffers(queue, { copy_cmd_inv_ }, true, false);
+            flushCommandBuffers(queue, { disp_cmd_inv_ }, true, false);
 
             
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
@@ -244,17 +255,17 @@ namespace NSM
             
             if (triangleCount[0] > 0) {
                 //std::vector<bbox> bboxes(triangleCount[0] * 2);
-                //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
+                //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
                 //getBufferSubData(generalLoadingBuffer, bboxes);
                 
                 // debug BVH Meta
                 //std::vector<uint64_t> mortons(triangleCount[0]);
-                //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
+                //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
                 //getBufferSubData(generalLoadingBuffer, mortons);
 
                 // debug BVH Meta
                 //std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2);
-                //flushCommandBuffer(device, createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
+                //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
                 //getBufferSubData(generalLoadingBuffer, bvhMeta);
             }
 
@@ -267,7 +278,7 @@ namespace NSM
 
             // finish BVH building
             syncUniforms();
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(4) }) }, true);
         }
 
         void HieararchyBuilder::allocateNodeReserve(size_t nodeCount)

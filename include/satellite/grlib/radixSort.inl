@@ -122,7 +122,7 @@ namespace NSM {
             // copy headers buffer command
             std::vector<vk::CommandBuffer> copyBuffers;
             for (int i = 0; i < stepCount; i++) {
-                auto copyCmd = createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
+                auto copyCmd = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
                 //memoryCopyCmd(copyCmd, InKeys, TmpKeys , { 0, 0, strided<uint64_t>(size) });
                 //memoryCopyCmd(copyCmd, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
                 copyCmd.end(); copyBuffers.push_back(copyCmd);
@@ -135,9 +135,9 @@ namespace NSM {
             copyToBuffers.end();
 
             // make command buffers
-            auto histogramCommand = makeDispatchCommand(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
-            auto workPrefixCommand = makeDispatchCommand(workPrefixSum, { 1u, 1u, 1u }, descriptorSets);
-            auto permuteCommand = makeDispatchCommand(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
+            auto histogramCommand = makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
+            auto workPrefixCommand = makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets);
+            auto permuteCommand = makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
             
             // stepped radix sort
             std::vector<vk::SubmitInfo> buildSubmitInfos;

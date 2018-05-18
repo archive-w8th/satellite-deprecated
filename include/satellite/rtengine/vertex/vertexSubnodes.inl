@@ -103,7 +103,7 @@ namespace NSM
 
         intptr_t BufferSpace::copyGPUBuffer(Buffer external, const size_t size, const intptr_t offset) {
             if (size > 0) {
-                flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }) }, true);
+                flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, external, dataBuffer, { 0, vk::DeviceSize(offset), vk::DeviceSize(size) }) }, true);
             }
             return offset;
         }

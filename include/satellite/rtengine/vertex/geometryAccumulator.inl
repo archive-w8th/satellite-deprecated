@@ -101,7 +101,7 @@ namespace NSM
 
         void GeometryAccumulator::resetAccumulationCounter()
         {
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, geometryCounter, { 0, 0, strided<uint32_t>(2) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, geometryCounter, { 0, 0, strided<uint32_t>(2) }) }, true);
         }
 
         void GeometryAccumulator::allocatePrimitiveReserve(size_t primitiveCount)
@@ -156,7 +156,7 @@ namespace NSM
             }
 
             dispatchCompute(geometryLoader, { INTENSIVITY, 1u, 1u }, loaderDescriptorSets, &instanceConst);
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }) }, true); // save counted state
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, geometryCounter, geometryCounter, { 0, strided<uint32_t>(1), strided<uint32_t>(1) }) }, true); // save counted state
         }
 
     }

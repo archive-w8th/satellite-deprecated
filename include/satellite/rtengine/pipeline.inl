@@ -130,7 +130,7 @@ namespace NSM
 
             // getting counters values
             std::vector<int32_t> counters(8);
-            auto copyCmd = createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
+            auto copyCmd = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer, { 0, 0, strided<uint32_t>(8) });
             flushCommandBuffers(queue, { copyCmd }, false);
             getBufferSubData(generalLoadingBuffer, counters, 0);
 
@@ -162,11 +162,11 @@ namespace NSM
             cmds.push_back(command);
             if (rayBlockData[0].samplerUniform.blockCount > 0)
             {
-                cmds.push_back(createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, indicesSwap[1], indicesSwap[0], { 0, 0, strided<uint32_t>(rayBlockData[0].samplerUniform.blockCount) }));
+                cmds.push_back(makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, indicesSwap[1], indicesSwap[0], { 0, 0, strided<uint32_t>(rayBlockData[0].samplerUniform.blockCount) }));
             }
             if (includeCount > 0)
             {
-                cmds.push_back(createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) })); // move unused to preparing
+                cmds.push_back(makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, availableSwap[1], availableSwap[0], { 0, strided<uint32_t>(additionalOffset), strided<uint32_t>(includeCount) })); // move unused to preparing
             }
             flushCommandBuffers(queue, cmds, true);
         }
@@ -325,7 +325,7 @@ namespace NSM
         void Pipeline::clearRays()
         {
             rayBlockData[0].samplerUniform.iterationCount = 0;
-            flushCommandBuffers(queue, { createCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }) }, true);
+            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, zerosBufferReference, countersBuffer, { 0, 0, strided<uint32_t>(16) }) }, true);
         }
 
         void Pipeline::resizeCanvas(uint32_t width, uint32_t height)

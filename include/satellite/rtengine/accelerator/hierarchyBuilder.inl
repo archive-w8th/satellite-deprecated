@@ -160,7 +160,7 @@ namespace NSM
                 auto command = createCommandBuffer(queue, true);
                 memoryCopyCmd(command, geometrySourceLink->getAttributeTexel(), hierarchyStorageLink->getAttributeTexel(), copyDesc);
                 memoryCopyCmd(command, geometrySourceLink->getMaterialIndices(), hierarchyStorageLink->getMaterialIndices(), { 0, 0, strided<uint32_t>(triangleCount[0]) });
-                memoryCopyCmd(command, geometrySourceLink->getVertexLinear(), hierarchyStorageLink->getVertexLinear(), { 0, 0, strided<float>(triangleCount[0] * 9) });
+                memoryCopyCmd(command, geometrySourceLink->getVertexLinear(), hierarchyStorageLink->getVertexLinear(), { 0, 0, strided<float>(triangleCount[0] * 12) });
                 memoryCopyCmd(command, geometrySourceLink->getOrderIndices(), hierarchyStorageLink->getOrderIndices(), { 0, 0, strided<uint32_t>(triangleCount[0]) });
                 flushCommandBuffers(queue, { command }, true);
             }

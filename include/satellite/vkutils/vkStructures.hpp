@@ -89,6 +89,7 @@ namespace NSM
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
         vk::Buffer buffer;
+        vk::BufferView bufferView;
         vk::DescriptorBufferInfo descriptorInfo;
         ~BufferType();
     };

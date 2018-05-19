@@ -355,8 +355,7 @@ namespace NSM {
     }
 
     // create buffer function
-    auto createBuffer(Queue deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType)
-    {
+    auto createBuffer(Queue deviceQueue, size_t bufferSize, vk::BufferUsageFlags usageBits, VmaMemoryUsage usageType) {
         Buffer buffer = std::make_shared<BufferType>();
 
         // link with device
@@ -383,6 +382,15 @@ namespace NSM {
         buffer->initialized = true;
         return std::move(buffer);
     }
+
+
+    auto createBufferView(Buffer buffer, vk::Format format) {
+        if (!buffer->bufferView) {
+            buffer->bufferView = buffer->queue->device->logical.createBufferView(vk::BufferViewCreateInfo().setBuffer(buffer->buffer).setFormat(format).setOffset(0).setRange(buffer->descriptorInfo.range));
+        }
+        return buffer->bufferView;
+    }
+
 
     // fill buffer function
     template <class T>

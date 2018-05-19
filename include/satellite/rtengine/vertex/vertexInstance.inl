@@ -76,10 +76,10 @@ namespace NSM
             this->meshUniformSet = uniformSet;
         }
 
-        VertexInstanceViews VertexInstance::getDescViewData(bool needUpdate)
-        {
+        VertexInstanceViews VertexInstance::getDescViewData(bool needUpdate) {
             if (needUpdate) {
-                descViews.vInstanceBufferInfos[0] = this->getBufferSpaceBuffer()->descriptorInfo,
+                createBufferView(this->getBufferSpaceBuffer(), vk::Format::eR16Uint);
+                descViews.vInstanceBufferViews[0] = this->getBufferSpaceBuffer()->bufferView,
                 descViews.vInstanceBufferInfos[1] = this->getBufferSpaceRegions()->descriptorInfo,
                 descViews.vInstanceBufferInfos[2] = this->getBufferViewsBuffer()->descriptorInfo,
                 descViews.vInstanceBufferInfos[3] = this->getDataFormatBuffer()->descriptorInfo,

@@ -57,7 +57,7 @@ namespace NSM
                 traverseCacheData = createBuffer(queue, TRAVERSE_CACHE_SIZE * LOCAL_WORK_SIZE * INTENSIVITY * sizeof(glm::ivec4) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
 
                 // make TBO
-                auto bufferView = device->logical.createBufferView(vk::BufferViewCreateInfo().setBuffer(traverseCacheData->buffer).setFormat(vk::Format::eR32G32B32A32Sint).setOffset(0).setRange(TRAVERSE_CACHE_SIZE * INTENSIVITY * LOCAL_WORK_SIZE * sizeof(glm::ivec4)));
+                auto bufferView = createBufferView(traverseCacheData, vk::Format::eR32G32B32A32Sint);
 
                 // set BVH traverse caches
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);

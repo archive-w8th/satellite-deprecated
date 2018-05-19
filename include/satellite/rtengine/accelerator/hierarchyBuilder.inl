@@ -45,6 +45,7 @@ namespace NSM
                 vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),  // reserved
                 //vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // vertex linear buffer
                 vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eUniformTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
             };
 
             // recommended alloc 256Mb for all staging

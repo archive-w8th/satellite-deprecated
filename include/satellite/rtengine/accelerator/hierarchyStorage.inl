@@ -24,6 +24,7 @@ namespace NSM
                     vk::DescriptorSetLayoutBinding(6, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // reserved
                     //vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),         // vertex linear buffer
                     vk::DescriptorSetLayoutBinding(7, vk::DescriptorType::eStorageTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),      // vertex linear buffer
+                    vk::DescriptorSetLayoutBinding(8, vk::DescriptorType::eUniformTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
                 };
 
                 // ray tracing unified descriptors
@@ -108,7 +109,7 @@ namespace NSM
             attributeTexelStorage = createImage(queue, vk::ImageViewType::e2D, vk::Extent3D{ uint32_t(_WIDTH), uint32_t(_MAX_HEIGHT), 1 }, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::Format::eR32G32B32A32Uint);
             materialIndicesStorage = createBuffer(queue, strided<uint32_t>(primitiveCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
             orderIndicesStorage = createBuffer(queue, strided<uint32_t>(primitiveCount), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
-            vertexLinearStorage = createBuffer(queue, strided<float>(primitiveCount * 9), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
+            vertexLinearStorage = createBuffer(queue, strided<float>(primitiveCount * 9), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformTexelBuffer, VMA_MEMORY_USAGE_GPU_ONLY);
             createBufferView(vertexLinearStorage, vk::Format::eR32G32B32Sfloat);
             //createBufferView(vertexLinearStorage, vk::Format::eR32G32B32A32Sfloat);
 
@@ -120,6 +121,7 @@ namespace NSM
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&materialIndicesStorage->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&orderIndicesStorage->descriptorInfo),
                 vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageTexelBuffer).setDstBinding(7).setPTexelBufferView(&vertexLinearStorage->bufferView),
+                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eUniformTexelBuffer).setDstBinding(8).setPTexelBufferView(&vertexLinearStorage->bufferView)
             }, nullptr);
         }
 

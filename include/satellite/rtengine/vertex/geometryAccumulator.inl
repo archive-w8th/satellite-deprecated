@@ -24,7 +24,7 @@ namespace NSM
             // from vertex instance
             std::vector<vk::DescriptorSetLayoutBinding> vertexInstanceDescreiptorBindings = {
                 //vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space
-                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space (texels)
+                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer data space (texels)
                 vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer regions
                 vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // buffer views
                 vk::DescriptorSetLayoutBinding(3, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // data formats
@@ -136,7 +136,7 @@ namespace NSM
             if (needUpdateDescriptor) {
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageTexelBuffer).setDstBinding(0).setPTexelBufferView(&dstruct.vInstanceBufferViews[0]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eUniformTexelBuffer).setDstBinding(0).setPTexelBufferView(&dstruct.vInstanceBufferViews[0]),
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&dstruct.vInstanceBufferInfos[1]),
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&dstruct.vInstanceBufferInfos[2]),
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&dstruct.vInstanceBufferInfos[3]),
@@ -152,7 +152,7 @@ namespace NSM
             if (needUpdateDescriptor) {
                 auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(loaderDescriptorSets[1]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
                 device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageTexelBuffer).setDstBinding(0).setPTexelBufferView(&dstruct.vInstanceBufferViews[0]),
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eUniformTexelBuffer).setDstBinding(0).setPTexelBufferView(&dstruct.vInstanceBufferViews[0]),
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&dstruct.vInstanceBufferInfos[1]),
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&dstruct.vInstanceBufferInfos[2]),
                     vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(3).setPBufferInfo(&dstruct.vInstanceBufferInfos[3]),

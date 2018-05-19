@@ -90,7 +90,7 @@ namespace NSM
                 vk::BufferUsageFlagBits::eStorageBuffer |
                 vk::BufferUsageFlagBits::eTransferDst |
                 vk::BufferUsageFlagBits::eTransferSrc | 
-                vk::BufferUsageFlagBits::eStorageTexelBuffer,
+                vk::BufferUsageFlagBits::eUniformTexelBuffer,
                 VMA_MEMORY_USAGE_GPU_ONLY);
             dataStage = createBuffer(queue, strided<uint8_t>(tiled(spaceSize, 4) * 4),
                 vk::BufferUsageFlagBits::eTransferDst |

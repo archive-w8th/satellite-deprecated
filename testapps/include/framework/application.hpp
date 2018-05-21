@@ -171,7 +171,7 @@ namespace SatelliteExample {
             }
 
             // present for displaying of this image
-            currentContext->queue->device->queues[1]->queue.presentKHR(vk::PresentInfoKHR(
+            currentContext->queue->queue.presentKHR(vk::PresentInfoKHR(
                 1, &currentContext->framebuffers[c_semaphore].semaphore,
                 1, &currentContext->swapchain,
                 &currentBuffer, nullptr

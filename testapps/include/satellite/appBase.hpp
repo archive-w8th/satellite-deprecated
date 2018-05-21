@@ -274,7 +274,8 @@ namespace NSM
                 devicePtr->dldid = vk::DispatchLoaderDynamic(instance, devicePtr->logical);
 
                 // getting queues by family
-                for (int i = 0; i < queues.size(); i++) { queues[i]->queue = devicePtr->logical.getQueue(queues[i]->familyIndex, 0); }
+                // don't get it now
+                //for (int i = 0; i < queues.size(); i++) { queues[i]->queue = devicePtr->logical.getQueue(queues[i]->familyIndex, 0); }
 
                 // mapping volk with VMA functions
                 VmaVulkanFunctions vfuncs;
@@ -327,7 +328,7 @@ namespace NSM
             deviceQueuePtr->device = devicePtr;
             deviceQueuePtr->fence = createFence(devicePtr, false);
             deviceQueuePtr->commandPool = devicePtr->logical.createCommandPool(vk::CommandPoolCreateInfo(vk::CommandPoolCreateFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer), deviceQueuePtr->familyIndex));
-            deviceQueuePtr->queue = devicePtr->queues[isComputePrior ? 0 : 1]->queue; // make role prior
+            deviceQueuePtr->queue = devicePtr->logical.getQueue(devicePtr->queues[isComputePrior ? 0 : 1]->familyIndex, 0); // deferred getting of queue
             deviceQueuePtr->familyIndex = devicePtr->queues[isComputePrior ? 0 : 1]->familyIndex;
             devices.push_back(deviceQueuePtr);
             return std::move(deviceQueuePtr);

@@ -2,7 +2,8 @@
 
 > Ray tracing source codes and SDK for making render and game engines (DIY). 
 
-<img src="renders-fixed/city0.png" width="240" alt="0"> <img src="renders-fixed/city1.png" width="240" alt="1"> <img src="renders-fixed/city2.png" width="240" alt="2">
+<img src="renders/sponza0.png" width="240" alt="0"> <img src="renders/sponza1.png" width="240" alt="1"> <img src="renders/sponza2.png" width="240" alt="2">
+<img src="renders/boombox0.png" width="240" alt="0"> <img src="renders/cityupd0.png" width="240" alt="1"> <img src="renders/helmet0.png" width="240" alt="2">
 
 ### Alarm of New dawn... 
 
@@ -48,13 +49,4 @@
 
 ### Videos 
 
-Rendered on RX Vega 64, Intel Core i7-8700K.
-
-* https://www.youtube.com/watch?v=exiMek4eHDc (720p, 1ssp)
-* https://www.youtube.com/watch?v=j8yn2e_E-Tg (720p, 1ssp)
-* https://www.youtube.com/watch?v=5tZulCaNtt0 (720p, dynamic, 1ssp)
-* https://www.youtube.com/watch?v=3BTSznowUyE (720p, dynamic, 1ssp)
-* https://www.youtube.com/watch?v=LU74dCuRgcY (720p, ray-tracing)
-* https://www.youtube.com/watch?v=TebMZgc6rGU (720p, ray-tracing)
-
-
+Coming soon new videos...

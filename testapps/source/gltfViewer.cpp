@@ -75,8 +75,7 @@ namespace SatelliteExample {
             // initial material props
             submat.diffuse = glm::vec4(1.0f);
             submat.emissive = glm::vec4(0.0f);
-            submat.specular = glm::vec4(1.0f);
-
+            submat.specular = glm::vec4(1.f, 1.f, 0.f, 1.f);
 
             // base color (diffuse)
             if (material.values["baseColorFactor"].number_array.size() >= 3) {
@@ -84,14 +83,14 @@ namespace SatelliteExample {
             }
             
             // metallic
-            if (material.values["metallicFactor"].number_array.size() >= 1) {
-                submat.specular.z = material.values["metallicFactor"].number_array[0];
-            }
+            //if (material.values["metallicFactor"].number_array.size() >= 1) {
+                submat.specular.z = material.values["metallicFactor"].number_value;
+            //}
 
             // rought
-            if (material.values["roughnessFactor"].number_array.size() >= 1) {
-                submat.specular.y = material.values["roughnessFactor"].number_array[0];
-            }
+            //if (material.values["roughnessFactor"].number_array.size() >= 1) {
+                submat.specular.y = material.values["roughnessFactor"].number_value;
+            //}
 
             // emission
             if (material.additionalValues["emissiveFactor"].number_array.size() >= 3) {

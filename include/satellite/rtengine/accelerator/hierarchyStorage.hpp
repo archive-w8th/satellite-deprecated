@@ -20,7 +20,7 @@ namespace NSM
             const size_t ATTRIBUTE_EXTENT = 4;
 
             // for traversing
-            const size_t INTENSIVITY = 4096;
+            const size_t INTENSIVITY = 512;
 
             std::string shadersPathPrefix = "shaders-spv";
 

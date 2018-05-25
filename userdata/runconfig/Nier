@@ -1,1 +1,1 @@
--d models -m scene-processed.gltf -s 0.1
+-d models -m scene.gltf -s 0.1

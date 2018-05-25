@@ -1,1 +1,1 @@
--d models/Scene_City -m Scene_City-processed.gltf -s 1.0
+-d models/Scene_City -m Scene_City.gltf -s 1.0

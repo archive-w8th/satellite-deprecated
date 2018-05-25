@@ -16,7 +16,7 @@ namespace NSM
             const size_t _WIDTH = 6144;
             
             // Worker metrics
-            const size_t INTENSIVITY = 512;
+            const size_t INTENSIVITY = 1024;
 
             // current compute device
             Device device;

@@ -15,7 +15,7 @@ namespace NSM
         class Pipeline : public std::enable_shared_from_this<Pipeline>
         {
         protected:
-            const size_t INTENSIVITY = 512;
+            const size_t INTENSIVITY = 1024;
             const size_t MAX_SURFACE_IMAGES = 72;
             const size_t BLOCK_COUNTER = 0;
             const size_t PREPARING_BLOCK_COUNTER = 1;

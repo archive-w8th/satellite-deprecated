@@ -23,7 +23,7 @@ namespace NSM
             const size_t _BVH_WIDTH = 2048;
 
             // Worker metrics
-            const size_t INTENSIVITY = 512;
+            const size_t INTENSIVITY = 1024;
 
             std::string shadersPathPrefix = "shaders-spv";
             std::shared_ptr<gr::RadixSort> radixSort;

@@ -258,21 +258,23 @@ namespace NSM
             //dispatchCompute(refitBVH, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
 
             
-            if (triangleCount[0] > 0) {
+            //if (triangleCount[0] > 0) {
                 //std::vector<bbox> bboxes(triangleCount[0] * 2);
-                //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }), false);
+                //flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, bvhBoxWorking, generalLoadingBuffer, { 0, 0, strided<bbox>(triangleCount[0] * 2) }) }, false);
                 //getBufferSubData(generalLoadingBuffer, bboxes);
                 
-                // debug BVH Meta
+                // debug morton codes
                 //std::vector<uint64_t> mortons(triangleCount[0]);
-                //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }), false);
+                //flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, mortonCodesBuffer, generalLoadingBuffer, { 0, 0, strided<uint64_t>(triangleCount[0]) }) }, false);
                 //getBufferSubData(generalLoadingBuffer, mortons);
 
                 // debug BVH Meta
                 //std::vector<bvh_meta> bvhMeta(triangleCount[0] * 2);
                 //flushCommandBuffer(device, makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(device, bvhMetaWorking, generalLoadingBuffer, { 0, 0, strided<bvh_meta>(triangleCount[0] * 2) }), false);
                 //getBufferSubData(generalLoadingBuffer, bvhMeta);
-            }
+
+                //int ptr = -1;
+            //}
 
             { // resolve BVH buffers for copying
                 auto command = createCommandBuffer(queue, true);

@@ -343,7 +343,8 @@ namespace SatelliteExample {
 //////////////////////
 
 //const int32_t baseWidth = 1280, baseHeight = 720;
-const int32_t baseWidth = 640, baseHeight = 360; // super sampled, DPI adapative
+//const int32_t baseWidth = 640, baseHeight = 360; // super sampled, DPI adapative
+const int32_t baseWidth = 960, baseHeight = 560;
 
 int main(const int argc, const char ** argv)
 {

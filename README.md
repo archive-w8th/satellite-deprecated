@@ -29,7 +29,8 @@
 * Optimal precision and performance 
 * One testing example application (source code)
 * Around ~46MRays/s throughput in Sponza scenes (RX Vega 64)
-* Windows platform (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond) support
+* Windows x64 platform (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond) support
+* The WOLK graphics standard passing technology!
 
 ### Contacts 
 

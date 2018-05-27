@@ -740,6 +740,7 @@ namespace NSM
                 auto copyCommand = createCommandBuffer(queue, true, true);
                 memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
                 flushCommandBuffers(queue, { copyCommand }, true);
+                //cmds.push_back(copyCommand);
             }
 
             //cmds.push_back(makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false, true));
@@ -753,6 +754,7 @@ namespace NSM
             //cmds.push_back(makeDispatchCmd(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors, false, true));
             flushCommandBuffers(queue, { makeDispatchCmd(surfaceShadingPpl,{ INTENSIVITY, 1u, 1u }, surfaceDescriptors, false) }, true);
 
+            //flushCommandBuffers(queue, cmds, true);
 
             return;
         }

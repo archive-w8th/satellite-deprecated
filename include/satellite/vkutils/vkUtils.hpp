@@ -5,16 +5,20 @@
 namespace NSM {
 
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
-        cmdBuffer.pipelineBarrier(
-            vk::PipelineStageFlagBits::eFragmentShader | // if fragment shading
+
+        cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eFragmentShader | // if fragment shading
             vk::PipelineStageFlagBits::eGeometryShader | // if transform feedback
             vk::PipelineStageFlagBits::eComputeShader | // if compute shader
             vk::PipelineStageFlagBits::eTransfer, // if transfer
-
             vk::PipelineStageFlagBits::eVertexShader | // from vertex
             vk::PipelineStageFlagBits::eComputeShader | // from compute
-            vk::PipelineStageFlagBits::eTransfer, // from transfer
-            {}, nullptr, nullptr, nullptr);
+            vk::PipelineStageFlagBits::eTransfer // from transfer
+        , vk::DependencyFlagBits::eByRegion, {}, {}, {});
+
+        //cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, {}, {}, {});
+        //cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, {});
+
+        //cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe, vk::PipelineStageFlagBits::eTopOfPipe, vk::DependencyFlagBits::eByRegion, {}, {}, {});
     };
 
     // get or create command buffer
@@ -27,15 +31,14 @@ namespace NSM {
         }
         return cmdBuffer;
     };
-
-
     
     auto cmdSubmission(const vk::CommandBuffer& cmdBuffer, const std::vector<vk::CommandBuffer>& commandBuffers, bool needEnd = true) {
         if (needEnd) {
             for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
         }
         cmdBuffer.executeCommands(commandBuffers);
-    }
+        //commandBarrier(cmdBuffer);
+    };
 
 
 
@@ -252,7 +255,7 @@ namespace NSM {
         imageMemoryBarriers.dstAccessMask = dstMask;
 
         // barrier
-        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, nullptr, nullptr, std::array<vk::ImageMemoryBarrier, 1>{imageMemoryBarriers});
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, {}, {}, std::array<vk::ImageMemoryBarrier, 1>{imageMemoryBarriers});
         image->initialLayout = imageMemoryBarriers.newLayout;
     }
 
@@ -637,6 +640,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        //commandBarrier(commandBuffer);
         if (end) commandBuffer.end();
         return commandBuffer;
     }
@@ -649,6 +653,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        //commandBarrier(commandBuffer);
         if (end) commandBuffer.end();
         return commandBuffer;
     }
@@ -661,6 +666,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        //commandBarrier(commandBuffer);
         flushCommandBuffers(compute->queue, { commandBuffer }, true);
     }
 
@@ -669,6 +675,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
+        //commandBarrier(commandBuffer);
         flushCommandBuffers(compute->queue, { commandBuffer }, true);
     }
 

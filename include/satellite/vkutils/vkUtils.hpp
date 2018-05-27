@@ -414,7 +414,7 @@ namespace NSM {
 
     // fill buffer function
     template <class T>
-    void bufferSubData(vk::CommandBuffer &cmd, Buffer buffer, const std::vector<T> &hostdata, intptr_t offset = 0)
+    void bufferSubData(const vk::CommandBuffer &cmd, Buffer buffer, const std::vector<T> &hostdata, intptr_t offset = 0)
     {
         const size_t bufferSize = hostdata.size() * sizeof(T);
         if (bufferSize > 0)
@@ -422,7 +422,7 @@ namespace NSM {
                 hostdata.data(), bufferSize);
     }
 
-    void bufferSubData(vk::CommandBuffer &cmd, Buffer buffer, const uint8_t *hostdata, const size_t bufferSize, intptr_t offset = 0)
+    void bufferSubData(const vk::CommandBuffer &cmd, Buffer buffer, const uint8_t *hostdata, const size_t bufferSize, intptr_t offset = 0)
     {
         if (bufferSize > 0)
             memcpy((uint8_t *)buffer->allocationInfo.pMappedData + offset, hostdata, bufferSize);

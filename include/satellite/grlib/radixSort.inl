@@ -115,54 +115,30 @@ namespace NSM {
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
 
             // upload to buffer
-            auto commandBuffer = createCommandBuffer(queue, true);
-            bufferSubData(commandBuffer, VarStaging, steps, 0);
-            flushCommandBuffers(queue, { commandBuffer }, true);
+            //auto commandBuffer = createCommandBuffer(queue, true);
+            bufferSubData({}, VarStaging, steps, 0);
 
-            // copy headers buffer command
-            std::vector<vk::CommandBuffer> copyBuffers;
-            for (int i = 0; i < stepCount; i++) {
-                auto copyCmd = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(i), 0, strided<Consts>(1) });
-                //memoryCopyCmd(copyCmd, InKeys, TmpKeys , { 0, 0, strided<uint64_t>(size) });
-                //memoryCopyCmd(copyCmd, InVals, TmpValues, { 0, 0, strided<uint32_t>(size) });
-                copyCmd.end(); copyBuffers.push_back(copyCmd);
-            }
+            // initial command
+            auto cmds = std::vector<vk::CommandBuffer>();
+            //cmds.push_back(commandBuffer);
 
-            // copy back
-            auto copyToBuffers = createCommandBuffer(queue, true);
-            memoryCopyCmd(copyToBuffers, TmpKeys  , InKeys, { 0, 0, strided<uint64_t>(size) });
-            memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
-            copyToBuffers.end();
-
-            // make command buffers
-            auto histogramCommand = makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
-            auto workPrefixCommand = makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets);
-            auto permuteCommand = makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets);
-            
             // stepped radix sort
-            std::vector<vk::SubmitInfo> buildSubmitInfos;
             for (int j = 0; j < stepCount; j++) {
-                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&copyBuffers[j])); // copy header
-                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&histogramCommand)); // histogram
-                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&workPrefixCommand)); // prefix sum
-                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&permuteCommand)); // permute 
-                buildSubmitInfos.push_back(vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&copyToBuffers)); // copy header
+                // copy command should be unique, because else will destroyd multiple time (and with fatal error)
+                auto copyToBuffers = createCommandBuffer(queue, true);
+                memoryCopyCmd(copyToBuffers, TmpKeys, InKeys, { 0, 0, strided<uint64_t>(size) });
+                memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
+                copyToBuffers.end();
+
+                auto copyCmd = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(j), 0, strided<Consts>(1) }); copyCmd.end();
+                cmds.push_back(copyCmd);
+                cmds.push_back(makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets));
+                cmds.push_back(makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets));
+                cmds.push_back(makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets));
+                cmds.push_back(copyToBuffers);
             }
+            flushCommandBuffers(queue, cmds, true, false);
 
-            // submit radix sort
-            vk::Fence fence = device->logical.createFence(vk::FenceCreateInfo());
-            queue->queue.submit(buildSubmitInfos, fence);
-
-            // async clean up
-            std::async(std::launch::async | std::launch::deferred, [=](){
-                device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-                device->logical.destroyFence(fence);
-                device->logical.freeCommandBuffers(queue->commandPool, copyBuffers);
-                device->logical.freeCommandBuffers(queue->commandPool, 1, &histogramCommand);
-                device->logical.freeCommandBuffers(queue->commandPool, 1, &workPrefixCommand);
-                device->logical.freeCommandBuffers(queue->commandPool, 1, &permuteCommand);
-                device->logical.freeCommandBuffers(queue->commandPool, 1, &copyToBuffers);
-            });
 
         }
 

@@ -237,20 +237,22 @@ namespace NSM
 
                 // submit GPU operate long as possible 
                 for (int j = 0; j < 8;j++) {
-                    //executeCommands(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true);
+                    executeCommands(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true);
+                    /*
                     executeCommands(queue, { copy_cmd_ }, true);
                     executeCommands(queue, { disp_cmd_ }, true);
                     executeCommands(queue, { copy_cmd_inv_ }, true);
                     executeCommands(queue, { disp_cmd_inv_ }, true);
+                    */
                 }
             }
 
             // anti-pattern, but we does not made waiter for resolve to free resources
-            //flushCommandBuffers(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true, false);
-            flushCommandBuffers(queue, { copy_cmd_ }, true, false);
-            flushCommandBuffers(queue, { disp_cmd_ }, true, false);
-            flushCommandBuffers(queue, { copy_cmd_inv_ }, true, false);
-            flushCommandBuffers(queue, { disp_cmd_inv_ }, true, false);
+            flushCommandBuffers(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true, false);
+            //flushCommandBuffers(queue, { copy_cmd_ }, true, false);
+            //flushCommandBuffers(queue, { disp_cmd_ }, true, false);
+            //flushCommandBuffers(queue, { copy_cmd_inv_ }, true, false);
+            //flushCommandBuffers(queue, { disp_cmd_inv_ }, true, false);
 
             
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });

@@ -710,6 +710,8 @@ namespace NSM
 
         void Pipeline::traverse() {
             if (hstorages.size() <= 0) return; // no valid geometry or hierarchy
+ 
+            std::vector<vk::CommandBuffer> cmds;
 
             // if material set needs to update
             if (boundMaterialSet && boundMaterialSet->needUpdateStatus()) {
@@ -734,19 +736,23 @@ namespace NSM
             }
 
             // reset hit counter
-            auto copyCommand = createCommandBuffer(queue, true);
-            memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
-            flushCommandBuffers(queue, { copyCommand }, true);
+            {
+                auto copyCommand = createCommandBuffer(queue, true, true);
+                memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
+                flushCommandBuffers(queue, { copyCommand }, true);
+            }
 
-            // form descriptors for traversers
-            //TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
-            dispatchCompute(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors);
+            //cmds.push_back(makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false, true));
+            flushCommandBuffers(queue, { makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false) }, true);
 
             // push bvh traverse commands
-            for (auto& him : hstorages) { him->queryTraverse(traverseDescriptors); }
+            for (auto& him : hstorages) { him->queryTraverse(traverseDescriptors, cmds); }
+            //flushCommandBuffers(queue, cmds, true);
 
             // push surface shaders commands
-            dispatchCompute(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors);
+            //cmds.push_back(makeDispatchCmd(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors, false, true));
+            flushCommandBuffers(queue, { makeDispatchCmd(surfaceShadingPpl,{ INTENSIVITY, 1u, 1u }, surfaceDescriptors, false) }, true);
+
 
             return;
         }

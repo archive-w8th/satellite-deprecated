@@ -14,8 +14,9 @@ namespace NSM {
     // get or create command buffer
     auto createCommandBuffer(const Queue deviceQueue, bool begin = true, bool secondary = false) {
         vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, secondary ? vk::CommandBufferLevel::eSecondary : vk::CommandBufferLevel::ePrimary, 1))[0];
+        auto inheritanceInfo = vk::CommandBufferInheritanceInfo().setPipelineStatistics(vk::QueryPipelineStatisticFlagBits::eComputeShaderInvocations);
         if (begin) {
-            cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+            cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse).setPInheritanceInfo(secondary ? &inheritanceInfo : nullptr));
             commandBarrier(cmdBuffer);
         }
         return cmdBuffer;
@@ -625,8 +626,8 @@ namespace NSM {
 
 
 
-    auto makeDispatchCmd(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, bool end = true) {
-        auto commandBuffer = createCommandBuffer(compute->queue, true);
+    auto makeDispatchCmd(ComputeContext compute, glm::uvec3 workGroups, const std::vector<vk::DescriptorSet>& sets, bool end = true, bool secondary = false) {
+        auto commandBuffer = createCommandBuffer(compute->queue, true, secondary);
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);

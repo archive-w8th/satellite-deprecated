@@ -87,7 +87,7 @@ namespace NSM
             vk::DescriptorSet& getStorageDescSec() { return clientDescriptorSets[1]; };
 
             // traversing with shared ray-tracer data
-            void queryTraverse(std::vector<vk::DescriptorSet>& tbsSet);
+            void queryTraverse(std::vector<vk::DescriptorSet>& tbsSet, std::vector<vk::CommandBuffer>& cmds);
 
         protected:
             void init(Queue queue);

@@ -142,11 +142,18 @@ namespace NSM
             }, nullptr);
         }
 
-        void HieararchyStorage::queryTraverse(std::vector<vk::DescriptorSet>& tbsSet) {
+        void HieararchyStorage::queryTraverse(std::vector<vk::DescriptorSet>& tbsSet, std::vector<vk::CommandBuffer>& cmds) {
             // dispatch traversing
             clientDescriptorSets[0] = tbsSet[0];
-            dispatchCompute(bvhTraverse, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets);
-            dispatchCompute(vertexInterpolator, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets);
+            //cmds.push_back(makeDispatchCmd(bvhTraverse, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets, false, true));
+            //cmds.push_back(makeDispatchCmd(vertexInterpolator, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets, false, true));
+
+            flushCommandBuffers(queue, { makeDispatchCmd(bvhTraverse,{ uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets, false) }, true);
+            //flushCommandBuffers(queue, { makeDispatchCmd(vertexInterpolator,{ uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets, false) }, true);
+            //flushCommandBuffers(queue, { 
+                //makeDispatchCmd(bvhTraverse, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets, false),
+                //makeDispatchCmd(vertexInterpolator, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets, false)
+            //}, true);
         }
     }
 } // namespace NSM

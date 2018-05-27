@@ -117,24 +117,22 @@ namespace NSM {
             // upload to buffer
             bufferSubData({}, VarStaging, steps, 0);
 
-            // stepped radix sort
-            auto cmds = std::vector<vk::CommandBuffer>();
+            //auto cmds = std::vector<vk::CommandBuffer>();
             for (int j = 0; j < stepCount; j++) {
+                auto cmds = std::vector<vk::CommandBuffer>();
+                cmds.push_back(makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(j), 0, strided<Consts>(1) }));
+                cmds.push_back(makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false));
+                cmds.push_back(makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets, false));
+                cmds.push_back(makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false));
+                flushCommandBuffers(queue, cmds, true, true);
 
-                // copy command should be unique, because else will destroyd multiple time (and with fatal error)
                 auto copyToBuffers = createCommandBuffer(queue, true);
                 memoryCopyCmd(copyToBuffers, TmpKeys, InKeys, { 0, 0, strided<uint64_t>(size) });
                 memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
-                copyToBuffers.end();
-
-                auto copyCmd = makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(j), 0, strided<Consts>(1) }); copyCmd.end();
-                cmds.push_back(copyCmd);
-                cmds.push_back(makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets));
-                cmds.push_back(makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets));
-                cmds.push_back(makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets));
                 cmds.push_back(copyToBuffers);
+                flushCommandBuffers(queue, { copyToBuffers }, true);
             }
-            flushCommandBuffers(queue, cmds, true, false);
+            //flushCommandBuffers(queue, cmds, true, true);
         }
 
     }

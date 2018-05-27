@@ -226,14 +226,6 @@ namespace NSM
             auto disp_cmd_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst);
             auto disp_cmd_inv_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst_inv);
 
-            auto bld_cmd = std::vector<vk::CommandBuffer>();
-            for (int j = 0; j < 8; j++) {
-                bld_cmd.push_back(copy_cmd_);
-                bld_cmd.push_back(disp_cmd_);
-                bld_cmd.push_back(copy_cmd_inv_);
-                bld_cmd.push_back(disp_cmd_inv_);
-            }
-
             // large stages of BVH building
             for (int i = 0; i < 128;i++) {
 
@@ -244,7 +236,13 @@ namespace NSM
                 if (nodeTaskCount[0] <= 0) break; // break if none
 
                 // submit build short-hand sequence
-                executeCommands(queue, bld_cmd, true);
+                for (int j = 0; j < 8; j++) {
+                    executeCommands(queue, { copy_cmd_ , disp_cmd_ , copy_cmd_inv_ , disp_cmd_inv_ }, true);
+                    //executeCommands(queue, { copy_cmd_ }, true);
+                    //executeCommands(queue, { disp_cmd_ }, true);
+                    //executeCommands(queue, { copy_cmd_inv_ }, true);
+                    //executeCommands(queue, { disp_cmd_inv_ }, true);
+                }
             }
 
             // anti-pattern, but we does not made waiter for resolve to free resources

@@ -13,14 +13,24 @@ namespace NSM {
     };
 
     // get or create command buffer
-    auto createCommandBuffer(const Queue deviceQueue, bool begin = true) {
-        vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, vk::CommandBufferLevel::ePrimary, 1))[0];
+    auto createCommandBuffer(const Queue deviceQueue, bool begin = true, bool secondary = false) {
+        vk::CommandBuffer cmdBuffer = deviceQueue->device->logical.allocateCommandBuffers(vk::CommandBufferAllocateInfo(deviceQueue->commandPool, secondary ? vk::CommandBufferLevel::eSecondary : vk::CommandBufferLevel::ePrimary, 1))[0];
         if (begin) {
             cmdBuffer.begin(vk::CommandBufferBeginInfo().setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
             commandBarrier(cmdBuffer);
         }
         return cmdBuffer;
     };
+
+
+    
+    auto cmdSubmission(const vk::CommandBuffer& cmdBuffer, const std::vector<vk::CommandBuffer>& commandBuffers, bool needEnd = true) {
+        if (needEnd) {
+            for (auto &cmdf : commandBuffers) cmdf.end(); // end cmd buffers
+        }
+        cmdBuffer.executeCommands(commandBuffers);
+    }
+
 
 
     // should be done by ".end()", we at now have no "autoend" mechanism for Vulkan API

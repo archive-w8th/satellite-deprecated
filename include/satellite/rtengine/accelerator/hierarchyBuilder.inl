@@ -226,6 +226,8 @@ namespace NSM
             auto disp_cmd_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst);
             auto disp_cmd_inv_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst_inv);
 
+            auto cmd_seq = std::vector<vk::CommandBuffer>{ copy_cmd_ , disp_cmd_ , copy_cmd_inv_ , disp_cmd_inv_ };
+
             // large stages of BVH building
             for (int i = 0; i < 128;i++) {
 
@@ -237,16 +239,12 @@ namespace NSM
 
                 // submit build short-hand sequence
                 for (int j = 0; j < 8; j++) {
-                    executeCommands(queue, { copy_cmd_ , disp_cmd_ , copy_cmd_inv_ , disp_cmd_inv_ }, true);
-                    //executeCommands(queue, { copy_cmd_ }, true);
-                    //executeCommands(queue, { disp_cmd_ }, true);
-                    //executeCommands(queue, { copy_cmd_inv_ }, true);
-                    //executeCommands(queue, { disp_cmd_inv_ }, true);
+                    executeCommands(queue, cmd_seq, true);
                 }
             }
 
             // anti-pattern, but we does not made waiter for resolve to free resources
-            flushCommandBuffers(queue, { copy_cmd_ , disp_cmd_ , copy_cmd_inv_ , disp_cmd_inv_ }, true, false);
+            flushCommandBuffers(queue, cmd_seq, true, false);
             
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });

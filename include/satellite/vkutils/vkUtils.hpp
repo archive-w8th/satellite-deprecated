@@ -7,7 +7,7 @@ namespace NSM {
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
 
         auto writeMask = vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eMemoryWrite;
-        auto readMask = vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
+        auto readMask = vk::AccessFlags{};//vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
         cmdBuffer.pipelineBarrier(
             vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader,

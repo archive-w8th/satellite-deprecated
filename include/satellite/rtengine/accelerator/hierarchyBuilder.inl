@@ -226,34 +226,29 @@ namespace NSM
             auto disp_cmd_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst);
             auto disp_cmd_inv_ = makeDispatchCmd(buildBVHLargePpl, { INTENSIVITY, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, &cnst_inv);
 
+            auto bld_cmd = std::vector<vk::CommandBuffer>();
+            for (int j = 0; j < 8; j++) {
+                bld_cmd.push_back(copy_cmd_);
+                bld_cmd.push_back(disp_cmd_);
+                bld_cmd.push_back(copy_cmd_inv_);
+                bld_cmd.push_back(disp_cmd_inv_);
+            }
+
             // large stages of BVH building
             for (int i = 0; i < 128;i++) {
 
-                // getting counter data
+                // getting counter data (for checking status)
                 std::vector<uint32_t> nodeTaskCount(1);
                 flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, countersBuffer, generalLoadingBuffer,{ strided<uint32_t>(swap_inv_ * 4), 0, strided<uint32_t>(1) }) }, false); // copy to staging
                 getBufferSubData(generalLoadingBuffer, nodeTaskCount, 0);
-                if (nodeTaskCount[0] <= 0) break;
+                if (nodeTaskCount[0] <= 0) break; // break if none
 
-                // submit GPU operate long as possible 
-                for (int j = 0; j < 8;j++) {
-                    executeCommands(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true);
-                    /*
-                    executeCommands(queue, { copy_cmd_ }, true);
-                    executeCommands(queue, { disp_cmd_ }, true);
-                    executeCommands(queue, { copy_cmd_inv_ }, true);
-                    executeCommands(queue, { disp_cmd_inv_ }, true);
-                    */
-                }
+                // submit build short-hand sequence
+                executeCommands(queue, bld_cmd, true);
             }
 
             // anti-pattern, but we does not made waiter for resolve to free resources
-            flushCommandBuffers(queue, { copy_cmd_, disp_cmd_, copy_cmd_inv_, disp_cmd_inv_ }, true, false);
-            //flushCommandBuffers(queue, { copy_cmd_ }, true, false);
-            //flushCommandBuffers(queue, { disp_cmd_ }, true, false);
-            //flushCommandBuffers(queue, { copy_cmd_inv_ }, true, false);
-            //flushCommandBuffers(queue, { disp_cmd_inv_ }, true, false);
-
+            flushCommandBuffers(queue, { copy_cmd_ , disp_cmd_ , copy_cmd_inv_ , disp_cmd_inv_ }, true, false);
             
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
             dispatchCompute(refitBVH, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });

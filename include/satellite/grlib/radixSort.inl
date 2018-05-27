@@ -115,15 +115,12 @@ namespace NSM {
             for (uint32_t i = 0; i < stepCount; i++) steps[i] = { size, i, descending, 0 };
 
             // upload to buffer
-            //auto commandBuffer = createCommandBuffer(queue, true);
             bufferSubData({}, VarStaging, steps, 0);
 
-            // initial command
-            auto cmds = std::vector<vk::CommandBuffer>();
-            //cmds.push_back(commandBuffer);
-
             // stepped radix sort
+            auto cmds = std::vector<vk::CommandBuffer>();
             for (int j = 0; j < stepCount; j++) {
+
                 // copy command should be unique, because else will destroyd multiple time (and with fatal error)
                 auto copyToBuffers = createCommandBuffer(queue, true);
                 memoryCopyCmd(copyToBuffers, TmpKeys, InKeys, { 0, 0, strided<uint64_t>(size) });
@@ -138,8 +135,6 @@ namespace NSM {
                 cmds.push_back(copyToBuffers);
             }
             flushCommandBuffers(queue, cmds, true, false);
-
-
         }
 
     }

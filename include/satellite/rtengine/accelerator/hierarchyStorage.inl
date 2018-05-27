@@ -53,6 +53,7 @@ namespace NSM
                 const size_t TRAVERSE_CACHE_SIZE = 16;
                 const size_t LOCAL_WORK_SIZE = 64;
 
+                /*
                 // caches
                 //traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
                 traverseCacheData = createBuffer(queue, TRAVERSE_CACHE_SIZE * LOCAL_WORK_SIZE * INTENSIVITY * sizeof(glm::ivec4) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -67,6 +68,7 @@ namespace NSM
                      //vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&traverseCacheData->descriptorInfo),
                      //vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&traverseBlockData->descriptorInfo),
                 }, nullptr);
+                */
             }
 
             {
@@ -140,16 +142,9 @@ namespace NSM
             }, nullptr);
         }
 
-        void HieararchyStorage::queryTraverse(TraversibleData& tbsData) {
-            // set ray-tracing buffers for traversing
-            auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(clientDescriptorSets[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
-            device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&tbsData.raysUnordered),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&tbsData.hitBuffer),
-                vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&tbsData.counterBuffer)
-            }, nullptr);
-
+        void HieararchyStorage::queryTraverse(std::vector<vk::DescriptorSet>& tbsSet) {
             // dispatch traversing
+            clientDescriptorSets[0] = tbsSet[0];
             dispatchCompute(bvhTraverse, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets);
             dispatchCompute(vertexInterpolator, { uint32_t(INTENSIVITY), 1u, 1u }, clientDescriptorSets);
         }

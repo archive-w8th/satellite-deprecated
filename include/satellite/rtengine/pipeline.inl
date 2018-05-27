@@ -68,15 +68,25 @@ namespace NSM
                 vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageImage, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // clear samples flags
             };
 
+            // ray tracing unified descriptors
+            std::vector<vk::DescriptorSetLayoutBinding> traverseDescriptorSetLayoutBindings = {
+                vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // rays,
+                vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // output hits
+                vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr), // output counters
+                vk::DescriptorSetLayoutBinding(4, vk::DescriptorType::eStorageTexelBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+                //vk::DescriptorSetLayoutBinding(5, vk::DescriptorType::eStorageBuffer, 1, vk::ShaderStageFlagBits::eCompute, nullptr),
+            };
+
             // prepare pools and sets
             std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(descriptorSetLayoutBindings.data()).setBindingCount(descriptorSetLayoutBindings.size())),
                 device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(surfaceImgSetLayoutBindings.data()).setBindingCount(surfaceImgSetLayoutBindings.size())),
-                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size()))
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(sampleImgSetLayoutBindings.data()).setBindingCount(sampleImgSetLayoutBindings.size())),
+                device->logical.createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo().setPBindings(traverseDescriptorSetLayoutBindings.data()).setBindingCount(traverseDescriptorSetLayoutBindings.size())),
             };
 
             // allocate descriptor sets (except 3rd, planned to use templates)
-            auto descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(3).setPSetLayouts(descriptorSetLayouts.data()));
+            auto descriptorSets = device->logical.allocateDescriptorSets(vk::DescriptorSetAllocateInfo().setDescriptorPool(device->descriptorPool).setDescriptorSetCount(descriptorSetLayouts.size()).setPSetLayouts(descriptorSetLayouts.data()));
 
             // layouts
             rayTracingDescriptorsLayout = { descriptorSetLayouts[0] };
@@ -87,10 +97,15 @@ namespace NSM
             rayTracingDescriptors = { descriptorSets[0] };
             samplingDescriptors = { descriptorSets[0], descriptorSets[2] };
             surfaceDescriptors = { descriptorSets[0], descriptorSets[1] };
+            traverseDescriptors = { descriptorSets[3], nullptr };
 
             // create staging buffer
             generalStagingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_CPU_TO_GPU);
             generalLoadingBuffer = createBuffer(queue, strided<uint8_t>(1024 * 1024), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_TO_CPU);
+        }
+
+        std::vector<vk::DescriptorSet>& Pipeline::getTraverseDescriptorSet() {
+            return traverseDescriptors;
         }
 
         void Pipeline::initPipelines()
@@ -303,6 +318,30 @@ namespace NSM
             rayBlockData[0].materialUniform.lightcount = 1;
             rayBlockData[0].cameraUniform.enable360 = 0;
             clearRays();
+
+
+
+
+            // cache size
+            const size_t TRAVERSE_CACHE_SIZE = 16;
+            const size_t LOCAL_WORK_SIZE = 64;
+
+            // caches
+            //traverseBlockData = createBuffer(device, TRAVERSE_BLOCK_SIZE * INTENSIVITY, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+            traverseCacheData = createBuffer(queue, TRAVERSE_CACHE_SIZE * LOCAL_WORK_SIZE * INTENSIVITY * sizeof(glm::ivec4) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
+
+            // make TBO
+            auto bufferView = createBufferView(traverseCacheData, vk::Format::eR32G32B32A32Sint);
+
+            // set BVH traverse caches
+            {
+                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(traverseDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageTexelBuffer).setDstBinding(4).setPTexelBufferView(&bufferView),
+                        //vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(4).setPBufferInfo(&traverseCacheData->descriptorInfo),
+                        //vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(5).setPBufferInfo(&traverseBlockData->descriptorInfo),
+                }, nullptr);
+            }
         }
 
         void Pipeline::init(Queue queue)
@@ -425,6 +464,15 @@ namespace NSM
                 //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(16).setPBufferInfo(&traverseCacheData->descriptorInfo),
                 //vk::WriteDescriptorSet(desc0Tmpl).setDstBinding(17).setPBufferInfo(&traverseBlockData->descriptorInfo),
             }, nullptr);
+
+            {
+                auto desc0Tmpl = vk::WriteDescriptorSet().setDstSet(traverseDescriptors[0]).setDstArrayElement(0).setDescriptorCount(1).setDescriptorType(vk::DescriptorType::eStorageBuffer);
+                device->logical.updateDescriptorSets(std::vector<vk::WriteDescriptorSet>{
+                    vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(0).setPBufferInfo(&unorderedTempBuffer->descriptorInfo),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(1).setPBufferInfo(&hitBuffer->descriptorInfo),
+                        vk::WriteDescriptorSet(desc0Tmpl).setDescriptorType(vk::DescriptorType::eStorageBuffer).setDstBinding(2).setPBufferInfo(&countersBuffer->descriptorInfo)
+                }, nullptr);
+            }
 
             // init swaps
             indicesSwap[0] = currentBlocks, indicesSwap[1] = preparingBlocks, availableSwap[0] = availableBlocks, availableSwap[1] = clearingBlocks;
@@ -691,11 +739,11 @@ namespace NSM
             flushCommandBuffers(queue, { copyCommand }, true);
 
             // form descriptors for traversers
-            TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
+            //TraversibleData tbsData = { unorderedTempBuffer->descriptorInfo , hitBuffer->descriptorInfo , countersBuffer->descriptorInfo };
             dispatchCompute(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors);
 
             // push bvh traverse commands
-            for (auto& him : hstorages) { him->queryTraverse(tbsData); }
+            for (auto& him : hstorages) { him->queryTraverse(traverseDescriptors); }
 
             // push surface shaders commands
             dispatchCompute(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors);

@@ -64,6 +64,7 @@ namespace NSM
 
             // traverse buffers
             /*Buffer traverseBlockData, traverseCacheData, prepareTraverseBuffer*/;
+            Buffer traverseBlockData, traverseCacheData;
 
             // output images
             Image accumulationImage, filteredImage, flagsImage, depthImage,
@@ -84,10 +85,9 @@ namespace NSM
 
             // vk::DescriptorPool descriptorPool;
 
-            std::vector<vk::DescriptorSet> rayTracingDescriptors, samplingDescriptors, surfaceDescriptors;
+            std::vector<vk::DescriptorSet> rayTracingDescriptors, samplingDescriptors, surfaceDescriptors, traverseDescriptors;
             std::vector<vk::DescriptorSetLayout> 
-                rayTracingDescriptorsLayout, 
-                //rayTraverseDescriptorsLayout, 
+                rayTracingDescriptorsLayout,
                 samplingDescriptorsLayout, 
                 surfaceDescriptorsLayout;
 
@@ -128,6 +128,7 @@ namespace NSM
         public:
             void clearSampling();
             void dispatchRayTracing();
+            std::vector<vk::DescriptorSet>& getTraverseDescriptorSet();
 
             void setSkybox(Image skybox);
             void resizeCanvas(uint32_t width, uint32_t height);

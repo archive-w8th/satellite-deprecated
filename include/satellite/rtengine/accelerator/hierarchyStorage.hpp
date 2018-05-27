@@ -30,7 +30,7 @@ namespace NSM
             ComputeContext bvhTraverse, vertexInterpolator;
 
             Buffer boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
-            Buffer traverseBlockData, traverseCacheData;
+            //Buffer traverseBlockData, traverseCacheData;
 
             // BVH storage
             Buffer bvhBoxStorage;
@@ -87,7 +87,7 @@ namespace NSM
             vk::DescriptorSet& getStorageDescSec() { return clientDescriptorSets[1]; };
 
             // traversing with shared ray-tracer data
-            void queryTraverse(TraversibleData& tbsData);
+            void queryTraverse(std::vector<vk::DescriptorSet>& tbsSet);
 
         protected:
             void init(Queue queue);

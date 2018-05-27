@@ -5,10 +5,9 @@
 namespace NSM {
 
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
-        cmdBuffer.pipelineBarrier(vk::PipelineStageFlagBits::eBottomOfPipe |
-            vk::PipelineStageFlagBits::eTransfer,
-            vk::PipelineStageFlagBits::eTopOfPipe |
-            vk::PipelineStageFlagBits::eTransfer,
+        cmdBuffer.pipelineBarrier(
+            vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
+            vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
             {}, nullptr, nullptr, nullptr);
     };
 

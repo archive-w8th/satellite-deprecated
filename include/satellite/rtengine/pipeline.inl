@@ -707,7 +707,7 @@ namespace NSM
             hstorages.push_back(hierarchy);
         }
 
-
+        // 27.05.2018, we experimented with single command buffer submission of traversing cycle
         void Pipeline::traverse() {
             if (hstorages.size() <= 0) return; // no valid geometry or hierarchy
  
@@ -739,23 +739,30 @@ namespace NSM
             {
                 auto copyCommand = createCommandBuffer(queue, true, true);
                 memoryCopyCmd(copyCommand, zerosBufferReference, countersBuffer, { 0, strided<uint32_t>(HIT_COUNTER), sizeof(uint32_t) });
-                flushCommandBuffers(queue, { copyCommand }, true);
-                //cmds.push_back(copyCommand);
+                //flushCommandBuffers(queue, { copyCommand }, true);
+                cmds.push_back(copyCommand);
             }
 
-            //cmds.push_back(makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false, true));
-            flushCommandBuffers(queue, { makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false) }, true);
+            cmds.push_back(makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false, true)); // generate rays for traverser
+            //flushCommandBuffers(queue, { makeDispatchCmd(unorderedFormer, { INTENSIVITY, 1u, 1u }, rayTracingDescriptors, false) }, true);
 
             // push bvh traverse commands
-            for (auto& him : hstorages) { him->queryTraverse(traverseDescriptors, cmds); }
+            for (auto& him : hstorages) { him->queryTraverse(traverseDescriptors, cmds); } // traverse and intersection with triangles (closest mode)
             //flushCommandBuffers(queue, cmds, true);
 
             // push surface shaders commands
-            //cmds.push_back(makeDispatchCmd(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors, false, true));
-            flushCommandBuffers(queue, { makeDispatchCmd(surfaceShadingPpl,{ INTENSIVITY, 1u, 1u }, surfaceDescriptors, false) }, true);
+            cmds.push_back(makeDispatchCmd(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors, false, true)); // closest hit shader
+            //flushCommandBuffers(queue, { makeDispatchCmd(surfaceShadingPpl,{ INTENSIVITY, 1u, 1u }, surfaceDescriptors, false) }, true);
 
             //flushCommandBuffers(queue, cmds, true);
+            auto primaryCmd = createCommandBuffer(queue, true, false);
+            cmdSubmission(primaryCmd, cmds);
 
+            auto _queue = queue;
+            flushCommandBuffers(queue, { primaryCmd }, [=](){
+                _queue->device->logical.freeCommandBuffers(_queue->commandPool, cmds);
+            });
+            
             return;
         }
 

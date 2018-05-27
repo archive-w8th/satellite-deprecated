@@ -239,7 +239,8 @@ namespace NSM
 
                 // submit build short-hand sequence
                 for (int j = 0; j < 8; j++) {
-                    executeCommands(queue, cmd_seq, true);
+                    for (int i = 0; i < 4;i++) executeCommands(queue, { cmd_seq[i] }, true);
+                    //executeCommands(queue, cmd_seq, true);
                 }
             }
 

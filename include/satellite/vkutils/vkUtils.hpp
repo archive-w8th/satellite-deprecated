@@ -6,8 +6,14 @@ namespace NSM {
 
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
         cmdBuffer.pipelineBarrier(
-            vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
-            vk::PipelineStageFlagBits::eFragmentShader | vk::PipelineStageFlagBits::eVertexShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
+            vk::PipelineStageFlagBits::eFragmentShader | // if fragment shading
+            vk::PipelineStageFlagBits::eGeometryShader | // if transform feedback
+            vk::PipelineStageFlagBits::eComputeShader | // if compute shader
+            vk::PipelineStageFlagBits::eTransfer, // if transfer
+
+            vk::PipelineStageFlagBits::eVertexShader | // from vertex
+            vk::PipelineStageFlagBits::eComputeShader | // from compute
+            vk::PipelineStageFlagBits::eTransfer, // from transfer
             {}, nullptr, nullptr, nullptr);
     };
 

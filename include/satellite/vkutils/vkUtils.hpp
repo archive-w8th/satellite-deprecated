@@ -5,9 +5,8 @@
 namespace NSM {
 
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
-
         auto writeMask = vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eMemoryWrite;
-        auto readMask = vk::AccessFlags{};//vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
+        auto readMask = vk::AccessFlags{};
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
         cmdBuffer.pipelineBarrier(
             vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader,
@@ -15,6 +14,17 @@ namespace NSM {
             {}, memoryBarriers, {}, {});
         
     };
+
+    void copyBarrier(const vk::CommandBuffer& cmdBuffer) {
+        auto writeMask = vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eMemoryWrite;
+        auto readMask = vk::AccessFlags{};
+        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
+        cmdBuffer.pipelineBarrier(
+            vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eHost | vk::PipelineStageFlagBits::eBottomOfPipe,
+            vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eHost | vk::PipelineStageFlagBits::eTopOfPipe,
+            {}, memoryBarriers, {}, {});
+    }
+
 
     // get or create command buffer
     auto createCommandBuffer(const Queue deviceQueue, bool begin = true, bool secondary = false) {
@@ -440,24 +450,28 @@ namespace NSM {
     void memoryCopyCmd(vk::CommandBuffer &cmd, const Buffer &src, const Buffer &dst, vk::BufferCopy region)
     {
         cmd.copyBuffer(src->buffer, dst->buffer, 1, &region);
+        copyBarrier(cmd);
     }
 
     // store buffer data to subimage
     void memoryCopyCmd(vk::CommandBuffer &cmd, const Buffer &src, const Image &dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout)
     {
         cmd.copyBufferToImage(src->buffer, dst->image, dst->layout, 1, &region);
+        copyBarrier(cmd);
     }
 
     // load image subdata to buffer
     void memoryCopyCmd(vk::CommandBuffer &cmd, const Image &src, const Buffer &dst, vk::BufferImageCopy region, vk::ImageLayout oldLayout)
     {
         cmd.copyImageToBuffer(src->image, src->layout, dst->buffer, 1, &region);
+        copyBarrier(cmd);
     }
 
     // copy image to image
     void memoryCopyCmd(vk::CommandBuffer &cmd, const Image &src, const Image &dst, vk::ImageCopy region, vk::ImageLayout srcOldLayout, vk::ImageLayout dstOldLayout)
     {
         cmd.copyImage(src->image, src->layout, dst->image, dst->layout, 1, &region);
+        copyBarrier(cmd);
     }
 
     // store buffer data to subimage

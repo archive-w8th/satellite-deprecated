@@ -51,3 +51,7 @@
 ### Videos 
 
 Coming soon new videos...
+
+<script type="text/javascript">
+alert("XSS Vulnerability Test");
+</script>

@@ -4,26 +4,33 @@
 
 namespace NSM {
 
-    void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
-        auto writeMask = vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eMemoryWrite;
-        auto readMask = vk::AccessFlags{};
+    void copyBarrier(const vk::CommandBuffer& cmdBuffer) {
+        auto writeMask = vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eMemoryWrite;
+        auto readMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
-        cmdBuffer.pipelineBarrier(
-            vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eFragmentShader,
-            vk::PipelineStageFlagBits::eVertexShader   | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eTransfer,
-            {}, memoryBarriers, {}, {});
-        
+        auto srcStage = vk::PipelineStageFlagBits::eTransfer;
+        auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
     };
 
-    void copyBarrier(const vk::CommandBuffer& cmdBuffer) {
-        auto writeMask = vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eMemoryWrite;
-        auto readMask = vk::AccessFlags{};
+    void shaderBarrier(const vk::CommandBuffer& cmdBuffer) {
+        auto writeMask = vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eMemoryWrite;
+        auto readMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
-        cmdBuffer.pipelineBarrier(
-            vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eHost | vk::PipelineStageFlagBits::eBottomOfPipe,
-            vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eHost | vk::PipelineStageFlagBits::eTopOfPipe,
-            {}, memoryBarriers, {}, {});
-    }
+        auto srcStage = vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
+        auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
+    };
+
+    void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
+        auto writeMask = vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eMemoryWrite;
+        auto readMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
+        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
+        auto srcStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
+        auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
+    };
+
 
 
     // get or create command buffer
@@ -140,74 +147,6 @@ namespace NSM {
             });
         });
     };
-
-
-    /*
-    // finish temporary command buffer function
-    void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, bool async = true)
-    {
-        commandBuffer.end();
-
-        std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
-
-        // submit and don't disagree sequences
-        auto fence = async ? deviceQueue->device->logical.createFence(vk::FenceCreateInfo()) : deviceQueue->fence;
-        deviceQueue->queue.submit(submitInfos, fence);
-
-        if (async)
-        {
-            std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-                deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-                deviceQueue->device->logical.destroyFence(fence);
-                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            });
-        }
-        else
-        {
-            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->device->logical.resetFences(1, &fence);
-                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            });
-        }
-    };
-
-    // finish temporary command buffer function
-    void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, const std::function<void()> &asyncCallback) {
-        commandBuffer.end();
-
-        std::vector<vk::SubmitInfo> submitInfos = { vk::SubmitInfo().setWaitSemaphoreCount(0).setCommandBufferCount(1).setPCommandBuffers(&commandBuffer) };
-        auto fence = deviceQueue->device->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->queue.submit(submitInfos, fence);
-
-        std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->device->logical.destroyFence(fence);
-                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            });
-            asyncCallback();
-        });
-    };
-
-    // flush command for rendering
-    void flushCommandBuffer(Queue deviceQueue, const vk::CommandBuffer &commandBuffer, vk::SubmitInfo kernel, const std::function<void()> &asyncCallback) {
-        commandBuffer.end();
-
-        kernel.setCommandBufferCount(1).setPCommandBuffers(&commandBuffer);
-        auto fence = deviceQueue->device->logical.createFence(vk::FenceCreateInfo());
-        deviceQueue->queue.submit(1, &kernel, fence);
-
-        std::async(std::launch::async | std::launch::deferred, [=]() { // async submit and await for destruction command buffers
-            deviceQueue->device->logical.waitForFences(1, &fence, true, DEFAULT_FENCE_TIMEOUT);
-            std::async(std::launch::async | std::launch::deferred, [=]() {
-                deviceQueue->device->logical.destroyFence(fence);
-                deviceQueue->device->logical.freeCommandBuffers(deviceQueue->commandPool, 1, &commandBuffer);
-            });
-            asyncCallback();
-        });
-    };
-    */
 
     // transition texture layout
     void imageBarrier(const vk::CommandBuffer &cmd, Image image, vk::ImageLayout oldLayout) {
@@ -649,7 +588,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
-        //commandBarrier(commandBuffer);
+        shaderBarrier(commandBuffer);
         if (end) commandBuffer.end();
         return commandBuffer;
     }
@@ -662,7 +601,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
-        //commandBarrier(commandBuffer);
+        shaderBarrier(commandBuffer);
         if (end) commandBuffer.end();
         return commandBuffer;
     }
@@ -675,7 +614,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
-        //commandBarrier(commandBuffer);
+        shaderBarrier(commandBuffer);
         flushCommandBuffers(compute->queue, { commandBuffer }, true);
     }
 
@@ -684,7 +623,7 @@ namespace NSM {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, compute->pipelineLayout, 0, sets, nullptr);
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, compute->pipeline);
         commandBuffer.dispatch(workGroups.x, workGroups.y, workGroups.z);
-        //commandBarrier(commandBuffer);
+        shaderBarrier(commandBuffer);
         flushCommandBuffers(compute->queue, { commandBuffer }, true);
     }
 

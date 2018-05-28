@@ -239,12 +239,13 @@ namespace NSM
 
                 // submit build short-hand sequence
                 for (int j = 0; j < 8; j++) {
-                    for (int i = 0; i < 4;i++) executeCommands(queue, { cmd_seq[i] }, true);
-                    //executeCommands(queue, cmd_seq, true);
+                    //for (int i = 0; i < 4;i++) executeCommands(queue, { cmd_seq[i] }, true);
+                    executeCommands(queue, cmd_seq, true);
                 }
             }
 
             // anti-pattern, but we does not made waiter for resolve to free resources
+            //for (int i = 0; i < 4; i++) flushCommandBuffers(queue, { cmd_seq[i] }, true, false);
             flushCommandBuffers(queue, cmd_seq, true, false);
             
             dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });

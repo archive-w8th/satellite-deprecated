@@ -124,13 +124,12 @@ namespace NSM {
                 cmds.push_back(makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false));
                 cmds.push_back(makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets, false));
                 cmds.push_back(makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false));
-                flushCommandBuffers(queue, cmds, true, true);
 
                 auto copyToBuffers = createCommandBuffer(queue, true);
                 memoryCopyCmd(copyToBuffers, TmpKeys, InKeys, { 0, 0, strided<uint64_t>(size) });
                 memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
                 cmds.push_back(copyToBuffers);
-                flushCommandBuffers(queue, { copyToBuffers }, true);
+                flushCommandBuffers(queue, cmds, true);
             }
             //flushCommandBuffers(queue, cmds, true, true);
         }

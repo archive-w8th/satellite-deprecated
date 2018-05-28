@@ -248,10 +248,10 @@ namespace NSM
             //for (int i = 0; i < 4; i++) flushCommandBuffers(queue, { cmd_seq[i] }, true, false);
             flushCommandBuffers(queue, cmd_seq, true, false);
             
-            dispatchCompute(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            dispatchCompute(refitBVH, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            //dispatchCompute(refitBVH, { 1u, 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-
+            flushCommandBuffers(queue, {
+                makeDispatchCmd(childLink, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }),
+                makeDispatchCmd(refitBVH, { uint32_t(INTENSIVITY), 1u, 1u }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() })
+            }, true, false);
             
             //if (triangleCount[0] > 0) {
                 //std::vector<bbox> bboxes(triangleCount[0] * 2);

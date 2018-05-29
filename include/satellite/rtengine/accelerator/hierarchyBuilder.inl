@@ -74,6 +74,7 @@ namespace NSM
             childLink = createCompute(queue, shadersPathPrefix + "/hlbvh2/leaf-link.comp.spv", pipelineLayout);
             aabbCalculate = createCompute(queue, shadersPathPrefix + "/hlbvh2/leaf-gen.comp.spv", pipelineLayout);
             buildBVHLargePpl = createCompute(queue, shadersPathPrefix + "/hlbvh2/bvh-build-large.comp.spv", pipelineLayoutCnst);
+            shorthandPpl = createCompute(queue, shadersPathPrefix + "/hlbvh2/shorthand.comp.spv", pipelineLayout);
 
             { // boundary buffer cache
                 countersBuffer = createBuffer(queue, strided<uint32_t>(8), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -174,33 +175,11 @@ namespace NSM
                 syncUniforms();
             }
 
-            // calculate general AABB
-            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBufferReference, boundaryBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }) }, true);
-            dispatchCompute(boundPrimitives, { CACHED_BBOX, 1, 1 }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() });
-            flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBuffer, generalLoadingBuffer, { 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }) }, false);
-
-            // receive boundary (planned to save in GPU)
-            std::vector<bbox> bounds(CACHED_BBOX);
-            getBufferSubData(generalLoadingBuffer, bounds, 0);
-            bbox bound = std::reduce(std::execution::par_unseq, bounds.begin(), bounds.end(), bounds[0], [&](auto&& a, auto&& b) {
-                bbox _box;
-                _box.mn = glm::min(a.mn, b.mn);
-                _box.mx = glm::max(a.mx, b.mx);
-                return _box;
-            });
-
-            // get optimizations
-            glm::vec3 scale = (bound.mx - bound.mn).xyz();
-            glm::vec3 offset = bound.mn.xyz();
-            {
-                glm::mat4 mat(1.0);
-                mat *= glm::inverse(glm::translate(glm::vec3(0.5, 0.5, 0.5)) * glm::scale(glm::vec3(0.5, 0.5, 0.5)));
-                mat *= glm::inverse(glm::translate(glm::vec3(offset)) * glm::scale(glm::vec3(scale)));
-                mat *= glm::inverse(glm::mat4(optproj));
-                bvhBlockData[0].transform = glm::transpose(glm::mat4(mat));
-                bvhBlockData[0].transformInv = glm::transpose(glm::inverse(glm::mat4(mat)));
-                syncUniforms();
-            }
+            flushCommandBuffers(queue, {
+                makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, boundaryBufferReference, boundaryBuffer,{ 0, 0, strided<glm::vec4>(CACHED_BBOX * 2) }),
+                makeDispatchCmd(boundPrimitives, { CACHED_BBOX, 1, 1 }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, false),
+                makeDispatchCmd(shorthandPpl, { 1, 1, 1 }, { builderDescriptorSets[0], hierarchyStorageLink->getStorageDescSec() }, false)
+            }, true);
 
             // copy bvh optimal transformation to hierarchy storage
             flushCommandBuffers(queue, { makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, bvhBlockUniform.buffer, geometryBlockUniform.buffer, { offsetof(GeometryUniformStruct, transform), offsetof(BVHBlockUniform, transform), strided<glm::mat4>(4) }) }, true);

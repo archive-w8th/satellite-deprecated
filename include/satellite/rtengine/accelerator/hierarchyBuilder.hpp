@@ -36,7 +36,7 @@ namespace NSM
 
             vk::PipelineLayout pipelineLayout;
 
-            ComputeContext buildBVHPpl, buildBVHLargePpl, aabbCalculate, refitBVH, boundPrimitives, childLink;
+            ComputeContext buildBVHPpl, buildBVHLargePpl, aabbCalculate, refitBVH, boundPrimitives, childLink, shorthandPpl;
             Buffer boundaryBufferReference, zerosBufferReference, debugOnes32BufferReference;
             Buffer bvhBoxWorking, bvhBoxWorkingResulting, leafsBuffer, countersBuffer, mortonCodesBuffer, mortonIndicesBuffer, boundaryBuffer, workingBVHNodesBuffer, leafBVHIndicesBuffer, bvhNodesFlags;
             Buffer bvhMetaWorking;

@@ -7,7 +7,7 @@ namespace NSM {
     void copyBarrier(const vk::CommandBuffer& cmdBuffer) {
         auto writeMask = vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eMemoryWrite;
         auto readMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
-        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
+        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask | readMask).setDstAccessMask(readMask) };
         auto srcStage = vk::PipelineStageFlagBits::eTransfer;
         auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
         cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
@@ -16,7 +16,7 @@ namespace NSM {
     void shaderBarrier(const vk::CommandBuffer& cmdBuffer) {
         auto writeMask = vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eMemoryWrite;
         auto readMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
-        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
+        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask | readMask).setDstAccessMask(readMask) };
         auto srcStage = vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
         auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
         cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
@@ -25,7 +25,7 @@ namespace NSM {
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
         auto writeMask = vk::AccessFlagBits::eTransferWrite | vk::AccessFlagBits::eShaderWrite | vk::AccessFlagBits::eMemoryWrite;
         auto readMask = vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eShaderRead | vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eUniformRead;
-        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask).setDstAccessMask(readMask) };
+        auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask | readMask).setDstAccessMask(readMask) };
         auto srcStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
         auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
         cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});

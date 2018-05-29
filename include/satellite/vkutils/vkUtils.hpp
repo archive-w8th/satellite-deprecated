@@ -10,7 +10,7 @@ namespace NSM {
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask | readMask).setDstAccessMask(readMask) };
         auto srcStage = vk::PipelineStageFlagBits::eTransfer;
         auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
-        cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, vk::DependencyFlagBits::eByRegion, memoryBarriers, {}, {});
     };
 
     void shaderBarrier(const vk::CommandBuffer& cmdBuffer) {
@@ -19,7 +19,7 @@ namespace NSM {
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask | readMask).setDstAccessMask(readMask) };
         auto srcStage = vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
         auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
-        cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, vk::DependencyFlagBits::eByRegion, memoryBarriers, {}, {});
     };
 
     void commandBarrier(const vk::CommandBuffer& cmdBuffer) {
@@ -28,7 +28,7 @@ namespace NSM {
         auto memoryBarriers = std::vector<vk::MemoryBarrier>{ vk::MemoryBarrier().setSrcAccessMask(writeMask | readMask).setDstAccessMask(readMask) };
         auto srcStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eGeometryShader | vk::PipelineStageFlagBits::eFragmentShader;
         auto dstStage = vk::PipelineStageFlagBits::eTransfer | vk::PipelineStageFlagBits::eComputeShader | vk::PipelineStageFlagBits::eVertexShader;
-        cmdBuffer.pipelineBarrier(srcStage, dstStage, {}, memoryBarriers, {}, {});
+        cmdBuffer.pipelineBarrier(srcStage, dstStage, vk::DependencyFlagBits::eByRegion, memoryBarriers, {}, {});
     };
 
 
@@ -199,7 +199,7 @@ namespace NSM {
         imageMemoryBarriers.dstAccessMask = dstMask;
 
         // barrier
-        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, std::array<vk::ImageMemoryBarrier, 1>{imageMemoryBarriers});
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlagBits::eByRegion, {}, {}, std::array<vk::ImageMemoryBarrier, 1>{imageMemoryBarriers});
         image->initialLayout = imageMemoryBarriers.newLayout;
     }
 

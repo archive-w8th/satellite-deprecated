@@ -754,13 +754,8 @@ namespace NSM
             cmds.push_back(makeDispatchCmd(surfaceShadingPpl, { INTENSIVITY, 1u, 1u }, surfaceDescriptors, false, true)); // closest hit shader
             //flushCommandBuffers(queue, { makeDispatchCmd(surfaceShadingPpl,{ INTENSIVITY, 1u, 1u }, surfaceDescriptors, false) }, true);
 
-            flushCommandBuffers(queue, cmds, true);
-            /*
-            auto primaryCmd = createCommandBuffer(queue, true, false); auto _queue = queue;
-            cmdSubmission(primaryCmd, cmds);
-            flushCommandBuffers(queue, { primaryCmd }, [=](){
-                _queue->device->logical.freeCommandBuffers(_queue->commandPool, cmds);
-            });*/
+            flushSecondaries(queue, cmds);
+            //flushCommandBuffers(queue, cmds, true);
             
             return;
         }

@@ -117,20 +117,21 @@ namespace NSM {
             // upload to buffer
             bufferSubData({}, VarStaging, steps, 0);
 
-            //auto cmds = std::vector<vk::CommandBuffer>();
+            auto cmds = std::vector<vk::CommandBuffer>();
             for (int j = 0; j < stepCount; j++) {
                 auto cmds = std::vector<vk::CommandBuffer>();
-                cmds.push_back(makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(j), 0, strided<Consts>(1) }));
-                cmds.push_back(makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false));
-                cmds.push_back(makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets, false));
-                cmds.push_back(makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false));
+                cmds.push_back(makeCopyCmd<Buffer &, Buffer &, vk::BufferCopy>(queue, VarStaging, VarBuffer, { strided<Consts>(j), 0, strided<Consts>(1) }, false, true));
+                cmds.push_back(makeDispatchCmd(histogram, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false, true));
+                cmds.push_back(makeDispatchCmd(workPrefixSum, { 1u, 1u, 1u }, descriptorSets, false, true));
+                cmds.push_back(makeDispatchCmd(permute, { WG_COUNT, RADICE_AFFINE, 1u }, descriptorSets, false, true));
 
-                auto copyToBuffers = createCommandBuffer(queue, true);
+                auto copyToBuffers = createCommandBuffer(queue, true, true);
                 memoryCopyCmd(copyToBuffers, TmpKeys, InKeys, { 0, 0, strided<uint64_t>(size) });
                 memoryCopyCmd(copyToBuffers, TmpValues, InVals, { 0, 0, strided<uint32_t>(size) });
                 cmds.push_back(copyToBuffers);
-                flushCommandBuffers(queue, cmds, true);
+                flushSecondaries(queue, cmds);
             }
+            flushSecondaries(queue, cmds);
             //flushCommandBuffers(queue, cmds, true, true);
         }
 

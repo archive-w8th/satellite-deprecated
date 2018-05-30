@@ -148,6 +148,19 @@ namespace NSM {
         });
     };
 
+
+
+    void flushSecondaries(const Queue queue, const std::vector<vk::CommandBuffer>& cmds) {
+        auto primaryCmd = createCommandBuffer(queue, true, false);
+        auto _queue = queue;
+        cmdSubmission(primaryCmd, cmds);
+        flushCommandBuffers(queue, { primaryCmd }, [=]() {
+            _queue->device->logical.freeCommandBuffers(_queue->commandPool, cmds);
+        });
+    }
+
+
+
     // transition texture layout
     void imageBarrier(const vk::CommandBuffer &cmd, Image image, vk::ImageLayout oldLayout) {
         vk::ImageMemoryBarrier imageMemoryBarriers = {};
@@ -449,9 +462,9 @@ namespace NSM {
     */
 
     template <class... T>
-    vk::CommandBuffer makeCopyCmd(const Queue deviceQueue, T... args, bool end = false)
+    vk::CommandBuffer makeCopyCmd(const Queue deviceQueue, T... args, bool end = false, bool secondary = false)
     { // copy staging buffers
-        vk::CommandBuffer copyCmd = createCommandBuffer(deviceQueue, true);
+        vk::CommandBuffer copyCmd = createCommandBuffer(deviceQueue, true, secondary);
         memoryCopyCmd(copyCmd, args...);
         if (end) copyCmd.end();
         return copyCmd;

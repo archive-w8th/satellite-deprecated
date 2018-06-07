@@ -11,7 +11,7 @@
 * **02.05.2018**. We made support for nearly all current graphics platforms (2017, 2018 and higher). We now supported in Intel UHD Graphics 630, AMD RX Vega 64 (and may be 56), NVidia GTX 1070 (and may GTX 1080 family).
 * **06.05.2018**. We published shaders in standalone repository (https://github.com/world8th/rt-vulkan-shaders). Compatible only with *Vulkan API 1.1*. 
 * **14.05.2018**. Updated Vulkan headers and added Volk meta loader. "vulkan.lib" no more required.
-* **01.06.2018**. Satellite NEXT (take 2) - https://github.com/world8th/vRt
+* **01.06.2018**. Satellite NEXT (take 2) - (still in Github https://github.com/world8th/vRt) merging to https://gitlab.com/world8th/vRt 
 * **07.06.2018**. This project was more of a mistake. I will sacrifice it to Microsoft, all the developments that are more new and unique, will move to another platform in the near future. I basically still have time, I do not advise other developers to panic, but rather weigh our decisions, all the pros and cons. @elviras9t
 
 ### What we can be do, if we had desires

@@ -13,7 +13,7 @@
 * **14.05.2018**. Updated Vulkan headers and added Volk meta loader. "vulkan.lib" no more required.
 * **01.06.2018**. Satellite NEXT (take 2) - (some time still https://github.com/world8th/vRt) https://gitlab.com/world8th/vRt
 * **07.06.2018**. This project was more of a mistake. I will sacrifice it to Microsoft, all the developments that are more new and unique, will move to another platform in the near future. I basically still have time, I do not advise other developers to panic, but rather weigh our decisions, all the pros and cons. @elviras9t
-* **07.06.2018**. Merging to https://gitlab.com/world8th/vRt (some time, will still have in github)
+* **07.06.2018**. Merging new project to https://gitlab.com/world8th/vRt (some time, will still have in github)
 
 ### What we can be do, if we had desires
 

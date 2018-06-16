@@ -27,15 +27,6 @@
 * Windows x64 platform (not UWP), and modern hardwares (NVidia Pascal, Radeon Vega, and beyond) support
 * The WOLK graphics standard passing technology!
 
-### Contacts 
-
-* [Our Discord](https://discordapp.com/invite/HFfADHH)
-* [Our Reddit](https://www.reddit.com/user/elviras9t/)
-
-### Patreons
-
-* [Make ray-tracing forces with Patreon](https://www.patreon.com/ray_tracing_forces)
-
 ### Minimal requirement for minimal product
 
 * Windows platform with IDE (Visual Studio 2017 and higher)
